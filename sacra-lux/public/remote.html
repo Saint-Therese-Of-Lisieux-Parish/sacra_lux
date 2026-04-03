@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sacra Lux Remote</title>
+  <link rel="stylesheet" href="/static/fonts/google-fonts.css" />
+  <link rel="stylesheet" href="/static/shared.css" />
+  <style>
+    .shell {
+      padding: 0.9rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .top {
+      margin-bottom: 0.75rem;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .controls button {
+      padding: 1.1rem 0.9rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .cue-list {
+      display: grid;
+      gap: 0.45rem;
+      max-height: 55vh;
+      overflow: auto;
+    }
+
+    .cue-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.9rem;
+      line-height: 1.3;
+      border-radius: 10px;
+      transition: background 0.1s, transform 0.08s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cue-btn:active {
+      transform: scale(0.97);
+      background: var(--pressed-bg);
+    }
+
+    .cue-btn.active {
+      border-color: var(--accent);
+      background: var(--active-bg);
+      font-weight: 700;
+    }
+
+    /* ── Grouped slide list ───────────────────────────────────────── */
+    .cue-group {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .cue-group.group-active {
+      border-color: var(--accent);
+    }
+
+    .cue-group-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    .cue-group-summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .cue-group.group-active>.cue-group-summary {
+      background: var(--active-bg);
+      color: var(--accent);
+    }
+
+    .cue-group-summary::after {
+      content: '▾';
+      font-size: 1rem;
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+
+    .cue-group[open]>.cue-group-summary::after {
+      transform: rotate(-180deg);
+    }
+
+    .cue-group-count {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: var(--line);
+      border-radius: 999px;
+      padding: 0.1rem 0.45rem;
+      margin-left: auto;
+      color: var(--ink-soft);
+    }
+
+    .cue-group-body {
+      display: grid;
+      gap: 0.3rem;
+      padding: 0 0.5rem 0.5rem;
+    }
+
+    .sub-cue {
+      font-size: 0.82rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+    }
+
+    /* ── Live screen preview ──────────────────────────────────────────── */
+    .screen-preview-wrap {
+      margin-bottom: 0.8rem;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      /* 16:9 aspect-ratio container */
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #050505;
+    }
+
+    .screen-preview-wrap iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      /* iframe is rendered at 1920px wide then scaled down */
+      width: 1920px;
+      height: 1080px;
+      border: none;
+      transform-origin: top left;
+      pointer-events: none;
+    }
+
+    /* ── Section headers in organizer list ───────────────────────────── */
+    .phase-section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.9rem 0.2rem 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .phase-section-header::after {
+      content: "";
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, var(--phase-line), var(--line));
+    }
+
+    .phase-section {
+      display: grid;
+      gap: 0.3rem;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="shell">
+    <section id="blackSection" style="padding: 0.5rem 0.9rem; display:grid; grid-template-columns:1fr 1fr; gap:0.5rem">
+      <button id="interstitialBtn" class="danger" style="font-size:0.82rem">Interstitial Slide</button>
+      <button id="nextSectionBtn" class="primary" style="font-size:0.82rem">Next Section</button>
+    </section>
+
+    <section id="titleSection" class="top card" style="padding: 0.8rem">
+      <p id="title" style="margin: 0; text-align: center; font-weight: 700; font-size: 0.95rem; line-height: 1.3;">No
+        presentation loaded.</p>
+    </section>
+
+    <div class="screen-preview-wrap" id="screenPreviewWrap">
+      <iframe id="screenFrame" src="/screen" title="Live screen output"></iframe>
+    </div>
+
+    <section class="controls">
+      <button id="prevBtn">Prev</button>
+      <button id="nextBtn" class="strong">Next</button>
+    </section>
+
+    <section class="card" style="padding: 0.55rem">
+      <div id="cueList" class="cue-list"></div>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const els = {
+      title: document.getElementById("title"),
+      cueList: document.getElementById("cueList"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      interstitialBtn: document.getElementById("interstitialBtn"),
+      nextSectionBtn: document.getElementById("nextSectionBtn"),
+      screenPreviewWrap: document.getElementById("screenPreviewWrap"),
+      screenFrame: document.getElementById("screenFrame")
+    };
+
+    // ── Live screen preview scaling ──────────────────────────────────────────
+    function scalePreviewIframe() {
+      const scale = els.screenPreviewWrap.clientWidth / 1920;
+      els.screenFrame.style.transform = `scale(${scale})`;
+    }
+
+    window.addEventListener("resize", scalePreviewIframe);
+    requestAnimationFrame(scalePreviewIframe);
+
+    // Scroll so the live screen preview is at the top of the viewport on load,
+    // leaving the title and top buttons scrolled above it.
+    requestAnimationFrame(() => {
+      const preview = document.getElementById("screenPreviewWrap");
+      if (preview) {
+        preview.scrollIntoView({ behavior: "instant", block: "start" });
+      }
+    });
+
+    let interstitialHoldActive = false;
+    let currentSlides = [];
+    let currentActive = 0;
+    let _preMassRunning = false;
+    let _currentPhase = null;
+
+    // Theme application for remote UI — loaded from server
+    let _remoteThemes = {};
+    let _currentTheme = "carmelite";
+    fetch("/api/theme-vars").then(r => r.json()).then(data => {
+      _remoteThemes = data.themes;
+      applyRemoteTheme(data.current);
+    }).catch(() => { });
+
+    function applyRemoteTheme(themeId) {
+      const theme = _remoteThemes[themeId];
+      if (!theme || themeId === _currentTheme) return;
+      _currentTheme = themeId;
+      const root = document.documentElement;
+      for (const [prop, val] of Object.entries(theme.vars)) {
+        root.style.setProperty(prop, val);
+      }
+      root.style.colorScheme = theme.colorScheme || "light";
+    }
+
+    function render(state) {
+      // Apply theme
+      applyRemoteTheme(state.appSettings?.theme || "carmelite");
+      interstitialHoldActive = Boolean(state.interstitialHoldActive);
+      currentSlides = state.presentation?.slides || [];
+      currentActive = Number(state.currentSlideIndex) || 0;
+      _preMassRunning = Boolean(state.preMassRunning);
+      _currentPhase = currentSlides[currentActive]?.phase || null;
+      const cues = currentSlides;
+      const active = currentActive;
+      const hasInterstitial = currentSlides.some((slide) => slide.type === "interstitial");
+
+      els.title.textContent = state.presentation?.title || "No presentation";
+      els.interstitialBtn.textContent = interstitialHoldActive ? "Return to Slide" : "Interstitial Slide";
+      els.interstitialBtn.disabled = !hasInterstitial;
+
+      // Update Next Section button — becomes "Start Mass" during pre/post phases
+      const isPreOrPost = _preMassRunning || _currentPhase === "pre" || _currentPhase === "post";
+      els.nextSectionBtn.textContent = isPreOrPost ? "Start Mass" : "Next Section";
+
+      els.cueList.innerHTML = buildCueListHtml(cues, active);
+
+      // Scroll so the active item is at the top of the list.
+      // If it's inside a group, account for the summary header height.
+      const activeBtn = els.cueList.querySelector(".cue-btn.active");
+      if (activeBtn) {
+        const list = els.cueList;
+        const listTop = list.getBoundingClientRect().top;
+        const btnTop = activeBtn.getBoundingClientRect().top;
+        const summary = activeBtn.closest("details")?.querySelector("summary");
+        const summaryH = summary ? summary.getBoundingClientRect().height : 0;
+        list.scrollTop += (btnTop - listTop) - summaryH;
+      }
+    }
+
+    socket.on("state:update", render);
+    socket.on("interstitial:hold:error", ({ error }) => {
+      if (error) {
+        els.title.textContent = error;
+      }
+    });
+
+    const PHASE_LABELS = {
+      pre: "Pre-Mass Announcements",
+      gathering: "Gathering",
+      mass: "Mass",
+      post: "Post-Mass Announcements"
+    };
+
+    function buildCueListHtml(cues, active) {
+      // Group consecutive cues by organizerItemId
+      const groups = [];
+      for (const cue of cues) {
+        const gid = cue.organizerItemId || cue.id;
+        if (groups.length && groups[groups.length - 1].id === gid) {
+          groups[groups.length - 1].cues.push(cue);
+        } else {
+          groups.push({ id: gid, cues: [cue], phase: cue.phase || "mass" });
+        }
+      }
+
+      // Group the organizer groups into phase sections
+      const phaseSections = [];
+      let lastPhase = null;
+      for (const group of groups) {
+        if (group.phase !== lastPhase) {
+          lastPhase = group.phase;
+          phaseSections.push({ phase: group.phase, groups: [] });
+        }
+        phaseSections[phaseSections.length - 1].groups.push(group);
+      }
+
+      return phaseSections.map((section) => {
+        const groupsHtml = section.groups.map((group) => {
+          const isMulti = group.cues.length > 1;
+          const hasActive = group.cues.some((c) => c.index === active);
+
+          if (!isMulti) {
+            const cue = group.cues[0];
+            const label = cue.groupLabel || cue.title;
+            return `<button class="cue-btn${hasActive ? " active" : ""}" data-index="${cue.index}">${label}</button>`;
+          }
+
+          const first = group.cues[0];
+          const groupName = first.groupLabel || first.title.replace(/ \(\d+\/\d+\)$/, "");
+          const subHtml = group.cues.map((cue) => {
+            const isActive = cue.index === active;
+            return `<button class="cue-btn sub-cue${isActive ? " active" : ""}" data-index="${cue.index}">${cue.title}</button>`;
+          }).join("");
+
+          return `<details class="cue-group${hasActive ? " group-active" : ""}"${hasActive ? " open" : ""}>
+            <summary class="cue-group-summary">
+              ${groupName}
+              <span class="cue-group-count">${group.cues.length} slides</span>
+            </summary>
+            <div class="cue-group-body">${subHtml}</div>
+          </details>`;
+        }).join("");
+
+        const label = PHASE_LABELS[section.phase] || section.phase;
+        return `<div class="phase-section"><div class="phase-section-header">${label}</div>${groupsHtml}</div>`;
+      }).join("");
+    }
+
+    function scrollToPreview() {
+      els.screenPreviewWrap.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    els.prevBtn.addEventListener("click", () => { socket.emit("slide:prev"); scrollToPreview(); });
+    els.nextBtn.addEventListener("click", () => { socket.emit("slide:next"); scrollToPreview(); });
+    els.interstitialBtn.addEventListener("click", () => socket.emit("screen:interstitial-hold"));
+
+    els.nextSectionBtn.addEventListener("click", () => {
+      const isPreOrPost = _preMassRunning || _currentPhase === "pre" || _currentPhase === "post";
+      if (isPreOrPost) {
+        // Jump to first Mass section slide
+        const firstMass = currentSlides.find((s) => s.phase === "mass");
+        if (firstMass) {
+          socket.emit("slide:goto:remote", firstMass.index);
+          scrollToPreview();
+        }
+      } else {
+        // Normal: advance to next organizer group
+        const currentGroupId = currentSlides[currentActive]?.organizerItemId || currentSlides[currentActive]?.id;
+        const nextSlide = currentSlides.find((s) => {
+          const gid = s.organizerItemId || s.id;
+          return s.index > currentActive && gid !== currentGroupId;
+        });
+        if (nextSlide) {
+          socket.emit("slide:goto:remote", nextSlide.index);
+          scrollToPreview();
+        }
+      }
+    });
+
+    els.cueList.addEventListener("click", (event) => {
+      const btn = event.target.closest(".cue-btn");
+      if (!btn) {
+        return;
+      }
+      socket.emit("slide:goto:remote", Number(btn.dataset.index));
+    });
+
+    fetch("/api/state")
+      .then((r) => r.json())
+      .then(render)
+      .catch(() => { });
+  </script>
+</body>
+
+</html>

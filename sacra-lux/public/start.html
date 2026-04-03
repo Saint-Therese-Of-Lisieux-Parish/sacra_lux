@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Start Mass</title>
+  <link rel="stylesheet" href="/static/fonts/google-fonts.css" />
+  <link rel="stylesheet" href="/static/shared.css" />
+  <style>
+    .start-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    .mass-info {
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .mass-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .mass-time {
+      font-size: 1rem;
+      color: var(--ink-soft);
+      margin: 0.2rem 0 0;
+    }
+
+    .start-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.5rem 2rem 1.8rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 4px 24px var(--shadow);
+    }
+
+    .start-card h1 {
+      margin: 0 0 0.3rem;
+      font-size: 1.4rem;
+      color: var(--ink);
+    }
+
+    .start-card p {
+      margin: 0 0 0.8rem;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+    }
+
+    .pin-input {
+      width: 100%;
+      text-align: center;
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: 0.5em;
+      padding: 0.7rem 1rem;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      margin-bottom: 0.8rem;
+    }
+
+    .pin-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--phase-line);
+    }
+
+    .start-btn {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: var(--accent-2);
+      color: var(--ink-on-accent);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .start-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .warn-dialog {
+      border: none;
+      border-radius: 16px;
+      padding: 0;
+      width: min(360px, 90vw);
+      box-shadow: 0 8px 40px var(--shadow-strong);
+      background: var(--panel);
+      text-align: center;
+    }
+
+    .warn-dialog::backdrop {
+      background: var(--backdrop);
+    }
+
+    .warn-dialog-body {
+      padding: 2rem 1.5rem 1.5rem;
+    }
+
+    .warn-dialog-body .warn-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .warn-dialog-body h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.2rem;
+      color: var(--danger);
+    }
+
+    .warn-dialog-body p {
+      margin: 0 0 1.2rem;
+      color: var(--ink-soft);
+      font-size: 0.95rem;
+    }
+
+    .warn-dialog-body button {
+      padding: 0.7rem 2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      background: var(--danger);
+      color: var(--ink-on-accent);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-weight: 600;
+      margin-top: 0.6rem;
+      min-height: 1.4em;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="start-shell">
+    <div class="mass-info">
+      <div id="massTitle" class="mass-title"></div>
+      <div id="massTime" class="mass-time"></div>
+    </div>
+    <div class="start-card">
+      <h1>Start Mass</h1>
+      <p>Enter the PIN to begin</p>
+      <input id="pinInput" class="pin-input" type="tel" inputmode="numeric" pattern="[0-9]*"
+        maxlength="6" placeholder="----" autocomplete="off" autofocus>
+      <button id="startBtn" class="start-btn" type="button">Start</button>
+      <div id="errorMsg" class="error-msg"></div>
+    </div>
+  </div>
+
+  <dialog id="warnDialog" class="warn-dialog">
+    <div class="warn-dialog-body">
+      <div class="warn-icon">&#9888;&#65039;</div>
+      <h2>Warning</h2>
+      <p>One more incorrect attempt will sound an alarm tone on this device.</p>
+      <button id="warnAckBtn" type="button">I Understand</button>
+    </div>
+  </dialog>
+
+  <script>
+    const pinInput = document.getElementById("pinInput");
+    const startBtn = document.getElementById("startBtn");
+    const errorMsg = document.getElementById("errorMsg");
+    const massTitleEl = document.getElementById("massTitle");
+    const massTimeEl = document.getElementById("massTime");
+    const warnDialog = document.getElementById("warnDialog");
+    const warnAckBtn = document.getElementById("warnAckBtn");
+
+    warnAckBtn.addEventListener("click", () => warnDialog.close());
+
+    // Load and apply theme
+    fetch("/api/theme-vars").then(r => r.json()).then(data => {
+      const theme = data.themes[data.current];
+      if (theme) {
+        const root = document.documentElement;
+        for (const [prop, val] of Object.entries(theme.vars)) {
+          root.style.setProperty(prop, val);
+        }
+        root.style.colorScheme = theme.colorScheme || "light";
+      }
+    }).catch(() => { });
+
+    // Load mass title and start time
+    fetch("/api/state")
+      .then((r) => r.json())
+      .then((state) => {
+        massTitleEl.textContent = state.presentation?.title || "";
+        if (state.massStartTime) {
+          const d = new Date(state.massStartTime);
+          massTimeEl.textContent = d.toLocaleDateString([], {
+            weekday: "long", month: "long", day: "numeric"
+          }) + " at " + d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        }
+      })
+      .catch(() => {});
+
+    let _failCount = 0;
+
+    function playBuzzer() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.value = 220;
+        gain.gain.value = 0.3;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+        osc.onended = () => ctx.close();
+      } catch { /* audio not available */ }
+    }
+
+    startBtn.addEventListener("click", submit);
+    pinInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submit();
+    });
+
+    async function submit() {
+      const pin = pinInput.value.trim();
+      if (!pin) {
+        errorMsg.textContent = "Please enter the PIN.";
+        return;
+      }
+      startBtn.disabled = true;
+      startBtn.textContent = "Verifying\u2026";
+      errorMsg.textContent = "";
+      try {
+        const resp = await fetch("/api/verify-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin })
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          _failCount++;
+          if (_failCount >= 5) {
+            playBuzzer();
+            errorMsg.textContent = "Incorrect PIN. Alarm sounded.";
+          } else if (_failCount === 4) {
+            errorMsg.textContent = "Incorrect PIN.";
+            warnDialog.showModal();
+          } else {
+            errorMsg.textContent = data.error || "Incorrect PIN.";
+          }
+          pinInput.value = "";
+          pinInput.focus();
+        } else {
+          window.location.href = data.redirect || "/api/start-redirect";
+        }
+      } catch (err) {
+        errorMsg.textContent = "Connection error. Please try again.";
+      } finally {
+        startBtn.disabled = false;
+        startBtn.textContent = "Start";
+      }
+    }
+  </script>
+</body>
+
+</html>

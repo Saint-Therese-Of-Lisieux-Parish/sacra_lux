@@ -1,0 +1,106 @@
+{
+  "name": "sacra-lux",
+  "version": "0.0.1-alpha",
+  "description": "Catholic Mass presentation app with phone remote control",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ./src/main.js",
+    "web": "node ./src/web.js",
+    "build": "electron-builder --mac --win",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win",
+    "lint": "eslint src tests scripts eslint.config.js",
+    "check:version-sync": "node ./scripts/check-version-sync.js",
+    "precommit": "node ./scripts/precommit.js",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "node --localstorage-file=.jest-localstorage ./node_modules/jest/bin/jest.js --config ./jest.config.cjs tests/unit --runInBand",
+    "test:integration": "node --localstorage-file=.jest-localstorage ./node_modules/jest/bin/jest.js --config ./jest.config.cjs tests/integration --runInBand",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:install": "playwright install --with-deps chromium"
+  },
+  "keywords": [
+    "catholic",
+    "liturgy",
+    "mass",
+    "presentation",
+    "electron",
+    "projection"
+  ],
+  "author": "Robert Toups",
+  "license": "ISC",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/issues"
+  },
+  "homepage": "https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux",
+  "dependencies": {
+    "adm-zip": "^0.5.10",
+    "express": "^5.2.1",
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.34.5",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "concurrently": "^9.2.1",
+    "electron": "^41.0.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9.39.4",
+    "globals": "^16.5.0",
+    "jest": "^30.1.3",
+    "supertest": "^7.1.4"
+  },
+  "build": {
+    "appId": "com.toups.sacra-lux",
+    "productName": "Sacra Lux",
+    "mac": {
+      "icon": "build/icon.icns",
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "build/icon.png",
+      "build/icon-splash.png",
+      "build/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "prayers",
+        "to": "prayers"
+      }
+    ],
+    "asar": true,
+    "directories": {
+      "output": "${env.HOME}/Documents/sacra-lux-dist"
+    }
+  }
+}

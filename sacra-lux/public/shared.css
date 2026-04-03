@@ -1,0 +1,260 @@
+/* Source Sans 3 is included via /static/fonts/google-fonts.css */
+
+:root {
+  --bg: #faf5ee;
+  --bg-alt: #f0e8d8;
+  --panel: #ffffff;
+  --panel-alt: #faf5ee;
+  --ink: #3a2818;
+  --ink-soft: #987858;
+  --ink-on-accent: #ffffff;
+  --accent: #7a5028;
+  --accent-2: #8A7020;
+  --danger: #b04030;
+  --line: #d8c8a8;
+  --primary-border: #604020;
+  --strong-border: #6A5518;
+  --danger-border: #8a3020;
+  --active-bg: #f0e8d8;
+  --pressed-bg: #e8dcc8;
+  --overlay: rgba(255, 255, 255, 0.92);
+  --overlay-alt: rgba(250, 245, 238, 0.98);
+  --backdrop: rgba(0, 0, 0, 0.45);
+  --shadow: rgba(58, 40, 24, 0.08);
+  --shadow-strong: rgba(58, 40, 24, 0.22);
+  --phase-line: rgba(122, 80, 40, 0.35);
+  --tag-reading-bg: #e0ecd8;
+  --tag-reading-fg: #3a5828;
+  --tag-image-bg: #e8dce8;
+  --tag-image-fg: #584068;
+  --tag-text-bg: #f0e8d0;
+  --tag-text-fg: #806020;
+  --tag-prayer-bg: #e8dce8;
+  --tag-prayer-fg: #684870;
+  --tag-hymn-bg: #d8e0ec;
+  --tag-hymn-fg: #384868;
+  --tag-countdown-bg: #dce8f0;
+  --tag-countdown-fg: #2e6080;
+  --tag-interstitial-bg: #dff0f0;
+  --tag-interstitial-fg: #2a6b6b;
+  --tag-pre-bg: #7a5028;
+  --tag-gathering-bg: #8A7020;
+  --tag-mass-bg: #604868;
+  --tag-post-bg: #486888;
+  --editor-reading-bg: #eaf0e0;
+  --editor-image-bg: #f0e8f0;
+  --editor-text-bg: #f5f0e0;
+  --body-gradient:
+    radial-gradient(circle at 15% 20%, #faf5ee 0%, transparent 30%),
+    radial-gradient(circle at 85% 0%, #f0e8d8 0%, transparent 25%),
+    linear-gradient(145deg, #faf5ee, #f0e8d8);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Source Sans 3", sans-serif;
+  color: var(--ink);
+  background: var(--body-gradient);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--line), black 10%);
+  border-bottom-color: color-mix(in srgb, var(--line), black 22%);
+  background: linear-gradient(to bottom, var(--panel), var(--panel-alt));
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 0.4rem 0.9rem;
+  box-shadow:
+    0 0.5px 1px color-mix(in srgb, var(--shadow-strong) 55%, transparent),
+    0 1px 2px color-mix(in srgb, var(--shadow) 75%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+  transition: background 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+
+button:hover {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--panel), white 4%), var(--bg-alt));
+  box-shadow:
+    0 0.5px 1px color-mix(in srgb, var(--shadow-strong) 60%, transparent),
+    0 2px 4px color-mix(in srgb, var(--shadow) 85%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
+  border-color: color-mix(in srgb, var(--line), black 16%);
+}
+
+button:active {
+  background: linear-gradient(to bottom, var(--pressed-bg), var(--active-bg));
+  box-shadow:
+    inset 0 1px 3px color-mix(in srgb, var(--shadow-strong) 70%, transparent),
+    0 0.5px 0 color-mix(in srgb, white 10%, transparent);
+  border-color: color-mix(in srgb, var(--line), black 24%);
+}
+
+button.primary {
+  background: linear-gradient(to bottom, var(--accent), color-mix(in srgb, var(--accent), black 12%));
+  color: var(--ink-on-accent);
+  border-color: var(--primary-border);
+  border-bottom-color: color-mix(in srgb, var(--primary-border), black 15%);
+}
+
+button.primary:hover {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--accent), white 8%),
+    color-mix(in srgb, var(--accent), black 5%));
+}
+
+button.primary:active {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--accent), black 8%),
+    color-mix(in srgb, var(--accent), black 2%));
+  color: var(--ink-on-accent);
+  border-color: var(--primary-border);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0.5px 0 rgba(255, 255, 255, 0.1);
+}
+
+button.strong {
+  background: linear-gradient(to bottom, var(--accent-2), color-mix(in srgb, var(--accent-2), black 12%));
+  color: var(--ink-on-accent);
+  border-color: var(--strong-border);
+  border-bottom-color: color-mix(in srgb, var(--strong-border), black 15%);
+}
+
+button.strong:hover {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--accent-2), white 8%),
+    color-mix(in srgb, var(--accent-2), black 5%));
+}
+
+button.strong:active {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--accent-2), black 8%),
+    color-mix(in srgb, var(--accent-2), black 2%));
+  color: var(--ink-on-accent);
+  border-color: var(--strong-border);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0.5px 0 rgba(255, 255, 255, 0.1);
+}
+
+button.danger {
+  background: linear-gradient(to bottom, var(--danger), color-mix(in srgb, var(--danger), black 12%));
+  color: var(--ink-on-accent);
+  border-color: var(--danger-border);
+  border-bottom-color: color-mix(in srgb, var(--danger-border), black 15%);
+}
+
+button.danger:hover {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--danger), white 8%),
+    color-mix(in srgb, var(--danger), black 5%));
+}
+
+button.danger:active {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--danger), black 8%),
+    color-mix(in srgb, var(--danger), black 2%));
+  color: var(--ink-on-accent);
+  border-color: var(--danger-border);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0.5px 0 rgba(255, 255, 255, 0.1);
+}
+
+button.primary,
+button.strong,
+button.danger {
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0.5px 1px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+}
+
+button.danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+button.danger-outline:hover {
+  background: linear-gradient(to bottom, var(--danger), color-mix(in srgb, var(--danger), black 12%));
+  color: var(--ink-on-accent);
+  border-color: var(--danger-border);
+  border-bottom-color: color-mix(in srgb, var(--danger-border), black 15%);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0.5px 1px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+}
+
+button.danger-outline:active {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--danger), black 8%),
+    color-mix(in srgb, var(--danger), black 2%));
+  color: var(--ink-on-accent);
+  border-color: var(--danger-border);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0.5px 0 rgba(255, 255, 255, 0.1);
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  background: color-mix(in srgb, var(--panel), var(--panel-alt) 22%);
+  color: var(--ink);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 1px 2px color-mix(in srgb, var(--shadow) 55%, transparent);
+}
+
+option {
+  background: var(--panel);
+  color: var(--ink);
+}
+
+button:focus-visible,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent), white 14%);
+  outline-offset: 2px;
+  border-color: color-mix(in srgb, var(--accent), black 8%);
+}
+
+::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow:
+    0 10px 25px var(--shadow),
+    inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+}
+
+.muted {
+  color: var(--ink-soft);
+}

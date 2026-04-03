@@ -1,0 +1,1458 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sacra Lux Screen</title>
+  <link rel="stylesheet" href="/static/fonts/google-fonts.css">
+  <style>
+    body {
+      margin: 0;
+      color: #f8f8f8;
+      /* Letterbox / pillarbox bars are visible in body background. */
+      background: #000;
+      font-family: "Merriweather", serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      /* Center the fixed-size logical canvas inside the viewport. */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /*
+     * #stage is the fixed logical canvas — sized to the output resolution and
+     * scaled by JS transform to fill the viewport (letterbox / pillarbox).
+     * Both .frame children sit inside it as absolute layers for crossfading.
+     */
+    #stage {
+      width: var(--frame-width, 1920px);
+      height: var(--frame-height, 1080px);
+      flex-shrink: 0;
+      position: relative;
+      transform: scale(var(--frame-scale, 1));
+      transform-origin: center center;
+    }
+
+    .frame {
+      /*
+       * Each frame fills the stage exactly. Two frames are stacked; JS
+       * crossfades between them by animating opacity simultaneously.
+       */
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      /* Fixed logical padding — no viewport-relative units inside the canvas. */
+      padding: 22px 80px;
+      background: #050505;
+      isolation: isolate;
+      box-sizing: border-box;
+      overflow: hidden;
+      box-shadow:
+        inset 0 0 0 2px var(--section-accent, rgba(198, 160, 96, 0.45)),
+        inset 0 26px 56px var(--section-band, rgba(198, 160, 96, 0.18));
+      /* Cinematic crossfade — JS sets opacity directly on each frame. */
+      transition: opacity 0.7s ease;
+    }
+
+    .frame.reading-mode {
+      padding: 0;
+      place-items: stretch;
+    }
+
+    .frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-image: var(--bg-color, url('/static/assets/background-dark.png'));
+      z-index: -2;
+      transition: opacity 200ms ease;
+    }
+
+    .frame.bg-color::before {
+      background-image: var(--bg-color, url('/static/assets/background-dark.png'));
+    }
+
+    .frame.bg-image::before {
+      background-image: var(--bg-image, url('/static/assets/background-graphic.png'));
+    }
+
+    .content {
+      width: min(1780px, 100%);
+      max-height: 100%;
+      text-align: center;
+      transition: opacity 200ms ease;
+      font-family: var(--display-font-family, "Merriweather", serif);
+      overflow: hidden;
+    }
+
+    .title {
+      font-size: clamp(2rem, 4vw, 5rem);
+      margin: 0 0 0.7rem;
+      letter-spacing: 0.02em;
+    }
+
+    .text {
+      white-space: pre-wrap;
+      line-height: 1.32;
+      font-size: var(--display-font-effective-size, var(--display-font-size, 60px));
+      font-weight: var(--display-font-weight, 400);
+    }
+
+    .slide-type {
+      opacity: 0.65;
+      margin-top: 1rem;
+      font-size: clamp(0.85rem, 1.2vw, 1.3rem);
+    }
+
+    .blackout {
+      background: #000;
+    }
+
+    .blackout::before,
+    .blackout::after {
+      opacity: 0;
+    }
+
+    .blackout .content {
+      opacity: 0;
+    }
+
+    /* ---- Idle QR code overlay ---- */
+    .idle-qr-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      background: #0e0e1a;
+      gap: 96px;
+      padding: 54px 84px;
+    }
+
+    .idle-qr-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .idle-qr-overlay .idle-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      flex: 1;
+      min-width: 0;
+      text-align: right;
+    }
+
+    .idle-qr-overlay .idle-mass-title {
+      font-family: "Playfair Display", "Merriweather", serif;
+      font-size: 104px;
+      font-weight: 700;
+      color: #f0ead6;
+      line-height: 1.08;
+      margin: 0 0 36px;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 100%;
+    }
+
+    .idle-qr-overlay .idle-start-time {
+      font-family: "Source Sans 3", "Inter", sans-serif;
+      font-size: 56px;
+      font-weight: 600;
+      color: rgba(232, 213, 160, 0.85);
+      letter-spacing: 0.03em;
+      margin: 0 0 60px;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .idle-qr-overlay .idle-scan-label {
+      font-family: "Source Sans 3", "Inter", sans-serif;
+      font-size: 42px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .idle-qr-overlay .qr-panel {
+      flex-shrink: 0;
+      background: #ffffff;
+      border-radius: 42px;
+      padding: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ---- Reading layout ---- */
+    .reading-wrap {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      transition: opacity 200ms ease;
+      overflow: hidden;
+      position: relative;
+      min-height: 100%;
+    }
+
+    .reading-header {
+      position: absolute;
+      left: var(--reading-text-margin-x, 80px);
+      top: var(--reading-passage-y, 970px);
+      width: var(--reading-passage-width, 650px);
+      text-align: var(--reading-passage-align, center);
+      z-index: 2;
+    }
+
+    .reading-passage {
+      display: -webkit-box;
+      font-size: var(--reading-passage-size, 44px);
+      line-height: 1.15;
+      opacity: 0.92;
+      color: var(--reading-passage-color, #e8d5a0);
+      font-family: var(--reading-passage-font, "Source Sans 3", sans-serif);
+      font-weight: var(--reading-passage-weight, 700);
+      letter-spacing: 0.03em;
+      max-width: 100%;
+      word-break: break-word;
+      overflow: hidden;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      -webkit-text-stroke: var(--reading-passage-stroke, 0);
+      paint-order: stroke fill;
+      text-shadow: var(--reading-text-shadow, 0 1px 6px rgba(0, 0, 0, 0.7));
+    }
+
+    .reading-body {
+      white-space: pre-wrap;
+      line-height: var(--reading-line-height, 1.58);
+      font-size: var(--reading-text-size, var(--display-font-effective-size, var(--display-font-size, 60px)));
+      text-align: var(--reading-text-align, left);
+      font-family: var(--reading-text-font, var(--display-font-family, "Merriweather", serif));
+      overflow: hidden;
+      font-weight: var(--reading-text-weight, var(--display-font-weight, 400));
+      font-style: var(--reading-text-style, normal);
+      color: var(--reading-text-color, #f8f8f8);
+      letter-spacing: var(--reading-letter-spacing, 0px);
+      -webkit-text-stroke: var(--reading-text-stroke, 0);
+      paint-order: stroke fill;
+      position: absolute;
+      left: var(--reading-text-margin-x, 80px);
+      right: var(--reading-text-margin-x, 80px);
+      top: var(--reading-text-top, 130px);
+      height: var(--reading-text-height, 840px);
+      padding: 0;
+      text-shadow: var(--reading-text-shadow, 0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6));
+      display: flex;
+      flex-direction: column;
+      justify-content: var(--reading-text-valign, center);
+    }
+
+    .reading-body .refrain,
+    .text-layout-body .refrain {
+      font-style: italic;
+      color: var(--reading-passage-color, #e8d5a0);
+    }
+
+    /* Liturgical ending line, e.g. "The Word of the Lord" — last page only. */
+    .reading-ending {
+      display: block;
+      margin-top: 1.4em;
+      padding-top: 0.6em;
+      border-top: 1px solid rgba(232, 213, 160, 0.35);
+      font-family: "Source Sans 3", sans-serif;
+      font-style: italic;
+      font-weight: 700;
+      font-size: 0.78em;
+      letter-spacing: 0.06em;
+      color: #e8d5a0;
+      opacity: 0.9;
+    }
+
+    /* Section label: "FIRST READING", "PSALM", "GOSPEL" etc. */
+    .reading-section-name {
+      font-family: var(--reading-passage-font, "Source Sans 3", sans-serif);
+      font-size: calc(var(--reading-passage-size, 44px) * 0.5);
+      font-weight: var(--reading-passage-weight, 700);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--reading-label-color, rgba(232, 213, 160, 0.55));
+      margin-bottom: 0.2em;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      -webkit-text-stroke: var(--reading-section-stroke, 0);
+      paint-order: stroke fill;
+      text-shadow: var(--reading-text-shadow, 0 1px 5px rgba(0, 0, 0, 0.7));
+    }
+
+    /* Page X / Y indicator in the top-right corner for multi-page readings. */
+    .reading-page-indicator {
+      position: absolute;
+      top: 22px;
+      right: 44px;
+      font-family: "Source Sans 3", sans-serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: rgba(232, 213, 160, 0.45);
+      letter-spacing: 0.1em;
+      z-index: 3;
+      pointer-events: none;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .blackout .reading-wrap {
+      opacity: 0;
+    }
+
+    /* ---- Text layout: Prayer / Hymn (from drawio spec) ---- *
+     * Content area: x=110, y=90, w=1700, h=900 on 1920×1080.
+     * Left  = 110/1920 = 5.73%   Top    = 90/1080  = 8.33%
+     * Width = 1700/1920 = 88.54% Height = 900/1080 = 83.33%
+     *
+     * Note: reading-mode also sets padding:0 + place-items:stretch above.
+     */
+    .frame.text-layout-mode {
+      padding: 0;
+      place-items: stretch;
+    }
+
+    .text-layout-wrap {
+      position: absolute;
+      left: var(--text-slide-margin-x, 110px);
+      top: var(--text-slide-margin-y, 90px);
+      right: var(--text-slide-margin-x, 110px);
+      height: var(--text-slide-text-height, 900px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+      transition: opacity 200ms ease;
+    }
+
+    .text-layout-body {
+      white-space: pre-wrap;
+      text-align: var(--text-slide-text-align, center);
+      width: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      font-size: var(--text-slide-text-size, var(--display-font-effective-size, 60px));
+      font-family: var(--text-slide-text-font, var(--display-font-family, "Merriweather", serif));
+      font-weight: var(--text-slide-text-weight, var(--display-font-weight, 400));
+      font-style: var(--text-slide-text-style, normal);
+      line-height: var(--text-slide-line-height, 1.55);
+      letter-spacing: var(--text-slide-letter-spacing, 0px);
+      color: var(--text-slide-text-color, #f8f8f8);
+      -webkit-text-stroke: var(--text-slide-text-stroke, 0);
+      paint-order: stroke fill;
+      text-shadow: var(--text-slide-text-shadow, 0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6));
+    }
+
+    .blackout .text-layout-wrap {
+      opacity: 0;
+    }
+
+    /* ---- Image-only slide: full-brightness image, no overlay ---- */
+    .frame.image-only::before {
+      opacity: 1;
+    }
+
+    .frame.image-only::after {
+      opacity: 0;
+    }
+
+    /* ---- Fullscreen prompt overlay (web mode only) ---- */
+    .fullscreen-prompt {
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      cursor: pointer;
+    }
+
+    .fullscreen-prompt.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .fullscreen-prompt .fs-icon {
+      font-size: 96px;
+      margin-bottom: 24px;
+    }
+
+    .fullscreen-prompt .fs-label {
+      font-size: 48px;
+      font-weight: 700;
+      color: #f8f8f8;
+      text-align: center;
+    }
+
+    .fullscreen-prompt .fs-sublabel {
+      font-size: 28px;
+      font-weight: 400;
+      color: #aaa;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    /* ── Countdown slide ────────────────────────────────────────────── */
+    .countdown-wrap {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .countdown-ring-container {
+      position: relative;
+      width: 95vmin;
+      height: 95vmin;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .countdown-ring {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .countdown-ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.12);
+      stroke-width: 5;
+    }
+
+    .countdown-ring-progress {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.8);
+      stroke-width: 5;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: center;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .countdown-time {
+      position: relative;
+      font-size: 28vmin;
+      font-weight: 700;
+      letter-spacing: 0.4vmin;
+      color: #f8f8f8;
+      -webkit-text-stroke: var(--text-slide-text-stroke, 0);
+      paint-order: stroke fill;
+      text-shadow:
+        0 0 60px rgba(255, 255, 255, 0.2),
+        var(--text-slide-text-shadow, 0 4px 16px rgba(0, 0, 0, 0.6));
+      font-variant-numeric: tabular-nums;
+    }
+
+    .countdown-label {
+      margin-top: 2vmin;
+      font-size: 5vmin;
+      color: rgba(248, 248, 248, 0.6);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-weight: 600;
+      -webkit-text-stroke: var(--text-slide-text-stroke, 0);
+      paint-order: stroke fill;
+      text-shadow: var(--text-slide-text-shadow, 0 2px 10px rgba(0, 0, 0, 0.55));
+    }
+  </style>
+</head>
+
+<body>
+  <div id="stage">
+    <!-- Fullscreen prompt (web mode only) — shown when mass starts if not fullscreen -->
+    <div class="fullscreen-prompt" id="fullscreenPrompt">
+      <div class="fs-icon">&#x26F6;</div>
+      <div class="fs-label">Click to Enter Fullscreen</div>
+      <div class="fs-sublabel">Mass is starting</div>
+    </div>
+
+    <!-- Idle QR code overlay — shown when mass has not started -->
+    <div class="idle-qr-overlay" id="idleQrOverlay">
+      <div class="idle-info">
+        <div class="idle-mass-title" id="idleMassTitle"></div>
+        <div class="idle-start-time" id="idleStartTime"></div>
+        <div class="idle-scan-label">Scan to begin</div>
+      </div>
+      <div class="qr-panel">
+        <div id="idleQrCode"></div>
+      </div>
+    </div>
+
+    <!-- Frame A: initially visible -->
+    <div class="frame" id="frame-a">
+      <div class="content" id="content-a">
+        <h1 class="title" id="title-a">Sacra Lux</h1>
+        <div class="text" id="text-a">Load a presentation from the app window.</div>
+        <div class="slide-type" id="slideType-a"></div>
+      </div>
+    </div>
+    <!-- Frame B: initially hidden (opacity 0), used for crossfade double-buffer -->
+    <div class="frame" id="frame-b" style="opacity:0">
+      <div class="content" id="content-b">
+        <h1 class="title" id="title-b"></h1>
+        <div class="text" id="text-b"></div>
+        <div class="slide-type" id="slideType-b"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/static/vendor/qrcode.min.js"></script>
+  <script>
+    const socket = io();
+
+    // ── Double-buffer crossfade setup ─────────────────────────────────────────
+    // #stage holds two .frame divs stacked on top of each other.
+    // `frame`, `content`, `titleEl`, `textEl`, `slideTypeEl` always point to whichever
+    // frame is currently being *written to* (the inactive one during a crossfade).
+    const stage = document.getElementById("stage");
+    let frame, content, titleEl, textEl, slideTypeEl;
+    let _activeSuffix = "a"; // which frame is currently displayed
+
+    function pointToFrame(suffix) {
+      frame = document.getElementById("frame-" + suffix);
+      content = document.getElementById("content-" + suffix);
+      titleEl = document.getElementById("title-" + suffix);
+      textEl = document.getElementById("text-" + suffix);
+      slideTypeEl = document.getElementById("slideType-" + suffix);
+    }
+
+    // Start with frame-a active and visible.
+    pointToFrame("a");
+    document.getElementById("frame-a").style.opacity = "1";
+    document.getElementById("frame-b").style.opacity = "0";
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function readingBodyHtml(text, ending) {
+      const lines = text
+        .split("\n")
+        .map((line) => {
+          const safe = escHtml(line);
+          return line.startsWith("R.")
+            ? `<span class="refrain">${escHtml(line.replace(/^R\.\s*/, ""))}</span>\n`
+            : `${safe}\n`;
+        })
+        .join("");
+
+      if (ending) {
+        return lines + `<span class="reading-ending">${escHtml(ending)}</span>`;
+      }
+      return lines;
+    }
+
+    function showReading(slide) {
+      frame.classList.add("reading-mode");
+      frame.classList.remove("image-only");
+      content.style.display = "none";
+      let wrap = frame.querySelector(".reading-wrap");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        frame.appendChild(wrap);
+      }
+      const settings = window.__screenSettings || {};
+      wrap.className = "reading-wrap";
+      wrap.style.display = "";
+
+      // Section label: "First Reading", "Psalm", "Gospel", etc.
+      const showLabel = settings.readingShowLabel !== false;
+      const sectionNameHtml = (showLabel && slide.groupLabel)
+        ? `<div class="reading-section-name">${escHtml(slide.groupLabel)}</div>`
+        : "";
+
+      const passageBlock = `
+        <div class="reading-header">
+          ${sectionNameHtml}
+          <span class="reading-passage">${escHtml(slide.passage || "")}</span>
+        </div>
+      `;
+
+      // Page X / Y for multi-page readings.
+      const showPageNum = settings.readingShowPageNumber !== false;
+      const pageIndicatorHtml = (showPageNum && slide.totalPages > 1)
+        ? `<div class="reading-page-indicator">${slide.pageNumber} / ${slide.totalPages}</div>`
+        : "";
+
+      const bodyBlock = `<div class="reading-body">${readingBodyHtml(slide.text || "", slide.ending || null)}</div>`;
+      wrap.innerHTML = `
+        ${pageIndicatorHtml}
+        ${passageBlock}
+        ${bodyBlock}
+      `;
+
+      const headerEl = wrap.querySelector(".reading-header");
+      const passageEl = wrap.querySelector(".reading-passage");
+      if (headerEl && passageEl) {
+        const wrapHeight = wrap.clientHeight || frame.clientHeight || 1080;
+        const requestedY = Number(settings.readingPassageYPx);
+        const passagePosition = settings.readingPassagePosition || "top";
+        const measuredPassageHeight = Math.ceil(passageEl.getBoundingClientRect().height || 0);
+        const fallbackPassageHeight = Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3);
+        const passageHeight = Math.max(measuredPassageHeight, fallbackPassageHeight);
+        const maxVisibleY = Math.max(0, wrapHeight - passageHeight - 12);
+        const defaultY = passagePosition === "bottom"
+          ? Math.min(970, maxVisibleY)
+          : 70;
+
+        const resolvedY = Number.isFinite(requestedY) ? requestedY : defaultY;
+        headerEl.style.top = `${Math.min(Math.max(0, resolvedY), maxVisibleY)}px`;
+      }
+    }
+
+    function showDefault(titleText, bodyText, typeText) {
+      frame.classList.remove("reading-mode");
+      frame.classList.remove("text-layout-mode");
+      frame.classList.remove("image-only");
+      const wrap = frame.querySelector(".reading-wrap");
+      if (wrap) wrap.style.display = "none";
+      const tlWrap = frame.querySelector(".text-layout-wrap");
+      if (tlWrap) tlWrap.style.display = "none";
+      content.style.display = "";
+      titleEl.textContent = titleText;
+      textEl.textContent = bodyText;
+      slideTypeEl.textContent = typeText;
+    }
+
+    function showImageOnly() {
+      frame.classList.remove("reading-mode");
+      frame.classList.remove("text-layout-mode");
+      frame.classList.add("image-only");
+      const wrap = frame.querySelector(".reading-wrap");
+      if (wrap) wrap.style.display = "none";
+      const tlWrap = frame.querySelector(".text-layout-wrap");
+      if (tlWrap) tlWrap.style.display = "none";
+      content.style.display = "none";
+      titleEl.textContent = "";
+      textEl.textContent = "";
+      slideTypeEl.textContent = "";
+    }
+
+    // ── Countdown slide ──────────────────────────────────────────────────────
+    let _countdownInterval = null;
+
+    function showCountdown(slide) {
+      frame.classList.remove("reading-mode", "text-layout-mode", "image-only");
+      const readingWrap = frame.querySelector(".reading-wrap");
+      if (readingWrap) readingWrap.style.display = "none";
+      const textWrap = frame.querySelector(".text-layout-wrap");
+      if (textWrap) textWrap.style.display = "none";
+      content.style.display = "none";
+
+      if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+
+      let wrap = frame.querySelector(".countdown-wrap");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.className = "countdown-wrap";
+        frame.appendChild(wrap);
+      }
+      wrap.style.display = "";
+
+      const totalSec = Math.max(1, Math.min(300, Number(slide.countdownSec) || 60));
+      const circumference = 2 * Math.PI * 90;
+      const settings = window.__screenSettings || {};
+      const fontFamily = slide.countdownFont || settings.fontFamily || "Merriweather";
+      const showLabel = slide.countdownShowLabel !== false;
+
+      wrap.innerHTML = `
+        <div class="countdown-ring-container">
+          <svg class="countdown-ring" viewBox="0 0 200 200">
+            <circle class="countdown-ring-bg" cx="100" cy="100" r="90" />
+            <circle class="countdown-ring-progress" cx="100" cy="100" r="90"
+              stroke-dasharray="${circumference}"
+              stroke-dashoffset="0" />
+          </svg>
+          <div class="countdown-time" style="font-family:'${fontFamily}',serif">0:00</div>
+        </div>
+        ${showLabel ? `<div class="countdown-label" style="font-family:'${fontFamily}',serif">${escHtml(slide.title || "")}</div>` : ""}
+      `;
+
+      const timeEl = wrap.querySelector(".countdown-time");
+      const progressEl = wrap.querySelector(".countdown-ring-progress");
+      const endsAt = window.__latestState?.countdownEndsAt;
+
+      function tick() {
+        // When no active countdown (e.g. preview mode), show the full duration statically.
+        const remaining = endsAt ? Math.max(0, endsAt - Date.now()) : totalSec * 1000;
+        const remainSec = Math.ceil(remaining / 1000);
+        const mm = Math.floor(remainSec / 60);
+        const ss = String(remainSec % 60).padStart(2, "0");
+        timeEl.textContent = `${mm}:${ss}`;
+
+        const fraction = endsAt ? (1 - remaining / (totalSec * 1000)) : 0;
+        progressEl.setAttribute("stroke-dashoffset", String(circumference * Math.min(1, Math.max(0, fraction))));
+
+        if (endsAt && remaining <= 0 && _countdownInterval) {
+          clearInterval(_countdownInterval);
+          _countdownInterval = null;
+        }
+      }
+
+      tick();
+      _countdownInterval = setInterval(tick, 250);
+    }
+
+    /**
+     * Prayer / Hymn layout — text centered inside the drawio content area.
+     * Area: left 5.73%, top 8.33%, width 88.54%, height 83.33% of 1920×1080.
+     */
+    function showTextLayout(slide) {
+      frame.classList.add("text-layout-mode");
+      frame.classList.remove("reading-mode");
+      frame.classList.remove("image-only");
+      const readingWrap = frame.querySelector(".reading-wrap");
+      if (readingWrap) readingWrap.style.display = "none";
+      content.style.display = "none";
+
+      let wrap = frame.querySelector(".text-layout-wrap");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        frame.appendChild(wrap);
+      }
+      wrap.className = "text-layout-wrap";
+      wrap.style.display = "";
+      // Vertical alignment: use per-slide override, then fall back to screen settings via CSS var
+      const VALIGN_MAP = { top: "flex-start", middle: "center", bottom: "flex-end" };
+      const ds = window.__screenSettings || {};
+      const vAlign = slide.textVAlign || ds.textSlideTextVAlign || "middle";
+      wrap.style.alignItems = "center";
+      wrap.style.justifyContent = VALIGN_MAP[vAlign] || "center";
+      const showPageNum = ds.textSlideShowPageNumber !== false;
+      const pageIndicatorHtml = (showPageNum && slide.totalPages > 1)
+        ? `<div class="reading-page-indicator">${slide.pageNumber} / ${slide.totalPages}</div>`
+        : "";
+      const bodyHtml = String(slide.text || "").split("\n").map((line) => {
+        const safe = escHtml(line);
+        return line.startsWith("R.")
+          ? `<span class="refrain">${escHtml(line.replace(/^R\.\s*/, ""))}</span>\n`
+          : `${safe}\n`;
+      }).join("");
+      wrap.innerHTML = `${pageIndicatorHtml}<div class="text-layout-body">${bodyHtml}</div>`;
+    }
+
+    function applyBackgroundType(slide) {
+      if (slide?.backgroundType === "color") {
+        frame.classList.add("bg-color");
+        frame.classList.remove("bg-image");
+        return;
+      }
+
+      if (slide?.backgroundType === "image") {
+        frame.classList.remove("bg-color");
+        frame.classList.add("bg-image");
+        return;
+      }
+
+      // Fallback: color background for text-based slides, image for image slides
+      const useColor = slide?.type !== "image";
+      frame.classList.toggle("bg-color", useColor);
+      frame.classList.toggle("bg-image", !useColor);
+    }
+
+    function applySectionTint(slide) {
+      const phase = slide?.phase || "mass";
+      const TINTS = {
+        pre: {
+          a: "rgba(54, 150, 207, 0.62)",
+          b: "rgba(16, 86, 120, 0.58)",
+          accent: "rgba(90, 192, 245, 0.78)",
+          band: "rgba(49, 134, 184, 0.30)",
+          glow: "rgba(115, 212, 255, 0.32)"
+        },
+        gathering: {
+          a: "rgba(197, 131, 38, 0.62)",
+          b: "rgba(124, 146, 46, 0.52)",
+          accent: "rgba(233, 183, 88, 0.76)",
+          band: "rgba(166, 120, 36, 0.32)",
+          glow: "rgba(255, 212, 134, 0.32)"
+        },
+        mass: {
+          a: "rgba(131, 86, 34, 0.54)",
+          b: "rgba(18, 93, 65, 0.50)",
+          accent: "rgba(203, 167, 96, 0.72)",
+          band: "rgba(152, 116, 58, 0.28)",
+          glow: "rgba(218, 186, 126, 0.28)"
+        },
+        post: {
+          a: "rgba(119, 83, 156, 0.60)",
+          b: "rgba(66, 104, 168, 0.56)",
+          accent: "rgba(173, 141, 228, 0.78)",
+          band: "rgba(95, 76, 141, 0.32)",
+          glow: "rgba(195, 170, 255, 0.30)"
+        }
+      };
+
+      const tint = TINTS[phase] || TINTS.mass;
+      frame.style.setProperty("--section-tint-a", tint.a);
+      frame.style.setProperty("--section-tint-b", tint.b);
+      frame.style.setProperty("--section-accent", tint.accent);
+      frame.style.setProperty("--section-band", tint.band);
+      frame.style.setProperty("--section-accent-glow", tint.glow);
+    }
+
+    function applyScreenSettings(settings = {}) {
+      const fontFamily = settings.fontFamily || "Merriweather";
+      const fontSizePx = Math.min(200, Math.max(24, Number(settings.fontSizePx) || 60));
+      const colorBg = settings.colorBackgroundUrl || "/static/assets/background-dark.png";
+      const imageBg = settings.imageBackgroundUrl || "/static/assets/background-graphic.png";
+
+      // All global screen CSS vars are set on #stage so both frames inherit them.
+      // Per-slide overrides (e.g. imageUrl) are set directly on the inactive frame in applyRender.
+      stage.style.setProperty("--bg-color", `url('${colorBg.replace(/'/g, "\\'")}')`);
+      stage.style.setProperty("--bg-image", `url('${imageBg.replace(/'/g, "\\'")}')`);
+      const safeFamily = fontFamily.replace(/"/g, "").trim();
+      stage.style.setProperty("--display-font-family", `"${safeFamily}", serif`);
+      stage.style.setProperty("--display-font-size", `${fontSizePx}px`);
+      stage.style.setProperty("--display-font-effective-size", `${fontSizePx}px`);
+      stage.style.setProperty("--display-font-weight", settings.boldText ? "700" : "400");
+      stage.style.setProperty("--reading-text-align", settings.readingTextAlign || "left");
+      const READING_VALIGN_MAP = { top: "flex-start", middle: "center", bottom: "flex-end" };
+      stage.style.setProperty("--reading-text-valign", READING_VALIGN_MAP[settings.readingTextVAlign] || "center");
+      // Passage text font/size/weight/color
+      const globalFontFamily = `"${(settings.fontFamily || "Merriweather").replace(/"/g, "").trim()}", serif`;
+      const readingTextFontFamily = settings.readingTextFont
+        ? `"${settings.readingTextFont.replace(/"/g, "").trim()}", serif`
+        : globalFontFamily;
+      stage.style.setProperty("--reading-text-font", readingTextFontFamily);
+      if (settings.readingTextSizePx) {
+        stage.style.setProperty("--reading-text-size", `${settings.readingTextSizePx}px`);
+      } else {
+        stage.style.removeProperty("--reading-text-size");
+      }
+      const readingTextWeight = settings.readingTextBold ? "700" : (settings.boldText ? "700" : "400");
+      stage.style.setProperty("--reading-text-weight", readingTextWeight);
+      stage.style.setProperty("--reading-text-color", settings.readingTextColor || "#f8f8f8");
+      // Passage name font/weight/color
+      const passageFontSafe = (settings.readingPassageFont || "Source Sans 3").replace(/"/g, "").trim();
+      stage.style.setProperty("--reading-passage-font", `"${passageFontSafe}", sans-serif`);
+      stage.style.setProperty("--reading-passage-weight", settings.readingPassageBold !== false ? "700" : "400");
+      stage.style.setProperty("--reading-passage-color", settings.readingPassageColor || "#e8d5a0");
+      // Label color is passage color at reduced opacity — derived in CSS
+      stage.style.setProperty("--reading-label-color",
+        `color-mix(in srgb, ${settings.readingPassageColor || "#e8d5a0"} 55%, transparent)`);
+      stage.style.setProperty("--reading-passage-align", settings.readingPassageAlign || "center");
+      const passageSize = Math.min(90, Math.max(20, Number(settings.readingPassageSizePx) || 44));
+      stage.style.setProperty("--reading-passage-size", `${passageSize}px`);
+      stage.style.setProperty("--reading-text-margin-x", `${Math.min(260, Math.max(0, Number(settings.readingTextMarginXPx) || 80))}px`);
+      stage.style.setProperty("--reading-text-top", `${Math.min(360, Math.max(0, Number(settings.readingTextMarginYPx) || 130))}px`);
+      stage.style.setProperty("--reading-text-height", `${Math.min(980, Math.max(120, Number(settings.readingTextHeightPx) || 840))}px`);
+      const passageY = Number(settings.readingPassageYPx);
+      const passagePosition = settings.readingPassagePosition || "top";
+      let passageYResolved = Number.isFinite(passageY)
+        ? passageY
+        : (passagePosition === "bottom" ? 970 : 70);
+
+      // Correct stale settings where position and Y were saved from opposite presets.
+      if (passagePosition === "top" && passageYResolved > 420) {
+        passageYResolved = 70;
+      }
+      if (passagePosition === "bottom" && passageYResolved < 420) {
+        passageYResolved = 970;
+      }
+      stage.style.setProperty("--reading-passage-y", `${Math.min(1060, Math.max(0, passageYResolved))}px`);
+      stage.style.setProperty("--reading-passage-width", `${Math.min(1760, Math.max(180, Number(settings.readingPassageWidthPx) || 650))}px`);
+
+      // Line height and letter spacing for reading text
+      const lineHeight = Math.min(3.0, Math.max(1.0, Number(settings.readingLineHeight) || 1.58));
+      stage.style.setProperty("--reading-line-height", lineHeight);
+      const letterSpacing = Math.min(10, Math.max(-2, Number(settings.readingLetterSpacingPx) || 0));
+      stage.style.setProperty("--reading-letter-spacing", `${letterSpacing}px`);
+      // Reading italic / outline / shadow
+      stage.style.setProperty("--reading-text-style", settings.readingTextItalic ? "italic" : "normal");
+      if (settings.readingTextOutline) {
+        const ow = Math.min(20, Math.max(0.5, Number(settings.readingTextOutlineWidthPx) || 1));
+        stage.style.setProperty("--reading-text-stroke", `${ow}px ${settings.readingTextOutlineColor || "#000000"}`);
+      } else {
+        stage.style.setProperty("--reading-text-stroke", "0");
+      }
+      if (settings.readingPassageOutline) {
+        const passageOutlineWidth = Math.min(20, Math.max(0.5, Number(settings.readingPassageOutlineWidthPx) || 1));
+        stage.style.setProperty("--reading-passage-stroke", `${passageOutlineWidth}px ${settings.readingPassageOutlineColor || "#000000"}`);
+      } else {
+        stage.style.setProperty("--reading-passage-stroke", "0");
+      }
+      if (settings.readingSectionOutline) {
+        const sectionOutlineWidth = Math.min(20, Math.max(0.5, Number(settings.readingSectionOutlineWidthPx) || 1));
+        stage.style.setProperty("--reading-section-stroke", `${sectionOutlineWidth}px ${settings.readingSectionOutlineColor || "#000000"}`);
+      } else {
+        stage.style.setProperty("--reading-section-stroke", "0");
+      }
+      if (settings.readingTextShadow !== false) {
+        stage.style.setProperty("--reading-text-shadow", "0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6)");
+      } else {
+        stage.style.setProperty("--reading-text-shadow", "none");
+      }
+
+      // ---- Text/Prayer/Hymn slide layout ----
+      stage.style.setProperty("--text-slide-text-align", settings.textSlideTextAlign || "center");
+      const textSlideFont = settings.textSlideTextFont
+        ? `"${settings.textSlideTextFont.replace(/"/g, "").trim()}", serif`
+        : globalFontFamily;
+      stage.style.setProperty("--text-slide-text-font", textSlideFont);
+      if (settings.textSlideTextSizePx) {
+        stage.style.setProperty("--text-slide-text-size", `${settings.textSlideTextSizePx}px`);
+      } else {
+        stage.style.removeProperty("--text-slide-text-size");
+      }
+      const textSlideWeight = settings.textSlideTextBold ? "700" : (settings.boldText ? "700" : "400");
+      stage.style.setProperty("--text-slide-text-weight", textSlideWeight);
+      stage.style.setProperty("--text-slide-text-color", settings.textSlideTextColor || "#f8f8f8");
+      stage.style.setProperty("--text-slide-line-height", Math.min(3.0, Math.max(1.0, Number(settings.textSlideLineHeight) || 1.55)));
+      const textSlideLetterSpacing = Math.min(10, Math.max(-2, Number(settings.textSlideLetterSpacingPx) || 0));
+      stage.style.setProperty("--text-slide-letter-spacing", `${textSlideLetterSpacing}px`);
+      stage.style.setProperty("--text-slide-margin-x", `${Math.min(400, Math.max(0, Number(settings.textSlideMarginXPx) || 110))}px`);
+      stage.style.setProperty("--text-slide-margin-y", `${Math.min(400, Math.max(0, Number(settings.textSlideMarginYPx) || 90))}px`);
+      stage.style.setProperty("--text-slide-text-height", `${Math.min(1020, Math.max(120, Number(settings.textSlideTextHeightPx) || 900))}px`);
+      // Text slide italic / outline / shadow
+      stage.style.setProperty("--text-slide-text-style", settings.textSlideTextItalic ? "italic" : "normal");
+      if (settings.textSlideTextOutline) {
+        const tow = Math.min(20, Math.max(0.5, Number(settings.textSlideTextOutlineWidthPx) || 1));
+        stage.style.setProperty("--text-slide-text-stroke", `${tow}px ${settings.textSlideTextOutlineColor || "#000000"}`);
+      } else {
+        stage.style.setProperty("--text-slide-text-stroke", "0");
+      }
+      if (settings.textSlideTextShadow !== false) {
+        stage.style.setProperty("--text-slide-text-shadow", "0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6)");
+      } else {
+        stage.style.setProperty("--text-slide-text-shadow", "none");
+      }
+
+      // ---- Resolution / logical canvas size ----
+      const RESOLUTIONS = {
+        "720p": { w: 1280, h: 720 },
+        "1080p": { w: 1920, h: 1080 },
+        "1440p": { w: 2560, h: 1440 },
+        "4k": { w: 3840, h: 2160 }
+      };
+      const res = RESOLUTIONS[settings.resolution] || RESOLUTIONS["1080p"];
+      stage.style.setProperty("--frame-width", `${res.w}px`);
+      stage.style.setProperty("--frame-height", `${res.h}px`);
+      window.__frameW = res.w;
+      window.__frameH = res.h;
+      updateFrameScale();
+
+      window.__screenSettings = settings;
+    }
+
+    /**
+     * Recompute CSS scale so the logical canvas fills the viewport
+     * while maintaining its aspect ratio (letterbox / pillarbox).
+     * Called on every screen-settings update and on every window resize.
+     */
+    function updateFrameScale() {
+      const fw = window.__frameW || 1920;
+      const fh = window.__frameH || 1080;
+      const scale = Math.min(window.innerWidth / fw, window.innerHeight / fh);
+      stage.style.setProperty("--frame-scale", scale);
+    }
+
+    window.addEventListener("resize", updateFrameScale);
+    // Initialise scale immediately (before first state:update arrives).
+    updateFrameScale();
+
+    /**
+     * Cache of minimum font size needed per reading group (keyed by
+     * organizerItemId). Pre-computed once per settings change so all pages
+     * of the same reading use the same font size.
+     */
+    const _readingGroupFontCache = {};
+    let _lastSettingsHash = "";
+
+    function settingsHash(settings) {
+      const keys = [
+        settings.fontSizePx, settings.readingTextSizePx,
+        settings.readingTextHeightPx, settings.readingTextMarginXPx,
+        settings.readingLineHeight, settings.readingLetterSpacingPx,
+        settings.readingTextFont, settings.fontFamily, settings.boldText,
+        settings.readingTextBold
+      ];
+      return keys.join("|");
+    }
+
+    /**
+     * Pre-compute the minimum font size needed for all pages of each reading
+     * group. We render each page offscreen in a measurement div, shrink until
+     * it fits, and keep the worst-case (smallest) size per group.
+     */
+    function precomputeReadingGroupSizes(slides, settings) {
+      // Include slide count and first/last slide IDs in the hash to invalidate
+      // when the presentation changes (e.g., readings reload).
+      const readingSlides = slides.filter(s => s.type === "reading");
+      const slideFingerprint = readingSlides.length + ":" +
+        (readingSlides[0]?.id || "") + ":" + (readingSlides[readingSlides.length - 1]?.id || "");
+      const hash = settingsHash(settings) + "|" + slideFingerprint;
+      if (hash === _lastSettingsHash && Object.keys(_readingGroupFontCache).length > 0) return;
+      _lastSettingsHash = hash;
+
+      // Clear previous cache.
+      for (const k in _readingGroupFontCache) delete _readingGroupFontCache[k];
+
+      const baseFontSize = Number(settings.readingTextSizePx) || Number(settings.fontSizePx) || 60;
+
+      // Group reading slides by organizerItemId.
+      const groups = {};
+      for (const slide of slides) {
+        if (slide.type !== "reading") continue;
+        const gid = slide.organizerItemId || slide.id;
+        if (!groups[gid]) groups[gid] = [];
+        groups[gid].push(slide);
+      }
+
+      // Create a hidden measurement container matching the reading-body constraints.
+      let measurer = document.getElementById("__fontMeasurer");
+      if (!measurer) {
+        measurer = document.createElement("div");
+        measurer.id = "__fontMeasurer";
+        measurer.style.cssText = "position:absolute;left:-9999px;top:-9999px;visibility:hidden;pointer-events:none;";
+        document.body.appendChild(measurer);
+      }
+
+      // Clone frame styling onto the measurer so CSS vars work correctly.
+      const stageStyles = getComputedStyle(stage);
+      const fw = parseInt(stageStyles.getPropertyValue("--frame-width")) || 1920;
+      const fh = parseInt(stageStyles.getPropertyValue("--frame-height")) || 1080;
+      measurer.style.width = fw + "px";
+      measurer.style.height = fh + "px";
+      measurer.style.overflow = "hidden";
+
+      // Build a measurement body matching .reading-body CSS.
+      const marginX = parseInt(stageStyles.getPropertyValue("--reading-text-margin-x")) || 80;
+      const textTop = parseInt(stageStyles.getPropertyValue("--reading-text-top")) || 130;
+      const textHeight = parseInt(stageStyles.getPropertyValue("--reading-text-height")) || 840;
+      const lineHeight = parseFloat(stageStyles.getPropertyValue("--reading-line-height")) || 1.58;
+      const letterSpacing = stageStyles.getPropertyValue("--reading-letter-spacing") || "0px";
+      const textFont = stageStyles.getPropertyValue("--reading-text-font") || stageStyles.getPropertyValue("--display-font-family") || '"Merriweather", serif';
+      const textWeight = stageStyles.getPropertyValue("--reading-text-weight") || stageStyles.getPropertyValue("--display-font-weight") || "400";
+      const textColor = stageStyles.getPropertyValue("--reading-text-color") || "#f8f8f8";
+      const bodyWidth = fw - (marginX * 2);
+
+      for (const [gid, groupSlides] of Object.entries(groups)) {
+        let minSize = baseFontSize;
+
+        for (const slide of groupSlides) {
+          const html = readingBodyHtml(slide.text || "", slide.ending || null);
+          const testDiv = document.createElement("div");
+          testDiv.style.cssText = `
+            white-space: pre-wrap;
+            line-height: ${lineHeight};
+            font-family: ${textFont};
+            font-weight: ${textWeight};
+            color: ${textColor};
+            letter-spacing: ${letterSpacing};
+            overflow: hidden;
+            width: ${bodyWidth}px;
+            height: ${textHeight}px;
+            position: absolute;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+          `;
+          testDiv.innerHTML = html;
+          measurer.appendChild(testDiv);
+
+          let size = baseFontSize;
+          testDiv.style.fontSize = size + "px";
+
+          while ((testDiv.scrollHeight > testDiv.clientHeight) && size > 24) {
+            size -= 1;
+            testDiv.style.fontSize = size + "px";
+          }
+
+          if (size < minSize) minSize = size;
+          measurer.removeChild(testDiv);
+        }
+
+        _readingGroupFontCache[gid] = minSize;
+      }
+    }
+
+    function fitTextToFrame(baseSizePx, slide) {
+      const wrap = frame.querySelector(".reading-wrap");
+      const tlWrap = frame.querySelector(".text-layout-wrap");
+      const readingBody = wrap && wrap.style.display !== "none"
+        ? wrap.querySelector(".reading-body")
+        : null;
+      const textLayoutBody = tlWrap && tlWrap.style.display !== "none"
+        ? tlWrap.querySelector(".text-layout-body")
+        : null;
+      const active = readingBody || textLayoutBody || content;
+      if (!active) return;
+
+      // For readings, use the pre-computed group-wide minimum font size for
+      // consistency across all pages of the same reading.
+      const gid = slide?.organizerItemId || slide?.id;
+      const cachedSize = (slide?.type === "reading" && gid && _readingGroupFontCache[gid])
+        ? _readingGroupFontCache[gid]
+        : null;
+
+      let size = cachedSize || Math.max(24, Number(baseSizePx) || 60);
+      frame.style.setProperty("--display-font-effective-size", `${size}px`);
+
+      // When a reading-specific font size is set (--reading-text-size on #stage),
+      // we must override it on the frame element so shrinking actually takes effect.
+      const hasReadingTextSize = readingBody && getComputedStyle(stage).getPropertyValue("--reading-text-size").trim();
+      if (hasReadingTextSize) {
+        frame.style.setProperty("--reading-text-size", `${size}px`);
+      }
+
+      // If we had a cached size, we trust it; otherwise shrink to fit.
+      if (!cachedSize) {
+        while ((active.scrollHeight > active.clientHeight || active.scrollWidth > active.clientWidth) && size > 24) {
+          size -= 1;
+          frame.style.setProperty("--display-font-effective-size", `${size}px`);
+          if (hasReadingTextSize) {
+            frame.style.setProperty("--reading-text-size", `${size}px`);
+          }
+        }
+      }
+
+      // Clean up the frame-level override if no shrinking was needed,
+      // so the stage-level value remains the single source of truth.
+      if (hasReadingTextSize && size >= baseSizePx) {
+        frame.style.removeProperty("--reading-text-size");
+      }
+    }
+
+    function getDisplayBaseFontSize(slide, settings = {}) {
+      if (slide?.type === "reading" && Number(settings.readingTextSizePx)) {
+        return Number(settings.readingTextSizePx);
+      }
+
+      const baseSize = Number(settings.fontSizePx) || 60;
+      return slide?.id === "mass-title"
+        ? Math.max(24, Math.round(baseSize * 0.9))
+        : baseSize;
+    }
+
+    // ── Core render (no animation) ───────────────────────────────────────────
+    function applyRender(state) {
+      const slides = state.presentation?.slides || [];
+      const index = Number(state.currentSlideIndex) || 0;
+      const effectiveIndex = state.interstitialHoldActive
+        ? Math.max(0, Math.min(Number(state.interstitialHoldSlideIndex) || 0, slides.length - 1))
+        : index;
+      const slide = slides[effectiveIndex];
+      const settings = state.screenSettings || {};
+      applyScreenSettings(settings);
+      applySectionTint(slide);
+
+      // Pre-compute consistent font sizes for all reading groups.
+      precomputeReadingGroupSizes(slides, settings);
+
+      // Per-slide image URL for image slides — use only the slide's own image;
+      // never fall through to the global image background preset.
+      if (slide?.type === "image" || slide?.type === "interstitial") {
+        const url = slide.imageUrl;
+        frame.style.setProperty("--bg-image", url ? `url('${url.replace(/'/g, "\\'")}')` : "none");
+      } else if (slide?.imageUrl) {
+        frame.style.setProperty("--bg-image", `url('${slide.imageUrl.replace(/'/g, "\\'")}')`);
+      } else {
+        frame.style.removeProperty("--bg-image");
+      }
+
+      // Use the reading-specific font size as the base for fitting if set.
+      const baseFontSize = getDisplayBaseFontSize(slide, settings);
+
+      if (!slide) {
+        applyBackgroundType(null);
+        showDefault(state.presentation?.title || "Sacra Lux", "No slide selected.", "");
+      } else if (slide.type === "reading") {
+        applyBackgroundType(slide);
+        showReading(slide);
+      } else if (slide.type === "image" || slide.type === "interstitial") {
+        applyBackgroundType(slide);
+        showImageOnly();
+      } else if (slide.type === "countdown") {
+        applyBackgroundType(slide);
+        showCountdown(slide);
+      } else if (slide.type === "prayer" || slide.type === "hymn" || slide.type === "text") {
+        applyBackgroundType(slide);
+        showTextLayout(slide);
+      } else {
+        applyBackgroundType(slide);
+        showDefault(slide.title, slide.text || "", slide.type || "");
+      }
+
+      fitTextToFrame(baseFontSize, slide);
+      frame.classList.toggle("blackout", Boolean(state.isBlack));
+    }
+
+    // ── Clear all content from the current frame before writing new slide ────
+    // Prevents text from a previous slide bleeding through during crossfade.
+    function resetFrame() {
+      frame.classList.remove("reading-mode", "text-layout-mode", "image-only");
+      const readingWrap = frame.querySelector(".reading-wrap");
+      if (readingWrap) { readingWrap.innerHTML = ""; readingWrap.style.display = "none"; }
+      const textWrap = frame.querySelector(".text-layout-wrap");
+      if (textWrap) { textWrap.innerHTML = ""; textWrap.style.display = "none"; }
+      const cdWrap = frame.querySelector(".countdown-wrap");
+      if (cdWrap) { cdWrap.innerHTML = ""; cdWrap.style.display = "none"; }
+      if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
+      content.style.display = "none";
+      titleEl.textContent = "";
+      textEl.textContent = "";
+      slideTypeEl.textContent = "";
+    }
+
+    // ── Fade-transition wrapper ───────────────────────────────────────────────
+    // Duration must match the CSS transition on .frame (0.7s).
+    const FADE_MS = 700;
+    let _fadeTimer = null;
+    let _firstRender = true;
+
+    function render(state) {
+      window.__latestState = state;
+      const transition = (state.screenSettings || {}).transition || "fade";
+
+      // Skip animation on the very first paint or when transition is disabled.
+      if (_firstRender || transition === "none") {
+        _firstRender = false;
+        if (_fadeTimer) { clearTimeout(_fadeTimer); _fadeTimer = null; }
+        // Snap: ensure the active frame is visible and the inactive one is hidden.
+        const inactiveSuffix = _activeSuffix === "a" ? "b" : "a";
+        document.getElementById("frame-" + inactiveSuffix).style.opacity = "0";
+        pointToFrame(_activeSuffix);
+        resetFrame();
+        applyRender(state);
+        document.getElementById("frame-" + _activeSuffix).style.opacity = "1";
+        return;
+      }
+
+      // If a crossfade is already in progress, snap it to completion so frames
+      // are always in a known state before starting a new fade.
+      if (_fadeTimer) {
+        clearTimeout(_fadeTimer);
+        _fadeTimer = null;
+        const completedSuffix = _activeSuffix === "a" ? "b" : "a";
+        document.getElementById("frame-" + _activeSuffix).style.opacity = "0";
+        document.getElementById("frame-" + completedSuffix).style.opacity = "1";
+        _activeSuffix = completedSuffix;
+      }
+
+      // Write the new slide to the currently-hidden (inactive) frame.
+      const inactiveSuffix = _activeSuffix === "a" ? "b" : "a";
+      const activeFrame = document.getElementById("frame-" + _activeSuffix);
+      const inactiveFrame = document.getElementById("frame-" + inactiveSuffix);
+
+      // Place the new frame on top so it fades in over the old one.
+      // This prevents the dip-to-black flash when both backgrounds match.
+      inactiveFrame.style.zIndex = "2";
+      activeFrame.style.zIndex = "1";
+
+      pointToFrame(inactiveSuffix);
+      resetFrame();
+      applyRender(state);
+
+      // Fade the new frame in on top; the old frame stays fully visible underneath.
+      inactiveFrame.style.opacity = "1";
+
+      _fadeTimer = setTimeout(() => {
+        // New frame is fully opaque — snap-hide the old one (skip CSS transition).
+        activeFrame.style.transition = "none";
+        activeFrame.style.opacity = "0";
+        // Force the browser to apply opacity:0 before restoring transition.
+        activeFrame.offsetHeight; // eslint-disable-line no-unused-expressions
+        activeFrame.style.transition = "";
+        inactiveFrame.style.zIndex = "";
+        activeFrame.style.zIndex = "";
+        _activeSuffix = inactiveSuffix;
+        pointToFrame(_activeSuffix);
+        _fadeTimer = null;
+      }, FADE_MS);
+    }
+
+    // ── Web-mode fullscreen prompt ────────────────────────────────────────────
+    // Uses the Fullscreen API (requires a user gesture). Only shown in web mode
+    // (not Electron) when the display transitions from idle to active.
+    const fullscreenPrompt = document.getElementById("fullscreenPrompt");
+    let _fsPromptShown = false;
+    let _prevIdle = true;
+
+    // Detect Electron: the preload script sets window.api.isElectron
+    const _isElectron = Boolean(window.api && window.api.isElectron);
+
+    function isFullscreen() {
+      return Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    function requestFullscreen() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    }
+
+    fullscreenPrompt.addEventListener("click", () => {
+      requestFullscreen();
+      fullscreenPrompt.classList.remove("visible");
+      _fsPromptShown = false;
+    });
+
+    // Auto-hide prompt when fullscreen is achieved (e.g., via F11)
+    document.addEventListener("fullscreenchange", () => {
+      if (isFullscreen() && _fsPromptShown) {
+        fullscreenPrompt.classList.remove("visible");
+        _fsPromptShown = false;
+      }
+    });
+
+    function checkFullscreenPrompt(state) {
+      if (_isElectron || window !== window.top) return; // Skip in Electron or iframes (remote preview)
+      const idle = isIdle(state);
+      // Show prompt when transitioning from idle → active and not already fullscreen
+      if (_prevIdle && !idle && !isFullscreen()) {
+        fullscreenPrompt.classList.add("visible");
+        _fsPromptShown = true;
+        // Auto-hide after 8 seconds if not clicked
+        setTimeout(() => {
+          if (_fsPromptShown) {
+            fullscreenPrompt.classList.remove("visible");
+            _fsPromptShown = false;
+          }
+        }, 8000);
+      }
+      _prevIdle = idle;
+    }
+
+    // ── Idle QR code overlay ──────────────────────────────────────────────────
+    const idleQrOverlay = document.getElementById("idleQrOverlay");
+    const idleQrCode = document.getElementById("idleQrCode");
+    const idleMassTitle = document.getElementById("idleMassTitle");
+    const idleStartTime = document.getElementById("idleStartTime");
+    let _qrGenerated = false;
+    let _startRedirectUrl = null;
+
+    let _lastState = null;
+
+    function formatStartTime(isoStr) {
+      if (!isoStr) return "";
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleString(undefined, {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function initQrCode() {
+      if (_qrGenerated) return;
+      fetch("/api/server-info")
+        .then((r) => r.json())
+        .then((info) => {
+          _startRedirectUrl = `http://${info.host}:${info.port}/start`;
+          if (typeof QRCode !== "undefined") {
+            idleQrCode.innerHTML = "";
+            new QRCode(idleQrCode, {
+              text: _startRedirectUrl,
+              width: 700,
+              height: 700,
+              colorDark: "#1a1a1a",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+            _qrGenerated = true;
+            // QR is now ready — re-check idle state to show overlay
+            if (_lastState) updateIdleOverlay(_lastState);
+          }
+        })
+        .catch(() => {});
+    }
+
+    function isIdle(state) {
+      const slides = state.presentation?.slides || [];
+      if (slides.length === 0) return true;
+      // Show QR only when on a pre-mass slide and pre-mass auto-advance is not running,
+      // i.e. the display is sitting idle before anyone has started anything.
+      const idx = Number(state.currentSlideIndex) || 0;
+      const currentPhase = slides[idx]?.phase;
+      if (currentPhase && currentPhase !== "pre") return false;
+      if (state.preMassRunning || state.gatheringRunning || state.postMassRunning) return false;
+      return true;
+    }
+
+    function updateIdleOverlay(state) {
+      _lastState = state;
+      const idle = isIdle(state);
+      if (idle) initQrCode();
+
+      // Update mass info
+      const title = state.presentation?.title || "";
+      idleMassTitle.textContent = title && title !== "No presentation loaded" ? title : "";
+      idleStartTime.textContent = formatStartTime(state.massStartTime);
+
+      idleQrOverlay.classList.toggle("visible", idle && _qrGenerated);
+    }
+
+    // Wrap render to also update idle overlay
+    const _originalRender = render;
+    function renderWithIdle(state) {
+      _originalRender(state);
+      updateIdleOverlay(state);
+      checkFullscreenPrompt(state);
+    }
+
+    const isPreviewMode = window.location.search.includes("preview=1");
+    if (isPreviewMode) {
+      window.addEventListener("message", (event) => {
+        if (event.data && event.data.type === "preview_update") {
+          const mockState = {
+            presentation: { slides: [event.data.slide] },
+            currentSlideIndex: 0,
+            screenSettings: { ...event.data.screenSettings, transition: "none" }
+          };
+          render(mockState);
+        }
+      });
+    } else {
+      socket.on("state:update", renderWithIdle);
+      fetch("/api/state")
+        .then((r) => r.json())
+        .then(renderWithIdle)
+        .catch(() => { });
+    }
+  </script>
+</body>
+
+</html>

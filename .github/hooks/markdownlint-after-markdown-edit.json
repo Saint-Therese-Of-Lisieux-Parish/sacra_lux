@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "node .github/hooks/markdownlint-after-markdown-edit.js",
+        "cwd": ".",
+        "timeout": 30
+      }
+    ]
+  }
+}

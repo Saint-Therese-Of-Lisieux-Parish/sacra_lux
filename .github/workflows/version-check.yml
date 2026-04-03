@@ -1,0 +1,48 @@
+name: Version Bump Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Get PR version
+        id: pr
+        run: |
+          version=$(node -p "require('./sacra-lux/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Get main version
+        id: main
+        run: |
+          git fetch origin main --depth=1
+          version=$(git show origin/main:sacra-lux/package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Compare versions
+        run: |
+          echo "PR version:   ${{ steps.pr.outputs.version }}"
+          echo "Main version: ${{ steps.main.outputs.version }}"
+          node -e "
+            const semver = require('semver');
+            const pr = process.argv[1];
+            const main = process.argv[2];
+            if (!semver.valid(pr)) {
+              console.error('::error::PR version is not valid semver:', pr);
+              process.exit(1);
+            }
+            if (!semver.valid(main)) {
+              console.error('::error::Main version is not valid semver:', main);
+              process.exit(1);
+            }
+            if (!semver.gt(pr, main)) {
+              console.error('::error::Version in sacra-lux/package.json must be greater than main. PR=' + pr + ' main=' + main);
+              process.exit(1);
+            }
+            console.log('Version bump is valid.');
+          " "${{ steps.pr.outputs.version }}" "${{ steps.main.outputs.version }}"
