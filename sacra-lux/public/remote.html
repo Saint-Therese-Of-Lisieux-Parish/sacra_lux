@@ -460,6 +460,7 @@
     let carouselSlots = [];
     let previewPinFrame = null;
     let suppressNextCarouselAnimation = false;
+    let hasRenderedSocketState = false;
 
     // Theme application for remote UI — loaded from server
     let _remoteThemes = {};
@@ -492,6 +493,33 @@
         return null;
       }
       return index;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function goToRemoteSlide(index) {
+      if (!Number.isFinite(index)) {
+        return;
+      }
+      socket.emit("slide:goto:remote", index);
+    }
+
+    function stepRemoteSlide(step) {
+      if (!Number.isFinite(step) || !currentSlides.length) {
+        return;
+      }
+      const nextIndex = currentActive + step;
+      if (nextIndex < 0 || nextIndex >= currentSlides.length) {
+        return;
+      }
+      goToRemoteSlide(nextIndex);
     }
 
     function ensureCarouselWindow(activeIndex) {
@@ -807,7 +835,10 @@
       }, CAROUSEL_GLIDE_DURATION_MS);
     }
 
-    socket.on("state:update", render);
+    socket.on("state:update", (state) => {
+      hasRenderedSocketState = true;
+      render(state);
+    });
     socket.on("interstitial:hold:error", ({ error }) => {
       if (error) {
         els.title.textContent = error;
@@ -851,15 +882,15 @@
 
           if (!isMulti) {
             const cue = group.cues[0];
-            const label = cue.groupLabel || cue.title;
+            const label = escapeHtml(cue.groupLabel || cue.title);
             return `<button class="cue-btn${hasActive ? " active" : ""}" data-index="${cue.index}">${label}</button>`;
           }
 
           const first = group.cues[0];
-          const groupName = first.groupLabel || first.title.replace(/ \(\d+\/\d+\)$/, "");
+          const groupName = escapeHtml(first.groupLabel || first.title.replace(/ \(\d+\/\d+\)$/, ""));
           const subHtml = group.cues.map((cue) => {
             const isActive = cue.index === active;
-            return `<button class="cue-btn sub-cue${isActive ? " active" : ""}" data-index="${cue.index}">${cue.title}</button>`;
+            return `<button class="cue-btn sub-cue${isActive ? " active" : ""}" data-index="${cue.index}">${escapeHtml(cue.title)}</button>`;
           }).join("");
 
           return `<details class="cue-group${hasActive ? " group-active" : ""}"${hasActive ? " open" : ""}>
@@ -871,7 +902,7 @@
           </details>`;
         }).join("");
 
-        const label = PHASE_LABELS[section.phase] || section.phase;
+        const label = escapeHtml(PHASE_LABELS[section.phase] || section.phase);
         return `<div class="phase-section"><div class="phase-section-header">${label}</div>${groupsHtml}</div>`;
       }).join("");
     }
@@ -931,7 +962,7 @@
         // Jump to first Mass section slide
         const firstMass = currentSlides.find((s) => s.phase === "mass");
         if (firstMass) {
-          socket.emit("slide:goto:remote", firstMass.index);
+          goToRemoteSlide(firstMass.index);
           scrollToPreview();
         }
       } else {
@@ -942,7 +973,7 @@
           return s.index > currentActive && gid !== currentGroupId;
         });
         if (nextSlide) {
-          socket.emit("slide:goto:remote", nextSlide.index);
+          goToRemoteSlide(nextSlide.index);
           scrollToPreview();
         }
       }
@@ -953,7 +984,7 @@
       if (!btn) {
         return;
       }
-      socket.emit("slide:goto:remote", Number(btn.dataset.index));
+      goToRemoteSlide(Number(btn.dataset.index));
       scrollToPreview();
     });
 
@@ -968,7 +999,7 @@
       if (!Number.isFinite(index)) return;
       const now = Date.now();
       if (lastCarouselTap.index === index && now - lastCarouselTap.at < 350) {
-        socket.emit("slide:goto:remote", index);
+        goToRemoteSlide(index);
         scrollToPreview();
         carouselSelectedIndex = index;
         carouselFocusIndex = index;
@@ -992,13 +1023,13 @@
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
-        socket.emit("slide:prev");
+        stepRemoteSlide(-1);
         scrollToPreview();
         return;
       }
       if (event.key === "ArrowRight") {
         event.preventDefault();
-        socket.emit("slide:next");
+        stepRemoteSlide(1);
         scrollToPreview();
       }
     });
@@ -1156,7 +1187,7 @@
       if (Math.abs(deltaX) < PREVIEW_SWIPE_TRIGGER_PX) return;
       if (Math.abs(deltaX) <= Math.abs(deltaY) * PREVIEW_SWIPE_DOMINANCE_RATIO) return;
       suppressNextCarouselAnimation = true;
-      socket.emit(deltaX < 0 ? "slide:next" : "slide:prev");
+      stepRemoteSlide(deltaX < 0 ? 1 : -1);
     }
 
     if (supportsPointerEvents) {
@@ -1237,7 +1268,12 @@
 
     fetch("/api/state")
       .then((r) => r.json())
-      .then(render)
+      .then((state) => {
+        if (hasRenderedSocketState) {
+          return;
+        }
+        render(state);
+      })
       .catch(() => { });
   </script>
 </body>
