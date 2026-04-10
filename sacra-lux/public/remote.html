@@ -134,13 +134,14 @@
 
     /* ── Live screen preview ──────────────────────────────────────────── */
     .screen-preview-wrap {
-      margin-bottom: 0.65rem;
+      margin: 0 auto 0.65rem;
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--line);
       /* 16:9 aspect-ratio container */
       position: relative;
-      width: 100%;
+      width: calc(100% - 1.1rem);
+      max-width: 100%;
       aspect-ratio: 16 / 9;
       background: #050505;
       cursor: pointer;
@@ -210,6 +211,7 @@
       user-select: none;
       cursor: grab;
       overflow: hidden;
+      contain: layout paint;
     }
 
     .carousel-track.dragging {
@@ -219,14 +221,12 @@
     .carousel-track.animating .carousel-card {
       transition:
         transform var(--carousel-glide-duration, 320ms) cubic-bezier(0.22, 1, 0.36, 1),
-        opacity 0.24s ease,
-        border-color 0.12s ease,
-        box-shadow 0.12s ease;
+        opacity 0.24s ease;
     }
 
     .carousel-track.dragging .carousel-card,
     .carousel-track.spinning .carousel-card {
-      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      transition: transform 0.12s linear, opacity 0.16s ease;
     }
 
     .carousel-card {
@@ -243,6 +243,14 @@
       transition: transform 0.12s ease, opacity 0.2s ease, border-color 0.12s ease, box-shadow 0.12s ease;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      contain: layout paint;
+    }
+
+    .carousel-card.cache {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .carousel-card.side {
@@ -277,6 +285,8 @@
       position: absolute;
       inset: 0;
       background: #050505;
+      transform: translateZ(0);
+      backface-visibility: hidden;
     }
 
     .carousel-thumb-frame {
@@ -288,6 +298,7 @@
       border: none;
       transform-origin: top left;
       pointer-events: none;
+      backface-visibility: hidden;
     }
 
     .carousel-empty {
@@ -378,12 +389,14 @@
       screenFrame: document.getElementById("screenFrame")
     };
 
-    const CAROUSEL_VISIBLE_COUNT = 3;
-    const CAROUSEL_SLOT_LEFT_RATIOS = [-0.25, 0.25, 0.75];
+    const CAROUSEL_VISIBLE_COUNT = 5;
+    const CAROUSEL_SLOT_LEFT_RATIOS = [-0.75, -0.25, 0.25, 0.75, 1.25];
     const CAROUSEL_SLOT_CLASS_NAMES = [
+      "carousel-card cache cache-left",
       "carousel-card side side-left",
       "carousel-card center",
-      "carousel-card side side-right"
+      "carousel-card side side-right",
+      "carousel-card cache cache-right"
     ];
     const CAROUSEL_DRAG_GAIN = 1.85;
     const CAROUSEL_SETTLE_RATIO = 0.1;
@@ -446,6 +459,7 @@
     let lastRenderedActive = null;
     let carouselSlots = [];
     let previewPinFrame = null;
+    let suppressNextCarouselAnimation = false;
 
     // Theme application for remote UI — loaded from server
     let _remoteThemes = {};
@@ -664,9 +678,11 @@
       carouselFocusIndex = clampCarouselFocus(carouselFocusIndex);
       carouselSelectedIndex = clampCarouselFocus(carouselSelectedIndex);
       const visibleIndices = [
+        getCarouselIndex(carouselFocusIndex - 2),
         getCarouselIndex(carouselFocusIndex - 1),
         getCarouselIndex(carouselFocusIndex),
-        getCarouselIndex(carouselFocusIndex + 1)
+        getCarouselIndex(carouselFocusIndex + 1),
+        getCarouselIndex(carouselFocusIndex + 2)
       ];
       ensureCarouselSlots().forEach((card, slotIndex) => {
         const slideIndex = visibleIndices[slotIndex];
@@ -681,7 +697,7 @@
         }
         const slide = currentSlides[slideIndex];
         card.dataset.index = String(slide.index);
-        card.setAttribute("aria-hidden", "false");
+        card.setAttribute("aria-hidden", card.classList.contains("cache") ? "true" : "false");
         if (slide.index === currentActive) {
           card.classList.add("active");
         }
@@ -724,7 +740,10 @@
         currentSlides.length > 1 &&
         Math.abs(currentActive - previousActive) === 1 &&
         carouselDragStartX == null &&
-        carouselMomentumFrame == null;
+        carouselMomentumFrame == null &&
+        !suppressNextCarouselAnimation;
+
+      suppressNextCarouselAnimation = false;
 
       if (shouldAnimateCarousel) {
         animateCarouselSlideChange(previousActive, currentActive);
@@ -1120,8 +1139,6 @@
     }
 
     function beginPreviewGesture(x, y) {
-      pinPreviewDock();
-      maintainPreviewPinning(260);
       previewSwipeStartX = x;
       previewSwipeStartY = y;
     }
@@ -1138,8 +1155,8 @@
       previewSwipeStartY = null;
       if (Math.abs(deltaX) < PREVIEW_SWIPE_TRIGGER_PX) return;
       if (Math.abs(deltaX) <= Math.abs(deltaY) * PREVIEW_SWIPE_DOMINANCE_RATIO) return;
+      suppressNextCarouselAnimation = true;
       socket.emit(deltaX < 0 ? "slide:next" : "slide:prev");
-      maintainPreviewPinning(220);
     }
 
     if (supportsPointerEvents) {
