@@ -18,17 +18,21 @@
       margin-bottom: 0.75rem;
     }
 
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 0.5rem;
+    .preview-dock {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      padding-top: max(0.35rem, env(safe-area-inset-top));
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      box-sizing: border-box;
       margin-bottom: 0.8rem;
-    }
-
-    .controls button {
-      padding: 1.1rem 0.9rem;
-      font-size: 1.05rem;
-      font-weight: 700;
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--bg), white 8%) 0%, color-mix(in srgb, var(--bg), transparent 4%) 82%, transparent 100%);
+      backdrop-filter: blur(10px);
     }
 
     .cue-list {
@@ -130,7 +134,7 @@
 
     /* ── Live screen preview ──────────────────────────────────────────── */
     .screen-preview-wrap {
-      margin-bottom: 0.8rem;
+      margin-bottom: 0.65rem;
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid var(--line);
@@ -139,6 +143,9 @@
       width: 100%;
       aspect-ratio: 16 / 9;
       background: #050505;
+      cursor: pointer;
+      touch-action: pan-y;
+      user-select: none;
     }
 
     .screen-preview-wrap iframe {
@@ -151,6 +158,146 @@
       border: none;
       transform-origin: top left;
       pointer-events: none;
+    }
+
+    .screen-preview-touch {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      touch-action: pan-y;
+      background: transparent;
+    }
+
+    .screen-preview-wrap::before,
+    .screen-preview-wrap::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 18%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+
+    .screen-preview-wrap::before {
+      left: 0;
+      background: linear-gradient(90deg, rgba(0, 0, 0, 0.22), transparent);
+    }
+
+    .screen-preview-wrap::after {
+      right: 0;
+      background: linear-gradient(270deg, rgba(0, 0, 0, 0.22), transparent);
+    }
+
+    .screen-preview-wrap:active::before,
+    .screen-preview-wrap:active::after {
+      opacity: 1;
+    }
+
+    .preview-carousel {
+      display: grid;
+      gap: 0.35rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .carousel-track {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 32 / 9;
+      touch-action: pan-y;
+      user-select: none;
+      cursor: grab;
+      overflow: hidden;
+    }
+
+    .carousel-track.dragging {
+      cursor: grabbing;
+    }
+
+    .carousel-track.animating .carousel-card {
+      transition:
+        transform var(--carousel-glide-duration, 320ms) cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.24s ease,
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
+    }
+
+    .carousel-track.dragging .carousel-card,
+    .carousel-track.spinning .carousel-card {
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .carousel-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 50%;
+      height: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 6px 16px var(--shadow);
+      transition: transform 0.12s ease, opacity 0.2s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .carousel-card.side {
+      opacity: 0.96;
+    }
+
+    .carousel-card.center {
+      z-index: 1;
+      box-shadow: 0 10px 22px var(--shadow);
+    }
+
+    .carousel-card.selected {
+      border-color: color-mix(in srgb, var(--accent), white 18%);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent), white 52%), 0 10px 22px var(--shadow);
+    }
+
+    .carousel-card.carousel-card-empty {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .carousel-card:active {
+      transform: scale(0.98);
+    }
+
+    .carousel-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 10px 22px var(--shadow);
+    }
+
+    .carousel-thumb-wrap {
+      position: absolute;
+      inset: 0;
+      background: #050505;
+    }
+
+    .carousel-thumb-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1920px;
+      height: 1080px;
+      border: none;
+      transform-origin: top left;
+      pointer-events: none;
+    }
+
+    .carousel-empty {
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      padding: 0.8rem;
+      color: var(--ink-soft);
+      text-align: center;
+      font-size: 0.8rem;
+      margin-bottom: 0.7rem;
     }
 
     /* ── Section headers in organizer list ───────────────────────────── */
@@ -192,13 +339,21 @@
         presentation loaded.</p>
     </section>
 
-    <div class="screen-preview-wrap" id="screenPreviewWrap">
-      <iframe id="screenFrame" src="/screen" title="Live screen output"></iframe>
-    </div>
+    <section class="preview-dock" id="previewDock">
+      <div class="screen-preview-wrap" id="screenPreviewWrap">
+        <iframe id="screenFrame" src="/screen" title="Live screen output"></iframe>
+        <div class="screen-preview-touch" id="screenPreviewTouch" aria-hidden="true"></div>
+      </div>
 
-    <section class="controls">
-      <button id="prevBtn">Prev</button>
-      <button id="nextBtn" class="strong">Next</button>
+      <section class="preview-carousel" id="previewCarousel" hidden>
+        <div
+          id="carouselTrack"
+          class="carousel-track"
+          tabindex="0"
+          role="region"
+          aria-label="Slide preview carousel. Use left and right arrow keys to move between slides."></div>
+      </section>
+
     </section>
 
     <section class="card" style="padding: 0.55rem">
@@ -209,21 +364,49 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    const supportsPointerEvents = "PointerEvent" in window;
     const els = {
       title: document.getElementById("title"),
       cueList: document.getElementById("cueList"),
-      prevBtn: document.getElementById("prevBtn"),
-      nextBtn: document.getElementById("nextBtn"),
       interstitialBtn: document.getElementById("interstitialBtn"),
       nextSectionBtn: document.getElementById("nextSectionBtn"),
+      previewDock: document.getElementById("previewDock"),
+      previewCarousel: document.getElementById("previewCarousel"),
+      carouselTrack: document.getElementById("carouselTrack"),
       screenPreviewWrap: document.getElementById("screenPreviewWrap"),
+      screenPreviewTouch: document.getElementById("screenPreviewTouch"),
       screenFrame: document.getElementById("screenFrame")
     };
+
+    const CAROUSEL_VISIBLE_COUNT = 3;
+    const CAROUSEL_SLOT_LEFT_RATIOS = [-0.25, 0.25, 0.75];
+    const CAROUSEL_SLOT_CLASS_NAMES = [
+      "carousel-card side side-left",
+      "carousel-card center",
+      "carousel-card side side-right"
+    ];
+    const CAROUSEL_DRAG_GAIN = 1.85;
+    const CAROUSEL_SETTLE_RATIO = 0.1;
+    const CAROUSEL_EDGE_OVERSCROLL_RATIO = 1.1;
+    const CAROUSEL_MOMENTUM_DECAY = 0.9984;
+    const CAROUSEL_MIN_VELOCITY = 0.0035;
+    const GESTURE_AXIS_LOCK_PX = 4;
+    const CAROUSEL_SWIPE_ACTIVATION_PX = 6;
+    const PREVIEW_SWIPE_TRIGGER_PX = 22;
+    const PREVIEW_SWIPE_DOMINANCE_RATIO = 1.12;
+    const CAROUSEL_GLIDE_DURATION_MS = 320;
+    const CAROUSEL_GLIDE_OVERSHOOT_RATIO = 0.08;
 
     // ── Live screen preview scaling ──────────────────────────────────────────
     function scalePreviewIframe() {
       const scale = els.screenPreviewWrap.clientWidth / 1920;
       els.screenFrame.style.transform = `scale(${scale})`;
+      document.querySelectorAll(".carousel-thumb-frame").forEach((frame) => {
+        const wrap = frame.parentElement;
+        if (!wrap) return;
+        const thumbScale = wrap.clientWidth / 1920;
+        frame.style.transform = `scale(${thumbScale})`;
+      });
     }
 
     window.addEventListener("resize", scalePreviewIframe);
@@ -232,17 +415,37 @@
     // Scroll so the live screen preview is at the top of the viewport on load,
     // leaving the title and top buttons scrolled above it.
     requestAnimationFrame(() => {
-      const preview = document.getElementById("screenPreviewWrap");
-      if (preview) {
-        preview.scrollIntoView({ behavior: "instant", block: "start" });
+      if (els.previewDock) {
+        const previewTop = els.previewDock.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: Math.max(0, Math.round(previewTop)), behavior: "auto" });
       }
     });
 
     let interstitialHoldActive = false;
     let currentSlides = [];
     let currentActive = 0;
+    let carouselFocusIndex = 0;
+    let carouselSelectedIndex = 0;
+    let latestState = null;
+    let lastCarouselTap = { index: null, at: 0 };
+    let carouselDragStartX = null;
+    let carouselDragStartY = null;
+    let carouselLastPointerX = null;
+    let carouselLastPointerAt = 0;
+    let carouselDragOffset = 0;
+    let carouselVelocity = 0;
+    let carouselMomentumFrame = null;
+    let carouselGestureAxis = null;
+    let carouselDidSwipe = false;
+    let suppressCarouselClickUntil = 0;
+    let carouselAnimationTimeout = null;
+    let previewSwipeStartX = null;
+    let previewSwipeStartY = null;
     let _preMassRunning = false;
     let _currentPhase = null;
+    let lastRenderedActive = null;
+    let carouselSlots = [];
+    let previewPinFrame = null;
 
     // Theme application for remote UI — loaded from server
     let _remoteThemes = {};
@@ -263,12 +466,245 @@
       root.style.colorScheme = theme.colorScheme || "light";
     }
 
+    function clampCarouselFocus(index) {
+      if (!Number.isFinite(index)) {
+        return 0;
+      }
+      return Math.max(0, Math.min(index, Math.max(0, currentSlides.length - 1)));
+    }
+
+    function getCarouselIndex(index) {
+      if (index < 0 || index >= currentSlides.length) {
+        return null;
+      }
+      return index;
+    }
+
+    function ensureCarouselWindow(activeIndex) {
+      if (!currentSlides.length) {
+        carouselFocusIndex = 0;
+        carouselSelectedIndex = 0;
+        return;
+      }
+      const clampedActiveIndex = clampCarouselFocus(activeIndex);
+      const selectedOutOfRange = carouselSelectedIndex < 0 || carouselSelectedIndex >= currentSlides.length;
+      const focusOutOfRange = carouselFocusIndex < 0 || carouselFocusIndex >= currentSlides.length;
+      if (selectedOutOfRange) {
+        carouselSelectedIndex = clampedActiveIndex;
+      }
+      if (focusOutOfRange) {
+        carouselFocusIndex = carouselSelectedIndex;
+      }
+    }
+
+    function getCarouselSlotWidth() {
+      return els.carouselTrack.clientWidth * 0.5;
+    }
+
+    function stopCarouselMomentum() {
+      if (carouselMomentumFrame != null) {
+        cancelAnimationFrame(carouselMomentumFrame);
+        carouselMomentumFrame = null;
+      }
+      els.carouselTrack.classList.remove("spinning");
+    }
+
+    function sendPreviewToFrame(frame, slide) {
+      if (!frame?.contentWindow || !slide) return;
+      const previewPayloadSignature = JSON.stringify({
+        slide,
+        screenSettings: latestState?.screenSettings || {}
+      });
+      if (frame.dataset.previewPayloadSignature === previewPayloadSignature) {
+        return;
+      }
+      frame.contentWindow.postMessage({
+        type: "preview_update",
+        slide,
+        screenSettings: { ...(latestState?.screenSettings || {}) }
+      }, "*");
+      frame.dataset.previewPayloadSignature = previewPayloadSignature;
+    }
+
+    function ensureCarouselSlots() {
+      if (carouselSlots.length) {
+        return carouselSlots;
+      }
+      els.carouselTrack.innerHTML = Array.from({ length: CAROUSEL_VISIBLE_COUNT }, (_, slotIndex) => `
+        <div class="${CAROUSEL_SLOT_CLASS_NAMES[slotIndex]} carousel-card-empty" aria-hidden="true">
+          <div class="carousel-thumb-wrap">
+            <iframe class="carousel-thumb-frame" src="/screen?preview=1" title="Slide preview"></iframe>
+          </div>
+        </div>
+      `).join("");
+      carouselSlots = Array.from(els.carouselTrack.querySelectorAll(".carousel-card"));
+      carouselSlots.forEach((card) => {
+        const frame = card.querySelector(".carousel-thumb-frame");
+        frame?.addEventListener("load", () => {
+          const slideIndex = Number(card.dataset.index);
+          if (!Number.isFinite(slideIndex)) {
+            return;
+          }
+          const slide = currentSlides.find((item) => item.index === slideIndex);
+          if (slide) {
+            sendPreviewToFrame(frame, slide);
+          }
+        });
+      });
+      return carouselSlots;
+    }
+
+    function positionCarouselCards() {
+      const trackWidth = els.carouselTrack.clientWidth;
+      ensureCarouselSlots().forEach((card, slotIndex) => {
+        const translateX = (trackWidth * CAROUSEL_SLOT_LEFT_RATIOS[slotIndex]) + carouselDragOffset;
+        card.style.transform = `translate3d(${translateX}px, 0, 0)`;
+      });
+    }
+
+    function clearCarouselAnimation() {
+      if (carouselAnimationTimeout != null) {
+        clearTimeout(carouselAnimationTimeout);
+        carouselAnimationTimeout = null;
+      }
+      els.carouselTrack.style.removeProperty("--carousel-glide-duration");
+      els.carouselTrack.classList.remove("animating");
+    }
+
+    function shiftCarouselWindowIfNeeded() {
+      const slotWidth = getCarouselSlotWidth();
+      if (!slotWidth || !currentSlides.length) {
+        return;
+      }
+      let shifted = false;
+      while (carouselDragOffset <= -slotWidth && carouselFocusIndex < currentSlides.length - 1) {
+        carouselDragOffset += slotWidth;
+        carouselFocusIndex += 1;
+        carouselSelectedIndex = carouselFocusIndex;
+        shifted = true;
+      }
+      while (carouselDragOffset >= slotWidth && carouselFocusIndex > 0) {
+        carouselDragOffset -= slotWidth;
+        carouselFocusIndex -= 1;
+        carouselSelectedIndex = carouselFocusIndex;
+        shifted = true;
+      }
+      if (!shifted) {
+        const maxOverscroll = slotWidth * CAROUSEL_EDGE_OVERSCROLL_RATIO;
+        if (carouselFocusIndex === 0 && carouselDragOffset > 0) {
+          carouselDragOffset = Math.min(carouselDragOffset, maxOverscroll);
+        }
+        if (carouselFocusIndex === currentSlides.length - 1 && carouselDragOffset < 0) {
+          carouselDragOffset = Math.max(carouselDragOffset, -maxOverscroll);
+        }
+        return;
+      }
+      renderCarousel();
+    }
+
+    function settleCarousel() {
+      stopCarouselMomentum();
+      const slotWidth = getCarouselSlotWidth();
+      if (!slotWidth || !currentSlides.length) {
+        carouselDragOffset = 0;
+        positionCarouselCards();
+        return;
+      }
+      if (carouselDragOffset <= -(slotWidth * CAROUSEL_SETTLE_RATIO) && carouselFocusIndex < currentSlides.length - 1) {
+        carouselFocusIndex += 1;
+        carouselSelectedIndex = carouselFocusIndex;
+      } else if (carouselDragOffset >= slotWidth * CAROUSEL_SETTLE_RATIO && carouselFocusIndex > 0) {
+        carouselFocusIndex -= 1;
+        carouselSelectedIndex = carouselFocusIndex;
+      }
+      carouselDragOffset = 0;
+      renderCarousel();
+      positionCarouselCards();
+    }
+
+    function startCarouselMomentum() {
+      stopCarouselMomentum();
+      if (Math.abs(carouselVelocity) < CAROUSEL_MIN_VELOCITY) {
+        settleCarousel();
+        return;
+      }
+      els.carouselTrack.classList.add("spinning");
+      let lastFrameAt = performance.now();
+      const step = (frameAt) => {
+        const dt = Math.min(frameAt - lastFrameAt, 32);
+        lastFrameAt = frameAt;
+        carouselDragOffset += carouselVelocity * dt;
+        shiftCarouselWindowIfNeeded();
+        positionCarouselCards();
+        carouselVelocity *= Math.pow(CAROUSEL_MOMENTUM_DECAY, dt);
+        if (Math.abs(carouselVelocity) < CAROUSEL_MIN_VELOCITY) {
+          settleCarousel();
+          return;
+        }
+        carouselMomentumFrame = requestAnimationFrame(step);
+      };
+      carouselMomentumFrame = requestAnimationFrame(step);
+    }
+
+    function renderCarousel() {
+      if (!currentSlides.length) {
+        stopCarouselMomentum();
+        carouselDragOffset = 0;
+        els.previewCarousel.hidden = true;
+        ensureCarouselSlots().forEach((card, slotIndex) => {
+          card.className = `${CAROUSEL_SLOT_CLASS_NAMES[slotIndex]} carousel-card-empty`;
+          card.removeAttribute("data-index");
+          card.setAttribute("aria-hidden", "true");
+          card.style.transform = "";
+        });
+        return;
+      }
+
+      els.previewCarousel.hidden = false;
+      carouselFocusIndex = clampCarouselFocus(carouselFocusIndex);
+      carouselSelectedIndex = clampCarouselFocus(carouselSelectedIndex);
+      const visibleIndices = [
+        getCarouselIndex(carouselFocusIndex - 1),
+        getCarouselIndex(carouselFocusIndex),
+        getCarouselIndex(carouselFocusIndex + 1)
+      ];
+      ensureCarouselSlots().forEach((card, slotIndex) => {
+        const slideIndex = visibleIndices[slotIndex];
+        const frame = card.querySelector(".carousel-thumb-frame");
+        card.className = CAROUSEL_SLOT_CLASS_NAMES[slotIndex];
+        if (slideIndex == null) {
+          card.classList.add("carousel-card-empty");
+          card.removeAttribute("data-index");
+          card.setAttribute("aria-hidden", "true");
+          delete frame.dataset.previewPayloadSignature;
+          return;
+        }
+        const slide = currentSlides[slideIndex];
+        card.dataset.index = String(slide.index);
+        card.setAttribute("aria-hidden", "false");
+        if (slide.index === currentActive) {
+          card.classList.add("active");
+        }
+        if (slide.index === carouselSelectedIndex) {
+          card.classList.add("selected");
+        }
+        requestAnimationFrame(() => sendPreviewToFrame(frame, slide));
+      });
+
+      positionCarouselCards();
+      requestAnimationFrame(scalePreviewIframe);
+    }
+
     function render(state) {
       // Apply theme
+      const previousActive = currentActive;
+      const hadSlides = currentSlides.length > 0;
+      latestState = state;
       applyRemoteTheme(state.appSettings?.theme || "carmelite");
       interstitialHoldActive = Boolean(state.interstitialHoldActive);
       currentSlides = state.presentation?.slides || [];
       currentActive = Number(state.currentSlideIndex) || 0;
+      ensureCarouselWindow(currentActive);
       _preMassRunning = Boolean(state.preMassRunning);
       _currentPhase = currentSlides[currentActive]?.phase || null;
       const cues = currentSlides;
@@ -283,6 +719,23 @@
       const isPreOrPost = _preMassRunning || _currentPhase === "pre" || _currentPhase === "post";
       els.nextSectionBtn.textContent = isPreOrPost ? "Start Mass" : "Next Section";
 
+      const shouldAnimateCarousel =
+        hadSlides &&
+        currentSlides.length > 1 &&
+        Math.abs(currentActive - previousActive) === 1 &&
+        carouselDragStartX == null &&
+        carouselMomentumFrame == null;
+
+      if (shouldAnimateCarousel) {
+        animateCarouselSlideChange(previousActive, currentActive);
+      } else {
+        carouselFocusIndex = clampCarouselFocus(currentActive);
+        carouselSelectedIndex = clampCarouselFocus(currentActive);
+        clearCarouselAnimation();
+        carouselDragOffset = 0;
+        renderCarousel();
+      }
+      lastRenderedActive = currentActive;
       els.cueList.innerHTML = buildCueListHtml(cues, active);
 
       // Scroll so the active item is at the top of the list.
@@ -296,6 +749,43 @@
         const summaryH = summary ? summary.getBoundingClientRect().height : 0;
         list.scrollTop += (btnTop - listTop) - summaryH;
       }
+    }
+
+    function animateCarouselSlideChange(previousActiveIndex, nextActiveIndex) {
+      clearCarouselAnimation();
+      const direction = nextActiveIndex > previousActiveIndex ? 1 : -1;
+      const slotWidth = getCarouselSlotWidth();
+      if (!slotWidth) {
+        renderCarousel();
+        return;
+      }
+
+      const didNeedRealign =
+        carouselFocusIndex !== clampCarouselFocus(previousActiveIndex) ||
+        carouselSelectedIndex !== clampCarouselFocus(previousActiveIndex);
+      carouselFocusIndex = clampCarouselFocus(previousActiveIndex);
+      carouselSelectedIndex = clampCarouselFocus(previousActiveIndex);
+      carouselDragOffset = 0;
+      if (didNeedRealign) {
+        renderCarousel();
+      }
+
+      requestAnimationFrame(() => {
+        els.carouselTrack.style.setProperty("--carousel-glide-duration", `${CAROUSEL_GLIDE_DURATION_MS}ms`);
+        els.carouselTrack.classList.add("animating");
+        carouselDragOffset = -direction * slotWidth * (1 + CAROUSEL_GLIDE_OVERSHOOT_RATIO);
+        positionCarouselCards();
+      });
+
+      carouselAnimationTimeout = window.setTimeout(() => {
+        els.carouselTrack.classList.remove("animating");
+        els.carouselTrack.style.removeProperty("--carousel-glide-duration");
+        carouselAnimationTimeout = null;
+        carouselFocusIndex = clampCarouselFocus(nextActiveIndex);
+        carouselSelectedIndex = clampCarouselFocus(nextActiveIndex);
+        carouselDragOffset = 0;
+        renderCarousel();
+      }, CAROUSEL_GLIDE_DURATION_MS);
     }
 
     socket.on("state:update", render);
@@ -367,14 +857,55 @@
       }).join("");
     }
 
-    function scrollToPreview() {
-      els.screenPreviewWrap.scrollIntoView({ behavior: "smooth", block: "start" });
+    function getPreviewDockTop() {
+      return els.previewDock.getBoundingClientRect().top + window.scrollY;
     }
 
-    els.prevBtn.addEventListener("click", () => { socket.emit("slide:prev"); scrollToPreview(); });
-    els.nextBtn.addEventListener("click", () => { socket.emit("slide:next"); scrollToPreview(); });
-    els.interstitialBtn.addEventListener("click", () => socket.emit("screen:interstitial-hold"));
+    function pinPreviewDock(behavior = "auto") {
+      const previewTop = getPreviewDockTop();
+      window.scrollTo({
+        top: Math.max(0, Math.round(previewTop)),
+        behavior
+      });
+    }
 
+    function stopPreviewPinning() {
+      if (previewPinFrame != null) {
+        cancelAnimationFrame(previewPinFrame);
+        previewPinFrame = null;
+      }
+    }
+
+    function maintainPreviewPinning(durationMs = 180) {
+      stopPreviewPinning();
+      const startedAt = performance.now();
+      const step = () => {
+        pinPreviewDock();
+        if (performance.now() - startedAt < durationMs) {
+          previewPinFrame = requestAnimationFrame(step);
+        } else {
+          previewPinFrame = null;
+        }
+      };
+      previewPinFrame = requestAnimationFrame(step);
+    }
+
+    function scrollToPreview() {
+      pinPreviewDock("smooth");
+    }
+
+    function isEditableTarget(target) {
+      if (!(target instanceof Element)) {
+        return false;
+      }
+      if (target.isContentEditable) {
+        return true;
+      }
+      const tagName = target.tagName;
+      return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+    }
+
+    els.interstitialBtn.addEventListener("click", () => socket.emit("screen:interstitial-hold"));
     els.nextSectionBtn.addEventListener("click", () => {
       const isPreOrPost = _preMassRunning || _currentPhase === "pre" || _currentPhase === "post";
       if (isPreOrPost) {
@@ -404,7 +935,288 @@
         return;
       }
       socket.emit("slide:goto:remote", Number(btn.dataset.index));
+      scrollToPreview();
     });
+
+    els.carouselTrack.addEventListener("click", (event) => {
+      if (Date.now() < suppressCarouselClickUntil || carouselDidSwipe) {
+        return;
+      }
+      const card = event.target.closest(".carousel-card");
+      if (!card) return;
+      if (!card.dataset.index) return;
+      const index = Number(card.dataset.index);
+      if (!Number.isFinite(index)) return;
+      const now = Date.now();
+      if (lastCarouselTap.index === index && now - lastCarouselTap.at < 350) {
+        socket.emit("slide:goto:remote", index);
+        scrollToPreview();
+        carouselSelectedIndex = index;
+        carouselFocusIndex = index;
+        renderCarousel();
+        lastCarouselTap = { index: null, at: 0 };
+        return;
+      }
+      carouselSelectedIndex = index;
+      carouselFocusIndex = index;
+      renderCarousel();
+      scrollToPreview();
+      lastCarouselTap = { index, at: now };
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        socket.emit("slide:prev");
+        scrollToPreview();
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        socket.emit("slide:next");
+        scrollToPreview();
+      }
+    });
+
+    function moveCarouselBy(delta) {
+      if (!currentSlides.length) return;
+      const nextFocus = clampCarouselFocus(carouselFocusIndex + delta);
+      if (nextFocus === carouselFocusIndex) {
+        return;
+      }
+      stopCarouselMomentum();
+      carouselDragOffset = 0;
+      carouselFocusIndex = nextFocus;
+      carouselSelectedIndex = nextFocus;
+      renderCarousel();
+      scrollToPreview();
+    }
+
+    function beginCarouselGesture(x, y) {
+      stopCarouselMomentum();
+      pinPreviewDock();
+      maintainPreviewPinning(320);
+      carouselDragStartX = x;
+      carouselDragStartY = y;
+      carouselLastPointerX = x;
+      carouselLastPointerAt = performance.now();
+      carouselVelocity = 0;
+      carouselGestureAxis = null;
+      carouselDidSwipe = false;
+      els.carouselTrack.classList.add("dragging");
+    }
+
+    function updateCarouselGesture(x, y) {
+      if (carouselDragStartX == null || carouselDragStartY == null || x == null || y == null) {
+        return false;
+      }
+      const totalDeltaX = x - carouselDragStartX;
+      const totalDeltaY = y - carouselDragStartY;
+      if (carouselGestureAxis == null) {
+        if (Math.abs(totalDeltaX) < GESTURE_AXIS_LOCK_PX && Math.abs(totalDeltaY) < GESTURE_AXIS_LOCK_PX) {
+          return false;
+        }
+        carouselGestureAxis = Math.abs(totalDeltaX) > Math.abs(totalDeltaY) ? "x" : "y";
+      }
+      if (carouselGestureAxis !== "x") {
+        return false;
+      }
+      if (Math.abs(totalDeltaX) > CAROUSEL_SWIPE_ACTIVATION_PX && Math.abs(totalDeltaX) > Math.abs(totalDeltaY)) {
+        carouselDidSwipe = true;
+      }
+      const now = performance.now();
+      const deltaX = (x - carouselLastPointerX) * CAROUSEL_DRAG_GAIN;
+      pinPreviewDock();
+      carouselDragOffset += deltaX;
+      shiftCarouselWindowIfNeeded();
+      positionCarouselCards();
+      const dt = now - carouselLastPointerAt;
+      carouselVelocity = dt > 0 ? deltaX / dt : 0;
+      carouselLastPointerX = x;
+      carouselLastPointerAt = now;
+      return true;
+    }
+
+    function endCarouselGesture(x, y) {
+      const handled = updateCarouselGesture(x, y);
+      if (handled) {
+        suppressCarouselClickUntil = Date.now() + 220;
+        maintainPreviewPinning(220);
+      }
+      const shouldSpin = handled && Math.abs(carouselVelocity) > 0.01;
+      carouselDragStartX = null;
+      carouselDragStartY = null;
+      carouselLastPointerX = null;
+      carouselGestureAxis = null;
+      els.carouselTrack.classList.remove("dragging");
+      if (shouldSpin) {
+        startCarouselMomentum();
+        return;
+      }
+      settleCarousel();
+    }
+
+    if (supportsPointerEvents) {
+      els.carouselTrack.addEventListener("pointerdown", (event) => {
+        beginCarouselGesture(event.clientX, event.clientY);
+        if (els.carouselTrack.setPointerCapture) {
+          try {
+            els.carouselTrack.setPointerCapture(event.pointerId);
+          } catch {
+            // Ignore unsupported pointer capture failures.
+          }
+        }
+      });
+
+      els.carouselTrack.addEventListener("pointermove", (event) => {
+        if (carouselDragStartX == null || carouselDragStartY == null) return;
+        const handled = updateCarouselGesture(event.clientX, event.clientY);
+        if (handled) {
+          event.preventDefault();
+        }
+      });
+
+      els.carouselTrack.addEventListener("pointerup", (event) => {
+        endCarouselGesture(event.clientX, event.clientY);
+      });
+
+      els.carouselTrack.addEventListener("pointercancel", () => {
+        endCarouselGesture();
+      });
+
+      els.carouselTrack.addEventListener("pointerleave", () => {
+        endCarouselGesture();
+      });
+    } else {
+      els.carouselTrack.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        beginCarouselGesture(touch.clientX, touch.clientY);
+      }, { passive: true });
+
+      els.carouselTrack.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        const handled = updateCarouselGesture(touch.clientX, touch.clientY);
+        if (handled) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      els.carouselTrack.addEventListener("touchend", (event) => {
+        const touch = event.changedTouches[0];
+        endCarouselGesture(touch?.clientX, touch?.clientY);
+      });
+
+      els.carouselTrack.addEventListener("touchcancel", () => {
+        endCarouselGesture();
+      });
+    }
+
+    function beginPreviewGesture(x, y) {
+      pinPreviewDock();
+      maintainPreviewPinning(260);
+      previewSwipeStartX = x;
+      previewSwipeStartY = y;
+    }
+
+    function endPreviewGesture(x, y) {
+      if (previewSwipeStartX == null || previewSwipeStartY == null || x == null || y == null) {
+        previewSwipeStartX = null;
+        previewSwipeStartY = null;
+        return;
+      }
+      const deltaX = x - previewSwipeStartX;
+      const deltaY = y - previewSwipeStartY;
+      previewSwipeStartX = null;
+      previewSwipeStartY = null;
+      if (Math.abs(deltaX) < PREVIEW_SWIPE_TRIGGER_PX) return;
+      if (Math.abs(deltaX) <= Math.abs(deltaY) * PREVIEW_SWIPE_DOMINANCE_RATIO) return;
+      socket.emit(deltaX < 0 ? "slide:next" : "slide:prev");
+      maintainPreviewPinning(220);
+    }
+
+    if (supportsPointerEvents) {
+      els.screenPreviewTouch.addEventListener("pointerdown", (event) => {
+        beginPreviewGesture(event.clientX, event.clientY);
+        if (els.screenPreviewTouch.setPointerCapture) {
+          try {
+            els.screenPreviewTouch.setPointerCapture(event.pointerId);
+          } catch {
+            // Ignore unsupported pointer capture failures.
+          }
+        }
+      });
+
+      els.screenPreviewTouch.addEventListener("pointermove", (event) => {
+        if (previewSwipeStartX == null || previewSwipeStartY == null) return;
+        const deltaX = event.clientX - previewSwipeStartX;
+        const deltaY = event.clientY - previewSwipeStartY;
+        if (Math.abs(deltaX) > CAROUSEL_SWIPE_ACTIVATION_PX && Math.abs(deltaX) > Math.abs(deltaY)) {
+          event.preventDefault();
+        }
+      });
+
+      els.screenPreviewTouch.addEventListener("pointerup", (event) => {
+        endPreviewGesture(event.clientX, event.clientY);
+      });
+
+      els.screenPreviewTouch.addEventListener("pointercancel", () => {
+        endPreviewGesture();
+      });
+    } else {
+      els.screenPreviewTouch.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        if (!touch) return;
+        beginPreviewGesture(touch.clientX, touch.clientY);
+      }, { passive: true });
+
+      els.screenPreviewTouch.addEventListener("touchmove", (event) => {
+        const touch = event.touches[0];
+        if (!touch || previewSwipeStartX == null || previewSwipeStartY == null) return;
+        const deltaX = touch.clientX - previewSwipeStartX;
+        const deltaY = touch.clientY - previewSwipeStartY;
+        if (Math.abs(deltaX) > CAROUSEL_SWIPE_ACTIVATION_PX && Math.abs(deltaX) > Math.abs(deltaY)) {
+          event.preventDefault();
+        }
+      }, { passive: false });
+
+      els.screenPreviewTouch.addEventListener("touchend", (event) => {
+        const touch = event.changedTouches[0];
+        endPreviewGesture(touch?.clientX, touch?.clientY);
+      });
+
+      els.screenPreviewTouch.addEventListener("touchcancel", () => {
+        endPreviewGesture();
+      });
+
+      els.screenPreviewTouch.addEventListener("mousedown", (event) => {
+        beginPreviewGesture(event.clientX, event.clientY);
+      });
+
+      els.screenPreviewTouch.addEventListener("mousemove", (event) => {
+        if (previewSwipeStartX == null || previewSwipeStartY == null) return;
+        const deltaX = event.clientX - previewSwipeStartX;
+        const deltaY = event.clientY - previewSwipeStartY;
+        if (Math.abs(deltaX) > CAROUSEL_SWIPE_ACTIVATION_PX && Math.abs(deltaX) > Math.abs(deltaY)) {
+          event.preventDefault();
+        }
+      });
+
+      els.screenPreviewTouch.addEventListener("mouseup", (event) => {
+        endPreviewGesture(event.clientX, event.clientY);
+      });
+
+      els.screenPreviewTouch.addEventListener("mouseleave", () => {
+        endPreviewGesture();
+      });
+    }
 
     fetch("/api/state")
       .then((r) => r.json())
