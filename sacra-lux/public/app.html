@@ -3505,6 +3505,8 @@
       if (els.editorPreviewFrame && els.editorPreviewFrame.contentWindow) {
         els.editorPreviewFrame.contentWindow.postMessage({
           type: "preview_update",
+          slides: editorPreviewSlides,
+          currentSlideIndex: safeIndex,
           slide,
           screenSettings: uiState.data?.screenSettings
         }, "*");

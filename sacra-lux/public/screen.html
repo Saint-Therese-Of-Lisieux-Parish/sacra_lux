@@ -785,6 +785,12 @@
     }
 
     function applyBackgroundTheme(slide) {
+      if (slide?.type === "image" || slide?.type === "interstitial") {
+        frame.classList.remove("bg-dark");
+        frame.classList.add("bg-light");
+        return;
+      }
+
       if (slide?.backgroundTheme === "dark") {
         frame.classList.add("bg-dark");
         frame.classList.remove("bg-light");
@@ -797,8 +803,8 @@
         return;
       }
 
-      // Fallback: dark background for text-based slides, light background for image slides.
-      const useDark = slide?.type !== "image";
+      // Fallback: dark background for text-based slides, light background for image-like slides.
+      const useDark = slide?.type !== "image" && slide?.type !== "interstitial";
       frame.classList.toggle("bg-dark", useDark);
       frame.classList.toggle("bg-light", !useDark);
     }
@@ -1138,14 +1144,14 @@
         frame.style.setProperty("--reading-text-size", `${size}px`);
       }
 
-      // If we had a cached size, we trust it; otherwise shrink to fit.
-      if (!cachedSize) {
-        while ((active.scrollHeight > active.clientHeight || active.scrollWidth > active.clientWidth) && size > 24) {
-          size -= 1;
-          frame.style.setProperty("--display-font-effective-size", `${size}px`);
-          if (hasReadingTextSize) {
-            frame.style.setProperty("--reading-text-size", `${size}px`);
-          }
+      // Always do a final DOM-based shrink pass. The cache keeps pages in a
+      // reading group visually consistent, but some pages can still overflow
+      // slightly once actual browser layout, stroke, and font metrics apply.
+      while ((active.scrollHeight > active.clientHeight || active.scrollWidth > active.clientWidth) && size > 24) {
+        size -= 1;
+        frame.style.setProperty("--display-font-effective-size", `${size}px`);
+        if (hasReadingTextSize) {
+          frame.style.setProperty("--reading-text-size", `${size}px`);
         }
       }
 
@@ -1441,9 +1447,16 @@
     if (isPreviewMode) {
       window.addEventListener("message", (event) => {
         if (event.data && event.data.type === "preview_update") {
+          const previewSlides = Array.isArray(event.data.slides) && event.data.slides.length
+            ? event.data.slides
+            : [event.data.slide].filter(Boolean);
+          const previewIndex = Math.max(
+            0,
+            Math.min(Number(event.data.currentSlideIndex) || 0, previewSlides.length - 1)
+          );
           const mockState = {
-            presentation: { slides: [event.data.slide] },
-            currentSlideIndex: 0,
+            presentation: { slides: previewSlides },
+            currentSlideIndex: previewIndex,
             screenSettings: { ...event.data.screenSettings, transition: "none" }
           };
           render(mockState);

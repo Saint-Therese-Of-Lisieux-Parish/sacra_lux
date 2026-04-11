@@ -229,34 +229,47 @@ function estimateEndingPageLines(fontSizePx, readingTextHeightPx, lineHeight) {
 }
 
 // Treat each "R." line as the start of a new psalm stanza.
-// Give each refrain line its own slide.
-function paginatePsalm(lines, limit) {
+// Give each refrain line its own slide, and paginate verse blocks by
+// estimated visual line usage instead of raw source-line count.
+function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760) {
   const slides = [];
   let stanza = [];
 
+  function flushStanza() {
+    if (!stanza.length) return;
+    let bucket = [];
+    let bucketVisualLines = 0;
+
+    for (const line of stanza) {
+      const lineVisualLines = estimateVisualLines(line, fontSizePx, boxWidthPx);
+      if (bucket.length > 0 && bucketVisualLines + lineVisualLines > limit) {
+        slides.push(bucket.join("\n"));
+        bucket = [];
+        bucketVisualLines = 0;
+      }
+      bucket.push(line);
+      bucketVisualLines += lineVisualLines;
+    }
+
+    if (bucket.length > 0) {
+      slides.push(bucket.join("\n"));
+    }
+
+    stanza = [];
+  }
+
   for (const line of lines) {
     if (line.startsWith("R.")) {
-      // Flush the current stanza first.
-      if (stanza.length > 0) {
-        for (let i = 0; i < stanza.length; i += limit) {
-          slides.push(stanza.slice(i, i + limit));
-        }
-        stanza = [];
-      }
+      flushStanza();
       // Give the refrain line its own slide.
-      slides.push([line]);
+      slides.push(line);
     } else {
       stanza.push(line);
     }
   }
 
-  if (stanza.length > 0) {
-    for (let i = 0; i < stanza.length; i += limit) {
-      slides.push(stanza.slice(i, i + limit));
-    }
-  }
-
-  return slides.map((s) => s.join("\n"));
+  flushStanza();
+  return slides;
 }
 
 // Return true when a line ends a sentence.
@@ -461,7 +474,7 @@ function paginateDocuments(documents, options = {}) {
     const pages = [];
     for (const segment of segments) {
       const segPages = isPsalm
-        ? paginatePsalm(segment, visualLimit)
+        ? paginatePsalm(segment, visualLimit, fontSizePx, boxWidthPx)
         : paginateReading(segment, visualLimit, fontSizePx, boxWidthPx);
       pages.push(...segPages);
     }
