@@ -32,14 +32,14 @@ test("remote next button advances active slide", async ({ page, request }) => {
           type: "text",
           label: "Intro",
           phase: "mass",
-          backgroundType: "color"
+          backgroundTheme: "dark"
         },
         {
           id: "text:second",
           type: "text",
           label: "Prayer",
           phase: "mass",
-          backgroundType: "color"
+          backgroundTheme: "dark"
         }
       ],
       manualSlides: {
@@ -70,14 +70,14 @@ test("remote selecting a post-mass slide starts the post-mass loop from that sli
           type: "text",
           label: "Homily Notes",
           phase: "mass",
-          backgroundType: "color"
+          backgroundTheme: "dark"
         },
         {
           id: "text:post-one",
           type: "text",
           label: "Post One",
           phase: "post",
-          backgroundType: "color",
+          backgroundTheme: "dark",
           durationSec: 1
         },
         {
@@ -85,7 +85,7 @@ test("remote selecting a post-mass slide starts the post-mass loop from that sli
           type: "text",
           label: "Post Two",
           phase: "post",
-          backgroundType: "color",
+          backgroundTheme: "dark",
           durationSec: 1
         }
       ],

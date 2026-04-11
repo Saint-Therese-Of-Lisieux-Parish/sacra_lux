@@ -1,7 +1,7 @@
 const {
   createDefaultOrganizer,
   buildPresentationFromOrganizer,
-  normalizeBackgroundType,
+  normalizeBackgroundTheme,
   normalizePhase,
   normalizeType,
   createManualSlideRecord
@@ -16,10 +16,10 @@ describe("organizer", () => {
     expect(normalizePhase("warmup")).toBe("gathering");
     expect(normalizePhase("bogus")).toBe("mass");
 
-    expect(normalizeBackgroundType("word", "text")).toBe("color");
-    expect(normalizeBackgroundType("graphic", "text")).toBe("image");
-    expect(normalizeBackgroundType(null, "image")).toBe("image");
-    expect(normalizeBackgroundType(null, "text")).toBe("color");
+    expect(normalizeBackgroundTheme("word", "text")).toBe("dark");
+    expect(normalizeBackgroundTheme("graphic", "text")).toBe("light");
+    expect(normalizeBackgroundTheme(null, "image")).toBe("light");
+    expect(normalizeBackgroundTheme(null, "text")).toBe("dark");
   });
 
   test("creates expected default organizer sequence", () => {
@@ -37,14 +37,14 @@ describe("organizer", () => {
         sourceStem: "Reading_I",
         label: "First Reading",
         phase: "mass",
-        backgroundType: "color"
+        backgroundTheme: "dark"
       },
       {
         id: "image:Reading_I:1",
         type: "image",
         label: "Image",
         phase: "mass",
-        backgroundType: "image"
+        backgroundTheme: "light"
       },
       {
         id: "reading:Gospel",
@@ -52,7 +52,7 @@ describe("organizer", () => {
         sourceStem: "Gospel",
         label: "Gospel",
         phase: "mass",
-        backgroundType: "color"
+        backgroundTheme: "dark"
       }
     ]);
 
@@ -78,7 +78,7 @@ describe("organizer", () => {
           type: "text",
           label: "Welcome",
           phase: "mass",
-          backgroundType: "color"
+          backgroundTheme: "dark"
         }
       ],
       manualSlides: {
@@ -119,7 +119,7 @@ describe("organizer", () => {
           type: "text",
           label: "Psalm Response",
           phase: "mass",
-          backgroundType: "color"
+          backgroundTheme: "dark"
         }
       ],
       manualSlides: {
@@ -157,7 +157,7 @@ describe("organizer", () => {
           type: "countdown",
           label: "Mass starts in",
           phase: "pre",
-          backgroundType: "image"
+          backgroundTheme: "light"
         }
       ],
       manualSlides: {

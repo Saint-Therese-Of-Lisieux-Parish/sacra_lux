@@ -20,11 +20,11 @@ function ensureDir() {
  * Migrate a v1 session object to v2 format.
  * Changes:
  *   - manualCues → manualSlides
- *   - backgroundMode → backgroundType ("word" → "color", "graphic" → "image")
+ *   - backgroundType/backgroundMode → backgroundTheme ("word"/"color" → "dark", "graphic"/"image" → "light")
  *   - type: "reading-group" → "reading", "graphic" → "image"
  *   - phase: "warmup" → "gathering"
- *   - wordBackgroundUrl → colorBackgroundUrl
- *   - graphicBackgroundUrl → imageBackgroundUrl
+ *   - wordBackgroundUrl/colorBackgroundUrl → darkBackgroundUrl
+ *   - graphicBackgroundUrl/imageBackgroundUrl → lightBackgroundUrl
  *   - currentCueIndex → currentSlideIndex
  */
 function migrateV1toV2(session) {
@@ -43,13 +43,21 @@ function migrateV1toV2(session) {
   }
   if (migrated.screenSettings) {
     const ds = migrated.screenSettings;
-    if (ds.wordBackgroundUrl && !ds.colorBackgroundUrl) {
-      ds.colorBackgroundUrl = ds.wordBackgroundUrl;
+    if (ds.wordBackgroundUrl && !ds.darkBackgroundUrl) {
+      ds.darkBackgroundUrl = ds.wordBackgroundUrl;
       delete ds.wordBackgroundUrl;
     }
-    if (ds.graphicBackgroundUrl && !ds.imageBackgroundUrl) {
-      ds.imageBackgroundUrl = ds.graphicBackgroundUrl;
+    if (ds.colorBackgroundUrl && !ds.darkBackgroundUrl) {
+      ds.darkBackgroundUrl = ds.colorBackgroundUrl;
+      delete ds.colorBackgroundUrl;
+    }
+    if (ds.graphicBackgroundUrl && !ds.lightBackgroundUrl) {
+      ds.lightBackgroundUrl = ds.graphicBackgroundUrl;
       delete ds.graphicBackgroundUrl;
+    }
+    if (ds.imageBackgroundUrl && !ds.lightBackgroundUrl) {
+      ds.lightBackgroundUrl = ds.imageBackgroundUrl;
+      delete ds.imageBackgroundUrl;
     }
   }
 
@@ -72,11 +80,13 @@ function migrateV1toV2(session) {
       if (migItem.type === "graphic") migItem.type = "image";
       // Migrate phase values.
       if (migItem.phase === "warmup") migItem.phase = "gathering";
-      // Migrate background mode values.
-      if (migItem.backgroundMode !== undefined) {
-        if (migItem.backgroundMode === "word") migItem.backgroundType = "color";
-        else if (migItem.backgroundMode === "graphic") migItem.backgroundType = "image";
-        else migItem.backgroundType = migItem.backgroundMode;
+      // Migrate legacy background naming onto the new backgroundTheme field.
+      const legacyBackground = migItem.backgroundTheme ?? migItem.backgroundType ?? migItem.backgroundMode;
+      if (legacyBackground !== undefined) {
+        if (legacyBackground === "word" || legacyBackground === "color") migItem.backgroundTheme = "dark";
+        else if (legacyBackground === "graphic" || legacyBackground === "image") migItem.backgroundTheme = "light";
+        else migItem.backgroundTheme = legacyBackground;
+        delete migItem.backgroundType;
         delete migItem.backgroundMode;
       }
       return migItem;

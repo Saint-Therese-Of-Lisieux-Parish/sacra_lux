@@ -45,19 +45,21 @@ const SECTION_LABELS = {
 
 const VALID_TYPES = ["reading", "image", "text", "prayer", "hymn", "countdown", "interstitial"];
 const VALID_PHASES = ["pre", "gathering", "mass", "post"];
-const VALID_BACKGROUND_TYPES = ["color", "image"];
+const VALID_BACKGROUND_THEMES = ["dark", "light"];
 
 function normalizePhase(value) {
   if (value === "warmup") return "gathering";
   return VALID_PHASES.includes(value) ? value : "mass";
 }
 
-function normalizeBackgroundType(value, slideType) {
-  if (value === "word") return "color";
-  if (value === "graphic") return "image";
-  if (VALID_BACKGROUND_TYPES.includes(value)) return value;
+function normalizeBackgroundTheme(value, slideType) {
+  if (value === "word") return "dark";
+  if (value === "graphic") return "light";
+  if (value === "color") return "dark";
+  if (value === "image") return "light";
+  if (VALID_BACKGROUND_THEMES.includes(value)) return value;
   // Choose the default background from the slide type.
-  return (slideType === "image" || slideType === "interstitial") ? "image" : "color";
+  return (slideType === "image" || slideType === "interstitial") ? "light" : "dark";
 }
 
 function normalizeType(value) {
@@ -113,7 +115,7 @@ function createDefaultOrganizer(documents) {
       sourceStem: doc.stem,
       label: displayLabelForDocument(doc),
       phase: "mass",
-      backgroundType: "color"
+      backgroundTheme: "dark"
     });
 
     if (index < documents.length - 1) {
@@ -123,7 +125,7 @@ function createDefaultOrganizer(documents) {
         type: "image",
         label: "Image",
         phase: "mass",
-        backgroundType: "image"
+        backgroundTheme: "light"
       });
       manualSlides[imageId] = createManualSlideRecord("image");
     }
@@ -141,7 +143,7 @@ function buildManualSlide(item, manualSlide, index) {
     textVAlign: manualSlide?.textVAlign || "middle",
     imageUrl: manualSlide?.imageUrl || null,
     phase: normalizePhase(item.phase),
-    backgroundType: normalizeBackgroundType(item.backgroundType, item.type),
+    backgroundTheme: normalizeBackgroundTheme(item.backgroundTheme, item.type),
     index
   };
 
@@ -219,7 +221,7 @@ function buildReadingSlides(item, documents, screenSettings) {
         ? `${item.label || displayLabelForDocument(doc)} — ${slide.passage} (${slide.pageNumber}/${slide.totalPages})`
         : `${item.label || displayLabelForDocument(doc)} — ${slide.passage}`,
     phase: normalizePhase(item.phase),
-    backgroundType: normalizeBackgroundType(item.backgroundType, item.type)
+    backgroundTheme: normalizeBackgroundTheme(item.backgroundTheme, item.type)
   }));
 }
 
@@ -259,7 +261,7 @@ module.exports = {
   createDefaultOrganizer,
   buildPresentationFromOrganizer,
   displayLabelForDocument,
-  normalizeBackgroundType,
+  normalizeBackgroundTheme,
   normalizePhase,
   normalizeType,
   createManualSlideRecord
