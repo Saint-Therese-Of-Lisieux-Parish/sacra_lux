@@ -48,10 +48,28 @@ describe("public html integration", () => {
     expect(res.text).toContain('window.visualViewport?.addEventListener("resize", handleViewportResize);');
   });
 
+  test("remote markup includes the splash overlay summary", async () => {
+    const res = await request(app).get("/remote").expect(200);
+
+    expect(res.text).toContain('id="remoteSplash"');
+    expect(res.text).toContain('id="splashMassStart"');
+    expect(res.text).toContain('id="splashSlideCount"');
+    expect(res.text).toContain("Tap anywhere to open the remote.");
+  });
+
   test("remote markup returns interstitial hold to the centered carousel slide", async () => {
     const res = await request(app).get("/remote").expect(200);
 
     expect(res.text).toContain('returnSlideIndex: getCarouselCenterSlideIndex()');
     expect(res.text).toContain('function getCarouselCenterSlideIndex()');
+  });
+
+  test("remote markup dismisses the splash and keeps preview-pinning helpers", async () => {
+    const res = await request(app).get("/remote").expect(200);
+
+    expect(res.text).toContain("function dismissSplash()");
+    expect(res.text).toContain("els.remoteSplash.addEventListener(\"click\", dismissSplash);");
+    expect(res.text).toContain("maintainPreviewPinning(220);");
+    expect(res.text).not.toContain('id="titleSection"');
   });
 });

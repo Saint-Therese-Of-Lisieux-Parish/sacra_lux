@@ -23,7 +23,13 @@ test.afterAll(async () => {
   }
 });
 
-test("remote next button advances active slide", async ({ page, request }) => {
+async function dismissRemoteSplash(page) {
+  await expect(page.locator("#remoteSplash")).toBeVisible();
+  await page.locator("#remoteSplash").click();
+  await expect(page.locator("#remoteSplash")).toBeHidden();
+}
+
+test("remote splash dismisses into preview-first layout and arrow next advances slide", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {
       sequence: [
@@ -50,9 +56,13 @@ test("remote next button advances active slide", async ({ page, request }) => {
   });
 
   await page.goto(`${baseUrl}/remote`);
-  await expect(page.locator("#title")).toContainText(/Mass Presentation|No presentation/i);
+  await expect(page.locator("#splashTitle")).toContainText(/Mass Presentation|No presentation/i);
+  await dismissRemoteSplash(page);
+  await expect(page.locator("#titleSection")).toHaveCount(0);
+  await expect(page.locator("#previewDock")).toBeVisible();
+  await expect(page.locator("#previewCarousel")).toBeVisible();
 
-  await page.locator("#nextBtn").click();
+  await page.keyboard.press("ArrowRight");
 
   await expect.poll(async () => {
     const res = await request.get(`${baseUrl}/api/state`);
@@ -99,7 +109,8 @@ test("remote selecting a post-mass slide starts the post-mass loop from that sli
   expect(organizerRes.ok()).toBeTruthy();
 
   await page.goto(`${baseUrl}/remote`);
-  await page.getByRole("button", { name: "Post Two" }).click();
+  await dismissRemoteSplash(page);
+  await page.getByRole("button", { name: "Post Two" }).evaluate((button) => button.click());
 
   await expect.poll(async () => {
     const res = await request.get(`${baseUrl}/api/state`);
@@ -118,6 +129,52 @@ test("remote selecting a post-mass slide starts the post-mass loop from that sli
 
   const stopRes = await request.post(`${baseUrl}/api/post-mass/stop`);
   expect(stopRes.ok()).toBeTruthy();
+});
+
+test("remote preview interaction keeps the large preview pinned at the top", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [
+        {
+          id: "text:first",
+          type: "text",
+          label: "Intro",
+          phase: "mass",
+          backgroundTheme: "dark"
+        },
+        {
+          id: "text:second",
+          type: "text",
+          label: "Prayer",
+          phase: "mass",
+          backgroundTheme: "dark"
+        },
+        {
+          id: "text:third",
+          type: "text",
+          label: "Dismissal",
+          phase: "mass",
+          backgroundTheme: "dark"
+        }
+      ],
+      manualSlides: {
+        "text:first": { text: "Slide One", notes: "", textVAlign: "middle", imageUrl: null },
+        "text:second": { text: "Slide Two", notes: "", textVAlign: "middle", imageUrl: null },
+        "text:third": { text: "Slide Three", notes: "", textVAlign: "middle", imageUrl: null }
+      }
+    }
+  });
+
+  await page.goto(`${baseUrl}/remote`);
+  await dismissRemoteSplash(page);
+  await page.evaluate(() => {
+    document.querySelector("#cueList")?.scrollTo({ top: 9999 });
+  });
+  await page.locator("#carouselTrack").click({ position: { x: 20, y: 20 } });
+
+  const previewBox = await page.locator("#previewDock").boundingBox();
+  expect(previewBox).not.toBeNull();
+  expect(previewBox.y).toBeLessThan(2);
 });
 
 test("start page validates PIN-gated mass start flow", async ({ page, request }) => {
