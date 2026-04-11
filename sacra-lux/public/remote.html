@@ -1023,14 +1023,14 @@
       }
       if (event.key === "ArrowLeft") {
         event.preventDefault();
+        suppressNextCarouselAnimation = true;
         stepRemoteSlide(-1);
-        scrollToPreview();
         return;
       }
       if (event.key === "ArrowRight") {
         event.preventDefault();
+        suppressNextCarouselAnimation = true;
         stepRemoteSlide(1);
-        scrollToPreview();
       }
     });
 
