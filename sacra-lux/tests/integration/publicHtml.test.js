@@ -39,4 +39,19 @@ describe("public html integration", () => {
     expect(res.text).toContain('<label for="pinInput" class="sr-only">PIN Code</label>');
     expect(res.text).toContain('id="errorMsg" class="error-msg" role="status" aria-live="polite"');
   });
+
+  test("remote markup opts into iOS safe-area viewport handling", async () => {
+    const res = await request(app).get("/remote").expect(200);
+
+    expect(res.text).toContain('viewport-fit=cover');
+    expect(res.text).toContain('--remote-preview-dock-height');
+    expect(res.text).toContain('window.visualViewport?.addEventListener("resize", handleViewportResize);');
+  });
+
+  test("remote markup returns interstitial hold to the centered carousel slide", async () => {
+    const res = await request(app).get("/remote").expect(200);
+
+    expect(res.text).toContain('returnSlideIndex: getCarouselCenterSlideIndex()');
+    expect(res.text).toContain('function getCarouselCenterSlideIndex()');
+  });
 });
