@@ -114,7 +114,7 @@ describe("server api integration", () => {
         type: "text",
         label: "Announcements",
         phase: "mass",
-        backgroundType: "color",
+        backgroundTheme: "dark",
         manualSlide: {
           text: "First block\n---\nSecond block",
           notes: "",
@@ -127,6 +127,33 @@ describe("server api integration", () => {
     expect(res.body.slides).toHaveLength(2);
     expect(res.body.slides[0].text).toBe("First block");
     expect(res.body.slides[1].text).toBe("Second block");
+  });
+
+  test("preview-reading includes the organizer label as groupLabel", async () => {
+    const readingsDir = path.join(handle.homeDir, "preview-reading");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(readingsDir, "Reading_I.txt"),
+      "Acts of the Apostles 2:42-47\n\nThey devoted themselves to the teaching of the apostles.",
+      "utf8"
+    );
+
+    await request(app)
+      .post("/api/load-readings")
+      .send({ folderPath: readingsDir })
+      .expect(200);
+
+    const res = await request(app)
+      .post("/api/preview-reading")
+      .send({
+        stem: "Reading_I",
+        label: "First Reading",
+        text: "They devoted themselves to the teaching of the apostles."
+      })
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.slides[0].groupLabel).toBe("First Reading");
   });
 
   test("organizer endpoint validates sequence payload", async () => {
@@ -285,6 +312,142 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(currentMassDir, "assets", "uploaded.png"))).toBe(true);
     expect(fs.existsSync(path.join(currentMassDir, "assets", "unsafe.png"))).toBe(false);
     expect(fs.existsSync(path.join(currentMassDir, "assets", "skip.png"))).toBe(false);
+  });
+
+  test("export-mass-zip writes a v3 mass.json document without PIN data", async () => {
+    await request(app)
+      .post("/api/start-pin")
+      .send({ pin: "2468" })
+      .expect(200);
+
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Document Export", startTime: "2026-04-20T09:00" })
+      .expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          {
+            id: "reading-1",
+            type: "reading",
+            label: "First Reading",
+            phase: "mass",
+            backgroundTheme: "dark"
+          },
+          {
+            id: "text-1",
+            type: "text",
+            label: "Welcome",
+            phase: "pre",
+            backgroundTheme: "dark"
+          }
+        ],
+        manualSlides: {
+          "text-1": {
+            text: "Welcome everyone",
+            notes: "",
+            textVAlign: "middle",
+            imageUrl: null
+          }
+        }
+      })
+      .expect(200);
+
+    const zipRes = await request(app)
+      .get("/api/export-mass-zip")
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    const zip = new AdmZip(zipRes.body);
+    const massEntry = zip.getEntry("mass.json");
+    expect(massEntry).toBeTruthy();
+
+    const massDocument = JSON.parse(massEntry.getData().toString("utf8"));
+    expect(massDocument.format).toBe("sacra-lux.mass");
+    expect(massDocument.version).toBe(3);
+    expect(massDocument.metadata.title).toBe("Document Export");
+    expect(massDocument.metadata.scheduledStart).toBe("2026-04-20T09:00");
+    expect(massDocument.startPinHash).toBeUndefined();
+    expect(massDocument.items.map((item) => item.id)).toEqual(["reading-1", "text-1"]);
+  });
+
+  test("import-mass-zip accepts v3 mass documents with inline readings", async () => {
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: {
+        title: "Inline Reading Mass",
+        scheduledStart: "2026-04-27T09:00:00-04:00"
+      },
+      presentationDefaults: {
+        fontFamily: "Merriweather"
+      },
+      items: [
+        {
+          id: "reading-1",
+          kind: "reading",
+          label: "First Reading",
+          section: "mass",
+          content: {
+            text: "In the beginning..."
+          },
+          source: {
+            stem: "Reading_I",
+            citation: "Genesis 1:1-3"
+          }
+        },
+        {
+          id: "hymn-1",
+          kind: "hymn",
+          label: "Opening Hymn",
+          section: "mass",
+          content: {
+            text: "Holy God"
+          },
+          presentation: {
+            background: "dark",
+            textVAlign: "middle"
+          }
+        }
+      ]
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.presentation.title).toBe("Inline Reading Mass");
+    expect(stateRes.body.massStartTime).toBe("2026-04-27T09:00:00-04:00");
+    expect(stateRes.body.organizerSequence.map((item) => item.id)).toEqual(["reading-1", "hymn-1"]);
+    expect(stateRes.body.presentation.slides.some((slide) => slide.organizerItemId === "reading-1")).toBe(true);
+
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    expect(fs.existsSync(path.join(currentMassDir, "Reading_I.txt"))).toBe(true);
+  });
+
+  test("organizer endpoint rejects duplicate organizer ids", async () => {
+    const res = await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "dup", type: "text", label: "One", phase: "mass", backgroundTheme: "dark" },
+          { id: "dup", type: "text", label: "Two", phase: "mass", backgroundTheme: "dark" }
+        ],
+        manualSlides: {}
+      })
+      .expect(400);
+
+    expect(String(res.body.error || "")).toMatch(/duplicate organizer item id/i);
   });
 
   test("verify-pin applies escalating lockout with retry-after header", async () => {

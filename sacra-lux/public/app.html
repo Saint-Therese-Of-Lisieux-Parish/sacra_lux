@@ -2104,13 +2104,13 @@
                 <div class="settings-subsection-label">Dark Background</div>
                 <div class="settings-upload-row">
                   <label style="flex:1 1 260px">Preset
-                    <select id="colorBgPreset">
+                    <select id="darkBgPreset">
                       <option value="">— select from assets —</option>
                     </select>
                   </label>
                   <label class="upload-bg-label">
                     Upload image…
-                    <input id="colorBgUpload" type="file" accept="image/*" style="display:none">
+                    <input id="darkBgUpload" type="file" accept="image/*" style="display:none">
                   </label>
                 </div>
               </div>
@@ -2118,13 +2118,13 @@
                 <div class="settings-subsection-label">Light Background</div>
                 <div class="settings-upload-row">
                   <label style="flex:1 1 260px">Preset
-                    <select id="imageBgPreset">
+                    <select id="lightBgPreset">
                       <option value="">— select from assets —</option>
                     </select>
                   </label>
                   <label class="upload-bg-label">
                     Upload image…
-                    <input id="imageBgUpload" type="file" accept="image/*" style="display:none">
+                    <input id="lightBgUpload" type="file" accept="image/*" style="display:none">
                   </label>
                 </div>
               </div>
@@ -2196,7 +2196,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Color
-                      <input id="readingTextColor" class="settings-color-input" type="color" value="#f8f8f8">
+                      <input id="readingTextColor" class="settings-color-input" type="dark" value="#f8f8f8">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2213,7 +2213,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
-                      <input id="readingTextOutlineColor" class="settings-color-input" type="color" value="#000000">
+                      <input id="readingTextOutlineColor" class="settings-color-input" type="dark" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2309,12 +2309,12 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Color
-                      <input id="readingPassageColor" class="settings-color-input" type="color" value="#e8d5a0">
+                      <input id="readingPassageColor" class="settings-color-input" type="dark" value="#e8d5a0">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
-                      <input id="readingPassageOutlineColor" class="settings-color-input" type="color" value="#000000">
+                      <input id="readingPassageOutlineColor" class="settings-color-input" type="dark" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2324,7 +2324,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Title outline color
-                      <input id="readingSectionOutlineColor" class="settings-color-input" type="color" value="#000000">
+                      <input id="readingSectionOutlineColor" class="settings-color-input" type="dark" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2476,7 +2476,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Color
-                      <input id="textSlideTextColor" class="settings-color-input" type="color" value="#f8f8f8">
+                      <input id="textSlideTextColor" class="settings-color-input" type="dark" value="#f8f8f8">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2493,7 +2493,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
-                      <input id="textSlideTextOutlineColor" class="settings-color-input" type="color" value="#000000">
+                      <input id="textSlideTextOutlineColor" class="settings-color-input" type="dark" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2733,11 +2733,11 @@
                   </select>
                 </label>
               </div>
-              <div class="modal-field modal-span-3" id="editorBackgroundTypeWrap">
+              <div class="modal-field modal-span-3" id="editorBackgroundThemeWrap">
                 <label>Background
-                  <select id="editorBackgroundType">
-                    <option value="color">Dark</option>
-                    <option value="image">Light</option>
+                  <select id="editorBackgroundTheme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
                   </select>
                 </label>
               </div>
@@ -2804,6 +2804,9 @@
                   </label>
                 </div>
               </label>
+            </div>
+            <div class="editor-row" style="margin-bottom:0.45rem">
+              <button type="button" class="insert-break-btn" id="useImageFilenameLabelBtn">Use filename as label</button>
             </div>
             <!-- Hidden URL input used internally by asset picker and uploads -->
             <input id="editorImageUrl" type="hidden">
@@ -3180,10 +3183,10 @@
       fullscreenToggleBtn: document.getElementById("fullscreenToggleBtn"),
       fontFamily: document.getElementById("fontFamily"),
       fontSizePx: document.getElementById("fontSizePx"),
-      colorBgPreset: document.getElementById("colorBgPreset"),
-      colorBgUpload: document.getElementById("colorBgUpload"),
-      imageBgPreset: document.getElementById("imageBgPreset"),
-      imageBgUpload: document.getElementById("imageBgUpload"),
+      darkBgPreset: document.getElementById("darkBgPreset"),
+      darkBgUpload: document.getElementById("darkBgUpload"),
+      lightBgPreset: document.getElementById("lightBgPreset"),
+      lightBgUpload: document.getElementById("lightBgUpload"),
       boldText: document.getElementById("boldText"),
       readingTextAlign: document.getElementById("readingTextAlign"),
       readingTextVAlign: document.getElementById("readingTextVAlign"),
@@ -3284,8 +3287,8 @@
       editorLabel: document.getElementById("editorLabel"),
       editorType: document.getElementById("editorType"),
       editorPhase: document.getElementById("editorPhase"),
-      editorBackgroundTypeWrap: document.getElementById("editorBackgroundTypeWrap"),
-      editorBackgroundType: document.getElementById("editorBackgroundType"),
+      editorBackgroundThemeWrap: document.getElementById("editorBackgroundThemeWrap"),
+      editorBackgroundTheme: document.getElementById("editorBackgroundTheme"),
       editorSourceStem: document.getElementById("editorSourceStem"),
       editorPrayerWrap: document.getElementById("editorPrayerWrap"),
       editorPrayerSelect: document.getElementById("editorPrayerSelect"),
@@ -3310,6 +3313,7 @@
       editorImageUrl: document.getElementById("editorImageUrl"),
       editorImageFile: document.getElementById("editorImageFile"),
       editorAssetPicker: document.getElementById("editorAssetPicker"),
+      useImageFilenameLabelBtn: document.getElementById("useImageFilenameLabelBtn"),
       browseImageBtn: document.getElementById("browseImageBtn"),
       assetFolderHint: document.getElementById("assetFolderHint"),
       exportZipBtn: document.getElementById("exportZipBtn"),
@@ -3380,6 +3384,8 @@
     async function updateReadingPreview() {
       const text = els.editorReadingText.value;
       const stem = els.editorSourceStem.value;
+      const item = getEditorPreviewItem();
+      const label = els.editorLabel.value || item?.label || "";
       if (!stem) {
         editorPreviewSlides = [];
         editorPreviewIndex = 0;
@@ -3390,7 +3396,7 @@
       const res = await fetch("/api/preview-reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, stem })
+        body: JSON.stringify({ text, stem, label })
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.slides) {
@@ -3420,9 +3426,9 @@
           type: item.type,
           label: els.editorLabel.value || item.label || "Slide",
           phase: els.editorPhase.value || item.phase || "mass",
-          backgroundType: (item.type === "image" || item.type === "interstitial")
-            ? "image"
-            : (els.editorBackgroundType.value || item.backgroundType || "color"),
+          backgroundTheme: (item.type === "image" || item.type === "interstitial")
+            ? "light"
+            : (els.editorBackgroundTheme.value || item.backgroundTheme || "dark"),
           manualSlide: {
             text: els.editorText.value || "",
             notes: els.editorNotes.value || "",
@@ -3593,12 +3599,12 @@
         resolution: els.screenResolution.value || "1080p",
         fontFamily: els.fontFamily.value,
         fontSizePx: Number(els.fontSizePx.value || 60),
-        colorBackgroundUrl: resolveBackgroundValue(
-          els.colorBgPreset,
+        darkBackgroundUrl: resolveBackgroundValue(
+          els.darkBgPreset,
           "/static/assets/background-dark.png"
         ),
-        imageBackgroundUrl: resolveBackgroundValue(
-          els.imageBgPreset,
+        lightBackgroundUrl: resolveBackgroundValue(
+          els.lightBgPreset,
           "/static/assets/background-graphic.png"
         ),
         boldText: Boolean(els.boldText.checked),
@@ -3743,9 +3749,7 @@
       const bold = ds.boldText ? "font-weight:700;" : "";
 
       if (isImage) {
-        return `<div class="thumb-render">
-          <div style="position:absolute;bottom:40px;left:60px;font-size:44px;color:#e8d5a0;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.8)">${escThumb(item.label || "Image")}</div>
-        </div>`;
+        return `<div class="thumb-render"></div>`;
       }
 
       if (item.type === "reading") {
@@ -3848,7 +3852,12 @@
       </div>`;
     }
 
-    async function saveOrganizer(sequence, manualSlides, message = "Organizer saved") {
+    function formatProjectedSlideCount(totalSlides) {
+      const count = Number(totalSlides || 0);
+      return `${count} projected slide${count === 1 ? "" : "s"}`;
+    }
+
+    async function saveOrganizer(sequence, manualSlides, message = "Mass updated") {
       const response = await fetch("/api/organizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3856,11 +3865,11 @@
       });
       const data = await response.json();
       if (!response.ok) {
-        els.status.textContent = data.error || "Failed to save organizer";
+        els.status.textContent = data.error || "Failed to save Mass changes.";
         return false;
       }
       const totalSlides = Number(data.slideCount ?? 0);
-      els.status.textContent = `${message} (${totalSlides} slides)`;
+      els.status.textContent = `${message}. ${formatProjectedSlideCount(totalSlides)} in this Mass.`;
       els.massTitleInput.value = uiState.data?.presentation?.title || "No presentation";
       return true;
     }
@@ -4007,8 +4016,8 @@
       const screenSettings = uiState.data?.screenSettings || {};
       const manualSlides = uiState.data?.manualSlides || {};
 
-      const bgColor = screenSettings.colorBackgroundUrl || "/static/assets/background-dark.png";
-      const bgImage = screenSettings.imageBackgroundUrl || "/static/assets/background-graphic.png";
+      const darkBg = screenSettings.darkBackgroundUrl || "/static/assets/background-dark.png";
+      const lightBg = screenSettings.lightBackgroundUrl || "/static/assets/background-graphic.png";
 
       // Count total slides per phase
       const phaseSlideCounts = {};
@@ -4038,14 +4047,14 @@
           const imgFile = imgUrl ? decodeURIComponent(imgUrl.split("/").pop()) : "";
           if (imgFile) sourceMeta = ` · ${imgFile}`;
         }
-        // Image-type slides use their own image; other slides pick background by backgroundType.
+        // Image-type slides use their own image; other slides pick background by backgroundTheme.
         let bgUrl;
         if (isImage) {
-          bgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || bgImage;
-        } else if (item.backgroundType === "image") {
-          bgUrl = bgImage;
+          bgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || lightBg;
+        } else if (item.backgroundTheme === "light") {
+          bgUrl = lightBg;
         } else {
-          bgUrl = bgColor;
+          bgUrl = darkBg;
         }
         const thumbContent = buildThumbHtml(item, repSlide, manualSlide);
 
@@ -4178,7 +4187,7 @@
 
     const EDITOR_TYPE_META = {
       "reading": { label: "READING", className: "tag-reading", title: "Reading" },
-      "image": { label: "IMAGE", className: "tag-image", title: "Image Slide" },
+      "light": { label: "IMAGE", className: "tag-image", title: "Image Slide" },
       "interstitial": { label: "INTERSTITIAL", className: "tag-interstitial", title: "Interstitial Slide" },
       "text": { label: "TEXT", className: "tag-text", title: "Text Slide" },
       "prayer": { label: "PRAYER", className: "tag-text", title: "Prayer Slide" },
@@ -4253,10 +4262,10 @@
       els.editorPhase.value = item.phase || "mass";
       // Duration only applies to non-mass phases (pre-mass auto-advance).
       els.editorDurationWrap.hidden = (item.phase === "mass") || isCountdown;
-      els.editorBackgroundType.value = item.backgroundType || "color";
+      els.editorBackgroundTheme.value = item.backgroundTheme || "dark";
       // Image slides have no configurable background — the uploaded image IS the background.
-      if (els.editorBackgroundTypeWrap) {
-        els.editorBackgroundTypeWrap.hidden = isImage;
+      if (els.editorBackgroundThemeWrap) {
+        els.editorBackgroundThemeWrap.hidden = isImage;
       }
 
       els.editorSourceStem.innerHTML = documents
@@ -4457,8 +4466,8 @@
 
         screenSettingsDependencyUpdaters.forEach((update) => update());
 
-        choosePresetForUrl(els.colorBgPreset, screen.colorBackgroundUrl || "");
-        choosePresetForUrl(els.imageBgPreset, screen.imageBackgroundUrl || "");
+        choosePresetForUrl(els.darkBgPreset, screen.darkBackgroundUrl || "");
+        choosePresetForUrl(els.lightBgPreset, screen.lightBackgroundUrl || "");
       }
 
       els.massTitleInput.value = data.presentation?.title || "No presentation";
@@ -4723,7 +4732,7 @@
           insertAt = insertBefore ? toIdx : toIdx + 1;
         }
         sequence.splice(insertAt, 0, moved);
-        await saveOrganizer(sequence, manualSlides, "Organizer reordered");
+        await saveOrganizer(sequence, manualSlides, "Slide order updated");
       });
 
       els.sequenceList.addEventListener("dragend", clearDndState);
@@ -4763,6 +4772,22 @@
       }
     }
 
+    function labelFromImageUrl(url) {
+      const normalizedUrl = String(url || "").trim();
+      if (!normalizedUrl) return "";
+      const withoutQuery = normalizedUrl.split(/[?#]/, 1)[0];
+      const filename = withoutQuery.split("/").pop() || "";
+      const decodedFilename = decodeURIComponent(filename);
+      return decodedFilename.replace(/\.[^.]+$/, "").trim();
+    }
+
+    function applyImageFilenameToLabel() {
+      const nextLabel = labelFromImageUrl(els.editorImageUrl?.value || "");
+      if (!nextLabel) return;
+      els.editorLabel.value = nextLabel;
+      els.editorLabel.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
     async function saveEditor() {
       await updateSelected((sequence, manualSlides, index) => {
         const item = sequence[index];
@@ -4778,8 +4803,8 @@
           const insertAt = phaseInsertIndex(sequence, newPhase);
           sequence.splice(insertAt, 0, moved);
         }
-        // Image and interstitial slides always use their uploaded image — backgroundType is always "image".
-        item.backgroundType = (nextType === "image" || nextType === "interstitial") ? "image" : els.editorBackgroundType.value;
+        // Image and interstitial slides always use their uploaded image — backgroundTheme is always "light".
+        item.backgroundTheme = (nextType === "image" || nextType === "interstitial") ? "light" : els.editorBackgroundTheme.value;
 
         item.durationSec = (item.phase === "mass")
           ? null
@@ -4822,7 +4847,7 @@
             }
           }
         }
-      }, "Organizer updated");
+      }, "Slide updated");
     }
 
     let editorSaveTimer = null;
@@ -4872,8 +4897,8 @@
      */
     async function refreshAllMassAssetSelectors({
       editorUrl = els.editorImageUrl?.value || "",
-      colorBgUrl = els.colorBgPreset?.value || "",
-      imageBgUrl = els.imageBgPreset?.value || ""
+      darkBgUrl = els.darkBgPreset?.value || "",
+      lightBgUrl = els.lightBgPreset?.value || ""
     } = {}) {
       const assets = await fetchMassAssets();
       const assetOptions = assets.map((a) => `<option value="${a.url}">${a.name}</option>`).join("");
@@ -4886,8 +4911,8 @@
       }
 
       for (const [sel, currentUrl] of [
-        [els.colorBgPreset, colorBgUrl],
-        [els.imageBgPreset, imageBgUrl]
+        [els.darkBgPreset, darkBgUrl],
+        [els.lightBgPreset, lightBgUrl]
       ]) {
         if (!sel) continue;
         sel.innerHTML = "<option value=\"\">\u2014 select from assets \u2014</option>" + assetOptions;
@@ -4913,6 +4938,12 @@
       updateEditorPreview().catch(() => { });
       scheduleEditorSave();
     });
+
+    if (els.useImageFilenameLabelBtn) {
+      els.useImageFilenameLabelBtn.addEventListener("click", () => {
+        applyImageFilenameToLabel();
+      });
+    }
 
     /**
      * Upload an image for a graphic slide into current_mass/assets/.
@@ -4971,23 +5002,23 @@
       // Refresh both pickers so the new file appears
       await refreshAllMassAssetSelectors({
         editorUrl: els.editorImageUrl?.value || "",
-        colorBgUrl: selectEl === els.colorBgPreset ? result.url : els.colorBgPreset.value,
-        imageBgUrl: selectEl === els.imageBgPreset ? result.url : els.imageBgPreset.value
+        darkBgUrl: selectEl === els.darkBgPreset ? result.url : els.darkBgPreset.value,
+        lightBgUrl: selectEl === els.lightBgPreset ? result.url : els.lightBgPreset.value
       });
       choosePresetForUrl(selectEl, result.url);
       applyScreenSettings();
     }
 
-    els.colorBgUpload.addEventListener("change", (e) => {
-      if (e.target.files[0]) uploadBgImage(e.target.files[0], els.colorBgPreset);
+    els.darkBgUpload.addEventListener("change", (e) => {
+      if (e.target.files[0]) uploadBgImage(e.target.files[0], els.darkBgPreset);
       e.target.value = "";
     });
-    els.imageBgUpload.addEventListener("change", (e) => {
-      if (e.target.files[0]) uploadBgImage(e.target.files[0], els.imageBgPreset);
+    els.lightBgUpload.addEventListener("change", (e) => {
+      if (e.target.files[0]) uploadBgImage(e.target.files[0], els.lightBgPreset);
       e.target.value = "";
     });
-    els.colorBgPreset.addEventListener("change", () => applyScreenSettings());
-    els.imageBgPreset.addEventListener("change", () => applyScreenSettings());
+    els.darkBgPreset.addEventListener("change", () => applyScreenSettings());
+    els.lightBgPreset.addEventListener("change", () => applyScreenSettings());
 
     // Screen Settings dialog open/close
     document.getElementById("openSettingsBtn").addEventListener("click", () => {
@@ -5294,7 +5325,7 @@
         }, 2000);
       }
     });
-    els.editorBackgroundType.addEventListener("change", () => {
+    els.editorBackgroundTheme.addEventListener("change", () => {
       updateEditorPreview().catch(() => { });
       scheduleEditorSave();
     });
@@ -5382,7 +5413,7 @@
         if (index <= start) return;
         const [item] = sequence.splice(index, 1);
         sequence.splice(index - 1, 0, item);
-      }, "Organizer reordered");
+      }, "Slide order updated");
     });
 
     els.moveDownBtn.addEventListener("click", async () => {
@@ -5392,7 +5423,7 @@
         if (index >= end - 1) return;
         const [item] = sequence.splice(index, 1);
         sequence.splice(index + 1, 0, item);
-      }, "Organizer reordered");
+      }, "Slide order updated");
     });
 
     els.duplicateItemBtn.addEventListener("click", async () => {
@@ -5434,8 +5465,8 @@
           manualSlides[newId] = JSON.parse(JSON.stringify(manualSlides[src.id]));
         }
       }
-      const label = targetPhases.join(" & ");
-      await saveOrganizer(sequence, manualSlides, `Slide cloned to ${label}`);
+      const label = targetPhases.map((phase) => PHASE_LABELS[phase] || phase).join(" and ");
+      await saveOrganizer(sequence, manualSlides, `Slide added to ${label}`);
     }
 
     els.cloneToGatheringBtn.addEventListener("click", () => cloneSelectedToPhases(["gathering"]));
@@ -5459,7 +5490,7 @@
           label,
           sourceStem: isReading ? firstStem : null,
           phase,
-          backgroundType: isImage ? "image" : "color"
+          backgroundTheme: isImage ? "light" : "dark"
         });
         if (!isReading) {
           if (isCountdown) {
@@ -5481,7 +5512,7 @@
           }
         }
         uiState.selectedOrganizerId = id;
-      }, `${type.charAt(0).toUpperCase() + type.slice(1)} slide added`);
+      }, `${type.charAt(0).toUpperCase() + type.slice(1)} added`);
     });
 
     els.deleteItemBtn.addEventListener("click", async () => {
@@ -5493,7 +5524,7 @@
         const [removed] = sequence.splice(index, 1);
         delete manualSlides[removed.id];
         uiState.selectedOrganizerId = sequence[Math.max(0, index - 1)]?.id || sequence[0]?.id || null;
-      }, "Organizer item removed");
+      }, "Slide removed");
       els.editorDialog.close();
     });
 
@@ -5607,7 +5638,7 @@
     }
 
     els.saveOrganizer.addEventListener("click", async () => {
-      await saveOrganizer(getSequence(), getManualSlides(), "Organizer saved");
+      await saveOrganizer(getSequence(), getManualSlides(), "Mass updated");
     });
 
     function commitMassTitle() {

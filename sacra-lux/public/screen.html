@@ -69,17 +69,17 @@
       inset: 0;
       background-size: cover;
       background-position: center;
-      background-image: var(--bg-color, url('/static/assets/background-dark.png'));
+      background-image: var(--bg-dark, url('/static/assets/background-dark.png'));
       z-index: -2;
       transition: opacity 200ms ease;
     }
 
-    .frame.bg-color::before {
-      background-image: var(--bg-color, url('/static/assets/background-dark.png'));
+    .frame.bg-dark::before {
+      background-image: var(--bg-dark, url('/static/assets/background-dark.png'));
     }
 
-    .frame.bg-image::before {
-      background-image: var(--bg-image, url('/static/assets/background-graphic.png'));
+    .frame.bg-light::before {
+      background-image: var(--bg-light, url('/static/assets/background-graphic.png'));
     }
 
     .content {
@@ -579,6 +579,30 @@
       return lines;
     }
 
+    function resolveReadingHeaderY(settings = {}, wrapHeight = 1080, passageHeight = null) {
+      const requestedY = Number(settings.readingPassageYPx);
+      const passagePosition = settings.readingPassagePosition || "top";
+      const safePassageHeight = Number.isFinite(passageHeight)
+        ? passageHeight
+        : Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3);
+      const maxVisibleY = Math.max(0, wrapHeight - safePassageHeight - 12);
+      const defaultY = passagePosition === "bottom"
+        ? Math.min(970, maxVisibleY)
+        : 70;
+
+      let resolvedY = Number.isFinite(requestedY) ? requestedY : defaultY;
+
+      // Correct stale settings where position and Y were saved from opposite presets.
+      if (passagePosition === "top" && resolvedY > 420) {
+        resolvedY = 70;
+      }
+      if (passagePosition === "bottom" && resolvedY < 420) {
+        resolvedY = Math.min(970, maxVisibleY);
+      }
+
+      return Math.min(Math.max(0, resolvedY), maxVisibleY);
+    }
+
     function showReading(slide) {
       frame.classList.add("reading-mode");
       frame.classList.remove("image-only");
@@ -622,18 +646,10 @@
       const passageEl = wrap.querySelector(".reading-passage");
       if (headerEl && passageEl) {
         const wrapHeight = wrap.clientHeight || frame.clientHeight || 1080;
-        const requestedY = Number(settings.readingPassageYPx);
-        const passagePosition = settings.readingPassagePosition || "top";
         const measuredPassageHeight = Math.ceil(passageEl.getBoundingClientRect().height || 0);
         const fallbackPassageHeight = Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3);
         const passageHeight = Math.max(measuredPassageHeight, fallbackPassageHeight);
-        const maxVisibleY = Math.max(0, wrapHeight - passageHeight - 12);
-        const defaultY = passagePosition === "bottom"
-          ? Math.min(970, maxVisibleY)
-          : 70;
-
-        const resolvedY = Number.isFinite(requestedY) ? requestedY : defaultY;
-        headerEl.style.top = `${Math.min(Math.max(0, resolvedY), maxVisibleY)}px`;
+        headerEl.style.top = `${resolveReadingHeaderY(settings, wrapHeight, passageHeight)}px`;
       }
     }
 
@@ -768,23 +784,23 @@
       wrap.innerHTML = `${pageIndicatorHtml}<div class="text-layout-body">${bodyHtml}</div>`;
     }
 
-    function applyBackgroundType(slide) {
-      if (slide?.backgroundType === "color") {
-        frame.classList.add("bg-color");
-        frame.classList.remove("bg-image");
+    function applyBackgroundTheme(slide) {
+      if (slide?.backgroundTheme === "dark") {
+        frame.classList.add("bg-dark");
+        frame.classList.remove("bg-light");
         return;
       }
 
-      if (slide?.backgroundType === "image") {
-        frame.classList.remove("bg-color");
-        frame.classList.add("bg-image");
+      if (slide?.backgroundTheme === "light") {
+        frame.classList.remove("bg-dark");
+        frame.classList.add("bg-light");
         return;
       }
 
-      // Fallback: color background for text-based slides, image for image slides
-      const useColor = slide?.type !== "image";
-      frame.classList.toggle("bg-color", useColor);
-      frame.classList.toggle("bg-image", !useColor);
+      // Fallback: dark background for text-based slides, light background for image slides.
+      const useDark = slide?.type !== "image";
+      frame.classList.toggle("bg-dark", useDark);
+      frame.classList.toggle("bg-light", !useDark);
     }
 
     function applySectionTint(slide) {
@@ -831,13 +847,13 @@
     function applyScreenSettings(settings = {}) {
       const fontFamily = settings.fontFamily || "Merriweather";
       const fontSizePx = Math.min(200, Math.max(24, Number(settings.fontSizePx) || 60));
-      const colorBg = settings.colorBackgroundUrl || "/static/assets/background-dark.png";
-      const imageBg = settings.imageBackgroundUrl || "/static/assets/background-graphic.png";
+      const darkBg = settings.darkBackgroundUrl || "/static/assets/background-dark.png";
+      const lightBg = settings.lightBackgroundUrl || "/static/assets/background-graphic.png";
 
       // All global screen CSS vars are set on #stage so both frames inherit them.
       // Per-slide overrides (e.g. imageUrl) are set directly on the inactive frame in applyRender.
-      stage.style.setProperty("--bg-color", `url('${colorBg.replace(/'/g, "\\'")}')`);
-      stage.style.setProperty("--bg-image", `url('${imageBg.replace(/'/g, "\\'")}')`);
+      stage.style.setProperty("--bg-dark", `url('${darkBg.replace(/'/g, "\\'")}')`);
+      stage.style.setProperty("--bg-light", `url('${lightBg.replace(/'/g, "\\'")}')`);
       const safeFamily = fontFamily.replace(/"/g, "").trim();
       stage.style.setProperty("--display-font-family", `"${safeFamily}", serif`);
       stage.style.setProperty("--display-font-size", `${fontSizePx}px`);
@@ -874,19 +890,7 @@
       stage.style.setProperty("--reading-text-margin-x", `${Math.min(260, Math.max(0, Number(settings.readingTextMarginXPx) || 80))}px`);
       stage.style.setProperty("--reading-text-top", `${Math.min(360, Math.max(0, Number(settings.readingTextMarginYPx) || 130))}px`);
       stage.style.setProperty("--reading-text-height", `${Math.min(980, Math.max(120, Number(settings.readingTextHeightPx) || 840))}px`);
-      const passageY = Number(settings.readingPassageYPx);
-      const passagePosition = settings.readingPassagePosition || "top";
-      let passageYResolved = Number.isFinite(passageY)
-        ? passageY
-        : (passagePosition === "bottom" ? 970 : 70);
-
-      // Correct stale settings where position and Y were saved from opposite presets.
-      if (passagePosition === "top" && passageYResolved > 420) {
-        passageYResolved = 70;
-      }
-      if (passagePosition === "bottom" && passageYResolved < 420) {
-        passageYResolved = 970;
-      }
+      const passageYResolved = resolveReadingHeaderY(settings);
       stage.style.setProperty("--reading-passage-y", `${Math.min(1060, Math.max(0, passageYResolved))}px`);
       stage.style.setProperty("--reading-passage-width", `${Math.min(1760, Math.max(180, Number(settings.readingPassageWidthPx) || 650))}px`);
 
@@ -1182,33 +1186,33 @@
       // never fall through to the global image background preset.
       if (slide?.type === "image" || slide?.type === "interstitial") {
         const url = slide.imageUrl;
-        frame.style.setProperty("--bg-image", url ? `url('${url.replace(/'/g, "\\'")}')` : "none");
+        frame.style.setProperty("--bg-light", url ? `url('${url.replace(/'/g, "\\'")}')` : "none");
       } else if (slide?.imageUrl) {
-        frame.style.setProperty("--bg-image", `url('${slide.imageUrl.replace(/'/g, "\\'")}')`);
+        frame.style.setProperty("--bg-light", `url('${slide.imageUrl.replace(/'/g, "\\'")}')`);
       } else {
-        frame.style.removeProperty("--bg-image");
+        frame.style.removeProperty("--bg-light");
       }
 
       // Use the reading-specific font size as the base for fitting if set.
       const baseFontSize = getDisplayBaseFontSize(slide, settings);
 
       if (!slide) {
-        applyBackgroundType(null);
+        applyBackgroundTheme(null);
         showDefault(state.presentation?.title || "Sacra Lux", "No slide selected.", "");
       } else if (slide.type === "reading") {
-        applyBackgroundType(slide);
+        applyBackgroundTheme(slide);
         showReading(slide);
       } else if (slide.type === "image" || slide.type === "interstitial") {
-        applyBackgroundType(slide);
+        applyBackgroundTheme(slide);
         showImageOnly();
       } else if (slide.type === "countdown") {
-        applyBackgroundType(slide);
+        applyBackgroundTheme(slide);
         showCountdown(slide);
       } else if (slide.type === "prayer" || slide.type === "hymn" || slide.type === "text") {
-        applyBackgroundType(slide);
+        applyBackgroundTheme(slide);
         showTextLayout(slide);
       } else {
-        applyBackgroundType(slide);
+        applyBackgroundTheme(slide);
         showDefault(slide.title, slide.text || "", slide.type || "");
       }
 

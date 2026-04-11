@@ -13,12 +13,20 @@ function getAdmZip() {
 }
 
 const { importReadings, paginateDocuments } = require("./readingsImporter");
+const {
+  ValidationError,
+  buildMassDocumentFromLegacyPackage,
+  buildMassDocumentFromState,
+  buildRuntimeStateFromMassDocument,
+  isMassDocumentV3,
+  serializeReadingDocument
+} = require("./massDocument");
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
   createDefaultOrganizer,
   buildPresentationFromOrganizer,
   createManualSlideRecord,
-  normalizeBackgroundType,
+  normalizeBackgroundTheme,
   normalizePhase,
   normalizeType
 } = require("./organizer");
@@ -78,6 +86,7 @@ const GOOGLE_FONTS = new Set([
 
 const logInfo = logger.info;
 const logWarn = logger.warn;
+const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
 
 // ── ZIP export helpers ───────────────────────────────────────────────────────
 
@@ -121,19 +130,32 @@ function copyReadingsToCurrentMass(srcFolder) {
  * Save the current Mass state into `~/.sacra-lux/current_mass/mass.json`.
  * Keep current_mass as a self-contained package.
  */
+function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
+  fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
+
+  for (const file of fs.readdirSync(CURRENT_MASS_DIR)) {
+    if (file.endsWith(".txt")) {
+      fs.rmSync(path.join(CURRENT_MASS_DIR, file), { force: true });
+    }
+  }
+
+  if (title && String(title).trim()) {
+    fs.writeFileSync(path.join(CURRENT_MASS_DIR, "mass_title.txt"), `${String(title).trim()}\n`, "utf8");
+  }
+
+  for (const doc of documents) {
+    fs.writeFileSync(
+      path.join(CURRENT_MASS_DIR, `${doc.stem}.txt`),
+      serializeReadingDocument(doc),
+      "utf8"
+    );
+  }
+}
+
 function saveCurrentMass() {
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-  const massData = {
-    version: 2,
-    savedAt: new Date().toISOString(),
-    presentationTitle: state.presentation?.title || null,
-    massStartTime: state.massStartTime || null,
-    screenSettings: state.screenSettings,
-    organizerSequence: state.organizerSequence,
-    manualSlides: state.manualSlides,
-    startPinHash: state.startPinHash || null,
-    appSettings: state.appSettings
-  };
+  syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
+  const massData = buildMassDocumentFromState(state);
   fs.writeFileSync(
     path.join(CURRENT_MASS_DIR, "mass.json"),
     JSON.stringify(massData, null, 2),
@@ -179,6 +201,11 @@ function setAttachmentFilename(res, filename) {
   );
 }
 
+function sendApiError(res, error, fallbackMessage) {
+  const status = error instanceof ValidationError ? 400 : 500;
+  return res.status(status).json({ error: error.message || fallbackMessage });
+}
+
 function getSafeZipEntryFilename(entryName, prefix, allowedPattern) {
   const normalizedEntry = path.posix.normalize(String(entryName || ""));
   if (!normalizedEntry.startsWith(prefix) || normalizedEntry.endsWith("/")) {
@@ -193,16 +220,60 @@ function getSafeZipEntryFilename(entryName, prefix, allowedPattern) {
   return allowedPattern.test(relativePath) ? relativePath : null;
 }
 
-async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
-  const zip = new (getAdmZip())();
+function loadReadingsFromFolder(folderPath, screenSettings) {
+  const hasReadings = fs.existsSync(folderPath) &&
+    fs.readdirSync(folderPath).some((file) => file.endsWith(".txt"));
+  if (!hasReadings) {
+    return [];
+  }
+
+  const imported = importReadings(folderPath, {
+    fontSizePx: screenSettings.fontSizePx,
+    fontFamily: screenSettings.fontFamily,
+    readingTextHeightPx: screenSettings.readingTextHeightPx
+  });
+  return imported.documents || [];
+}
+
+function readMassPackageDefinition(packageDir, screenSettings = DEFAULT_SCREEN_SETTINGS) {
   const massJsonPath = path.join(packageDir, "mass.json");
   if (!fs.existsSync(massJsonPath)) {
     throw new Error("Archive package is missing mass.json.");
   }
 
-  const massData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
-  const manualSlides = { ...(massData.manualSlides || {}) };
-  const screenSettings = { ...(massData.screenSettings || {}) };
+  const packageData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
+  if (isMassDocumentV3(packageData)) {
+    return {
+      kind: "v3",
+      raw: packageData,
+      runtime: buildRuntimeStateFromMassDocument(packageData)
+    };
+  }
+
+  const documents = fs.existsSync(packageDir)
+    ? loadReadingsFromFolder(packageDir, screenSettings)
+    : [];
+  if (packageData.massStartTime != null && Number.isNaN(new Date(String(packageData.massStartTime)).getTime())) {
+    throw new ValidationError("massStartTime must be a valid datetime string.");
+  }
+  const screenSettingsInput = packageData.screenSettings || packageData.displaySettings || screenSettings;
+  return {
+    kind: "legacy",
+    raw: packageData,
+    runtime: {
+      presentationTitle: packageData.presentationTitle || "Mass Presentation",
+      massStartTime: packageData.massStartTime || null,
+      screenSettings: screenSettingsInput,
+      organizerSequence: packageData.organizerSequence || [],
+      manualSlides: packageData.manualSlides || packageData.manualCues || {},
+      documents
+    }
+  };
+}
+
+async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
+  const zip = new (getAdmZip())();
+  const packageInfo = readMassPackageDefinition(packageDir);
   const urlRemap = new Map();
   let sharp = null;
   if (avif) {
@@ -210,79 +281,93 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   }
 
   const refs = [];
-  for (const slide of Object.values(manualSlides)) {
-    if (slide.imageUrl) refs.push(slide.imageUrl);
-  }
-  for (const key of ["colorBackgroundUrl", "imageBackgroundUrl"]) {
-    if (screenSettings[key]) refs.push(screenSettings[key]);
+  if (packageInfo.kind === "v3") {
+    for (const item of packageInfo.raw.items || []) {
+      if (item.asset?.ref) refs.push(item.asset.ref);
+    }
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      if (packageInfo.raw.presentationDefaults?.[key]) refs.push(packageInfo.raw.presentationDefaults[key]);
+    }
+  } else {
+    for (const slide of Object.values(packageInfo.raw.manualSlides || {})) {
+      if (slide.imageUrl) refs.push(slide.imageUrl);
+    }
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      if (packageInfo.raw.screenSettings?.[key]) refs.push(packageInfo.raw.screenSettings[key]);
+    }
   }
 
   const CONVERTIBLE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif"]);
-  for (const url of refs) {
+  for (const ref of refs) {
     let filePath = null;
-    let zipDir = null;
     let originalName = null;
 
-    const uploadMatch = String(url).match(/\/static\/uploads\/([^/]+)$/);
-    if (uploadMatch) {
-      originalName = uploadMatch[1];
-      filePath = path.join(packageDir, "uploads", originalName);
-      zipDir = "uploads";
+    const assetRefMatch = String(ref).match(/^assets\/([^/]+)$/);
+    if (assetRefMatch) {
+      originalName = assetRefMatch[1];
+      filePath = path.join(packageDir, "assets", originalName);
     }
-    const assetMatch = String(url).match(/\/api\/mass-asset\/([^/]+)$/);
+    const assetMatch = String(ref).match(/\/api\/mass-asset\/([^/]+)$/);
     if (assetMatch) {
       originalName = assetMatch[1];
       filePath = path.join(packageDir, "assets", originalName);
-      zipDir = "readings/assets";
+    }
+    const uploadMatch = String(ref).match(/\/static\/uploads\/([^/]+)$/);
+    if (uploadMatch) {
+      originalName = uploadMatch[1];
+      filePath = path.join(packageDir, "uploads", originalName);
     }
     if (!filePath || !originalName || !fs.existsSync(filePath)) continue;
     const ext = path.extname(originalName).toLowerCase();
 
     if (avif && CONVERTIBLE_EXT.has(ext)) {
       const avifName = `${path.basename(originalName, ext)}.avif`;
-      zip.addFile(`${zipDir}/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
-      urlRemap.set(url, String(url).replace(/\/[^/]+$/, `/${avifName}`));
+      zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
+      urlRemap.set(ref, `assets/${avifName}`);
     } else {
-      zip.addFile(`${zipDir}/${originalName}`, fs.readFileSync(filePath));
+      zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
     }
   }
 
-  for (const [slideId, slide] of Object.entries(manualSlides)) {
-    if (slide.imageUrl && urlRemap.has(slide.imageUrl)) {
-      manualSlides[slideId] = { ...slide, imageUrl: urlRemap.get(slide.imageUrl) };
+  if (packageInfo.kind === "v3") {
+    const massDocument = structuredClone(packageInfo.raw);
+    for (const item of massDocument.items || []) {
+      if (item.asset?.ref && urlRemap.has(item.asset.ref)) {
+        item.asset.ref = urlRemap.get(item.asset.ref);
+      }
     }
-  }
-  for (const key of ["colorBackgroundUrl", "imageBackgroundUrl"]) {
-    if (screenSettings[key] && urlRemap.has(screenSettings[key])) {
-      screenSettings[key] = urlRemap.get(screenSettings[key]);
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      if (massDocument.presentationDefaults?.[key] && urlRemap.has(massDocument.presentationDefaults[key])) {
+        massDocument.presentationDefaults[key] = urlRemap.get(massDocument.presentationDefaults[key]);
+      }
     }
-  }
-
-  const settings = {
-    version: 2,
-    exportedAt: new Date().toISOString(),
-    presentationTitle: massData.presentationTitle || null,
-    massStartTime: massData.massStartTime || null,
-    screenSettings,
-    organizerSequence: massData.organizerSequence || [],
-    manualSlides,
-    hasReadings: fs.readdirSync(packageDir).some((file) => file.endsWith(".txt"))
-  };
-  zip.addFile("settings.json", Buffer.from(JSON.stringify(settings, null, 2)));
-
-  for (const file of fs.readdirSync(packageDir)) {
-    const fullPath = path.join(packageDir, file);
-    if (fs.statSync(fullPath).isFile() && file.endsWith(".txt")) {
-      zip.addFile(`readings/${file}`, fs.readFileSync(fullPath));
+    zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
+  } else {
+    const documents = fs.existsSync(packageDir) ? loadReadingsFromFolder(packageDir, packageInfo.runtime.screenSettings) : [];
+    const massDocument = buildMassDocumentFromLegacyPackage(
+      packageInfo.raw,
+      documents,
+      packageInfo.raw.screenSettings || packageInfo.raw.displaySettings || packageInfo.runtime.screenSettings
+    );
+    for (const item of massDocument.items || []) {
+      if (item.asset?.ref && urlRemap.has(item.asset.ref)) {
+        item.asset.ref = urlRemap.get(item.asset.ref);
+      }
     }
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      if (massDocument.presentationDefaults?.[key] && urlRemap.has(massDocument.presentationDefaults[key])) {
+        massDocument.presentationDefaults[key] = urlRemap.get(massDocument.presentationDefaults[key]);
+      }
+    }
+    zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
   }
 
   const assetsDir = path.join(packageDir, "assets");
   if (fs.existsSync(assetsDir)) {
     for (const file of fs.readdirSync(assetsDir)) {
       const fullPath = path.join(assetsDir, file);
-      if (fs.statSync(fullPath).isFile() && !zip.getEntry(`readings/assets/${file}`)) {
-        zip.addFile(`readings/assets/${file}`, fs.readFileSync(fullPath));
+      if (fs.statSync(fullPath).isFile() && !zip.getEntry(`assets/${file}`)) {
+        zip.addFile(`assets/${file}`, fs.readFileSync(fullPath));
       }
     }
   }
@@ -291,62 +376,45 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 }
 
 function applyMassPackageFromCurrentDir(ioRef, packageData) {
-  const screenSettings = packageData.screenSettings || packageData.displaySettings;
-  if (screenSettings && typeof screenSettings === "object") {
-    state.screenSettings = normalizeScreenSettings(screenSettings);
-  }
-  if (Array.isArray(packageData.organizerSequence)) {
-    state.organizerSequence = normalizeOrganizerSequence(packageData.organizerSequence);
-  }
-  const manualSlides = packageData.manualSlides || packageData.manualCues || {};
-  if (manualSlides && typeof manualSlides === "object") {
-    state.manualSlides = mergeManualSlideState(state.organizerSequence, manualSlides);
-    propagateInterstitialImage(state.organizerSequence, state.manualSlides);
-  }
+  const runtime = isMassDocumentV3(packageData)
+    ? buildRuntimeStateFromMassDocument(packageData)
+    : {
+      presentationTitle: packageData.presentationTitle || "Mass Presentation",
+      massStartTime: packageData.massStartTime || null,
+      screenSettings: packageData.screenSettings || packageData.displaySettings || DEFAULT_SCREEN_SETTINGS,
+      organizerSequence: packageData.organizerSequence || [],
+      manualSlides: packageData.manualSlides || packageData.manualCues || {},
+      documents: loadReadingsFromFolder(CURRENT_MASS_DIR, normalizeScreenSettings(packageData.screenSettings || packageData.displaySettings || DEFAULT_SCREEN_SETTINGS))
+    };
 
-  const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-  const remapLegacyUploadUrl = (url) => {
-    const uploadMatch = String(url || "").match(/\/static\/uploads\/([^/]+)$/);
-    if (!uploadMatch) return url;
-    const filename = uploadMatch[1];
-    const assetPath = path.join(assetDir, filename);
-    return fs.existsSync(assetPath) ? `/api/mass-asset/${filename}` : url;
-  };
-  for (const slide of Object.values(state.manualSlides)) {
-    if (slide.imageUrl) slide.imageUrl = remapLegacyUploadUrl(slide.imageUrl);
-  }
-  for (const key of ["colorBackgroundUrl", "imageBackgroundUrl"]) {
-    if (state.screenSettings[key]) {
-      state.screenSettings[key] = remapLegacyUploadUrl(state.screenSettings[key]);
-    }
-  }
+  state.screenSettings = normalizeScreenSettings(DEFAULT_SCREEN_SETTINGS);
+  state.organizerSequence = [];
+  state.manualSlides = {};
+  state.readingsSource = { folderPath: CURRENT_MASS_DIR, documents: [] };
+  state.massStartTime = null;
 
-  let documents = [];
-  if (fs.existsSync(CURRENT_MASS_DIR)) {
-    const hasReadings = fs.readdirSync(CURRENT_MASS_DIR).some((file) => file.endsWith(".txt"));
-    if (hasReadings) {
-      const imported = importReadings(CURRENT_MASS_DIR, {
-        fontSizePx: state.screenSettings.fontSizePx,
-        fontFamily: state.screenSettings.fontFamily,
-        readingTextHeightPx: state.screenSettings.readingTextHeightPx
-      });
-      documents = imported.documents || [];
-      state.readingsSource = { folderPath: CURRENT_MASS_DIR, documents };
-    } else {
-      state.readingsSource = { folderPath: CURRENT_MASS_DIR, documents: [] };
-    }
-  }
+  state.screenSettings = normalizeScreenSettings(runtime.screenSettings || DEFAULT_SCREEN_SETTINGS);
+  state.organizerSequence = normalizeOrganizerSequence(runtime.organizerSequence || []);
+  state.manualSlides = mergeManualSlideState(state.organizerSequence, runtime.manualSlides || {});
+  propagateInterstitialImage(state.organizerSequence, state.manualSlides);
 
+  const documents = Array.isArray(runtime.documents) && runtime.documents.length > 0
+    ? runtime.documents
+    : loadReadingsFromFolder(CURRENT_MASS_DIR, state.screenSettings);
+  if (documents.length > 0) {
+    syncReadingsDocumentsToCurrentMass(documents, runtime.presentationTitle || null);
+  }
+  state.readingsSource = { folderPath: CURRENT_MASS_DIR, documents };
   state.presentation = buildPresentationFromOrganizer({
-    title: packageData.presentationTitle || state.presentation?.title || "Mass Presentation",
+    title: runtime.presentationTitle || "Mass Presentation",
     documents,
     sequence: state.organizerSequence,
     manualSlides: state.manualSlides,
     screenSettings: state.screenSettings
   });
 
-  if (packageData.massStartTime && typeof packageData.massStartTime === "string") {
-    state.massStartTime = packageData.massStartTime;
+  if (runtime.massStartTime && typeof runtime.massStartTime === "string") {
+    state.massStartTime = runtime.massStartTime;
     scheduleStartTimer(ioRef);
   } else {
     state.massStartTime = null;
@@ -365,6 +433,8 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
 
 function normalizeScreenSettings(input = {}) {
   const current = state.screenSettings;
+  const darkBackgroundUrl = input.darkBackgroundUrl ?? input.colorBackgroundUrl ?? input.wordBackgroundUrl;
+  const lightBackgroundUrl = input.lightBackgroundUrl ?? input.imageBackgroundUrl ?? input.graphicBackgroundUrl;
   const requestedFamily = String(input.fontFamily || current.fontFamily || "Merriweather");
   const fontFamily = GOOGLE_FONTS.has(requestedFamily) ? requestedFamily : "Merriweather";
   const readingTextAlign = ["left", "center", "right"].includes(String(input.readingTextAlign || current.readingTextAlign || "left"))
@@ -397,11 +467,11 @@ function normalizeScreenSettings(input = {}) {
   return {
     fontFamily,
     fontSizePx: Math.min(200, Math.max(24, Number(input.fontSizePx) || current.fontSizePx || 60)),
-    colorBackgroundUrl: String(
-      input.colorBackgroundUrl || current.colorBackgroundUrl || "/static/assets/background-dark.png"
+    darkBackgroundUrl: String(
+      darkBackgroundUrl || current.darkBackgroundUrl || "/static/assets/background-dark.png"
     ),
-    imageBackgroundUrl: String(
-      input.imageBackgroundUrl || current.imageBackgroundUrl || "/static/assets/background-graphic.png"
+    lightBackgroundUrl: String(
+      lightBackgroundUrl || current.lightBackgroundUrl || "/static/assets/background-graphic.png"
     ),
     boldText: Boolean(input.boldText ?? current.boldText ?? false),
     resolution,
@@ -533,18 +603,33 @@ function propagateInterstitialImage(sequence, mergedManualSlides) {
 }
 
 function normalizeOrganizerSequence(sequence = []) {
-  return sequence.map((item, index) => {
-    const phase = normalizePhase(item.phase);
+  const normalized = sequence.map((item, index) => {
+    const phase = normalizePhase(item.phase ?? item.section);
     return {
       id: String(item.id || `item-${index + 1}`),
-      type: normalizeType(item.type),
+      type: normalizeType(item.type ?? item.kind),
       label: String(item.label || "Slide"),
       sourceStem: item.sourceStem ? String(item.sourceStem) : null,
       phase,
-      backgroundType: normalizeBackgroundType(item.backgroundType, item.type),
+      backgroundTheme: normalizeBackgroundTheme(
+        item.backgroundTheme ??
+        item.backgroundType ??
+        (item.presentation?.background === "dark" ? "dark" : item.presentation?.background === "light" ? "light" : item.presentation?.background),
+        item.type ?? item.kind
+      ),
       durationSec: Math.max(1, Math.min(3600, Number(item.durationSec) || 10))
     };
   });
+
+  const seenIds = new Set();
+  for (const item of normalized) {
+    if (seenIds.has(item.id)) {
+      throw new ValidationError(`Duplicate organizer item id "${item.id}".`);
+    }
+    seenIds.add(item.id);
+  }
+
+  return normalized;
 }
 
 // ── State cache ──────────────────────────────────────────────────────────────
@@ -1194,7 +1279,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   app.get("/api/state", (_, res) => {
-    res.json(getCachedStateSnapshot());
+    res.json(getCachedStateSnapshot(true));
   });
 
   function handleMassAssetUpload(req, res) {
@@ -1210,11 +1295,11 @@ function startServer(port = 17841, options = {}) {
       }
       const ext = match[1].split("/")[1].replace("jpeg", "jpg").replace("+", "");
       // Build a readable, collision-safe filename from the original name.
-      const baseName = String(filename || "image")
+      const baseName = String(filename || "light")
         .replace(/\.[^.]+$/, "")          // strip extension
         .replace(/[^a-zA-Z0-9_\-. ]/g, "")  // strip unsafe chars
         .replace(/\s+/g, "_")
-        .slice(0, 60) || "image";
+        .slice(0, 60) || "light";
       const hex = crypto.randomBytes(4).toString("hex");
       const safeName = `${hex}-${baseName}.${ext}`;
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
@@ -1647,6 +1732,9 @@ function startServer(port = 17841, options = {}) {
         state.presentation.title = String(payload.presentationTitle);
       }
       if (payload.massStartTime && typeof payload.massStartTime === "string") {
+        if (Number.isNaN(new Date(payload.massStartTime).getTime())) {
+          throw new ValidationError("massStartTime must be a valid datetime string.");
+        }
         state.massStartTime = payload.massStartTime;
         scheduleStartTimer(io);
       } else if (payload.massStartTime === null) {
@@ -1658,7 +1746,7 @@ function startServer(port = 17841, options = {}) {
       scheduleSave(true);
       return res.json({ ok: true });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to import settings." });
+      return sendApiError(res, error, "Failed to import settings.");
     }
   });
 
@@ -1770,34 +1858,34 @@ function startServer(port = 17841, options = {}) {
       // 2. Build a default organizer sequence with placeholder slides
       state.activeMassArchiveId = null;
     const newSequence = [
-      { id: "pre-announcements", type: "text", label: "Sacra Lux", phase: "pre", backgroundType: "color", durationSec: 30 },
-      { id: "gathering-countdown", type: "countdown", label: "30-Second Timer", phase: "gathering", backgroundType: "color", durationSec: 30 },
-      { id: "mass-title", type: "text", label: "Mass Title", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-opening-hymn", type: "hymn", label: "Opening Hymn", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-1", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-gloria", type: "hymn", label: "Gloria", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-2", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-reading-1", type: "reading", label: "First Reading", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-3", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-psalm", type: "reading", label: "Psalm", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-4", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-reading-2", type: "reading", label: "Second Reading", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-5", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-gospel-acclamation", type: "hymn", label: "Gospel Acclamation", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-6", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-gospel", type: "reading", label: "Gospel", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-7", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-nicene-creed", type: "prayer", label: "Nicene Creed", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-8", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-offertory", type: "hymn", label: "Offertory Hymn", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-9", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-lords-prayer", type: "prayer", label: "The Lord's Prayer", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-10", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-communion", type: "hymn", label: "Communion Hymn", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-11", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-recessional", type: "hymn", label: "Recessional Hymn", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "mass-interstitial-12", type: "interstitial", label: "Interstitial", phase: "mass", backgroundType: "color", durationSec: 10 },
-      { id: "post-announcements", type: "text", label: "Sacra Lux", phase: "post", backgroundType: "color", durationSec: 30 }
+      { id: "pre-announcements", type: "text", label: "Sacra Lux", phase: "pre", backgroundTheme: "dark", durationSec: 30 },
+      { id: "gathering-countdown", type: "countdown", label: "30-Second Timer", phase: "gathering", backgroundTheme: "dark", durationSec: 30 },
+      { id: "mass-title", type: "text", label: "Mass Title", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-opening-hymn", type: "hymn", label: "Opening Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-1", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-gloria", type: "hymn", label: "Gloria", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-2", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-reading-1", type: "reading", label: "First Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-3", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-psalm", type: "reading", label: "Psalm", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-4", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-reading-2", type: "reading", label: "Second Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-5", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-gospel-acclamation", type: "hymn", label: "Gospel Acclamation", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-6", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-gospel", type: "reading", label: "Gospel", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-7", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-nicene-creed", type: "prayer", label: "Nicene Creed", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-8", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-offertory", type: "hymn", label: "Offertory Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-9", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-lords-prayer", type: "prayer", label: "The Lord's Prayer", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-10", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-communion", type: "hymn", label: "Communion Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-11", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-recessional", type: "hymn", label: "Recessional Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "mass-interstitial-12", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "post-announcements", type: "text", label: "Sacra Lux", phase: "post", backgroundTheme: "dark", durationSec: 30 }
     ];
 
       state.organizerSequence = normalizeOrganizerSequence(newSequence);
@@ -1876,12 +1964,13 @@ function startServer(port = 17841, options = {}) {
       const zipBuf = Buffer.from(match[1].replace(/\s/g, ""), "base64");
       const zip = new (getAdmZip())(zipBuf);
 
-      // Parse settings.json
+      const massEntry = zip.getEntry("mass.json");
       const settingsEntry = zip.getEntry("settings.json");
-      if (!settingsEntry) {
-        return res.status(400).json({ error: "ZIP does not contain settings.json." });
+      const definitionEntry = massEntry || settingsEntry;
+      if (!definitionEntry) {
+        return res.status(400).json({ error: "ZIP does not contain mass.json or settings.json." });
       }
-      const settings = JSON.parse(settingsEntry.getData().toString("utf8"));
+      const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
 
       // Extract readings/ to ~/.sacra-lux/current_mass/
       // Clear current_mass first so it reflects this import
@@ -1917,6 +2006,21 @@ function startServer(port = 17841, options = {}) {
         }
       }
 
+      const v3AssetEntries = zip.getEntries().filter((e) => e.entryName.startsWith("assets/") && !e.isDirectory);
+      if (v3AssetEntries.length > 0) {
+        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
+        fs.mkdirSync(assetsImportDir, { recursive: true });
+        for (const entry of v3AssetEntries) {
+          const filename = getSafeZipEntryFilename(
+            entry.entryName,
+            "assets/",
+            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+          );
+          if (!filename) continue;
+          fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
+        }
+      }
+
       // Extract legacy uploads/ entries into current_mass/assets/
       const uploadEntries = zip.getEntries().filter((e) => e.entryName.startsWith("uploads/") && !e.isDirectory);
       if (uploadEntries.length > 0) {
@@ -1937,11 +2041,11 @@ function startServer(port = 17841, options = {}) {
       }
 
       state.activeMassArchiveId = null;
-      applyMassPackageFromCurrentDir(io, settings);
+      applyMassPackageFromCurrentDir(io, packageDefinition);
       scheduleSave(true);
       return res.json({ ok: true, slideCount: state.presentation.slides.length });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to import ZIP." });
+      return sendApiError(res, error, "Failed to import ZIP.");
     }
   });
 
@@ -1981,15 +2085,29 @@ function startServer(port = 17841, options = {}) {
       } else if (fs.existsSync(archivePaths.compressedZipPath)) {
         const zipBuffer = fs.readFileSync(archivePaths.compressedZipPath);
         const zip = new (getAdmZip())(zipBuffer);
+        const massEntry = zip.getEntry("mass.json");
         const settingsEntry = zip.getEntry("settings.json");
-        if (!settingsEntry) {
-          return res.status(400).json({ error: "Compressed archive is missing settings.json." });
+        const definitionEntry = massEntry || settingsEntry;
+        if (!definitionEntry) {
+          return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
-        const settings = JSON.parse(settingsEntry.getData().toString("utf8"));
+        const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
         fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
         for (const entry of zip.getEntries()) {
           if (entry.isDirectory) continue;
-          if (entry.entryName === "settings.json") continue;
+          if (entry.entryName === "settings.json" || entry.entryName === "mass.json") continue;
+          if (entry.entryName.startsWith("assets/")) {
+            const filename = getSafeZipEntryFilename(
+              entry.entryName,
+              "assets/",
+              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+            );
+            if (!filename) continue;
+            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
+            fs.mkdirSync(assetDir, { recursive: true });
+            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
+            continue;
+          }
           if (entry.entryName.startsWith("readings/assets/")) {
             const filename = getSafeZipEntryFilename(
               entry.entryName,
@@ -2021,7 +2139,7 @@ function startServer(port = 17841, options = {}) {
           }
         }
         state.activeMassArchiveId = archiveId;
-        applyMassPackageFromCurrentDir(io, settings);
+        applyMassPackageFromCurrentDir(io, packageDefinition);
       } else {
         return res.status(400).json({ error: "Mass archive has no loadable package." });
       }
@@ -2029,7 +2147,7 @@ function startServer(port = 17841, options = {}) {
       scheduleSave(true);
       return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to load Mass archive." });
+      return sendApiError(res, error, "Failed to load Mass archive.");
     }
   });
 
@@ -2107,7 +2225,7 @@ function startServer(port = 17841, options = {}) {
         slideCount: state.presentation.slides.length
       });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to update organizer." });
+      return sendApiError(res, error, "Failed to update organizer.");
     }
   });
 
@@ -2217,7 +2335,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/preview-reading", (req, res) => {
     try {
-      const { text, stem, overrideSettings } = req.body || {};
+      const { text, stem, label, overrideSettings } = req.body || {};
 
       const doc = state.readingsSource?.documents?.find((d) => d.stem === stem);
       if (!doc) {
@@ -2244,7 +2362,10 @@ function startServer(port = 17841, options = {}) {
         readingLineHeight: settings.readingLineHeight,
         readingTextMarginXPx: settings.readingTextMarginXPx,
         readingTextSizePx: settings.readingTextSizePx
-      });
+      }).map((slide) => ({
+        ...slide,
+        groupLabel: String(label || doc.section || "")
+      }));
 
       return res.json({ ok: true, slides });
     } catch (error) {
@@ -2267,7 +2388,7 @@ function startServer(port = 17841, options = {}) {
         sourceStem: null,
         label: String(payload.label || "Slide"),
         phase: normalizePhase(payload.phase),
-        backgroundType: normalizeBackgroundType(payload.backgroundType, type)
+        backgroundTheme: normalizeBackgroundTheme(payload.backgroundTheme, type)
       }];
 
       const incomingManual = payload.manualSlide && typeof payload.manualSlide === "object"
@@ -2505,7 +2626,7 @@ function startServer(port = 17841, options = {}) {
             imageRefs.push({ url: slide.imageUrl, type: "slide", id });
           }
         }
-        for (const key of ["colorBackgroundUrl", "imageBackgroundUrl"]) {
+        for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
           const url = state.screenSettings?.[key];
           if (url) imageRefs.push({ url, type: "screenSetting", key });
         }
@@ -2517,25 +2638,23 @@ function startServer(port = 17841, options = {}) {
         for (const ref of imageRefs) {
           const url = ref.url;
           let filePath = null;
-          let zipDir = null;
           let originalName = null;
 
           const assetMatch = url.match(/\/api\/mass-asset\/([^/]+)$/);
           if (assetMatch) {
             originalName = assetMatch[1];
             filePath = path.join(assetsDir, originalName);
-            zipDir = "readings/assets";
           }
           if (url.startsWith("/static/assets/")) continue;
           if (!filePath || !originalName || !fs.existsSync(filePath)) continue;
-          resolved.push({ url, filePath, zipDir, originalName });
+          resolved.push({ url, filePath, originalName });
         }
 
         const total = resolved.length;
         const urlRemap = new Map();
 
         for (let i = 0; i < resolved.length; i++) {
-          const { url, filePath, zipDir, originalName } = resolved[i];
+          const { url, filePath, originalName } = resolved[i];
           const ext = path.extname(originalName).toLowerCase();
 
           socket.emit("export:avif:progress", {
@@ -2548,52 +2667,33 @@ function startServer(port = 17841, options = {}) {
             const baseName = path.basename(originalName, ext);
             const avifName = `${baseName}.avif`;
             const avifBuffer = await sharp(filePath).avif({ quality: 50 }).toBuffer();
-            zip.addFile(`${zipDir}/${avifName}`, avifBuffer);
-            urlRemap.set(url, url.replace(/\/[^/]+$/, `/${avifName}`));
+            zip.addFile(`assets/${avifName}`, avifBuffer);
+            urlRemap.set(url, `assets/${avifName}`);
           } else {
-            zip.addFile(`${zipDir}/${originalName}`, fs.readFileSync(filePath));
+            zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
           }
         }
 
-        // Build settings.json with remapped image URLs.
-        const remappedManualSlides = {};
-        for (const [id, slide] of Object.entries(state.manualSlides || {})) {
-          remappedManualSlides[id] = { ...slide };
-          if (slide.imageUrl && urlRemap.has(slide.imageUrl)) {
-            remappedManualSlides[id].imageUrl = urlRemap.get(slide.imageUrl);
-          }
-        }
-        const remappedScreenSettings = { ...state.screenSettings };
-        for (const key of ["colorBackgroundUrl", "imageBackgroundUrl"]) {
-          if (remappedScreenSettings[key] && urlRemap.has(remappedScreenSettings[key])) {
-            remappedScreenSettings[key] = urlRemap.get(remappedScreenSettings[key]);
-          }
-        }
-
-        if (fs.existsSync(CURRENT_MASS_DIR)) {
-          for (const file of fs.readdirSync(CURRENT_MASS_DIR)) {
-            if (!file.endsWith(".txt")) continue;
-            const fullPath = path.join(CURRENT_MASS_DIR, file);
-            if (fs.statSync(fullPath).isFile()) {
-              zip.addFile(`readings/${file}`, fs.readFileSync(fullPath));
+        const massDocument = buildMassDocumentFromState(state);
+        for (const item of massDocument.items || []) {
+          if (item.asset?.ref) {
+            const url = `/api/mass-asset/${path.basename(item.asset.ref)}`;
+            if (urlRemap.has(url)) {
+              item.asset.ref = urlRemap.get(url);
             }
           }
         }
-
-        const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
-        if (fs.existsSync(massJsonPath)) {
-          const massData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
-          zip.addFile("settings.json", Buffer.from(JSON.stringify({
-            version: 2,
-            exportedAt: new Date().toISOString(),
-            presentationTitle: state.presentation?.title || massData.presentationTitle || null,
-            massStartTime: state.massStartTime || massData.massStartTime || null,
-            screenSettings: remappedScreenSettings,
-            organizerSequence: state.organizerSequence,
-            manualSlides: remappedManualSlides,
-            hasReadings: Boolean(state.readingsSource?.folderPath && state.readingsSource?.documents?.length)
-          }, null, 2)));
+        for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+          const ref = massDocument.presentationDefaults?.[key];
+          if (ref && !String(ref).startsWith("assets/")) {
+            continue;
+          }
+          const url = ref ? `/api/mass-asset/${path.basename(ref)}` : null;
+          if (url && urlRemap.has(url)) {
+            massDocument.presentationDefaults[key] = urlRemap.get(url);
+          }
         }
+        zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
 
         const zipBuffer = zip.toBuffer();
         const filename = buildExportFilename(state.presentation?.title, state.massStartTime, "-avif.zip");
