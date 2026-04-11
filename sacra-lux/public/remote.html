@@ -429,8 +429,7 @@
     // leaving the title and top buttons scrolled above it.
     requestAnimationFrame(() => {
       if (els.previewDock) {
-        const previewTop = els.previewDock.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: Math.max(0, Math.round(previewTop)), behavior: "auto" });
+        pinPreviewDock();
       }
     });
 
@@ -519,6 +518,8 @@
       if (nextIndex < 0 || nextIndex >= currentSlides.length) {
         return;
       }
+      pinPreviewDock();
+      maintainPreviewPinning(260);
       goToRemoteSlide(nextIndex);
     }
 
@@ -941,6 +942,7 @@
     }
 
     function scrollToPreview() {
+      stopPreviewPinning();
       pinPreviewDock("smooth");
     }
 
