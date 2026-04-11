@@ -2504,11 +2504,14 @@ function startServer(port = 17841, options = {}) {
     scheduleSave();
   }
 
-  function releaseInterstitialHold() {
+  function releaseInterstitialHold(returnSlideIndexOverride = null) {
     if (!state.interstitialHoldActive) return false;
 
+    const hasExplicitReturnIndex = Number.isFinite(Number(returnSlideIndexOverride));
     const returnIndex = getSafeSlideIndex(
-      Number.isFinite(Number(state.interstitialHoldReturnSlideIndex))
+      hasExplicitReturnIndex
+        ? Number(returnSlideIndexOverride)
+        : Number.isFinite(Number(state.interstitialHoldReturnSlideIndex))
         ? Number(state.interstitialHoldReturnSlideIndex)
         : state.currentSlideIndex
     );
@@ -2522,9 +2525,9 @@ function startServer(port = 17841, options = {}) {
     return true;
   }
 
-  function toggleInterstitialHold() {
+  function toggleInterstitialHold(returnSlideIndexOverride = null) {
     if (state.interstitialHoldActive) {
-      return releaseInterstitialHold();
+      return releaseInterstitialHold(returnSlideIndexOverride);
     }
     const activated = activateInterstitialHold();
     if (activated) {
@@ -2608,8 +2611,8 @@ function startServer(port = 17841, options = {}) {
       activateGatheringSequence: true,
       activatePostMassLoop: true
     }));
-    socket.on("screen:interstitial-hold", () => {
-      if (!toggleInterstitialHold()) {
+    socket.on("screen:interstitial-hold", (payload) => {
+      if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
       }
     });
