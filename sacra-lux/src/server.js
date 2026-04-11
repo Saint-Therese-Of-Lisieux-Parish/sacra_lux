@@ -2534,9 +2534,18 @@ function startServer(port = 17841, options = {}) {
   }
 
   function setSlide(index, options = {}) {
-    const { activatePostMassLoop = false } = options;
+    const {
+      activateGatheringSequence = false,
+      activatePostMassLoop = false
+    } = options;
     state.currentSlideIndex = getSafeSlideIndex(index);
     const slide = (state.presentation?.slides || [])[state.currentSlideIndex];
+    if (activateGatheringSequence && slide?.phase === "gathering") {
+      stopPreMassTimer();
+      stopGatheringTimer();
+      stopPostMassTimer();
+      state.gatheringRunning = true;
+    }
     if (activatePostMassLoop && slide?.phase === "post") {
       stopPreMassTimer();
       stopGatheringTimer();
@@ -2595,7 +2604,10 @@ function startServer(port = 17841, options = {}) {
     socket.on("slide:next", () => stepSlide(1));
     socket.on("slide:prev", () => stepSlide(-1));
     socket.on("slide:goto", (index) => setSlide(Number(index) || 0));
-    socket.on("slide:goto:remote", (index) => setSlide(Number(index) || 0, { activatePostMassLoop: true }));
+    socket.on("slide:goto:remote", (index) => setSlide(Number(index) || 0, {
+      activateGatheringSequence: true,
+      activatePostMassLoop: true
+    }));
     socket.on("screen:interstitial-hold", () => {
       if (!toggleInterstitialHold()) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
