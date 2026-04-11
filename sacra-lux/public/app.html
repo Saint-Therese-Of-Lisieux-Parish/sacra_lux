@@ -1956,13 +1956,13 @@
         <div class="control-bar-section control-bar-identity">
           <div class="command-bar-main">
             <div class="command-bar-title-block">
-              <input id="massTitleInput" type="text" value="No presentation loaded." placeholder="Mass title…" />
+              <input id="massTitleInput" type="text" value="No presentation loaded." placeholder="Mass title…" aria-label="Mass title" />
               <div class="command-status-row">
                 <span id="startTimeStatus" class="status-pill start-time-status"></span>
               </div>
               <div class="command-schedule">
                 <div class="start-time-inline">
-                  <span class="field-label" style="margin-right:0.15rem">Start Time</span>
+                  <label for="startTimeInput" class="field-label" style="margin-right:0.15rem">Start Time</label>
                   <input id="startTimeInput" type="datetime-local" style="font-size:1.15rem;padding:0.35rem 0.6rem">
                   <button id="setStartTimeBtn" class="save-btn">Set</button>
                   <button id="clearStartTimeBtn" class="save-btn">Clear</button>
@@ -2605,13 +2605,13 @@
           <div class="connection-bar" id="connectionBar">
             <div class="connection-card">
               <div class="connection-card-label">Phone Remote</div>
-              <a id="urlRemote" href="#" target="_blank" class="qr-link">
+              <a id="urlRemote" href="#" target="_blank" rel="noopener noreferrer" class="qr-link">
                 <div class="qr-box" id="qrRemote"></div>
               </a>
             </div>
             <div class="connection-card">
               <div class="connection-card-label">Screen</div>
-              <a id="urlScreen" href="#" target="_blank" class="qr-link">
+              <a id="urlScreen" href="#" target="_blank" rel="noopener noreferrer" class="qr-link">
                 <div class="qr-box" id="qrScreen"></div>
               </a>
             </div>
@@ -3892,6 +3892,34 @@
         .replace(/'/g, "&#39;");
     }
 
+    function replaceSelectOptions(selectEl, items, { placeholderLabel = "", placeholderValue = "" } = {}) {
+      if (!selectEl) return;
+      const fragment = document.createDocumentFragment();
+
+      if (placeholderLabel) {
+        const placeholder = document.createElement("option");
+        placeholder.value = placeholderValue;
+        placeholder.textContent = placeholderLabel;
+        fragment.appendChild(placeholder);
+      }
+
+      for (const item of items) {
+        const option = document.createElement("option");
+        option.value = item.value ?? "";
+        option.textContent = item.label ?? "";
+        fragment.appendChild(option);
+      }
+
+      selectEl.replaceChildren(fragment);
+    }
+
+    function getVisibleFocusableElements(container) {
+      if (!container) return [];
+      return Array.from(container.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )).filter((el) => !el.closest("[hidden]") && el.getClientRects().length > 0);
+    }
+
     function formatArchiveBytes(bytes) {
       const size = Number(bytes || 0);
       if (!size) return "0 B";
@@ -4059,6 +4087,9 @@
           bgUrl = darkBg;
         }
         const thumbContent = buildThumbHtml(item, repSlide, manualSlide);
+        const safeItemId = escapeHtml(item.id);
+        const safeTitle = escapeHtml(item.label);
+        const safeSourceMeta = escapeHtml(sourceMeta);
 
         let phaseHeader = "";
         if (item.phase !== lastPhase) {
@@ -4122,11 +4153,11 @@
               label += ` \u00B7 ${mFmt}`;
             }
           }
-          phaseHeader = `<div class="phase-section-header">${label}<span class="phase-slide-count">${phaseTotal} ${slidesWord}</span>${durationPill}</div>`;
+          phaseHeader = `<div class="phase-section-header">${escapeHtml(label)}<span class="phase-slide-count">${phaseTotal} ${slidesWord}</span>${durationPill}</div>`;
         }
 
         return `${phaseHeader}
-          <div class="sequence-item ${active}" data-item-id="${item.id}" draggable="true">
+          <div class="sequence-item ${active}" data-item-id="${safeItemId}" draggable="true">
             <div class="sequence-row">
               <div class="sequence-thumb" style="background-image:url('${bgUrl.replace(/'/g, "\\'")}')">
                 ${thumbContent}
@@ -4135,15 +4166,15 @@
                 <div class="sequence-head">
                   <div style="display:flex;align-items:center;gap:0.4rem">
                     <span class="drag-handle" title="Drag to reorder">⠷</span>
-                    <div class="sequence-title">${index + 1}. ${item.label}</div>
+                    <div class="sequence-title">${index + 1}. ${safeTitle}</div>
                   </div>
                   <div style="display:flex;align-items:center;gap:0.3rem">
-                    <button class="seq-edit-btn" data-edit-id="${item.id}" title="Edit slide">&#9998;</button>
+                    <button class="seq-edit-btn" data-edit-id="${safeItemId}" title="Edit slide">&#9998;</button>
                     <span class="tag ${type.className}">${type.label}</span>
                     <span class="tag ${phase.className}">${phase.label}</span>
                   </div>
                 </div>
-                <div class="sequence-meta">${durationMeta ? `<strong>${durationMeta.replace(" · ", "")}</strong> · ` : ""}${pageCount} slide${pageCount === 1 ? "" : "s"}${sourceMeta}</div>
+                <div class="sequence-meta">${durationMeta ? `<strong>${durationMeta.replace(" · ", "")}</strong> · ` : ""}${pageCount} slide${pageCount === 1 ? "" : "s"}${safeSourceMeta}</div>
               </div>
             </div>
           </div>
@@ -4270,9 +4301,13 @@
         els.editorBackgroundThemeWrap.hidden = isImage;
       }
 
-      els.editorSourceStem.innerHTML = documents
-        .map((doc) => `<option value="${doc.stem}">${doc.section} · ${doc.passage}</option>`)
-        .join("");
+      replaceSelectOptions(
+        els.editorSourceStem,
+        documents.map((doc) => ({
+          value: doc.stem,
+          label: `${doc.section} · ${doc.passage}`
+        }))
+      );
       els.editorSourceStem.value = item.sourceStem || documents[0]?.stem || "";
 
       if (isReading) {
@@ -4903,10 +4938,12 @@
       lightBgUrl = els.lightBgPreset?.value || ""
     } = {}) {
       const assets = await fetchMassAssets();
-      const assetOptions = assets.map((a) => `<option value="${a.url}">${a.name}</option>`).join("");
+      const assetOptions = assets.map((a) => ({ value: a.url, label: a.name }));
 
       if (els.editorAssetPicker) {
-        els.editorAssetPicker.innerHTML = "<option value=\"\">\u2014 select from assets folder \u2014</option>" + assetOptions;
+        replaceSelectOptions(els.editorAssetPicker, assetOptions, {
+          placeholderLabel: "\u2014 select from assets folder \u2014"
+        });
         const matched = assets.some((a) => a.url === editorUrl);
         els.editorAssetPicker.value = matched ? editorUrl : "";
         updateImagePreview(editorUrl);
@@ -4917,7 +4954,9 @@
         [els.lightBgPreset, lightBgUrl]
       ]) {
         if (!sel) continue;
-        sel.innerHTML = "<option value=\"\">\u2014 select from assets \u2014</option>" + assetOptions;
+        replaceSelectOptions(sel, assetOptions, {
+          placeholderLabel: "\u2014 select from assets \u2014"
+        });
         if (currentUrl) choosePresetForUrl(sel, currentUrl);
       }
     }
@@ -5264,9 +5303,7 @@
     // Focus trap for dialog (supplement native <dialog> trapping)
     els.editorDialog.addEventListener("keydown", (e) => {
       if (e.key !== "Tab") return;
-      const focusable = els.editorDialog.querySelectorAll(
-        'button:not([hidden]):not([disabled]), input:not([hidden]):not([disabled]):not([type="hidden"]), select:not([hidden]):not([disabled]), textarea:not([hidden]):not([disabled]), [tabindex]:not([tabindex="-1"])'
-      );
+      const focusable = getVisibleFocusableElements(els.editorDialog);
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -6202,11 +6239,11 @@
         const res = await fetch("/api/prayers");
         const data = await res.json().catch(() => ({}));
         if (data.prayers) {
-          const options = ['<option value="">— Select a prayer —</option>'];
-          for (const p of data.prayers) {
-            options.push(`<option value="${p.filename}">${p.name}</option>`);
-          }
-          els.editorPrayerSelect.innerHTML = options.join("");
+          replaceSelectOptions(
+            els.editorPrayerSelect,
+            data.prayers.map((p) => ({ value: p.filename, label: p.name })),
+            { placeholderLabel: "— Select a prayer —" }
+          );
         }
       } catch (e) {
         console.error("Failed to load prayers", e);
