@@ -6,8 +6,9 @@ const METADATA_KEYS = new Set(["title", "scheduledStart", "locale", "timezone", 
 const CONTENT_KEYS = new Set(["text", "seconds", "showLabel", "label"]);
 const SOURCE_KEYS = new Set(["stem", "citation", "title", "translation", "attribution"]);
 const ASSET_KEYS = new Set(["ref"]);
-const PRESENTATION_KEYS = new Set(["background", "textAlign", "textVAlign", "fontFamily"]);
+const PRESENTATION_KEYS = new Set(["background", "textAlign", "textVAlign", "fontFamily", "countdownStyle", "countdownSizePercent"]);
 const VALID_DOCUMENT_BACKGROUNDS = new Set(["dark", "light"]);
+const VALID_COUNTDOWN_STYLES = new Set(["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"]);
 
 class ValidationError extends Error {
   constructor(message) {
@@ -212,6 +213,15 @@ function validatePresentation(presentation) {
   if (presentation.fontFamily != null && typeof presentation.fontFamily !== "string") {
     throw new ValidationError("presentation.fontFamily must be a string.");
   }
+  if (presentation.countdownStyle != null && !VALID_COUNTDOWN_STYLES.has(String(presentation.countdownStyle))) {
+    throw new ValidationError(`Unsupported presentation.countdownStyle "${presentation.countdownStyle}".`);
+  }
+  if (presentation.countdownSizePercent != null) {
+    const size = Number(presentation.countdownSizePercent);
+    if (!Number.isFinite(size) || size < 50 || size > 200) {
+      throw new ValidationError("presentation.countdownSizePercent must be between 50 and 200.");
+    }
+  }
 }
 
 function validateMassDocument(document) {
@@ -365,11 +375,17 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
   if (organizerItem.type === "countdown") {
     item.content = {
       seconds: Math.max(1, Math.min(300, Number(manualSlide?.countdownSec) || 60)),
-      showLabel: manualSlide?.countdownShowLabel !== false
+      showLabel: false
     };
     if (manualSlide?.countdownFont) {
       presentation.fontFamily = manualSlide.countdownFont;
     }
+    if (manualSlide?.countdownStyle) {
+      presentation.countdownStyle = VALID_COUNTDOWN_STYLES.has(String(manualSlide.countdownStyle))
+        ? String(manualSlide.countdownStyle)
+        : "ring";
+    }
+    presentation.countdownSizePercent = Math.max(50, Math.min(200, Number(manualSlide?.countdownSizePercent) || 100));
     item.presentation = presentation;
     return item;
   }
@@ -454,7 +470,10 @@ function buildRuntimeStateFromMassDocument(document) {
       manual.imageUrl = null;
       manual.countdownSec = Number(item.content?.seconds) || 60;
       manual.countdownFont = item.presentation?.fontFamily || "";
-      manual.countdownShowLabel = item.content?.showLabel !== false;
+      manual.countdownStyle = VALID_COUNTDOWN_STYLES.has(String(item.presentation?.countdownStyle))
+        ? String(item.presentation.countdownStyle)
+        : "ring";
+      manual.countdownSizePercent = Math.max(50, Math.min(200, Number(item.presentation?.countdownSizePercent) || 100));
     } else {
       manual.text = item.content?.text || "";
       manual.textVAlign = null;

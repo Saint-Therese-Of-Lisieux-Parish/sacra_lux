@@ -27,6 +27,8 @@ const {
   buildPresentationFromOrganizer,
   createManualSlideRecord,
   normalizeBackgroundTheme,
+  normalizeCountdownSizePercent,
+  normalizeCountdownStyle,
   normalizePhase,
   normalizeType
 } = require("./organizer");
@@ -1894,7 +1896,7 @@ function startServer(port = 17841, options = {}) {
         if (item.type === "text" || item.type === "prayer" || item.type === "hymn") {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: "middle", imageUrl: null };
         } else if (item.type === "countdown") {
-          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 60, countdownFont: "", countdownShowLabel: true };
+          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 60, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
         } else {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null };
         }
@@ -2404,7 +2406,8 @@ function startServer(port = 17841, options = {}) {
       if (type === "countdown") {
         manual.countdownSec = Math.max(1, Math.min(300, Number(incomingManual.countdownSec) || 60));
         manual.countdownFont = String(incomingManual.countdownFont || "");
-        manual.countdownShowLabel = incomingManual.countdownShowLabel !== false;
+        manual.countdownStyle = normalizeCountdownStyle(String(incomingManual.countdownStyle || ""));
+        manual.countdownSizePercent = normalizeCountdownSizePercent(incomingManual.countdownSizePercent);
       }
 
       const presentation = buildPresentationFromOrganizer({

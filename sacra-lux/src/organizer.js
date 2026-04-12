@@ -46,6 +46,7 @@ const SECTION_LABELS = {
 const VALID_TYPES = ["reading", "image", "text", "prayer", "hymn", "countdown", "interstitial"];
 const VALID_PHASES = ["pre", "gathering", "mass", "post"];
 const VALID_BACKGROUND_THEMES = ["dark", "light"];
+const VALID_COUNTDOWN_STYLES = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"];
 
 function normalizePhase(value) {
   if (value === "warmup") return "gathering";
@@ -67,6 +68,14 @@ function normalizeType(value) {
   if (value === "reading-group") return "reading";
   if (value === "graphic") return "image";
   return VALID_TYPES.includes(value) ? value : "text";
+}
+
+function normalizeCountdownStyle(value) {
+  return VALID_COUNTDOWN_STYLES.includes(value) ? value : "ring";
+}
+
+function normalizeCountdownSizePercent(value) {
+  return Math.max(50, Math.min(200, Number(value) || 100));
 }
 
 function displayLabelForDocument(doc) {
@@ -91,7 +100,8 @@ function createManualSlideRecord(type = "image") {
       imageUrl: null,
       countdownSec: 60,
       countdownFont: "",
-      countdownShowLabel: true
+      countdownStyle: "ring",
+      countdownSizePercent: 100
     };
   }
 
@@ -170,7 +180,9 @@ function buildManualSlide(item, manualSlide, index) {
       text: "",
       countdownSec: Math.max(1, Math.min(300, Number(manualSlide?.countdownSec) || 60)),
       countdownFont: manualSlide?.countdownFont || "",
-      countdownShowLabel: manualSlide?.countdownShowLabel !== false,
+      countdownStyle: normalizeCountdownStyle(manualSlide?.countdownStyle),
+      countdownSizePercent: normalizeCountdownSizePercent(manualSlide?.countdownSizePercent),
+      countdownShowLabel: false,
       pageNumber: 1,
       totalPages: 1,
       isFirstPage: true,
@@ -264,5 +276,8 @@ module.exports = {
   normalizeBackgroundTheme,
   normalizePhase,
   normalizeType,
+  normalizeCountdownStyle,
+  normalizeCountdownSizePercent,
+  VALID_COUNTDOWN_STYLES,
   createManualSlideRecord
 };
