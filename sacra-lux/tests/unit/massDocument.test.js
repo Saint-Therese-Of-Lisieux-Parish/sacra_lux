@@ -142,7 +142,8 @@ describe("massDocument", () => {
           },
           presentation: {
             background: "dark",
-            fontFamily: "Lora"
+            fontFamily: "Lora",
+            countdownSizePercent: 135
           }
         }
       ],
@@ -185,7 +186,7 @@ describe("massDocument", () => {
     expect(runtime.manualSlides["countdown-1"]).toMatchObject({
       countdownSec: 30,
       countdownFont: "Lora",
-      countdownShowLabel: false
+      countdownSizePercent: 135
     });
   });
 

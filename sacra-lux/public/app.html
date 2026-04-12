@@ -1818,9 +1818,66 @@
       background: #eef4f8;
     }
 
+    #editorSectionCountdown .modal-field-grid {
+      grid-template-columns: 0.78fr 0.98fr 1fr 0.7fr;
+      gap: 0.55rem;
+      margin-top: 0.4rem;
+    }
+
     #editorSectionCountdown .modal-field,
     #editorSectionCountdown .settings-toggle {
       background: color-mix(in srgb, white 88%, #eef4f8 12%);
+    }
+
+    #editorSectionCountdown .modal-field,
+    #editorSectionCountdown .settings-toggle {
+      grid-column: auto;
+      padding: 0.56rem 0.64rem;
+    }
+
+    #editorSectionCountdown .modal-field label {
+      gap: 0.28rem;
+      font-size: 0.8rem;
+    }
+
+    #editorSectionCountdown .settings-toggle {
+      align-items: flex-start;
+      gap: 0.48rem;
+      padding-top: 0.62rem;
+    }
+
+    #editorSectionCountdown .settings-toggle-copy {
+      gap: 0.12rem;
+    }
+
+    .countdown-font-status {
+      min-height: 0.85rem;
+      margin-top: 0;
+    }
+
+    #editorSectionCountdown .settings-toggle-title {
+      font-size: 0.78rem;
+      line-height: 1.15;
+    }
+
+    #editorSectionCountdown .settings-toggle-help,
+    #editorSectionCountdown .settings-field-help {
+      font-size: 0.68rem;
+      line-height: 1.2;
+    }
+
+    #editorSectionCountdown .modal-field input,
+    #editorSectionCountdown .modal-field select {
+      min-width: 0;
+      min-height: 2.4rem;
+      padding: 0.48rem 0.72rem;
+      font-size: 0.82rem;
+      border-radius: 10px;
+    }
+
+    #editorSectionCountdown .settings-toggle input[type=checkbox] {
+      width: 0.92rem;
+      height: 0.92rem;
     }
 
     .editor-section-label {
@@ -2697,6 +2754,7 @@
                 style="flex:1;text-align:center;font-size:0.88rem;align-self:center;color:var(--ink-soft);font-weight:600">1
                 / 1</span>
               <button id="editorPreviewNextBtn" class="preview-next">Next &#9654;</button>
+              <button id="editorPreviewCountdownBtn" class="preview-next" hidden>Simulate Countdown</button>
             </div>
           </div>
 
@@ -2842,14 +2900,26 @@
           <!-- Countdown settings (countdown type only) -->
           <div id="editorSectionCountdown" class="editor-type-section" hidden>
             <div class="editor-section-label">Countdown Settings</div>
-            <div class="editor-help-text">Set the timer length and whether the label should be visible on the display.</div>
+            <div class="editor-help-text">Set the timer length, choose a display style, and select an optional font override.</div>
             <div class="modal-field-grid">
               <div class="modal-field modal-span-3">
                 <label>Duration (seconds)
                   <input id="editorCountdownSec" type="number" min="1" max="300" value="60">
                 </label>
               </div>
-              <div class="modal-field modal-span-5">
+              <div class="modal-field modal-span-3">
+                <label>Style
+                  <select id="editorCountdownStyle">
+                    <option value="ring">Ring</option>
+                    <option value="digits">Digits</option>
+                    <option value="bar">Progress Bar</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="hourglass">Hourglass</option>
+                    <option value="stopwatch">Stopwatch</option>
+                  </select>
+                </label>
+              </div>
+              <div class="modal-field modal-span-3">
                 <label>Font
                   <select id="editorCountdownFont">
                     <option value="">Use display font</option>
@@ -2873,15 +2943,14 @@
                     <option value="Poppins">Poppins</option>
                     <option value="Raleway">Raleway</option>
                   </select>
+                  <span id="editorCountdownFontStatus" class="settings-field-help countdown-font-status">Uses the display font.</span>
                 </label>
               </div>
-              <label class="settings-toggle modal-span-4" style="align-self:stretch">
-                <input id="editorCountdownShowLabel" type="checkbox" checked>
-                <span class="settings-toggle-copy">
-                  <span class="settings-toggle-title">Show label on display</span>
-                  <span class="settings-toggle-help">Also controls auto-advance timing. Max 5 minutes.</span>
-                </span>
-              </label>
+              <div class="modal-field modal-span-3">
+                <label>Size (%)
+                  <input id="editorCountdownSizePercent" type="number" min="50" max="200" step="5" value="100">
+                </label>
+              </div>
             </div>
           </div>
 
@@ -3282,8 +3351,10 @@
       editorExportProgressWrap: document.getElementById("editorExportProgressWrap"),
       editorExportProgressBar: document.getElementById("editorExportProgressBar"),
       editorCountdownSec: document.getElementById("editorCountdownSec"),
+      editorCountdownStyle: document.getElementById("editorCountdownStyle"),
       editorCountdownFont: document.getElementById("editorCountdownFont"),
-      editorCountdownShowLabel: document.getElementById("editorCountdownShowLabel"),
+      editorCountdownFontStatus: document.getElementById("editorCountdownFontStatus"),
+      editorCountdownSizePercent: document.getElementById("editorCountdownSizePercent"),
       editorLabel: document.getElementById("editorLabel"),
       editorType: document.getElementById("editorType"),
       editorPhase: document.getElementById("editorPhase"),
@@ -3364,6 +3435,7 @@
       editorPreviewControls: document.getElementById("editorPreviewControls"),
       editorPreviewPrevBtn: document.getElementById("editorPreviewPrevBtn"),
       editorPreviewNextBtn: document.getElementById("editorPreviewNextBtn"),
+      editorPreviewCountdownBtn: document.getElementById("editorPreviewCountdownBtn"),
       editorPreviewStatus: document.getElementById("editorPreviewStatus"),
       editorReadingText: document.getElementById("editorReadingText"),
       editorPageCount: document.getElementById("editorPageCount"),
@@ -3375,13 +3447,59 @@
 
     let editorPreviewSlides = [];
     let editorPreviewIndex = 0;
+    let editorPreviewCountdownEndsAt = null;
+    let editorPreviewCountdownTimer = null;
 
     function getEditorPreviewItem() {
       const sequence = getSequence();
       return selectedItem(sequence);
     }
 
+    function refreshCountdownFontUi(value = "") {
+      const displayFont = uiState.data?.screenSettings?.fontFamily || "Merriweather";
+      if (els.editorCountdownFont?.options?.[0]) {
+        els.editorCountdownFont.options[0].textContent = "Use display font";
+      }
+      if (!els.editorCountdownFontStatus) return;
+      if (value) {
+        els.editorCountdownFontStatus.textContent = `Override active: ${value}`;
+      } else {
+        els.editorCountdownFontStatus.textContent = `Using display font: ${displayFont}`;
+      }
+    }
+
+    function formatCountdownTime(totalSeconds) {
+      const remainSec = Math.max(0, Number(totalSeconds) || 0);
+      if (remainSec < 60) return String(remainSec);
+      const mm = Math.floor(remainSec / 60);
+      const ss = String(remainSec % 60).padStart(2, "0");
+      return `${mm}:${ss}`;
+    }
+
+    function stopEditorPreviewCountdownSimulation() {
+      editorPreviewCountdownEndsAt = null;
+      if (editorPreviewCountdownTimer) {
+        clearInterval(editorPreviewCountdownTimer);
+        editorPreviewCountdownTimer = null;
+      }
+    }
+
+    function syncEditorPreviewControls(slide) {
+      if (!els.editorPreviewControls) return;
+      const isCountdown = slide?.type === "countdown";
+      if (els.editorPreviewPrevBtn) els.editorPreviewPrevBtn.hidden = isCountdown;
+      if (els.editorPreviewNextBtn) els.editorPreviewNextBtn.hidden = isCountdown;
+      if (els.editorPreviewCountdownBtn) {
+        els.editorPreviewCountdownBtn.hidden = !isCountdown;
+        els.editorPreviewCountdownBtn.textContent = editorPreviewCountdownEndsAt ? "Reset Countdown Preview" : "Simulate Countdown";
+      }
+      if (els.editorPreviewStatus) {
+        els.editorPreviewStatus.hidden = isCountdown;
+      }
+    }
+
     async function updateReadingPreview() {
+      stopEditorPreviewCountdownSimulation();
       const text = els.editorReadingText.value;
       const stem = els.editorSourceStem.value;
       const item = getEditorPreviewItem();
@@ -3412,6 +3530,7 @@
     }
 
     async function updateManualPreview(item) {
+      stopEditorPreviewCountdownSimulation();
       if (!item) {
         editorPreviewSlides = [];
         editorPreviewIndex = 0;
@@ -3435,8 +3554,9 @@
             imageUrl: (els.editorImageUrl.value || "").trim() || null,
             textVAlign: els.editorTextVAlign.value || "middle",
             countdownSec: parseInt(els.editorCountdownSec.value, 10) || 60,
+            countdownStyle: els.editorCountdownStyle.value || "ring",
             countdownFont: els.editorCountdownFont.value || "",
-            countdownShowLabel: els.editorCountdownShowLabel.checked
+            countdownSizePercent: parseInt(els.editorCountdownSizePercent.value, 10) || 100
           }
         })
       });
@@ -3483,6 +3603,7 @@
       if (!editorPreviewSlides || editorPreviewSlides.length === 0) {
         if (els.editorPreviewStatus) {
           els.editorPreviewStatus.textContent = "0 / 0";
+          els.editorPreviewStatus.hidden = false;
         }
         if (els.editorPreviewControls) {
           els.editorPreviewControls.hidden = true;
@@ -3495,12 +3616,15 @@
       const safeIndex = Math.min(Math.max(0, editorPreviewIndex), editorPreviewSlides.length - 1);
       editorPreviewIndex = safeIndex;
       const slide = editorPreviewSlides[safeIndex];
-      els.editorPreviewStatus.textContent = `${safeIndex + 1} / ${editorPreviewSlides.length || 1}`;
-
-      // Hide prev/next controls when there is only one slide
-      if (els.editorPreviewControls) {
-        els.editorPreviewControls.hidden = editorPreviewSlides.length <= 1;
+      if (els.editorPreviewStatus) {
+        els.editorPreviewStatus.textContent = `${safeIndex + 1} / ${editorPreviewSlides.length || 1}`;
       }
+
+      if (els.editorPreviewControls) {
+        const isCountdown = slide?.type === "countdown";
+        els.editorPreviewControls.hidden = !isCountdown && editorPreviewSlides.length <= 1;
+      }
+      syncEditorPreviewControls(slide);
 
       if (els.editorPreviewFrame && els.editorPreviewFrame.contentWindow) {
         els.editorPreviewFrame.contentWindow.postMessage({
@@ -3508,7 +3632,8 @@
           slides: editorPreviewSlides,
           currentSlideIndex: safeIndex,
           slide,
-          screenSettings: uiState.data?.screenSettings
+          screenSettings: uiState.data?.screenSettings,
+          countdownEndsAt: slide?.type === "countdown" ? editorPreviewCountdownEndsAt : null
         }, "*");
       }
     }
@@ -3812,12 +3937,40 @@
       // Countdown — show the duration centered on the background
       if (item.type === "countdown") {
         const sec = manualSlide?.countdownSec || 60;
-        const mm = String(Math.floor(sec / 60)).padStart(1, "0");
-        const ss = String(sec % 60).padStart(2, "0");
+        const style = manualSlide?.countdownStyle || "ring";
+        const sizePercent = Math.max(50, Math.min(200, Number(manualSlide?.countdownSizePercent) || 100));
+        const timeText = formatCountdownTime(sec);
+        const previewFontSize = Math.round(100 * (sizePercent / 100));
+        const styleLabel = style === "digits"
+          ? "Digits"
+          : style === "bar"
+            ? "Progress Bar"
+            : style === "minimal"
+              ? "Minimal"
+              : style === "hourglass"
+                ? "Hourglass"
+                : style === "stopwatch"
+                  ? "Stopwatch"
+                : "Ring";
+        const accentHtml = style === "bar"
+          ? `<div style="position:absolute;left:280px;right:280px;top:520px;height:18px;border-radius:999px;background:rgba(255,255,255,0.16);overflow:hidden"><div style="width:62%;height:100%;background:rgba(255,255,255,0.82)"></div></div>`
+          : style === "minimal"
+            ? `<div style="position:absolute;left:420px;right:420px;top:556px;height:4px;border-radius:999px;background:rgba(255,255,255,0.5)"></div>`
+            : style === "hourglass"
+              ? `<div style="position:absolute;top:260px;font-size:220px;line-height:1;opacity:0.2">&#x23F3;</div>`
+              : style === "stopwatch"
+                ? `<div style="position:absolute;top:235px;left:50%;width:420px;height:420px;transform:translateX(-50%);border-radius:50%;border:8px solid rgba(255,255,255,0.62);box-shadow:inset 0 0 0 14px rgba(255,255,255,0.08)"></div>
+                  <div style="position:absolute;top:205px;left:50%;width:44px;height:30px;transform:translateX(-50%);border-radius:10px 10px 4px 4px;background:rgba(255,255,255,0.65)"></div>
+                  <div style="position:absolute;top:230px;left:50%;width:10px;height:170px;transform-origin:center 155px;transform:translateX(-50%) rotate(130deg);border-radius:999px;background:rgba(255,255,255,0.82)"></div>
+                  <div style="position:absolute;top:362px;left:50%;transform:translateX(-50%);padding:20px 36px;border-radius:999px;background:rgba(10,16,22,0.84);box-shadow:0 14px 34px rgba(0,0,0,0.26)"></div>`
+              : style === "digits"
+                ? `<div style="position:absolute;top:325px;font-size:34px;letter-spacing:10px;color:rgba(248,248,248,0.45)">COUNTDOWN</div>`
+                : `<div style="position:absolute;top:220px;font-size:260px;line-height:1;opacity:0.18">&#x25EF;</div>`;
         return `<div class="thumb-render">
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <div style="font-size:260px;line-height:1;opacity:0.18">&#x23F1;</div>
-            <div style="position:absolute;font-size:100px;font-weight:700;color:#f8f8f8;letter-spacing:4px;text-shadow:0 0 30px rgba(255,255,255,0.3)">${mm}:${ss}</div>
+            ${accentHtml}
+            <div style="position:absolute;font-size:${previewFontSize}px;font-weight:700;color:#f8f8f8;letter-spacing:4px;text-shadow:0 0 30px rgba(255,255,255,0.3)">${timeText}</div>
+            <div style="position:absolute;bottom:208px;font-size:22px;color:rgba(248,248,248,0.48);letter-spacing:4px">${styleLabel}</div>
             <div style="position:absolute;bottom:160px;font-size:28px;color:rgba(248,248,248,0.6);letter-spacing:2px">${escThumb(item.label || "Countdown")}</div>
           </div>
         </div>`;
@@ -4325,8 +4478,12 @@
       if (focused !== els.editorNotes) els.editorNotes.value = manual.notes || "";
       if (focused !== els.editorImageUrl) els.editorImageUrl.value = manual.imageUrl || "";
       if (focused !== els.editorCountdownSec) els.editorCountdownSec.value = String(manual.countdownSec || 60);
+      els.editorCountdownStyle.value = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"].includes(manual.countdownStyle)
+        ? manual.countdownStyle
+        : "ring";
       els.editorCountdownFont.value = manual.countdownFont || "";
-      els.editorCountdownShowLabel.checked = manual.countdownShowLabel !== false;
+      if (focused !== els.editorCountdownSizePercent) els.editorCountdownSizePercent.value = String(Math.max(50, Math.min(200, Number(manual.countdownSizePercent) || 100)));
+      refreshCountdownFontUi(els.editorCountdownFont.value || "");
       if (focused !== els.editorImageUrl) updateImagePreview(manual.imageUrl || "");
       // Refresh asset picker when the image section becomes visible.
       if (isImage) {
@@ -4871,8 +5028,9 @@
             : null;
           if (nextType === "countdown") {
             manualSlides[item.id].countdownSec = Math.max(1, Math.min(300, parseInt(els.editorCountdownSec.value, 10) || 60));
+            manualSlides[item.id].countdownStyle = els.editorCountdownStyle.value || "ring";
             manualSlides[item.id].countdownFont = els.editorCountdownFont.value || "";
-            manualSlides[item.id].countdownShowLabel = els.editorCountdownShowLabel.checked;
+            manualSlides[item.id].countdownSizePercent = Math.max(50, Math.min(200, parseInt(els.editorCountdownSizePercent.value, 10) || 100));
           }
           // Propagate interstitial image to all other interstitials
           if (nextType === "interstitial" && manualSlides[item.id].imageUrl) {
@@ -5418,6 +5576,28 @@
       });
     }
 
+    if (els.editorPreviewCountdownBtn) {
+      els.editorPreviewCountdownBtn.addEventListener("click", () => {
+        const slide = editorPreviewSlides[editorPreviewIndex];
+        if (!slide || slide.type !== "countdown") return;
+        if (editorPreviewCountdownEndsAt) {
+          stopEditorPreviewCountdownSimulation();
+          renderEditorPreview();
+          return;
+        }
+        stopEditorPreviewCountdownSimulation();
+        const durationMs = Math.max(1000, Math.min(300000, (Number(slide.countdownSec) || 60) * 1000));
+        editorPreviewCountdownEndsAt = Date.now() + durationMs;
+        renderEditorPreview();
+        editorPreviewCountdownTimer = setInterval(() => {
+          if (!editorPreviewCountdownEndsAt || Date.now() >= editorPreviewCountdownEndsAt) {
+            stopEditorPreviewCountdownSimulation();
+          }
+          renderEditorPreview();
+        }, 250);
+      });
+    }
+
     els.editorText.addEventListener("input", () => {
       editorPreviewIndex = 0;
       updateEditorPreview().catch(() => { });
@@ -5433,10 +5613,31 @@
     });
     els.editorDurationSec.addEventListener("input", scheduleEditorSave);
     els.editorDurationSec.addEventListener("change", scheduleEditorSave);
-    els.editorCountdownSec.addEventListener("input", scheduleEditorSave);
-    els.editorCountdownSec.addEventListener("change", scheduleEditorSave);
-    els.editorCountdownFont.addEventListener("change", scheduleEditorSave);
-    els.editorCountdownShowLabel.addEventListener("change", scheduleEditorSave);
+    els.editorCountdownSec.addEventListener("input", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+    els.editorCountdownSec.addEventListener("change", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+    els.editorCountdownStyle.addEventListener("change", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+    els.editorCountdownFont.addEventListener("change", () => {
+      refreshCountdownFontUi(els.editorCountdownFont.value || "");
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+    els.editorCountdownSizePercent.addEventListener("input", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+    els.editorCountdownSizePercent.addEventListener("change", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
 
     // Show/hide duration row based on phase (only for non-mass phases).
     els.editorPhase.addEventListener("change", () => {
@@ -5533,7 +5734,7 @@
         });
         if (!isReading) {
           if (isCountdown) {
-            manualSlides[id] = { text: "", notes: "", countdownSec: 60, countdownFont: "", countdownShowLabel: true };
+            manualSlides[id] = { text: "", notes: "", countdownSec: 60, countdownStyle: "ring", countdownFont: "", countdownSizePercent: 100 };
           } else if (isImage) {
             // For new interstitials, inherit the image from existing interstitials
             let inheritedUrl = null;

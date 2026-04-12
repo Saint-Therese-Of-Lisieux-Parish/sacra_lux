@@ -164,7 +164,8 @@ describe("organizer", () => {
         "countdown:entry": {
           countdownSec: 999,
           countdownFont: "Lora",
-          countdownShowLabel: false
+          countdownStyle: "bar",
+          countdownSizePercent: 140
         }
       },
       screenSettings
@@ -173,6 +174,8 @@ describe("organizer", () => {
     expect(presentation.slides).toHaveLength(1);
     expect(presentation.slides[0].countdownSec).toBe(300);
     expect(presentation.slides[0].countdownFont).toBe("Lora");
+    expect(presentation.slides[0].countdownStyle).toBe("bar");
+    expect(presentation.slides[0].countdownSizePercent).toBe(140);
     expect(presentation.slides[0].countdownShowLabel).toBe(false);
     expect(presentation.slides[0].phase).toBe("pre");
   });
