@@ -181,6 +181,28 @@
       pointer-events: none;
     }
 
+    .movie-thumb-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #080c12;
+    }
+
+    .movie-thumb-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: linear-gradient(180deg, rgba(4, 8, 14, 0.12), rgba(4, 8, 14, 0.4));
+      color: #f8f8f8;
+      text-align: center;
+    }
+
     .sequence-item.active {
       border-color: color-mix(in srgb, var(--accent), white 44%);
       background:
@@ -1896,6 +1918,113 @@
       margin: -0.2rem 0 0.1rem;
     }
 
+    .editor-style-strip {
+      display: grid;
+      grid-template-columns: minmax(220px, 2.2fr) minmax(110px, 0.7fr) repeat(4, minmax(96px, 0.8fr));
+      gap: 0.55rem;
+      margin-top: 0.75rem;
+      align-items: end;
+    }
+
+    .editor-style-strip[hidden] {
+      display: none !important;
+    }
+
+    .editor-style-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      min-width: 0;
+    }
+
+    .editor-style-field span {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      padding-left: 0.15rem;
+    }
+
+    .editor-style-field input,
+    .editor-style-field select {
+      min-height: 2.65rem;
+      padding: 0.56rem 0.72rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      background: color-mix(in srgb, var(--panel), white 8%);
+      border: 1px solid color-mix(in srgb, var(--line), white 14%);
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .editor-style-field input::placeholder {
+      color: color-mix(in srgb, var(--ink-soft), white 18%);
+      font-weight: 600;
+    }
+
+    .editor-style-field-wide {
+      min-width: 0;
+    }
+
+    .editor-style-field-size input {
+      text-align: center;
+    }
+
+    .editor-style-choice {
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      min-width: 0;
+    }
+
+    .editor-style-choice-label {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      padding-left: 0.15rem;
+    }
+
+    .editor-style-choice-control {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.24rem;
+      min-height: 2.65rem;
+      padding: 0.24rem;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--panel), white 8%);
+      border: 1px solid color-mix(in srgb, var(--line), white 14%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+
+    .editor-style-choice-btn {
+      min-height: 2.1rem;
+      padding: 0.28rem 0.32rem;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: color-mix(in srgb, var(--ink-soft), var(--ink) 55%);
+      font-size: 0.77rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+    }
+
+    .editor-style-choice-btn:hover {
+      background: color-mix(in srgb, var(--panel), white 20%);
+      color: var(--ink);
+    }
+
+    .editor-style-choice-btn.is-active {
+      background: color-mix(in srgb, var(--accent), white 80%);
+      color: var(--ink);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent), white 30%);
+    }
+
     #editorPreviewSection {
       padding: 0.95rem;
       margin-bottom: 0.9rem;
@@ -1932,6 +2061,10 @@
 
       .modal-field-grid {
         grid-template-columns: 1fr;
+      }
+
+      .editor-style-strip {
+        grid-template-columns: 1fr 1fr;
       }
 
       .modal-span-3,
@@ -2693,6 +2826,7 @@
                 <option value="prayer">Prayer</option>
                 <option value="hymn">Hymn</option>
                 <option value="image">Image</option>
+                <option value="movie">Movie</option>
                 <option value="interstitial">Interstitial</option>
                 <option value="countdown">Countdown</option>
               </select>
@@ -2756,6 +2890,140 @@
               <button id="editorPreviewNextBtn" class="preview-next">Next &#9654;</button>
               <button id="editorPreviewCountdownBtn" class="preview-next" hidden>Simulate Countdown</button>
             </div>
+            <div id="editorPreviewStylePanel" class="modal-panel" hidden style="margin-top:0.8rem">
+              <div id="editorPreviewStyleTitle" class="modal-panel-title">Style Override</div>
+              <p id="editorPreviewStyleHelp" class="modal-panel-copy">Adjust only what this slide needs while watching the preview update above.</p>
+              <div id="editorPreviewReadingStyleStrip" class="editor-style-strip" hidden>
+                <label class="editor-style-field editor-style-field-wide"> <span>Family</span>
+                  <select id="editorReadingStyleFont" data-editor-style-input>
+                    <option value="">Default family</option>
+                    <option value="Merriweather">Merriweather</option>
+                    <option value="Lora">Lora</option>
+                    <option value="Playfair Display">Playfair Display</option>
+                    <option value="Cormorant Garamond">Cormorant Garamond</option>
+                    <option value="EB Garamond">EB Garamond</option>
+                    <option value="Libre Baskerville">Libre Baskerville</option>
+                    <option value="Crimson Pro">Crimson Pro</option>
+                    <option value="Noto Serif">Noto Serif</option>
+                    <option value="PT Serif">PT Serif</option>
+                    <option value="Source Sans 3">Source Sans 3</option>
+                    <option value="Inter">Inter</option>
+                    <option value="Open Sans">Open Sans</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Work Sans">Work Sans</option>
+                    <option value="Noto Sans">Noto Sans</option>
+                    <option value="PT Sans">PT Sans</option>
+                    <option value="Montserrat">Montserrat</option>
+                    <option value="Poppins">Poppins</option>
+                    <option value="Raleway">Raleway</option>
+                  </select>
+                </label>
+                <label class="editor-style-field editor-style-field-size"> <span>Size</span>
+                  <input id="editorReadingStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Bold</span>
+                  <input id="editorReadingStyleBold" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Reading bold override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleBold">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleBold">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleBold">Off</button>
+                  </span>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Italic</span>
+                  <input id="editorReadingStyleItalic" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Reading italic override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleItalic">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleItalic">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleItalic">Off</button>
+                  </span>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Outline</span>
+                  <input id="editorReadingStyleOutline" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Reading outline override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleOutline">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleOutline">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleOutline">Off</button>
+                  </span>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Shadow</span>
+                  <input id="editorReadingStyleShadow" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Reading shadow override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleShadow">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleShadow">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleShadow">Off</button>
+                  </span>
+                </label>
+              </div>
+              <div id="editorPreviewTextStyleStrip" class="editor-style-strip" hidden>
+                <label class="editor-style-field editor-style-field-wide"> <span>Family</span>
+                  <select id="editorTextStyleFont" data-editor-style-input>
+                    <option value="">Default family</option>
+                    <option value="Merriweather">Merriweather</option>
+                    <option value="Lora">Lora</option>
+                    <option value="Playfair Display">Playfair Display</option>
+                    <option value="Cormorant Garamond">Cormorant Garamond</option>
+                    <option value="EB Garamond">EB Garamond</option>
+                    <option value="Libre Baskerville">Libre Baskerville</option>
+                    <option value="Crimson Pro">Crimson Pro</option>
+                    <option value="Noto Serif">Noto Serif</option>
+                    <option value="PT Serif">PT Serif</option>
+                    <option value="Source Sans 3">Source Sans 3</option>
+                    <option value="Inter">Inter</option>
+                    <option value="Open Sans">Open Sans</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Work Sans">Work Sans</option>
+                    <option value="Noto Sans">Noto Sans</option>
+                    <option value="PT Sans">PT Sans</option>
+                    <option value="Montserrat">Montserrat</option>
+                    <option value="Poppins">Poppins</option>
+                    <option value="Raleway">Raleway</option>
+                  </select>
+                </label>
+                <label class="editor-style-field editor-style-field-size"> <span>Size</span>
+                  <input id="editorTextStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Bold</span>
+                  <input id="editorTextStyleBold" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Slide bold override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleBold">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleBold">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleBold">Off</button>
+                  </span>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Italic</span>
+                  <input id="editorTextStyleItalic" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Slide italic override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleItalic">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleItalic">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleItalic">Off</button>
+                  </span>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Outline</span>
+                  <input id="editorTextStyleOutline" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Slide outline override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleOutline">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleOutline">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleOutline">Off</button>
+                  </span>
+                </label>
+                <label class="editor-style-choice">
+                  <span class="editor-style-choice-label">Shadow</span>
+                  <input id="editorTextStyleShadow" type="hidden" data-editor-style-input data-tristate-select>
+                  <span class="editor-style-choice-control" role="group" aria-label="Slide shadow override">
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleShadow">Default</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleShadow">On</button>
+                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleShadow">Off</button>
+                  </span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <!-- Common: Label (full width) -->
@@ -2773,6 +3041,7 @@
                   <select id="editorType">
                     <option value="reading">Reading</option>
                     <option value="image">Image</option>
+                    <option value="movie">Movie</option>
                     <option value="interstitial">Interstitial</option>
                     <option value="text">Text</option>
                     <option value="prayer">Prayer</option>
@@ -2827,6 +3096,7 @@
               </label>
             </div>
             <button type="button" class="insert-break-btn" id="insertPageBreakBtn">Insert Slide Break (---)</button>
+
           </div>
 
           <!-- ── GRAPHIC section ────────────────────────────────────────── -->
@@ -2870,6 +3140,55 @@
             <input id="editorImageUrl" type="hidden">
           </div>
 
+          <div id="editorSectionMovie" class="editor-type-section" hidden>
+            <div class="editor-section-label">Movie</div>
+            <div class="editor-help-text">Upload a local MP4 from the Mass assets folder. The dedicated screen window will play it; embedded previews show a placeholder.</div>
+            <div class="image-preview-wrap" id="moviePreviewWrap">
+              <video id="moviePreview" class="image-preview" controls playsinline preload="metadata" hidden></video>
+              <div class="image-drop-zone" id="movieDropZone">Drop MP4 here</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+              <div class="muted-small">Only MP4 is supported in this first pass.</div>
+              <button type="button" class="insert-break-btn" id="clearMovieBtn" hidden>Remove video</button>
+            </div>
+            <div class="editor-row" style="margin-bottom:0.45rem">
+              <label style="width:100%">Choose from assets
+                <select id="editorVideoAssetPicker" style="width:100%;margin-top:0.25rem">
+                  <option value="">— select from assets folder —</option>
+                </select>
+              </label>
+            </div>
+            <div class="editor-row" style="margin-bottom:0.45rem">
+              <label style="width:100%">Or upload a new MP4
+                <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.25rem">
+                  <button id="browseVideoBtn" hidden style="white-space:nowrap">Browse…</button>
+                  <label id="chooseVideoFileLabel" style="min-width:auto;white-space:nowrap;cursor:pointer;font-weight:600">
+                    Choose file…
+                    <input id="editorVideoFile" type="file" accept="video/mp4" style="display:none">
+                  </label>
+                </div>
+              </label>
+            </div>
+            <div class="editor-row" style="margin-bottom:0.45rem">
+              <button type="button" class="insert-break-btn" id="useVideoFilenameLabelBtn">Use filename as label</button>
+            </div>
+            <div class="modal-field-grid">
+              <div class="modal-field modal-span-6">
+                <label style="display:flex;gap:0.55rem;align-items:center">
+                  <input id="editorVideoLoop" type="checkbox">
+                  Loop video
+                </label>
+              </div>
+              <div class="modal-field modal-span-6">
+                <label style="display:flex;gap:0.55rem;align-items:center">
+                  <input id="editorVideoAutoAdvance" type="checkbox" checked>
+                  Advance when finished
+                </label>
+              </div>
+            </div>
+            <input id="editorVideoUrl" type="hidden">
+          </div>
+
           <!-- ── TEXT / PRAYER / HYMN section ──────────────────────────── -->
           <div id="editorSectionText" class="editor-type-section" hidden>
             <div class="editor-section-label">Slide Content</div>
@@ -2895,6 +3214,7 @@
                 <textarea id="editorText" rows="30"></textarea>
               </label>
             </div>
+
           </div>
 
           <!-- Countdown settings (countdown type only) -->
@@ -2976,14 +3296,8 @@
           <!-- Presenter Notes (all types) -->
           <div class="modal-panel">
             <div class="modal-panel-title">Presenter Notes</div>
-            <div class="modal-field-grid">
-              <div class="modal-field modal-span-12">
-                <label>Notes for the operator
-                  <textarea id="editorNotes" rows="3"
-                    placeholder="Internal notes for Sacra Lux — not shown on screen"></textarea>
-                </label>
-              </div>
-            </div>
+            <textarea id="editorNotes" rows="3"
+              placeholder="Internal notes for Sacra Lux — not shown on screen"></textarea>
           </div>
 
         </div>
@@ -3227,6 +3541,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/static/vendor/qrcode.min.js"></script>
+  <script src="/static/client/shared.js"></script>
   <script>
     const socket = io();
     const uiState = {
@@ -3341,6 +3656,7 @@
       /* editorTypeTitle removed — badge is now inline in header */
       editorSectionReading: document.getElementById("editorSectionReading"),
       editorSectionImage: document.getElementById("editorSectionImage"),
+      editorSectionMovie: document.getElementById("editorSectionMovie"),
       interstitialHint: document.getElementById("interstitialHint"),
       editorSectionText: document.getElementById("editorSectionText"),
       editorSectionCountdown: document.getElementById("editorSectionCountdown"),
@@ -3361,10 +3677,22 @@
       editorBackgroundThemeWrap: document.getElementById("editorBackgroundThemeWrap"),
       editorBackgroundTheme: document.getElementById("editorBackgroundTheme"),
       editorSourceStem: document.getElementById("editorSourceStem"),
+      editorReadingStyleFont: document.getElementById("editorReadingStyleFont"),
+      editorReadingStyleSizePx: document.getElementById("editorReadingStyleSizePx"),
+      editorReadingStyleBold: document.getElementById("editorReadingStyleBold"),
+      editorReadingStyleItalic: document.getElementById("editorReadingStyleItalic"),
+      editorReadingStyleOutline: document.getElementById("editorReadingStyleOutline"),
+      editorReadingStyleShadow: document.getElementById("editorReadingStyleShadow"),
       editorPrayerWrap: document.getElementById("editorPrayerWrap"),
       editorPrayerSelect: document.getElementById("editorPrayerSelect"),
       editorText: document.getElementById("editorText"),
       editorTextVAlign: document.getElementById("editorTextVAlign"),
+      editorTextStyleFont: document.getElementById("editorTextStyleFont"),
+      editorTextStyleSizePx: document.getElementById("editorTextStyleSizePx"),
+      editorTextStyleBold: document.getElementById("editorTextStyleBold"),
+      editorTextStyleItalic: document.getElementById("editorTextStyleItalic"),
+      editorTextStyleOutline: document.getElementById("editorTextStyleOutline"),
+      editorTextStyleShadow: document.getElementById("editorTextStyleShadow"),
       editorDurationWrap: document.getElementById("editorDurationWrap"),
       editorDurationSec: document.getElementById("editorDurationSec"),
       editorNotes: document.getElementById("editorNotes"),
@@ -3386,6 +3714,13 @@
       editorAssetPicker: document.getElementById("editorAssetPicker"),
       useImageFilenameLabelBtn: document.getElementById("useImageFilenameLabelBtn"),
       browseImageBtn: document.getElementById("browseImageBtn"),
+      editorVideoUrl: document.getElementById("editorVideoUrl"),
+      editorVideoFile: document.getElementById("editorVideoFile"),
+      editorVideoAssetPicker: document.getElementById("editorVideoAssetPicker"),
+      useVideoFilenameLabelBtn: document.getElementById("useVideoFilenameLabelBtn"),
+      browseVideoBtn: document.getElementById("browseVideoBtn"),
+      editorVideoLoop: document.getElementById("editorVideoLoop"),
+      editorVideoAutoAdvance: document.getElementById("editorVideoAutoAdvance"),
       assetFolderHint: document.getElementById("assetFolderHint"),
       exportZipBtn: document.getElementById("exportZipBtn"),
       exportPdfBtn: document.getElementById("exportPdfBtn"),
@@ -3437,18 +3772,168 @@
       editorPreviewNextBtn: document.getElementById("editorPreviewNextBtn"),
       editorPreviewCountdownBtn: document.getElementById("editorPreviewCountdownBtn"),
       editorPreviewStatus: document.getElementById("editorPreviewStatus"),
+      editorPreviewStylePanel: document.getElementById("editorPreviewStylePanel"),
+      editorPreviewStyleTitle: document.getElementById("editorPreviewStyleTitle"),
+      editorPreviewStyleHelp: document.getElementById("editorPreviewStyleHelp"),
+      editorPreviewReadingStyleStrip: document.getElementById("editorPreviewReadingStyleStrip"),
+      editorPreviewTextStyleStrip: document.getElementById("editorPreviewTextStyleStrip"),
       editorReadingText: document.getElementById("editorReadingText"),
       editorPageCount: document.getElementById("editorPageCount"),
       insertPageBreakBtn: document.getElementById("insertPageBreakBtn"),
       clearImageBtn: document.getElementById("clearImageBtn"),
+      clearMovieBtn: document.getElementById("clearMovieBtn"),
       imageDropZone: document.getElementById("imageDropZone"),
-      imagePreviewWrap: document.getElementById("imagePreviewWrap")
+      imagePreviewWrap: document.getElementById("imagePreviewWrap"),
+      moviePreview: document.getElementById("moviePreview"),
+      moviePreviewWrap: document.getElementById("moviePreviewWrap"),
+      movieDropZone: document.getElementById("movieDropZone")
     };
 
     let editorPreviewSlides = [];
     let editorPreviewIndex = 0;
     let editorPreviewCountdownEndsAt = null;
     let editorPreviewCountdownTimer = null;
+
+    function normalizeEditorStyleOverrides(input) {
+      if (!input || typeof input !== "object") return {};
+      const normalized = {};
+      const fontFamily = String(input.fontFamily || "").trim();
+      if (fontFamily) normalized.fontFamily = fontFamily;
+      const fontSizePx = Number(input.fontSizePx);
+      if (Number.isFinite(fontSizePx) && fontSizePx > 0) {
+        normalized.fontSizePx = Math.min(200, Math.max(24, Math.round(fontSizePx)));
+      }
+      for (const key of ["bold", "italic", "outline", "shadow"]) {
+        if (typeof input[key] === "boolean") {
+          normalized[key] = input[key];
+        }
+      }
+      return normalized;
+    }
+
+    function refreshTriStateButtons(inputEl) {
+      const control = inputEl?.closest(".editor-style-choice")?.querySelector(".editor-style-choice-control");
+      if (!control) return;
+      const state = inputEl.dataset.tristateValue || "";
+      control.querySelectorAll("[data-tristate-button]").forEach((button) => {
+        const buttonState = button.dataset.tristateButton === "default" ? "" : button.dataset.tristateButton;
+        button.classList.toggle("is-active", buttonState === state);
+        button.setAttribute("aria-pressed", buttonState === state ? "true" : "false");
+      });
+    }
+
+    function readTriStateSelect(selectEl) {
+      if (!selectEl) return undefined;
+      if (selectEl.matches("[data-tristate-select]")) {
+        const state = selectEl.dataset.tristateValue || "";
+        if (state === "true") return true;
+        if (state === "false") return false;
+        return undefined;
+      }
+      if (selectEl.value === "true") return true;
+      if (selectEl.value === "false") return false;
+      return undefined;
+    }
+
+    function writeTriStateSelect(selectEl, value) {
+      if (!selectEl) return;
+      if (selectEl.matches("[data-tristate-select]")) {
+        if (typeof value === "boolean") {
+          selectEl.dataset.tristateValue = value ? "true" : "false";
+          selectEl.value = value ? "true" : "false";
+        } else {
+          selectEl.dataset.tristateValue = "";
+          selectEl.value = "";
+        }
+        refreshTriStateButtons(selectEl);
+        return;
+      }
+      if (typeof value === "boolean") {
+        selectEl.value = value ? "true" : "false";
+      } else {
+        selectEl.value = "";
+      }
+    }
+
+    function getEditorStyleOverrides(type) {
+      if (type === "reading") {
+        return normalizeEditorStyleOverrides({
+          fontFamily: els.editorReadingStyleFont?.value || "",
+          fontSizePx: els.editorReadingStyleSizePx?.value || "",
+          bold: readTriStateSelect(els.editorReadingStyleBold),
+          italic: readTriStateSelect(els.editorReadingStyleItalic),
+          outline: readTriStateSelect(els.editorReadingStyleOutline),
+          shadow: readTriStateSelect(els.editorReadingStyleShadow)
+        });
+      }
+
+      if (type === "text" || type === "prayer" || type === "hymn") {
+        return normalizeEditorStyleOverrides({
+          fontFamily: els.editorTextStyleFont?.value || "",
+          fontSizePx: els.editorTextStyleSizePx?.value || "",
+          bold: readTriStateSelect(els.editorTextStyleBold),
+          italic: readTriStateSelect(els.editorTextStyleItalic),
+          outline: readTriStateSelect(els.editorTextStyleOutline),
+          shadow: readTriStateSelect(els.editorTextStyleShadow)
+        });
+      }
+
+      return {};
+    }
+
+    function populateEditorStyleOverrides(type, styleOverrides = {}) {
+      const overrides = normalizeEditorStyleOverrides(styleOverrides);
+      if (type === "reading") {
+        if (els.editorReadingStyleFont) els.editorReadingStyleFont.value = overrides.fontFamily || "";
+        if (els.editorReadingStyleSizePx) els.editorReadingStyleSizePx.value = overrides.fontSizePx ? String(overrides.fontSizePx) : "";
+        writeTriStateSelect(els.editorReadingStyleBold, overrides.bold);
+        writeTriStateSelect(els.editorReadingStyleItalic, overrides.italic);
+        writeTriStateSelect(els.editorReadingStyleOutline, overrides.outline);
+        writeTriStateSelect(els.editorReadingStyleShadow, overrides.shadow);
+        return;
+      }
+
+      if (type === "text" || type === "prayer" || type === "hymn") {
+        if (els.editorTextStyleFont) els.editorTextStyleFont.value = overrides.fontFamily || "";
+        if (els.editorTextStyleSizePx) els.editorTextStyleSizePx.value = overrides.fontSizePx ? String(overrides.fontSizePx) : "";
+        writeTriStateSelect(els.editorTextStyleBold, overrides.bold);
+        writeTriStateSelect(els.editorTextStyleItalic, overrides.italic);
+        writeTriStateSelect(els.editorTextStyleOutline, overrides.outline);
+        writeTriStateSelect(els.editorTextStyleShadow, overrides.shadow);
+      }
+    }
+
+    function getEffectiveScreenSettingsForSlideLike(type, styleOverrides = {}) {
+      const base = uiState.data?.screenSettings || {};
+      const overrides = normalizeEditorStyleOverrides(styleOverrides);
+      if (!Object.keys(overrides).length) return base;
+
+      if (type === "reading") {
+        return {
+          ...base,
+          ...(overrides.fontFamily ? { readingTextFont: overrides.fontFamily } : {}),
+          ...(overrides.fontSizePx ? { readingTextSizePx: overrides.fontSizePx } : {}),
+          ...(typeof overrides.bold === "boolean" ? { readingTextBold: overrides.bold } : {}),
+          ...(typeof overrides.italic === "boolean" ? { readingTextItalic: overrides.italic } : {}),
+          ...(typeof overrides.outline === "boolean" ? { readingTextOutline: overrides.outline } : {}),
+          ...(typeof overrides.shadow === "boolean" ? { readingTextShadow: overrides.shadow } : {})
+        };
+      }
+
+      if (type === "text" || type === "prayer" || type === "hymn") {
+        return {
+          ...base,
+          ...(overrides.fontFamily ? { textSlideTextFont: overrides.fontFamily } : {}),
+          ...(overrides.fontSizePx ? { textSlideTextSizePx: overrides.fontSizePx } : {}),
+          ...(typeof overrides.bold === "boolean" ? { textSlideTextBold: overrides.bold } : {}),
+          ...(typeof overrides.italic === "boolean" ? { textSlideTextItalic: overrides.italic } : {}),
+          ...(typeof overrides.outline === "boolean" ? { textSlideTextOutline: overrides.outline } : {}),
+          ...(typeof overrides.shadow === "boolean" ? { textSlideTextShadow: overrides.shadow } : {})
+        };
+      }
+
+      return base;
+    }
 
     function getEditorPreviewItem() {
       const sequence = getSequence();
@@ -3469,11 +3954,7 @@
     }
 
     function formatCountdownTime(totalSeconds) {
-      const remainSec = Math.max(0, Number(totalSeconds) || 0);
-      if (remainSec < 60) return String(remainSec);
-      const mm = Math.floor(remainSec / 60);
-      const ss = String(remainSec % 60).padStart(2, "0");
-      return `${mm}:${ss}`;
+      return SacraLuxShared.formatCountdownTime(totalSeconds);
     }
 
     function stopEditorPreviewCountdownSimulation() {
@@ -3504,6 +3985,7 @@
       const stem = els.editorSourceStem.value;
       const item = getEditorPreviewItem();
       const label = els.editorLabel.value || item?.label || "";
+      const styleOverrides = getEditorStyleOverrides("reading");
       if (!stem) {
         editorPreviewSlides = [];
         editorPreviewIndex = 0;
@@ -3514,7 +3996,13 @@
       const res = await fetch("/api/preview-reading", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, stem, label })
+        body: JSON.stringify({
+          text,
+          stem,
+          label,
+          styleOverrides,
+          overrideSettings: getEffectiveScreenSettingsForSlideLike("reading", styleOverrides)
+        })
       });
       const data = await res.json().catch(() => ({}));
       if (data.ok && data.slides) {
@@ -3545,14 +4033,18 @@
           type: item.type,
           label: els.editorLabel.value || item.label || "Slide",
           phase: els.editorPhase.value || item.phase || "mass",
-          backgroundTheme: (item.type === "image" || item.type === "interstitial")
+          backgroundTheme: (item.type === "image" || item.type === "interstitial" || item.type === "movie")
             ? "light"
             : (els.editorBackgroundTheme.value || item.backgroundTheme || "dark"),
           manualSlide: {
             text: els.editorText.value || "",
             notes: els.editorNotes.value || "",
             imageUrl: (els.editorImageUrl.value || "").trim() || null,
+            videoUrl: (els.editorVideoUrl.value || "").trim() || null,
+            videoLoop: Boolean(els.editorVideoLoop?.checked),
+            videoAutoAdvance: els.editorVideoAutoAdvance?.checked !== false,
             textVAlign: els.editorTextVAlign.value || "middle",
+            styleOverrides: getEditorStyleOverrides(item.type),
             countdownSec: parseInt(els.editorCountdownSec.value, 10) || 60,
             countdownStyle: els.editorCountdownStyle.value || "ring",
             countdownFont: els.editorCountdownFont.value || "",
@@ -3580,7 +4072,7 @@
       }
 
       const effectiveType = els.editorType?.value || item.type;
-      if (effectiveType === "image" || effectiveType === "interstitial") {
+      if (effectiveType === "image" || effectiveType === "interstitial" || effectiveType === "movie") {
         els.editorPreviewSection.hidden = true;
         return;
       }
@@ -3593,9 +4085,9 @@
     }
 
     function renderEditorPreview() {
-      // Image slides use the image picker preview — skip live preview entirely
+      // Image and movie slides use their own picker preview — skip live preview entirely
       const currentType = els.editorType?.value || "";
-      if (currentType === "image" || currentType === "interstitial") {
+      if (currentType === "image" || currentType === "interstitial" || currentType === "movie") {
         els.editorPreviewSection.hidden = true;
         return;
       }
@@ -3690,12 +4182,17 @@
 
     // Show only one upload method: native Browse in Electron, Choose file in browser.
     const chooseFileLabel = document.getElementById("chooseFileLabel");
+    const chooseVideoFileLabel = document.getElementById("chooseVideoFileLabel");
     if (typeof window.api !== "undefined" && window.api.isElectron) {
       els.browseImageBtn.hidden = false;
+      els.browseVideoBtn.hidden = false;
       if (chooseFileLabel) chooseFileLabel.hidden = true;
+      if (chooseVideoFileLabel) chooseVideoFileLabel.hidden = true;
     } else {
       els.browseImageBtn.hidden = true;
+      els.browseVideoBtn.hidden = true;
       if (chooseFileLabel) chooseFileLabel.hidden = false;
+      if (chooseVideoFileLabel) chooseVideoFileLabel.hidden = false;
     }
 
     function clone(value) {
@@ -3840,6 +4337,7 @@
     function typeTag(type) {
       if (type === "reading") return { label: "READING", className: "tag-reading" };
       if (type === "image") return { label: "IMAGE", className: "tag-image" };
+      if (type === "movie") return { label: "MOVIE", className: "tag-image" };
       if (type === "interstitial") return { label: "INTERSTITIAL", className: "tag-interstitial" };
       if (type === "prayer") return { label: "PRAYER", className: "tag-text" };
       if (type === "hymn") return { label: "HYMN", className: "tag-text" };
@@ -3857,11 +4355,7 @@
 
     /** HTML-escape for use inside thumbnail innerHTML. */
     function escThumb(str) {
-      return String(str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+      return SacraLuxShared.escapeHtml(str || "");
     }
 
     /**
@@ -3869,7 +4363,10 @@
      * Creates a 1920×1080 div that gets CSS-scaled to fit the 140px thumbnail.
      */
     function buildThumbHtml(item, slide, manualSlide) {
-      const ds = uiState.data?.screenSettings || {};
+      const ds = getEffectiveScreenSettingsForSlideLike(
+        item.type,
+        item.type === "reading" ? (item.styleOverrides || slide?.styleOverrides || {}) : (manualSlide?.styleOverrides || slide?.styleOverrides || {})
+      );
       const isImage = inferIsImage(item);
       const font = ds.fontFamily || "Merriweather";
       const fontSize = ds.fontSizePx || 60;
@@ -3879,6 +4376,22 @@
         return `<div class="thumb-render"></div>`;
       }
 
+      if (item.type === "movie") {
+        const title = slide?.title || item.label || "Movie";
+        const videoUrl = manualSlide?.videoUrl || slide?.videoUrl || "";
+        const safeVideoUrl = videoUrl ? escapeHtml(videoUrl) : "";
+        return `<div class="thumb-render" style="background:linear-gradient(145deg, rgba(8,12,18,0.88), rgba(24,32,42,0.72));color:#f8f8f8">
+          ${videoUrl
+            ? `<video class="movie-thumb-video" data-preview-src="${safeVideoUrl}" muted playsinline preload="metadata"></video>`
+            : ""}
+          <div class="movie-thumb-overlay">
+            <div style="display:flex;align-items:center;justify-content:center;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.16);font-size:72px">&#9654;</div>
+            <div style="font-size:52px;font-weight:700;letter-spacing:0.08em;text-shadow:0 10px 24px rgba(0,0,0,0.32)">${escThumb(title)}</div>
+            <div style="font-size:24px;letter-spacing:0.18em;color:rgba(248,248,248,0.72)">VIDEO</div>
+          </div>
+        </div>`;
+      }
+
       if (item.type === "reading") {
         const passage = slide?.passage || "";
         const text = slide?.text || "";
@@ -3886,6 +4399,13 @@
         const rSize = Math.min(ds.readingTextSizePx || fontSize, 92);
         const rColor = ds.readingTextColor || "#f8f8f8";
         const rBold = ds.readingTextBold ? "font-weight:700;" : "";
+        const rItalic = ds.readingTextItalic ? "font-style:italic;" : "";
+        const rShadow = ds.readingTextShadow !== false
+          ? "text-shadow:0 1px 10px rgba(0,0,0,0.8),0 0 3px rgba(0,0,0,0.6);"
+          : "text-shadow:none;";
+        const rOutline = ds.readingTextOutline
+          ? `-webkit-text-stroke:${Math.min(20, Math.max(0.5, Number(ds.readingTextOutlineWidthPx) || 1))}px ${ds.readingTextOutlineColor || "#000000"};paint-order:stroke fill;`
+          : "";
         const lh = ds.readingLineHeight || 1.58;
         const mx = ds.readingTextMarginXPx || 80;
         const my = ds.readingTextMarginYPx || 130;
@@ -3928,7 +4448,7 @@
           ${labelHtml}${pageHtml}
           <div style="position:absolute;${passageTop}width:${pw}px;font-size:${pSize}px;color:${pColor};${pBold}font-family:'${pFont}',sans-serif;text-align:${pAlign}">${escThumb(passage)}</div>
           <div style="position:absolute;top:${my}px;left:${mx}px;right:${mx}px;height:${th}px;display:flex;align-items:${alignItems};overflow:hidden">
-            <div style="font-size:${rSize}px;line-height:${lh};color:${rColor};${rBold}font-family:'${rFont}',serif;text-align:${tAlign};white-space:pre-wrap;overflow:hidden;max-height:100%;width:100%">${escThumb(text)}</div>
+            <div style="font-size:${rSize}px;line-height:${lh};color:${rColor};${rBold}${rItalic}${rOutline}${rShadow}font-family:'${rFont}',serif;text-align:${tAlign};white-space:pre-wrap;overflow:hidden;max-height:100%;width:100%">${escThumb(text)}</div>
           </div>
           ${fallbackHtml}
         </div>`;
@@ -3985,6 +4505,13 @@
         : baseTextSize;
       const tColor = ds.textSlideTextColor || "#f8f8f8";
       const tBold = ds.textSlideTextBold ? "font-weight:700;" : bold;
+      const tItalic = ds.textSlideTextItalic ? "font-style:italic;" : "";
+      const tShadow = ds.textSlideTextShadow !== false
+        ? "text-shadow:0 1px 10px rgba(0,0,0,0.8),0 0 3px rgba(0,0,0,0.6);"
+        : "text-shadow:none;";
+      const tOutline = ds.textSlideTextOutline
+        ? `-webkit-text-stroke:${Math.min(20, Math.max(0.5, Number(ds.textSlideTextOutlineWidthPx) || 1))}px ${ds.textSlideTextOutlineColor || "#000000"};paint-order:stroke fill;`
+        : "";
       const tAlign = ds.textSlideTextAlign || "center";
       const tLh = ds.textSlideLineHeight || 1.55;
       const tVAlign = manualSlide?.textVAlign || ds.textSlideTextVAlign || "middle";
@@ -4002,7 +4529,7 @@
       return `<div class="thumb-render" style="font-family:'${tFont}',serif;color:${tColor}">
         ${pageHtml}
         <div style="position:absolute;top:${tMy}px;left:${tMx}px;right:${tMx}px;height:${tH}px;display:flex;align-items:${alignItems};justify-content:center;overflow:hidden">
-          <div style="font-size:${tSize}px;${tBold}line-height:${tLh};text-align:${tAlign};white-space:pre-wrap;max-width:${1920 - tMx * 2}px;overflow:hidden;max-height:100%">${escThumb(text || item.label)}</div>
+          <div style="font-size:${tSize}px;${tBold}${tItalic}${tOutline}${tShadow}line-height:${tLh};text-align:${tAlign};white-space:pre-wrap;max-width:${1920 - tMx * 2}px;overflow:hidden;max-height:100%">${escThumb(text || item.label)}</div>
         </div>
       </div>`;
     }
@@ -4010,6 +4537,35 @@
     function formatProjectedSlideCount(totalSlides) {
       const count = Number(totalSlides || 0);
       return `${count} projected slide${count === 1 ? "" : "s"}`;
+    }
+
+    function hydrateMovieThumbs() {
+      const videos = els.sequenceList.querySelectorAll(".movie-thumb-video");
+      videos.forEach((video) => {
+        if (video.dataset.hydrated === "true") return;
+        video.dataset.hydrated = "true";
+        const src = video.dataset.previewSrc || "";
+        if (!src) return;
+
+        const seekToPreviewFrame = () => {
+          try {
+            const targetTime = Number.isFinite(video.duration) && video.duration > 0.12
+              ? Math.min(0.12, Math.max(0, video.duration / 2))
+              : 0;
+            video.currentTime = targetTime;
+          } catch { }
+        };
+
+        video.addEventListener("loadedmetadata", seekToPreviewFrame, { once: true });
+        video.addEventListener("seeked", () => {
+          video.pause();
+        }, { once: true });
+        video.addEventListener("loadeddata", () => {
+          video.pause();
+        }, { once: true });
+        video.src = `${src}${src.includes("#") ? "" : "#t=0.12"}`;
+        video.load();
+      });
     }
 
     async function saveOrganizer(sequence, manualSlides, message = "Mass updated") {
@@ -4037,12 +4593,7 @@
     };
 
     function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+      return SacraLuxShared.escapeHtml(value);
     }
 
     function replaceSelectOptions(selectEl, items, { placeholderLabel = "", placeholderValue = "" } = {}) {
@@ -4168,6 +4719,19 @@
       if (uiState.didPromptForEmptyPresentation || uiState.emptyPresentationPromptInFlight) {
         return;
       }
+      if (data?.startupPrompt?.type === "mass-library") {
+        uiState.emptyPresentationPromptInFlight = true;
+        try {
+          await showMassLibraryDialog();
+          uiState.didPromptForEmptyPresentation = true;
+        } catch (err) {
+          els.status.textContent = err.message || "Could not load the Mass library.";
+          uiState.didPromptForEmptyPresentation = true;
+        } finally {
+          uiState.emptyPresentationPromptInFlight = false;
+        }
+        return;
+      }
       if (hasLoadedPresentation(data)) {
         uiState.didPromptForEmptyPresentation = true;
         return;
@@ -4215,7 +4779,8 @@
         const phase = phaseTag(item.phase);
         const active = item.id === uiState.selectedOrganizerId ? "active" : "";
         const pageCount = counts[item.id] || (item.type === "reading" ? 0 : 1);
-        const durationMeta = (item.phase === "pre" || item.phase === "gathering" || item.phase === "post")
+        const isMovie = item.type === "movie";
+        const durationMeta = (!isMovie && (item.phase === "pre" || item.phase === "gathering" || item.phase === "post"))
           ? ` · \u23F1 ${item.durationSec || 10}s`
           : "";
 
@@ -4225,19 +4790,26 @@
         let sourceMeta = "";
         if (item.type === "reading" && repSlide?.passage) {
           sourceMeta = ` · ${repSlide.passage}`;
+        } else if (isMovie) {
+          const videoUrl = manualSlide?.videoUrl || repSlide?.videoUrl || "";
+          const videoFile = videoUrl ? decodeURIComponent(videoUrl.split("/").pop()) : "";
+          if (videoFile) sourceMeta = ` · ${videoFile}`;
         } else if (isImage) {
           const imgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || "";
           const imgFile = imgUrl ? decodeURIComponent(imgUrl.split("/").pop()) : "";
           if (imgFile) sourceMeta = ` · ${imgFile}`;
         }
         // Image-type slides use their own image; other slides pick background by backgroundTheme.
-        let bgUrl;
+        let thumbStyle;
         if (isImage) {
-          bgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || lightBg;
+          const bgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || lightBg;
+          thumbStyle = `background-image:url('${bgUrl.replace(/'/g, "\\'")}')`;
+        } else if (isMovie) {
+          thumbStyle = "background:linear-gradient(145deg, rgba(8,12,18,0.88), rgba(24,32,42,0.72))";
         } else if (item.backgroundTheme === "light") {
-          bgUrl = lightBg;
+          thumbStyle = `background-image:url('${lightBg.replace(/'/g, "\\'")}')`;
         } else {
-          bgUrl = darkBg;
+          thumbStyle = `background-image:url('${darkBg.replace(/'/g, "\\'")}')`;
         }
         const thumbContent = buildThumbHtml(item, repSlide, manualSlide);
         const safeItemId = escapeHtml(item.id);
@@ -4256,6 +4828,7 @@
             for (const seqItem of sequence) {
               if (seqItem.phase !== "pre") continue;
               const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
+              if (seqItem.type === "movie") continue;
               totalSec += sc * (seqItem.durationSec || 10);
             }
             if (totalSec > 0) {
@@ -4270,6 +4843,7 @@
             for (const seqItem of sequence) {
               if (seqItem.phase !== "post") continue;
               const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
+              if (seqItem.type === "movie") continue;
               totalSec += sc * (seqItem.durationSec || 10);
             }
             if (totalSec > 0) {
@@ -4284,6 +4858,7 @@
             for (const seqItem of sequence) {
               if (seqItem.phase !== "gathering") continue;
               const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
+              if (seqItem.type === "movie") continue;
               totalSec += sc * (seqItem.durationSec || 10);
             }
             if (totalSec > 0) {
@@ -4312,7 +4887,7 @@
         return `${phaseHeader}
           <div class="sequence-item ${active}" data-item-id="${safeItemId}" draggable="true">
             <div class="sequence-row">
-              <div class="sequence-thumb" style="background-image:url('${bgUrl.replace(/'/g, "\\'")}')">
+              <div class="sequence-thumb" style="${thumbStyle}">
                 ${thumbContent}
               </div>
               <div>
@@ -4349,6 +4924,7 @@
 
       // Populate Jump To dropdown
       populateJumpTo(sequence);
+      hydrateMovieThumbs();
     }
 
     function populateJumpTo(sequence) {
@@ -4373,7 +4949,8 @@
 
     const EDITOR_TYPE_META = {
       "reading": { label: "READING", className: "tag-reading", title: "Reading" },
-      "light": { label: "IMAGE", className: "tag-image", title: "Image Slide" },
+      "image": { label: "IMAGE", className: "tag-image", title: "Image Slide" },
+      "movie": { label: "MOVIE", className: "tag-image", title: "Movie Slide" },
       "interstitial": { label: "INTERSTITIAL", className: "tag-interstitial", title: "Interstitial Slide" },
       "text": { label: "TEXT", className: "tag-text", title: "Text Slide" },
       "prayer": { label: "PRAYER", className: "tag-text", title: "Prayer Slide" },
@@ -4409,12 +4986,15 @@
 
       const isReading = item.type === "reading";
       const isImage = item.type === "image" || item.type === "interstitial";
+      const isMovie = item.type === "movie";
       const isTextType = item.type === "text" || item.type === "prayer" || item.type === "hymn";
       const isCountdown = item.type === "countdown";
+      const showStylePanel = isReading || isTextType;
 
       // Show only the relevant type section
       els.editorSectionReading.hidden = !isReading;
       els.editorSectionImage.hidden = !isImage;
+      els.editorSectionMovie.hidden = !isMovie;
       els.editorSectionText.hidden = !isTextType;
       els.editorSectionCountdown.hidden = !isCountdown;
       // Export button is only useful for content slides (not image/countdown)
@@ -4424,8 +5004,25 @@
       // Show interstitial hint only for interstitial slides
       if (els.interstitialHint) els.interstitialHint.hidden = item.type !== "interstitial";
 
-      // Hide live preview for image/interstitial and countdown slides
-      els.editorPreviewSection.hidden = isImage;
+      // Hide live preview for image/interstitial/movie slides.
+      els.editorPreviewSection.hidden = isImage || isMovie;
+      if (els.editorPreviewStylePanel) {
+        els.editorPreviewStylePanel.hidden = !showStylePanel;
+      }
+      if (els.editorPreviewReadingStyleStrip) {
+        els.editorPreviewReadingStyleStrip.hidden = !isReading;
+      }
+      if (els.editorPreviewTextStyleStrip) {
+        els.editorPreviewTextStyleStrip.hidden = !isTextType;
+      }
+      if (els.editorPreviewStyleTitle) {
+        els.editorPreviewStyleTitle.textContent = isReading ? "Reading Style Override" : "Slide Style Override";
+      }
+      if (els.editorPreviewStyleHelp) {
+        els.editorPreviewStyleHelp.textContent = isReading
+          ? "Adjust only what this reading needs while watching the preview update above."
+          : "Adjust only what this slide needs while watching the preview update above.";
+      }
 
       if (els.editorPrayerWrap) {
         els.editorPrayerWrap.hidden = (item.type !== "prayer");
@@ -4447,11 +5044,11 @@
       els.editorType.value = item.type;
       els.editorPhase.value = item.phase || "mass";
       // Duration only applies to non-mass phases (pre-mass auto-advance).
-      els.editorDurationWrap.hidden = (item.phase === "mass") || isCountdown;
+      els.editorDurationWrap.hidden = (item.phase === "mass") || isCountdown || isMovie;
       els.editorBackgroundTheme.value = item.backgroundTheme || "dark";
-      // Image slides have no configurable background — the uploaded image IS the background.
+      // Image and movie slides have no configurable background — the uploaded media supplies it.
       if (els.editorBackgroundThemeWrap) {
-        els.editorBackgroundThemeWrap.hidden = isImage;
+        els.editorBackgroundThemeWrap.hidden = isImage || isMovie;
       }
 
       replaceSelectOptions(
@@ -4469,14 +5066,16 @@
           window.__lastReadingText = doc ? doc.textLines.join("\n") : "";
           els.editorReadingText.value = window.__lastReadingText;
         }
+        populateEditorStyleOverrides("reading", item.styleOverrides || {});
       }
 
       els.editorDurationSec.value = String(item.durationSec || 10);
 
-      const manual = manualSlides[item.id] || { text: "", notes: "", imageUrl: "" };
+      const manual = manualSlides[item.id] || { text: "", notes: "", imageUrl: "", videoUrl: "", styleOverrides: {} };
       if (focused !== els.editorText) els.editorText.value = manual.text || "";
       if (focused !== els.editorNotes) els.editorNotes.value = manual.notes || "";
       if (focused !== els.editorImageUrl) els.editorImageUrl.value = manual.imageUrl || "";
+      if (focused !== els.editorVideoUrl) els.editorVideoUrl.value = manual.videoUrl || "";
       if (focused !== els.editorCountdownSec) els.editorCountdownSec.value = String(manual.countdownSec || 60);
       els.editorCountdownStyle.value = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"].includes(manual.countdownStyle)
         ? manual.countdownStyle
@@ -4485,9 +5084,15 @@
       if (focused !== els.editorCountdownSizePercent) els.editorCountdownSizePercent.value = String(Math.max(50, Math.min(200, Number(manual.countdownSizePercent) || 100)));
       refreshCountdownFontUi(els.editorCountdownFont.value || "");
       if (focused !== els.editorImageUrl) updateImagePreview(manual.imageUrl || "");
+      if (focused !== els.editorVideoUrl) updateMoviePreview(manual.videoUrl || "");
+      if (els.editorVideoLoop) els.editorVideoLoop.checked = Boolean(manual.videoLoop);
+      if (els.editorVideoAutoAdvance) els.editorVideoAutoAdvance.checked = manual.videoAutoAdvance !== false;
       // Refresh asset picker when the image section becomes visible.
       if (isImage) {
         refreshAssetPicker(manual.imageUrl || "");
+      }
+      if (isMovie) {
+        refreshAllMassAssetSelectors({ videoUrl: manual.videoUrl || "" });
       }
 
       // Show where uploads will be saved in the image editor
@@ -4500,6 +5105,7 @@
 
       if (isTextType) {
         els.editorTextVAlign.value = manual.textVAlign || "middle";
+        populateEditorStyleOverrides(item.type, manual.styleOverrides || {});
       }
 
       updateEditorPreview().catch(() => { });
@@ -4659,7 +5265,6 @@
         }
 
         screenSettingsDependencyUpdaters.forEach((update) => update());
-
         choosePresetForUrl(els.darkBgPreset, screen.darkBackgroundUrl || "");
         choosePresetForUrl(els.lightBgPreset, screen.lightBackgroundUrl || "");
       }
@@ -4947,7 +5552,16 @@
 
     // ── Section presets ───────────────────────────────────────────────────────
     function makeManualSlide(type) {
-      return { text: "", notes: "", imageUrl: null, textVAlign: (type === "image" || type === "interstitial") ? null : "middle" };
+      return {
+        text: "",
+        notes: "",
+        imageUrl: null,
+        videoUrl: null,
+        videoLoop: false,
+        videoAutoAdvance: true,
+        textVAlign: (type === "image" || type === "interstitial" || type === "movie") ? null : "middle",
+        styleOverrides: {}
+      };
     }
 
     // ── Image preview helper ──────────────────────────────────────────────────
@@ -4966,6 +5580,24 @@
       }
     }
 
+    function updateMoviePreview(url) {
+      if (!els.moviePreview) return;
+      if (url) {
+        els.moviePreview.src = url;
+        els.moviePreview.loop = Boolean(els.editorVideoLoop?.checked);
+        els.moviePreview.hidden = false;
+      } else {
+        els.moviePreview.pause();
+        els.moviePreview.removeAttribute("src");
+        els.moviePreview.removeAttribute("loop");
+        els.moviePreview.load();
+        els.moviePreview.hidden = true;
+      }
+      if (els.clearMovieBtn) {
+        els.clearMovieBtn.hidden = !url;
+      }
+    }
+
     function labelFromImageUrl(url) {
       const normalizedUrl = String(url || "").trim();
       if (!normalizedUrl) return "";
@@ -4975,8 +5607,8 @@
       return decodedFilename.replace(/\.[^.]+$/, "").trim();
     }
 
-    function applyImageFilenameToLabel() {
-      const nextLabel = labelFromImageUrl(els.editorImageUrl?.value || "");
+    function applyUrlFilenameToLabel(url) {
+      const nextLabel = labelFromImageUrl(url || "");
       if (!nextLabel) return;
       els.editorLabel.value = nextLabel;
       els.editorLabel.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4997,15 +5629,16 @@
           const insertAt = phaseInsertIndex(sequence, newPhase);
           sequence.splice(insertAt, 0, moved);
         }
-        // Image and interstitial slides always use their uploaded image — backgroundTheme is always "light".
-        item.backgroundTheme = (nextType === "image" || nextType === "interstitial") ? "light" : els.editorBackgroundTheme.value;
+        // Image, movie, and interstitial slides always use their uploaded media — backgroundTheme is always "light".
+        item.backgroundTheme = (nextType === "image" || nextType === "interstitial" || nextType === "movie") ? "light" : els.editorBackgroundTheme.value;
 
-        item.durationSec = (item.phase === "mass")
+        item.durationSec = (item.phase === "mass" || nextType === "movie")
           ? null
           : Math.max(1, Math.min(3600, parseInt(els.editorDurationSec.value, 10) || 10));
 
         if (nextType === "reading") {
           item.sourceStem = els.editorSourceStem.value;
+          item.styleOverrides = getEditorStyleOverrides("reading");
           delete manualSlides[item.id];
 
           const newText = els.editorReadingText.value;
@@ -5019,18 +5652,33 @@
           }
         } else {
           item.sourceStem = null;
+          item.styleOverrides = {};
           manualSlides[item.id] = manualSlides[item.id] || {};
           manualSlides[item.id].text = els.editorText.value;
           manualSlides[item.id].notes = els.editorNotes.value;
           manualSlides[item.id].imageUrl = els.editorImageUrl.value.trim() || null;
+          manualSlides[item.id].videoUrl = els.editorVideoUrl.value.trim() || null;
           manualSlides[item.id].textVAlign = (nextType === "text" || nextType === "prayer" || nextType === "hymn")
             ? (els.editorTextVAlign.value || "middle")
             : null;
+          manualSlides[item.id].videoLoop = Boolean(els.editorVideoLoop?.checked);
+          manualSlides[item.id].videoAutoAdvance = els.editorVideoAutoAdvance?.checked !== false;
+          manualSlides[item.id].styleOverrides = (nextType === "text" || nextType === "prayer" || nextType === "hymn")
+            ? getEditorStyleOverrides(nextType)
+            : {};
           if (nextType === "countdown") {
             manualSlides[item.id].countdownSec = Math.max(1, Math.min(300, parseInt(els.editorCountdownSec.value, 10) || 60));
             manualSlides[item.id].countdownStyle = els.editorCountdownStyle.value || "ring";
             manualSlides[item.id].countdownFont = els.editorCountdownFont.value || "";
             manualSlides[item.id].countdownSizePercent = Math.max(50, Math.min(200, parseInt(els.editorCountdownSizePercent.value, 10) || 100));
+          }
+          if (nextType !== "movie") {
+            manualSlides[item.id].videoUrl = null;
+            manualSlides[item.id].videoLoop = false;
+            manualSlides[item.id].videoAutoAdvance = true;
+          }
+          if (nextType !== "image" && nextType !== "interstitial") {
+            manualSlides[item.id].imageUrl = null;
           }
           // Propagate interstitial image to all other interstitials
           if (nextType === "interstitial" && manualSlides[item.id].imageUrl) {
@@ -5076,9 +5724,9 @@
     // flow as the web file input, but reads the file in the main process so
     // no FileReader / drag-and-drop is needed.
 
-    async function fetchMassAssets() {
+    async function fetchMassAssets(kind = "all") {
       try {
-        const data = await fetch(`/api/mass-assets?t=${Date.now()}`, { cache: "no-store" })
+        const data = await fetch(`/api/mass-assets?kind=${encodeURIComponent(kind)}&t=${Date.now()}`, { cache: "no-store" })
           .then((r) => r.json());
         return data.assets || [];
       } catch {
@@ -5092,19 +5740,32 @@
      */
     async function refreshAllMassAssetSelectors({
       editorUrl = els.editorImageUrl?.value || "",
+      videoUrl = els.editorVideoUrl?.value || "",
       darkBgUrl = els.darkBgPreset?.value || "",
       lightBgUrl = els.lightBgPreset?.value || ""
     } = {}) {
       const assets = await fetchMassAssets();
-      const assetOptions = assets.map((a) => ({ value: a.url, label: a.name }));
+      const imageAssets = assets.filter((a) => a.mediaType !== "video");
+      const videoAssets = assets.filter((a) => a.mediaType === "video");
+      const assetOptions = imageAssets.map((a) => ({ value: a.url, label: a.name }));
+      const videoAssetOptions = videoAssets.map((a) => ({ value: a.url, label: a.name }));
 
       if (els.editorAssetPicker) {
         replaceSelectOptions(els.editorAssetPicker, assetOptions, {
           placeholderLabel: "\u2014 select from assets folder \u2014"
         });
-        const matched = assets.some((a) => a.url === editorUrl);
+        const matched = imageAssets.some((a) => a.url === editorUrl);
         els.editorAssetPicker.value = matched ? editorUrl : "";
         updateImagePreview(editorUrl);
+      }
+
+      if (els.editorVideoAssetPicker) {
+        replaceSelectOptions(els.editorVideoAssetPicker, videoAssetOptions, {
+          placeholderLabel: "\u2014 select from assets folder \u2014"
+        });
+        const matched = videoAssets.some((a) => a.url === videoUrl);
+        els.editorVideoAssetPicker.value = matched ? videoUrl : "";
+        updateMoviePreview(videoUrl);
       }
 
       for (const [sel, currentUrl] of [
@@ -5138,9 +5799,25 @@
       scheduleEditorSave();
     });
 
+    els.editorVideoAssetPicker.addEventListener("change", () => {
+      const url = els.editorVideoAssetPicker.value;
+      if (!url) return;
+      els.editorVideoUrl.value = url;
+      updateMoviePreview(url);
+      editorPreviewIndex = 0;
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+
     if (els.useImageFilenameLabelBtn) {
       els.useImageFilenameLabelBtn.addEventListener("click", () => {
-        applyImageFilenameToLabel();
+        applyUrlFilenameToLabel(els.editorImageUrl?.value);
+      });
+    }
+
+    if (els.useVideoFilenameLabelBtn) {
+      els.useVideoFilenameLabelBtn.addEventListener("click", () => {
+        applyUrlFilenameToLabel(els.editorVideoUrl?.value);
       });
     }
 
@@ -5179,6 +5856,32 @@
       } finally {
         els.browseImageBtn.disabled = false;
         els.browseImageBtn.textContent = "Browse…";
+      }
+    });
+
+    els.browseVideoBtn.addEventListener("click", async () => {
+      if (typeof window.api === "undefined" || !window.api.pickVideoFile) return;
+      els.browseVideoBtn.disabled = true;
+      els.browseVideoBtn.textContent = "Loading…";
+      try {
+        const picked = await window.api.pickVideoFile();
+        if (!picked) return;
+        const { resp, result } = await uploadImageForSlide(picked.name, picked.dataUrl);
+        if (!resp.ok) {
+          els.status.textContent = result.error || "Video upload failed";
+          return;
+        }
+        els.editorVideoUrl.value = result.url;
+        updateMoviePreview(result.url);
+        await refreshAllMassAssetSelectors({ videoUrl: result.url });
+        editorPreviewIndex = 0;
+        updateEditorPreview().catch(() => { });
+        scheduleEditorSave();
+      } catch (err) {
+        els.status.textContent = "Video browse error: " + (err.message || err);
+      } finally {
+        els.browseVideoBtn.disabled = false;
+        els.browseVideoBtn.textContent = "Browse…";
       }
     });
 
@@ -5484,7 +6187,7 @@
     });
     els.editorType.addEventListener("change", () => {
       const prev = els.editorType.dataset.prevType || "";
-      const hasContent = els.editorText.value.trim() || els.editorReadingText.value.trim() || els.editorImageUrl.value.trim();
+      const hasContent = els.editorText.value.trim() || els.editorReadingText.value.trim() || els.editorImageUrl.value.trim() || els.editorVideoUrl.value.trim();
       if (prev && prev !== els.editorType.value && hasContent) {
         if (!confirm(`Changing type from "${prev}" to "${els.editorType.value}" may discard existing content for this slide. Continue?`)) {
           els.editorType.value = prev;
@@ -5496,10 +6199,31 @@
       const newType = els.editorType.value;
       els.editorSectionReading.hidden = newType !== "reading";
       els.editorSectionImage.hidden = !(newType === "image" || newType === "interstitial");
+      els.editorSectionMovie.hidden = newType !== "movie";
       if (els.interstitialHint) els.interstitialHint.hidden = newType !== "interstitial";
       els.editorSectionText.hidden = !(newType === "text" || newType === "prayer" || newType === "hymn");
       els.editorSectionCountdown.hidden = newType !== "countdown";
-      els.editorPreviewSection.hidden = (newType === "image" || newType === "interstitial");
+      els.editorPreviewSection.hidden = (newType === "image" || newType === "interstitial" || newType === "movie");
+      if (els.editorPreviewStylePanel) {
+        els.editorPreviewStylePanel.hidden = !(newType === "reading" || newType === "text" || newType === "prayer" || newType === "hymn");
+      }
+      if (els.editorPreviewReadingStyleStrip) {
+        els.editorPreviewReadingStyleStrip.hidden = newType !== "reading";
+      }
+      if (els.editorPreviewTextStyleStrip) {
+        els.editorPreviewTextStyleStrip.hidden = !(newType === "text" || newType === "prayer" || newType === "hymn");
+      }
+      if (els.editorPreviewStyleTitle) {
+        els.editorPreviewStyleTitle.textContent = newType === "reading" ? "Reading Style Override" : "Slide Style Override";
+      }
+      if (els.editorPreviewStyleHelp) {
+        els.editorPreviewStyleHelp.textContent = newType === "reading"
+          ? "Adjust only what this reading needs while watching the preview update above."
+          : "Adjust only what this slide needs while watching the preview update above.";
+      }
+      if (els.editorBackgroundThemeWrap) {
+        els.editorBackgroundThemeWrap.hidden = (newType === "image" || newType === "interstitial" || newType === "movie");
+      }
       if (els.editorPrayerWrap) {
         els.editorPrayerWrap.hidden = newType !== "prayer";
       }
@@ -5542,6 +6266,37 @@
     els.editorReadingText.addEventListener("input", () => {
       updateEditorPreview().catch(() => { });
       scheduleEditorSave();
+    });
+
+    document.querySelectorAll("[data-editor-style-input]").forEach((input) => {
+      const eventName = input.matches("[data-tristate-select]") || input.type === "hidden" || input.tagName !== "INPUT" ? "change" : "input";
+      input.addEventListener(eventName, () => {
+        editorPreviewIndex = 0;
+        updateEditorPreview().catch(() => { });
+        scheduleEditorSave();
+      });
+      if (eventName !== "change") {
+        input.addEventListener("change", () => {
+          editorPreviewIndex = 0;
+          updateEditorPreview().catch(() => { });
+          scheduleEditorSave();
+        });
+      }
+    });
+
+    document.querySelectorAll("[data-tristate-select]").forEach((input) => {
+      writeTriStateSelect(input, undefined);
+    });
+
+    document.querySelectorAll("[data-tristate-button]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.targetInput || "");
+        if (!input) return;
+        const raw = button.dataset.tristateButton;
+        const next = raw === "true" ? true : raw === "false" ? false : undefined;
+        writeTriStateSelect(input, next);
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
     });
 
     if (els.insertPageBreakBtn) {
@@ -5611,6 +6366,14 @@
       updateEditorPreview().catch(() => { });
       scheduleEditorSave();
     });
+    els.editorVideoLoop.addEventListener("change", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+    els.editorVideoAutoAdvance.addEventListener("change", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
     els.editorDurationSec.addEventListener("input", scheduleEditorSave);
     els.editorDurationSec.addEventListener("change", scheduleEditorSave);
     els.editorCountdownSec.addEventListener("input", () => {
@@ -5642,7 +6405,7 @@
     // Show/hide duration row based on phase (only for non-mass phases).
     els.editorPhase.addEventListener("change", () => {
       if (els.editorDurationWrap) {
-        els.editorDurationWrap.hidden = (els.editorPhase.value === "mass") || (els.editorType.value === "countdown");
+        els.editorDurationWrap.hidden = (els.editorPhase.value === "mass") || (els.editorType.value === "countdown") || (els.editorType.value === "movie");
       }
     });
 
@@ -5716,6 +6479,7 @@
     els.newSlideBtn.addEventListener("click", async () => {
       const type = els.newSlideType?.value || "text";
       const isImage = type === "image" || type === "interstitial";
+      const isMovie = type === "movie";
       const isReading = type === "reading";
       const isCountdown = type === "countdown";
       await updateSelected((sequence, manualSlides, index) => {
@@ -5723,18 +6487,21 @@
         const id = uniqueId(type);
         const docs = getDocuments();
         const firstStem = docs[0]?.stem || null;
-        const label = type === "interstitial" ? "Interstitial" : type === "image" ? "Image" : isCountdown ? "Countdown" : isReading ? "Reading" : type.charAt(0).toUpperCase() + type.slice(1) + " Slide";
+        const label = type === "interstitial" ? "Interstitial" : type === "image" ? "Image" : type === "movie" ? "Movie" : isCountdown ? "Countdown" : isReading ? "Reading" : type.charAt(0).toUpperCase() + type.slice(1) + " Slide";
         sequence.splice(index + 1, 0, {
           id,
           type,
           label,
           sourceStem: isReading ? firstStem : null,
           phase,
-          backgroundTheme: isImage ? "light" : "dark"
+          backgroundTheme: (isImage || isMovie) ? "light" : "dark",
+          durationSec: isMovie || phase === "mass" ? null : 10
         });
         if (!isReading) {
           if (isCountdown) {
             manualSlides[id] = { text: "", notes: "", countdownSec: 60, countdownStyle: "ring", countdownFont: "", countdownSizePercent: 100 };
+          } else if (isMovie) {
+            manualSlides[id] = { text: "", notes: "", videoUrl: null, videoLoop: false, videoAutoAdvance: true };
           } else if (isImage) {
             // For new interstitials, inherit the image from existing interstitials
             let inheritedUrl = null;
@@ -5788,6 +6555,12 @@
       scheduleEditorSave();
     });
 
+    els.editorVideoUrl.addEventListener("input", () => {
+      editorPreviewIndex = 0;
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+
     els.editorImageFile.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -5818,6 +6591,33 @@
       reader.readAsDataURL(file);
     });
 
+    els.editorVideoFile.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const { resp, result } = await uploadImageForSlide(file.name, reader.result);
+          if (!resp.ok) {
+            els.status.textContent = result.error || "Upload failed";
+            return;
+          }
+          els.editorVideoUrl.value = result.url;
+          updateMoviePreview(result.url);
+          await refreshAllMassAssetSelectors({ videoUrl: result.url });
+          editorPreviewIndex = 0;
+          updateEditorPreview().catch(() => { });
+          scheduleEditorSave();
+          els.status.textContent = "Video saved to Mass assets folder.";
+        } catch {
+          els.status.textContent = "Upload error";
+        } finally {
+          e.target.value = "";
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
 
     // ── Clear image button ──────────────────────────────────────────────────
     if (els.clearImageBtn) {
@@ -5825,6 +6625,17 @@
         els.editorImageUrl.value = "";
         els.editorAssetPicker.value = "";
         updateImagePreview("");
+        editorPreviewIndex = 0;
+        updateEditorPreview().catch(() => { });
+        scheduleEditorSave();
+      });
+    }
+
+    if (els.clearMovieBtn) {
+      els.clearMovieBtn.addEventListener("click", () => {
+        els.editorVideoUrl.value = "";
+        els.editorVideoAssetPicker.value = "";
+        updateMoviePreview("");
         editorPreviewIndex = 0;
         updateEditorPreview().catch(() => { });
         scheduleEditorSave();
@@ -5870,10 +6681,54 @@
       });
     }
 
+    if (els.moviePreviewWrap) {
+      els.moviePreviewWrap.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        if (els.movieDropZone) els.movieDropZone.classList.add("drag-over");
+      });
+      els.moviePreviewWrap.addEventListener("dragleave", (e) => {
+        if (!els.moviePreviewWrap.contains(e.relatedTarget)) {
+          if (els.movieDropZone) els.movieDropZone.classList.remove("drag-over");
+        }
+      });
+      els.moviePreviewWrap.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        if (els.movieDropZone) els.movieDropZone.classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (!file || file.type !== "video/mp4") return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const { resp, result } = await uploadImageForSlide(file.name, reader.result);
+            if (!resp.ok) {
+              els.status.textContent = result.error || "Upload failed";
+              return;
+            }
+            els.editorVideoUrl.value = result.url;
+            updateMoviePreview(result.url);
+            await refreshAllMassAssetSelectors({ videoUrl: result.url });
+            editorPreviewIndex = 0;
+            updateEditorPreview().catch(() => { });
+            scheduleEditorSave();
+          } catch {
+            els.status.textContent = "Upload error";
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
     // ── Drop zone click opens file picker ─────────────────────────────────
     if (els.imageDropZone) {
       els.imageDropZone.addEventListener("click", () => {
         els.editorImageFile.click();
+      });
+    }
+
+    if (els.movieDropZone) {
+      els.movieDropZone.addEventListener("click", () => {
+        els.editorVideoFile.click();
       });
     }
 

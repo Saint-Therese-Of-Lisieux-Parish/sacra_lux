@@ -43,10 +43,11 @@ const SECTION_LABELS = {
   "Gospel": "Gospel"
 };
 
-const VALID_TYPES = ["reading", "image", "text", "prayer", "hymn", "countdown", "interstitial"];
+const VALID_TYPES = ["reading", "image", "movie", "text", "prayer", "hymn", "countdown", "interstitial"];
 const VALID_PHASES = ["pre", "gathering", "mass", "post"];
 const VALID_BACKGROUND_THEMES = ["dark", "light"];
 const VALID_COUNTDOWN_STYLES = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"];
+const STYLE_OVERRIDE_BOOLEAN_KEYS = ["bold", "italic", "outline", "shadow"];
 
 function normalizePhase(value) {
   if (value === "warmup") return "gathering";
@@ -60,7 +61,7 @@ function normalizeBackgroundTheme(value, slideType) {
   if (value === "image") return "light";
   if (VALID_BACKGROUND_THEMES.includes(value)) return value;
   // Choose the default background from the slide type.
-  return (slideType === "image" || slideType === "interstitial") ? "light" : "dark";
+  return (slideType === "image" || slideType === "interstitial" || slideType === "movie") ? "light" : "dark";
 }
 
 function normalizeType(value) {
@@ -78,6 +79,31 @@ function normalizeCountdownSizePercent(value) {
   return Math.max(50, Math.min(200, Number(value) || 100));
 }
 
+function normalizeStyleOverrides(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {};
+  }
+
+  const normalized = {};
+  const fontFamily = typeof input.fontFamily === "string" ? input.fontFamily.trim() : "";
+  if (fontFamily) {
+    normalized.fontFamily = fontFamily;
+  }
+
+  const fontSizePx = Number(input.fontSizePx);
+  if (Number.isFinite(fontSizePx) && fontSizePx > 0) {
+    normalized.fontSizePx = Math.min(200, Math.max(24, Math.round(fontSizePx)));
+  }
+
+  for (const key of STYLE_OVERRIDE_BOOLEAN_KEYS) {
+    if (typeof input[key] === "boolean") {
+      normalized[key] = input[key];
+    }
+  }
+
+  return normalized;
+}
+
 function displayLabelForDocument(doc) {
   return SECTION_LABELS[doc.section] || doc.section;
 }
@@ -88,7 +114,8 @@ function createManualSlideRecord(type = "image") {
       text: "",
       notes: "",
       textVAlign: "middle",
-      imageUrl: null
+      imageUrl: null,
+      styleOverrides: {}
     };
   }
 
@@ -101,7 +128,21 @@ function createManualSlideRecord(type = "image") {
       countdownSec: 60,
       countdownFont: "",
       countdownStyle: "ring",
-      countdownSizePercent: 100
+      countdownSizePercent: 100,
+      styleOverrides: {}
+    };
+  }
+
+  if (type === "movie") {
+    return {
+      text: "",
+      notes: "",
+      textVAlign: null,
+      imageUrl: null,
+      videoUrl: null,
+      videoLoop: false,
+      videoAutoAdvance: true,
+      styleOverrides: {}
     };
   }
 
@@ -109,7 +150,8 @@ function createManualSlideRecord(type = "image") {
     text: "",
     notes: "",
     textVAlign: null,
-    imageUrl: null
+    imageUrl: null,
+    styleOverrides: {}
   };
 }
 
@@ -152,18 +194,22 @@ function buildManualSlide(item, manualSlide, index) {
     notes: manualSlide?.notes || "",
     textVAlign: manualSlide?.textVAlign || "middle",
     imageUrl: manualSlide?.imageUrl || null,
+    styleOverrides: normalizeStyleOverrides(manualSlide?.styleOverrides),
     phase: normalizePhase(item.phase),
     backgroundTheme: normalizeBackgroundTheme(item.backgroundTheme, item.type),
     index
   };
 
-  // Do not split image or interstitial slides.
-  if (item.type === "image" || item.type === "interstitial") {
+  // Do not split image, interstitial, or movie slides.
+  if (item.type === "image" || item.type === "interstitial" || item.type === "movie") {
     return [{
       ...baseProps,
       id: `${item.id}:1`,
-      title: item.label || (item.type === "interstitial" ? "Interstitial" : "Image"),
+      title: item.label || (item.type === "interstitial" ? "Interstitial" : item.type === "movie" ? "Movie" : "Image"),
       text: rawText,
+      videoUrl: manualSlide?.videoUrl || null,
+      videoLoop: Boolean(manualSlide?.videoLoop),
+      videoAutoAdvance: manualSlide?.videoAutoAdvance !== false,
       pageNumber: 1,
       totalPages: 1,
       isFirstPage: true,
@@ -215,18 +261,30 @@ function buildReadingSlides(item, documents, screenSettings) {
     return [];
   }
 
+  const styleOverrides = normalizeStyleOverrides(item.styleOverrides);
+  const effectiveScreenSettings = {
+    ...screenSettings,
+    ...(styleOverrides.fontFamily ? { readingTextFont: styleOverrides.fontFamily } : {}),
+    ...(styleOverrides.fontSizePx ? { readingTextSizePx: styleOverrides.fontSizePx } : {}),
+    ...(typeof styleOverrides.bold === "boolean" ? { readingTextBold: styleOverrides.bold } : {}),
+    ...(typeof styleOverrides.italic === "boolean" ? { readingTextItalic: styleOverrides.italic } : {}),
+    ...(typeof styleOverrides.outline === "boolean" ? { readingTextOutline: styleOverrides.outline } : {}),
+    ...(typeof styleOverrides.shadow === "boolean" ? { readingTextShadow: styleOverrides.shadow } : {})
+  };
+
   const paginated = paginateDocuments([doc], {
-    fontSizePx: screenSettings.fontSizePx,
-    fontFamily: screenSettings.fontFamily,
-    readingTextHeightPx: screenSettings.readingTextHeightPx,
-    readingTextSizePx: screenSettings.readingTextSizePx,
-    readingLineHeight: screenSettings.readingLineHeight,
-    readingTextMarginXPx: screenSettings.readingTextMarginXPx
+    fontSizePx: effectiveScreenSettings.fontSizePx,
+    fontFamily: effectiveScreenSettings.fontFamily,
+    readingTextHeightPx: effectiveScreenSettings.readingTextHeightPx,
+    readingTextSizePx: effectiveScreenSettings.readingTextSizePx,
+    readingLineHeight: effectiveScreenSettings.readingLineHeight,
+    readingTextMarginXPx: effectiveScreenSettings.readingTextMarginXPx
   });
 
   return paginated.map((slide) => ({
     ...slide,
     organizerItemId: item.id,
+    styleOverrides,
     groupLabel: item.label || displayLabelForDocument(doc),
     title:
       slide.totalPages > 1
@@ -276,6 +334,7 @@ module.exports = {
   normalizeBackgroundTheme,
   normalizePhase,
   normalizeType,
+  normalizeStyleOverrides,
   normalizeCountdownStyle,
   normalizeCountdownSizePercent,
   VALID_COUNTDOWN_STYLES,

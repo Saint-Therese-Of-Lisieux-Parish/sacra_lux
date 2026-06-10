@@ -14,6 +14,8 @@ const PRELOAD_PATH = path.join(__dirname, "preload.js");
 
 const pkg = require("../package.json");
 
+app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+
 let appWindow;
 let screenWindow;
 const screenWindows = new Map();
@@ -278,6 +280,28 @@ ipcMain.handle("dialog:pickImageFile", async () => {
   const mime = MIME[ext] || "image/jpeg";
   const buffer = fs.readFileSync(filePath);
   const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+  return { name, dataUrl };
+});
+
+ipcMain.handle("dialog:pickVideoFile", async () => {
+  const result = await dialog.showOpenDialog(appWindow, {
+    title: "Select Video",
+    properties: ["openFile"],
+    filters: [
+      { name: "MP4 Video", extensions: ["mp4"] }
+    ]
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  const filePath = result.filePaths[0];
+  const name = path.basename(filePath);
+  const { size } = fs.statSync(filePath);
+  if (size > 500 * 1024 * 1024) {
+    return { error: "Video file exceeds the 500 MB limit. Please use a smaller file." };
+  }
+  const buffer = fs.readFileSync(filePath);
+  const dataUrl = `data:video/mp4;base64,${buffer.toString("base64")}`;
   return { name, dataUrl };
 });
 

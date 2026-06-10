@@ -23,6 +23,14 @@ describe("massDocument", () => {
           phase: "mass",
           backgroundTheme: "dark",
           sourceStem: "Reading_I",
+          styleOverrides: {
+            fontFamily: "Lora",
+            fontSizePx: 72,
+            bold: true,
+            italic: true,
+            outline: true,
+            shadow: false
+          },
           durationSec: 10
         },
         {
@@ -40,6 +48,14 @@ describe("massDocument", () => {
           phase: "mass",
           backgroundTheme: "light",
           durationSec: 10
+        },
+        {
+          id: "welcome-video",
+          type: "movie",
+          label: "Welcome Video",
+          phase: "gathering",
+          backgroundTheme: "light",
+          durationSec: 10
         }
       ],
       manualSlides: {
@@ -47,12 +63,27 @@ describe("massDocument", () => {
           text: "Holy God\n---\nWe Praise Thy Name",
           notes: "music",
           textVAlign: "top",
-          imageUrl: null
+          imageUrl: null,
+          styleOverrides: {
+            fontFamily: "Playfair Display",
+            fontSizePx: 88,
+            bold: true,
+            italic: false,
+            outline: true,
+            shadow: true
+          }
         },
         transition: {
           text: "",
           notes: "",
           imageUrl: "/api/mass-asset/transition.jpg"
+        },
+        "welcome-video": {
+          text: "Welcome video",
+          notes: "start with audio",
+          videoUrl: "/api/mass-asset/welcome.mp4",
+          videoLoop: false,
+          videoAutoAdvance: true
         }
       },
       readingsSource: {
@@ -72,7 +103,7 @@ describe("massDocument", () => {
     expect(document.version).toBe(3);
     expect(document.metadata.title).toBe("Easter Sunday");
     expect(document.metadata.scheduledStart).toBe("2026-04-12T10:30:00-04:00");
-    expect(document.items).toHaveLength(3);
+    expect(document.items).toHaveLength(4);
     expect(document.items[0]).toMatchObject({
       kind: "reading",
       section: "mass",
@@ -82,6 +113,15 @@ describe("massDocument", () => {
       },
       content: {
         text: "In the beginning..."
+      },
+      presentation: {
+        background: "dark",
+        fontFamily: "Lora",
+        fontSizePx: 72,
+        bold: true,
+        italic: true,
+        outline: true,
+        shadow: false
       }
     });
     expect(document.items[1]).toMatchObject({
@@ -92,7 +132,13 @@ describe("massDocument", () => {
       notes: "music",
       presentation: {
         background: "dark",
-        textVAlign: "top"
+        textVAlign: "top",
+        fontFamily: "Playfair Display",
+        fontSizePx: 88,
+        bold: true,
+        italic: false,
+        outline: true,
+        shadow: true
       }
     });
     expect(document.items[2]).toMatchObject({
@@ -101,7 +147,22 @@ describe("massDocument", () => {
         ref: "assets/transition.jpg"
       }
     });
+    expect(document.items[3]).toMatchObject({
+      kind: "movie",
+      notes: "start with audio",
+      asset: {
+        ref: "assets/welcome.mp4"
+      },
+      content: {
+        text: "Welcome video"
+      },
+      presentation: {
+        background: "light",
+        loop: false
+      }
+    });
     expect(document.assets["assets/transition.jpg"]).toEqual({});
+    expect(document.assets["assets/welcome.mp4"]).toEqual({});
     expect(document.assets["assets/color-bg.jpg"]).toEqual({});
   });
 
@@ -129,6 +190,15 @@ describe("massDocument", () => {
           source: {
             stem: "Reading_I",
             citation: "Genesis 1:1-3"
+          },
+          presentation: {
+            background: "dark",
+            fontFamily: "Cormorant Garamond",
+            fontSizePx: 70,
+            bold: false,
+            italic: true,
+            outline: true,
+            shadow: false
           }
         },
         {
@@ -145,10 +215,29 @@ describe("massDocument", () => {
             fontFamily: "Lora",
             countdownSizePercent: 135
           }
+        },
+        {
+          id: "welcome-video",
+          kind: "movie",
+          label: "Welcome Video",
+          section: "gathering",
+          notes: "fade audio at end",
+          content: {
+            text: "Welcome video",
+            autoAdvance: true
+          },
+          asset: {
+            ref: "assets/welcome.mp4"
+          },
+          presentation: {
+            background: "light",
+            loop: false
+          }
         }
       ],
       assets: {
-        "assets/background.jpg": {}
+        "assets/background.jpg": {},
+        "assets/welcome.mp4": {}
       }
     });
 
@@ -163,7 +252,15 @@ describe("massDocument", () => {
         phase: "mass",
         backgroundTheme: "dark",
         durationSec: 10,
-        sourceStem: "Reading_I"
+        sourceStem: "Reading_I",
+        styleOverrides: {
+          fontFamily: "Cormorant Garamond",
+          fontSizePx: 70,
+          bold: false,
+          italic: true,
+          outline: true,
+          shadow: false
+        }
       },
       {
         id: "countdown-1",
@@ -171,6 +268,14 @@ describe("massDocument", () => {
         label: "Countdown",
         phase: "gathering",
         backgroundTheme: "dark",
+        durationSec: 10
+      },
+      {
+        id: "welcome-video",
+        type: "movie",
+        label: "Welcome Video",
+        phase: "gathering",
+        backgroundTheme: "light",
         durationSec: 10
       }
     ]);
@@ -186,7 +291,16 @@ describe("massDocument", () => {
     expect(runtime.manualSlides["countdown-1"]).toMatchObject({
       countdownSec: 30,
       countdownFont: "Lora",
-      countdownSizePercent: 135
+      countdownSizePercent: 135,
+      styleOverrides: {}
+    });
+    expect(runtime.manualSlides["welcome-video"]).toMatchObject({
+      notes: "fade audio at end",
+      text: "Welcome video",
+      videoUrl: "/api/mass-asset/welcome.mp4",
+      videoLoop: false,
+      videoAutoAdvance: true,
+      styleOverrides: {}
     });
   });
 
