@@ -156,6 +156,125 @@ describe("server api integration", () => {
     expect(res.body.slides[0].groupLabel).toBe("First Reading");
   });
 
+  test("startup prefers valid current_mass over stale session title", async () => {
+    const homeDir = createTempHome("sacra-lux-startup-valid-");
+    const appDir = path.join(homeDir, ".sacra-lux");
+    const currentMassDir = path.join(appDir, "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(appDir, "session.json"), JSON.stringify({
+      savedAt: new Date().toISOString(),
+      presentationTitle: "Inline Reading Mass",
+      lastReadingsFolderPath: "/tmp/not-the-real-mass"
+    }), "utf8");
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: {
+        title: "Fourth Sunday of Easter 9:30 AM"
+      },
+      presentationDefaults: {},
+      items: []
+    }), "utf8");
+
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      const stateRes = await request(isolatedHandle.app).get("/api/state").expect(200);
+      expect(stateRes.body.presentation.title).toBe("Fourth Sunday of Easter 9:30 AM");
+      expect(stateRes.body.startupPrompt).toBeNull();
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
+  test("startup with missing current_mass prompts the Mass library", async () => {
+    const homeDir = createTempHome("sacra-lux-startup-missing-");
+    const appDir = path.join(homeDir, ".sacra-lux");
+    fs.mkdirSync(appDir, { recursive: true });
+    fs.writeFileSync(path.join(appDir, "session.json"), JSON.stringify({
+      savedAt: new Date().toISOString(),
+      presentationTitle: "Inline Reading Mass",
+      lastReadingsFolderPath: "/tmp/not-the-real-mass"
+    }), "utf8");
+
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      const stateRes = await request(isolatedHandle.app).get("/api/state").expect(200);
+      expect(stateRes.body.presentation.title).toBe("No presentation loaded");
+      expect(stateRes.body.organizerSequence).toEqual([]);
+      expect(stateRes.body.presentation.slides).toEqual([]);
+      expect(stateRes.body.startupPrompt).toEqual({
+        type: "mass-library",
+        reason: "missing-current-mass"
+      });
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
+  test("startup with invalid current_mass prompts the Mass library", async () => {
+    const homeDir = createTempHome("sacra-lux-startup-invalid-");
+    const appDir = path.join(homeDir, ".sacra-lux");
+    const currentMassDir = path.join(appDir, "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(appDir, "session.json"), JSON.stringify({
+      savedAt: new Date().toISOString(),
+      presentationTitle: "Inline Reading Mass",
+      lastReadingsFolderPath: "/tmp/not-the-real-mass"
+    }), "utf8");
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "{not json", "utf8");
+
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      const stateRes = await request(isolatedHandle.app).get("/api/state").expect(200);
+      expect(stateRes.body.presentation.title).toBe("No presentation loaded");
+      expect(stateRes.body.startupPrompt).toEqual({
+        type: "mass-library",
+        reason: "invalid-current-mass"
+      });
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
+  test("preview-manual-slide preserves style overrides for hymn slides", async () => {
+    const res = await request(app)
+      .post("/api/preview-manual-slide")
+      .send({
+        type: "hymn",
+        label: "Opening Hymn",
+        phase: "mass",
+        backgroundTheme: "dark",
+        manualSlide: {
+          text: "Holy God",
+          notes: "",
+          textVAlign: "middle",
+          styleOverrides: {
+            fontFamily: "Lora",
+            fontSizePx: 96,
+            bold: true,
+            italic: false,
+            outline: true,
+            shadow: false
+          }
+        }
+      })
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.slides[0].type).toBe("hymn");
+    expect(res.body.slides[0].styleOverrides).toEqual({
+      fontFamily: "Lora",
+      fontSizePx: 96,
+      bold: true,
+      italic: false,
+      outline: true,
+      shadow: false
+    });
+  });
+
   test("organizer endpoint validates sequence payload", async () => {
     const res = await request(app)
       .post("/api/organizer")

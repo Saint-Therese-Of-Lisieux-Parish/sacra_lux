@@ -377,6 +377,69 @@
       opacity: 0;
     }
 
+    .video-wrap {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      z-index: 2;
+      background: #000;
+    }
+
+    .video-wrap.active {
+      display: flex;
+    }
+
+    .video-player {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .video-placeholder {
+      width: min(72vw, 1040px);
+      min-height: 360px;
+      padding: 48px;
+      border-radius: 32px;
+      background: linear-gradient(155deg, rgba(14, 19, 28, 0.88), rgba(32, 42, 56, 0.78));
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      text-align: center;
+      color: #f8f8f8;
+    }
+
+    .video-placeholder-icon {
+      width: 168px;
+      height: 168px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 72px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .video-placeholder-title {
+      font-size: clamp(2rem, 3vw, 3.4rem);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .video-placeholder-copy {
+      font-family: "Source Sans 3", "Inter", sans-serif;
+      font-size: clamp(1rem, 1.4vw, 1.5rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(248, 248, 248, 0.62);
+    }
+
     /* ---- Fullscreen prompt overlay (web mode only) ---- */
     .fullscreen-prompt {
       position: absolute;
@@ -731,6 +794,9 @@
   <script src="/static/client/shared.js"></script>
   <script>
     const socket = io();
+    const isPreviewMode = window.location.search.includes("preview=1");
+    const isEmbeddedScreen = window !== window.top;
+    const shouldPlayVideoInline = !isPreviewMode && !isEmbeddedScreen;
 
     // ── Double-buffer crossfade setup ─────────────────────────────────────────
     // #stage holds two .frame divs stacked on top of each other.
@@ -878,6 +944,89 @@
       titleEl.textContent = "";
       textEl.textContent = "";
       slideTypeEl.textContent = "";
+    }
+
+    function stopFrameMedia(targetFrame) {
+      const mediaFrame = targetFrame || frame;
+      const players = mediaFrame ? mediaFrame.querySelectorAll("video.video-player") : [];
+      players.forEach((player) => {
+        try {
+          player.pause();
+          player.removeAttribute("src");
+          player.load();
+        } catch { }
+      });
+    }
+
+    function showVideoSlide(slide) {
+      frame.classList.remove("reading-mode", "text-layout-mode", "image-only");
+      const readingWrap = frame.querySelector(".reading-wrap");
+      if (readingWrap) readingWrap.style.display = "none";
+      const tlWrap = frame.querySelector(".text-layout-wrap");
+      if (tlWrap) tlWrap.style.display = "none";
+      const countdownWrap = frame.querySelector(".countdown-wrap");
+      if (countdownWrap) countdownWrap.style.display = "none";
+      content.style.display = "none";
+      titleEl.textContent = "";
+      textEl.textContent = "";
+      slideTypeEl.textContent = "";
+
+      let wrap = frame.querySelector(".video-wrap");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.className = "video-wrap";
+        frame.appendChild(wrap);
+      }
+      wrap.classList.add("active");
+
+      if (!slide?.videoUrl) {
+        wrap.innerHTML = `
+          <div class="video-placeholder">
+            <div class="video-placeholder-icon">&#9654;</div>
+            <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
+            <div class="video-placeholder-copy">No video selected</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!shouldPlayVideoInline) {
+        wrap.innerHTML = `
+          <div class="video-placeholder">
+            <div class="video-placeholder-icon">&#9654;</div>
+            <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
+            <div class="video-placeholder-copy">${escHtml(slide.videoLoop ? "Looping on projector screen" : "Playing on projector screen")}</div>
+          </div>
+        `;
+        return;
+      }
+
+      wrap.innerHTML = "";
+      const video = document.createElement("video");
+      video.className = "video-player";
+      video.playsInline = true;
+      video.preload = "auto";
+      video.autoplay = true;
+      video.controls = false;
+      video.loop = Boolean(slide.videoLoop);
+      video.src = slide.videoUrl;
+      video.addEventListener("ended", () => {
+        if (slide.videoAutoAdvance === false) return;
+        socket.emit("slide:video-ended", { slideId: slide.id });
+      });
+      wrap.appendChild(video);
+      const playAttempt = video.play();
+      if (playAttempt && typeof playAttempt.catch === "function") {
+        playAttempt.catch(() => {
+          wrap.innerHTML = `
+            <div class="video-placeholder">
+              <div class="video-placeholder-icon">&#9654;</div>
+              <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
+              <div class="video-placeholder-copy">Autoplay was blocked</div>
+            </div>
+          `;
+        });
+      }
     }
 
     // ── Countdown slide ──────────────────────────────────────────────────────
@@ -1041,7 +1190,7 @@
     }
 
     function applyBackgroundTheme(slide) {
-      if (slide?.type === "image" || slide?.type === "interstitial") {
+      if (slide?.type === "image" || slide?.type === "interstitial" || slide?.type === "movie") {
         frame.classList.remove("bg-dark");
         frame.classList.add("bg-light");
         return;
@@ -1060,7 +1209,7 @@
       }
 
       // Fallback: dark background for text-based slides, light background for image-like slides.
-      const useDark = slide?.type !== "image" && slide?.type !== "interstitial";
+      const useDark = slide?.type !== "image" && slide?.type !== "interstitial" && slide?.type !== "movie";
       frame.classList.toggle("bg-dark", useDark);
       frame.classList.toggle("bg-light", !useDark);
     }
@@ -1104,6 +1253,59 @@
       frame.style.setProperty("--section-accent", tint.accent);
       frame.style.setProperty("--section-band", tint.band);
       frame.style.setProperty("--section-accent-glow", tint.glow);
+    }
+
+    function normalizeStyleOverrides(styleOverrides = {}) {
+      if (!styleOverrides || typeof styleOverrides !== "object" || Array.isArray(styleOverrides)) {
+        return {};
+      }
+
+      const normalized = {};
+      const fontFamily = typeof styleOverrides.fontFamily === "string" ? styleOverrides.fontFamily.trim() : "";
+      if (fontFamily) normalized.fontFamily = fontFamily;
+      const fontSizePx = Number(styleOverrides.fontSizePx);
+      if (Number.isFinite(fontSizePx) && fontSizePx > 0) {
+        normalized.fontSizePx = Math.min(200, Math.max(24, Math.round(fontSizePx)));
+      }
+      for (const key of ["bold", "italic", "outline", "shadow"]) {
+        if (typeof styleOverrides[key] === "boolean") {
+          normalized[key] = styleOverrides[key];
+        }
+      }
+      return normalized;
+    }
+
+    function getEffectiveScreenSettings(baseSettings = {}, slide) {
+      const overrides = normalizeStyleOverrides(slide?.styleOverrides);
+      if (!Object.keys(overrides).length) {
+        return baseSettings;
+      }
+
+      if (slide?.type === "reading") {
+        return {
+          ...baseSettings,
+          ...(overrides.fontFamily ? { readingTextFont: overrides.fontFamily } : {}),
+          ...(overrides.fontSizePx ? { readingTextSizePx: overrides.fontSizePx } : {}),
+          ...(typeof overrides.bold === "boolean" ? { readingTextBold: overrides.bold } : {}),
+          ...(typeof overrides.italic === "boolean" ? { readingTextItalic: overrides.italic } : {}),
+          ...(typeof overrides.outline === "boolean" ? { readingTextOutline: overrides.outline } : {}),
+          ...(typeof overrides.shadow === "boolean" ? { readingTextShadow: overrides.shadow } : {})
+        };
+      }
+
+      if (slide?.type === "text" || slide?.type === "prayer" || slide?.type === "hymn") {
+        return {
+          ...baseSettings,
+          ...(overrides.fontFamily ? { textSlideTextFont: overrides.fontFamily } : {}),
+          ...(overrides.fontSizePx ? { textSlideTextSizePx: overrides.fontSizePx } : {}),
+          ...(typeof overrides.bold === "boolean" ? { textSlideTextBold: overrides.bold } : {}),
+          ...(typeof overrides.italic === "boolean" ? { textSlideTextItalic: overrides.italic } : {}),
+          ...(typeof overrides.outline === "boolean" ? { textSlideTextOutline: overrides.outline } : {}),
+          ...(typeof overrides.shadow === "boolean" ? { textSlideTextShadow: overrides.shadow } : {})
+        };
+      }
+
+      return baseSettings;
     }
 
     function applyScreenSettings(settings = {}) {
@@ -1268,7 +1470,8 @@
         settings.readingTextHeightPx, settings.readingTextMarginXPx,
         settings.readingLineHeight, settings.readingLetterSpacingPx,
         settings.readingTextFont, settings.fontFamily, settings.boldText,
-        settings.readingTextBold
+        settings.readingTextBold, settings.readingTextItalic,
+        settings.readingTextOutline, settings.readingTextShadow
       ];
       return keys.join("|");
     }
@@ -1284,14 +1487,15 @@
       const readingSlides = slides.filter(s => s.type === "reading");
       const slideFingerprint = readingSlides.length + ":" +
         (readingSlides[0]?.id || "") + ":" + (readingSlides[readingSlides.length - 1]?.id || "");
-      const hash = settingsHash(settings) + "|" + slideFingerprint;
+      const slideOverridesFingerprint = readingSlides
+        .map((slide) => `${slide.organizerItemId || slide.id}:${JSON.stringify(normalizeStyleOverrides(slide.styleOverrides))}`)
+        .join("|");
+      const hash = settingsHash(settings) + "|" + slideFingerprint + "|" + slideOverridesFingerprint;
       if (hash === _lastSettingsHash && Object.keys(_readingGroupFontCache).length > 0) return;
       _lastSettingsHash = hash;
 
       // Clear previous cache.
       for (const k in _readingGroupFontCache) delete _readingGroupFontCache[k];
-
-      const baseFontSize = Number(settings.readingTextSizePx) || Number(settings.fontSizePx) || 60;
 
       // Group reading slides by organizerItemId.
       const groups = {};
@@ -1311,7 +1515,6 @@
         document.body.appendChild(measurer);
       }
 
-      // Clone frame styling onto the measurer so CSS vars work correctly.
       const stageStyles = getComputedStyle(stage);
       const fw = parseInt(stageStyles.getPropertyValue("--frame-width")) || 1920;
       const fh = parseInt(stageStyles.getPropertyValue("--frame-height")) || 1080;
@@ -1319,18 +1522,21 @@
       measurer.style.height = fh + "px";
       measurer.style.overflow = "hidden";
 
-      // Build a measurement body matching .reading-body CSS.
-      const marginX = parseInt(stageStyles.getPropertyValue("--reading-text-margin-x")) || 80;
-      const textTop = parseInt(stageStyles.getPropertyValue("--reading-text-top")) || 130;
-      const textHeight = parseInt(stageStyles.getPropertyValue("--reading-text-height")) || 840;
-      const lineHeight = parseFloat(stageStyles.getPropertyValue("--reading-line-height")) || 1.58;
-      const letterSpacing = stageStyles.getPropertyValue("--reading-letter-spacing") || "0px";
-      const textFont = stageStyles.getPropertyValue("--reading-text-font") || stageStyles.getPropertyValue("--display-font-family") || '"Merriweather", serif';
-      const textWeight = stageStyles.getPropertyValue("--reading-text-weight") || stageStyles.getPropertyValue("--display-font-weight") || "400";
-      const textColor = stageStyles.getPropertyValue("--reading-text-color") || "#f8f8f8";
-      const bodyWidth = fw - (marginX * 2);
-
       for (const [gid, groupSlides] of Object.entries(groups)) {
+        const groupSettings = getEffectiveScreenSettings(settings, groupSlides[0]);
+        const baseFontSize = Number(groupSettings.readingTextSizePx) || Number(groupSettings.fontSizePx) || 60;
+        const marginX = Math.min(260, Math.max(0, Number(groupSettings.readingTextMarginXPx) || 80));
+        const textHeight = Math.min(980, Math.max(120, Number(groupSettings.readingTextHeightPx) || 840));
+        const lineHeight = Math.min(3.0, Math.max(1.0, Number(groupSettings.readingLineHeight) || 1.58));
+        const letterSpacing = `${Math.min(10, Math.max(-2, Number(groupSettings.readingLetterSpacingPx) || 0))}px`;
+        const textFont = groupSettings.readingTextFont
+          ? `"${groupSettings.readingTextFont.replace(/"/g, "").trim()}", serif`
+          : `"${(groupSettings.fontFamily || "Merriweather").replace(/"/g, "").trim()}", serif`;
+        const textWeight = groupSettings.readingTextBold
+          ? "700"
+          : (groupSettings.boldText ? "700" : "400");
+        const textColor = groupSettings.readingTextColor || "#f8f8f8";
+        const bodyWidth = fw - (marginX * 2);
         let minSize = baseFontSize;
 
         for (const slide of groupSlides) {
@@ -1372,6 +1578,7 @@
     }
 
     function fitTextToFrame(baseSizePx, slide) {
+      if (slide?.type === "movie") return;
       const wrap = frame.querySelector(".reading-wrap");
       const tlWrap = frame.querySelector(".text-layout-wrap");
       const readingBody = wrap && wrap.style.display !== "none"
@@ -1419,11 +1626,16 @@
     }
 
     function getDisplayBaseFontSize(slide, settings = {}) {
-      if (slide?.type === "reading" && Number(settings.readingTextSizePx)) {
-        return Number(settings.readingTextSizePx);
+      const effectiveSettings = getEffectiveScreenSettings(settings, slide);
+      if (slide?.type === "reading" && Number(effectiveSettings.readingTextSizePx)) {
+        return Number(effectiveSettings.readingTextSizePx);
       }
 
-      const baseSize = Number(settings.fontSizePx) || 60;
+      if ((slide?.type === "text" || slide?.type === "prayer" || slide?.type === "hymn") && Number(effectiveSettings.textSlideTextSizePx)) {
+        return Number(effectiveSettings.textSlideTextSizePx);
+      }
+
+      const baseSize = Number(effectiveSettings.fontSizePx) || 60;
       return slide?.id === "mass-title"
         ? Math.max(24, Math.round(baseSize * 0.9))
         : baseSize;
@@ -1437,18 +1649,21 @@
         ? Math.max(0, Math.min(Number(state.interstitialHoldSlideIndex) || 0, slides.length - 1))
         : index;
       const slide = slides[effectiveIndex];
-      const settings = state.screenSettings || {};
+      const baseSettings = state.screenSettings || {};
+      const settings = getEffectiveScreenSettings(baseSettings, slide);
       applyScreenSettings(settings);
       applySectionTint(slide);
 
       // Pre-compute consistent font sizes for all reading groups.
-      precomputeReadingGroupSizes(slides, settings);
+      precomputeReadingGroupSizes(slides, baseSettings);
 
       // Per-slide image URL for image slides — use only the slide's own image;
       // never fall through to the global image background preset.
       if (slide?.type === "image" || slide?.type === "interstitial") {
         const url = slide.imageUrl;
         frame.style.setProperty("--bg-light", url ? `url('${url.replace(/'/g, "\\'")}')` : "none");
+      } else if (slide?.type === "movie") {
+        frame.style.setProperty("--bg-light", "none");
       } else if (slide?.imageUrl) {
         frame.style.setProperty("--bg-light", `url('${slide.imageUrl.replace(/'/g, "\\'")}')`);
       } else {
@@ -1467,6 +1682,9 @@
       } else if (slide.type === "image" || slide.type === "interstitial") {
         applyBackgroundTheme(slide);
         showImageOnly();
+      } else if (slide.type === "movie") {
+        applyBackgroundTheme(slide);
+        showVideoSlide(slide);
       } else if (slide.type === "countdown") {
         applyBackgroundTheme(slide);
         showCountdown(slide);
@@ -1485,6 +1703,7 @@
     // ── Clear all content from the current frame before writing new slide ────
     // Prevents text from a previous slide bleeding through during crossfade.
     function resetFrame() {
+      stopFrameMedia(frame);
       frame.classList.remove("reading-mode", "text-layout-mode", "image-only");
       const readingWrap = frame.querySelector(".reading-wrap");
       if (readingWrap) { readingWrap.innerHTML = ""; readingWrap.style.display = "none"; }
@@ -1492,6 +1711,8 @@
       if (textWrap) { textWrap.innerHTML = ""; textWrap.style.display = "none"; }
       const cdWrap = frame.querySelector(".countdown-wrap");
       if (cdWrap) { cdWrap.innerHTML = ""; cdWrap.style.display = "none"; }
+      const videoWrap = frame.querySelector(".video-wrap");
+      if (videoWrap) { videoWrap.innerHTML = ""; videoWrap.classList.remove("active"); }
       if (_countdownInterval) { clearInterval(_countdownInterval); _countdownInterval = null; }
       content.style.display = "none";
       titleEl.textContent = "";
@@ -1560,6 +1781,7 @@
         activeFrame.style.transition = "";
         inactiveFrame.style.zIndex = "";
         activeFrame.style.zIndex = "";
+        stopFrameMedia(activeFrame);
         _activeSuffix = inactiveSuffix;
         pointToFrame(_activeSuffix);
         _fadeTimer = null;
@@ -1699,7 +1921,6 @@
       checkFullscreenPrompt(state);
     }
 
-    const isPreviewMode = window.location.search.includes("preview=1");
     if (isPreviewMode) {
       window.addEventListener("message", (event) => {
         if (event.data && event.data.type === "preview_update") {

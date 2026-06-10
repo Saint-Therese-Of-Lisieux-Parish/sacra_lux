@@ -78,6 +78,7 @@ const state = {
   postMassRunning: false,
   countdownEndsAt: null,
   activeMassArchiveId: null,
+  startupPrompt: null,
   lastUpdated: new Date().toISOString()
 };
 

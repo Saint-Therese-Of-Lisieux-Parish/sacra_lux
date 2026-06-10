@@ -19,6 +19,12 @@ contextBridge.exposeInMainWorld("api", {
   pickImageFile: () => ipcRenderer.invoke("dialog:pickImageFile"),
 
   /**
+   * Open the native video picker.
+   * Return { name, dataUrl }, or null if cancelled.
+   */
+  pickVideoFile: () => ipcRenderer.invoke("dialog:pickVideoFile"),
+
+  /**
    * List available screen monitors.
    * Return [{ id, label, isPrimary, bounds }].
    */
