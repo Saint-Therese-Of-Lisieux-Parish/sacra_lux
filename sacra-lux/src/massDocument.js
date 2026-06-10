@@ -1,12 +1,25 @@
-const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "countdown", "interstitial"]);
+const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "movie", "countdown", "interstitial"]);
 const VALID_SECTIONS = new Set(["pre", "gathering", "mass", "post"]);
 const ITEM_KEYS = new Set(["id", "kind", "label", "section", "durationSec", "notes", "content", "source", "asset", "presentation"]);
 const TOP_LEVEL_KEYS = new Set(["format", "version", "metadata", "presentationDefaults", "items", "assets"]);
 const METADATA_KEYS = new Set(["title", "scheduledStart", "locale", "timezone", "rite"]);
-const CONTENT_KEYS = new Set(["text", "seconds", "showLabel", "label"]);
+const CONTENT_KEYS = new Set(["text", "seconds", "showLabel", "label", "autoAdvance"]);
 const SOURCE_KEYS = new Set(["stem", "citation", "title", "translation", "attribution"]);
 const ASSET_KEYS = new Set(["ref"]);
-const PRESENTATION_KEYS = new Set(["background", "textAlign", "textVAlign", "fontFamily", "countdownStyle", "countdownSizePercent"]);
+const PRESENTATION_KEYS = new Set([
+  "background",
+  "textAlign",
+  "textVAlign",
+  "fontFamily",
+  "fontSizePx",
+  "bold",
+  "italic",
+  "outline",
+  "shadow",
+  "countdownStyle",
+  "countdownSizePercent",
+  "loop"
+]);
 const VALID_DOCUMENT_BACKGROUNDS = new Set(["dark", "light"]);
 const VALID_COUNTDOWN_STYLES = new Set(["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"]);
 
@@ -70,14 +83,14 @@ function runtimeBackgroundToDocument(value, kind) {
   if (normalized === "color") return "dark";
   if (normalized === "light") return "light";
   if (normalized === "dark") return "dark";
-  return (kind === "image" || kind === "interstitial") ? "light" : "dark";
+  return (kind === "image" || kind === "interstitial" || kind === "movie") ? "light" : "dark";
 }
 
 function documentBackgroundToRuntime(value, kind) {
   const normalized = String(value || "");
   if (normalized === "light" || normalized === "image") return "light";
   if (normalized === "dark" || normalized === "color") return "dark";
-  return (kind === "image" || kind === "interstitial") ? "light" : "dark";
+  return (kind === "image" || kind === "interstitial" || kind === "movie") ? "light" : "dark";
 }
 
 function sanitizeStem(value, fallbackId) {
@@ -159,12 +172,15 @@ function validateContentForKind(kind, content) {
     return;
   }
 
-  if (kind === "image") {
+  if (kind === "image" || kind === "movie") {
     if (content.text != null && typeof content.text !== "string") {
-      throw new ValidationError("image item content.text must be a string.");
+      throw new ValidationError(`${kind} item content.text must be a string.`);
     }
     if (content.seconds != null) {
-      throw new ValidationError("image items do not allow content.seconds.");
+      throw new ValidationError(`${kind} items do not allow content.seconds.`);
+    }
+    if (content.autoAdvance != null && typeof content.autoAdvance !== "boolean") {
+      throw new ValidationError(`${kind} item content.autoAdvance must be a boolean.`);
     }
     return;
   }
@@ -182,7 +198,7 @@ function validateContentForKind(kind, content) {
 function validateSourceForKind(kind, source) {
   assertObject(source, "item.source");
   assertKnownKeys(source, SOURCE_KEYS, "item.source");
-  if (["image", "interstitial", "countdown"].includes(kind)) {
+  if (["image", "movie", "interstitial", "countdown"].includes(kind)) {
     throw new ValidationError(`item.source is not allowed for kind "${kind}".`);
   }
 }
@@ -192,7 +208,7 @@ function validateAssetForKind(kind, asset) {
   assertKnownKeys(asset, ASSET_KEYS, "item.asset");
   ensureNonEmptyString(asset.ref, "item.asset.ref");
   assetUrlFromRef(asset.ref);
-  if (!["image", "interstitial"].includes(kind)) {
+  if (!["image", "movie", "interstitial"].includes(kind)) {
     throw new ValidationError(`item.asset is not allowed for kind "${kind}".`);
   }
 }
@@ -213,6 +229,17 @@ function validatePresentation(presentation) {
   if (presentation.fontFamily != null && typeof presentation.fontFamily !== "string") {
     throw new ValidationError("presentation.fontFamily must be a string.");
   }
+  if (presentation.fontSizePx != null) {
+    const fontSizePx = Number(presentation.fontSizePx);
+    if (!Number.isFinite(fontSizePx) || fontSizePx < 24 || fontSizePx > 200) {
+      throw new ValidationError("presentation.fontSizePx must be between 24 and 200.");
+    }
+  }
+  for (const key of ["bold", "italic", "outline", "shadow"]) {
+    if (presentation[key] != null && typeof presentation[key] !== "boolean") {
+      throw new ValidationError(`presentation.${key} must be a boolean.`);
+    }
+  }
   if (presentation.countdownStyle != null && !VALID_COUNTDOWN_STYLES.has(String(presentation.countdownStyle))) {
     throw new ValidationError(`Unsupported presentation.countdownStyle "${presentation.countdownStyle}".`);
   }
@@ -221,6 +248,9 @@ function validatePresentation(presentation) {
     if (!Number.isFinite(size) || size < 50 || size > 200) {
       throw new ValidationError("presentation.countdownSizePercent must be between 50 and 200.");
     }
+  }
+  if (presentation.loop != null && typeof presentation.loop !== "boolean") {
+    throw new ValidationError("presentation.loop must be a boolean.");
   }
 }
 
@@ -338,6 +368,56 @@ function remapPresentationDefaultsToScreenSettings(presentationDefaults = {}) {
   return screenSettings;
 }
 
+function serializeStyleOverrides(styleOverrides) {
+  if (!styleOverrides || typeof styleOverrides !== "object" || Array.isArray(styleOverrides)) {
+    return {};
+  }
+
+  const presentation = {};
+  const fontFamily = typeof styleOverrides.fontFamily === "string" ? styleOverrides.fontFamily.trim() : "";
+  if (fontFamily) {
+    presentation.fontFamily = fontFamily;
+  }
+
+  const fontSizePx = Number(styleOverrides.fontSizePx);
+  if (Number.isFinite(fontSizePx) && fontSizePx >= 24 && fontSizePx <= 200) {
+    presentation.fontSizePx = Math.round(fontSizePx);
+  }
+
+  for (const key of ["bold", "italic", "outline", "shadow"]) {
+    if (typeof styleOverrides[key] === "boolean") {
+      presentation[key] = styleOverrides[key];
+    }
+  }
+
+  return presentation;
+}
+
+function readStyleOverridesFromPresentation(presentation = {}) {
+  if (!presentation || typeof presentation !== "object" || Array.isArray(presentation)) {
+    return {};
+  }
+
+  const styleOverrides = {};
+  const fontFamily = typeof presentation.fontFamily === "string" ? presentation.fontFamily.trim() : "";
+  if (fontFamily) {
+    styleOverrides.fontFamily = fontFamily;
+  }
+
+  const fontSizePx = Number(presentation.fontSizePx);
+  if (Number.isFinite(fontSizePx) && fontSizePx >= 24 && fontSizePx <= 200) {
+    styleOverrides.fontSizePx = Math.round(fontSizePx);
+  }
+
+  for (const key of ["bold", "italic", "outline", "shadow"]) {
+    if (typeof presentation[key] === "boolean") {
+      styleOverrides[key] = presentation[key];
+    }
+  }
+
+  return styleOverrides;
+}
+
 function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
   const item = {
     id: String(organizerItem.id),
@@ -362,12 +442,18 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
       stem: sanitizeStem(organizerItem.sourceStem, organizerItem.id)
     };
     if (doc?.passage) item.source.citation = doc.passage;
+    const readingPresentation = {
+      ...presentation,
+      ...serializeStyleOverrides(organizerItem.styleOverrides)
+    };
+    item.presentation = readingPresentation;
     return item;
   }
 
   if (["text", "prayer", "hymn"].includes(organizerItem.type)) {
     item.content = { text: manualSlide?.text || "" };
     presentation.textVAlign = manualSlide?.textVAlign || "middle";
+    Object.assign(presentation, serializeStyleOverrides(manualSlide?.styleOverrides));
     item.presentation = presentation;
     return item;
   }
@@ -386,6 +472,25 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
         : "ring";
     }
     presentation.countdownSizePercent = Math.max(50, Math.min(200, Number(manualSlide?.countdownSizePercent) || 100));
+    item.presentation = presentation;
+    return item;
+  }
+
+  if (organizerItem.type === "movie") {
+    if (manualSlide?.text) {
+      item.content = { text: manualSlide.text };
+    }
+    if (manualSlide?.videoAutoAdvance === false) {
+      item.content = {
+        ...(item.content || {}),
+        autoAdvance: false
+      };
+    }
+    const assetRef = assetRefFromUrl(manualSlide?.videoUrl || null);
+    if (assetRef) {
+      item.asset = { ref: assetRef };
+    }
+    presentation.loop = Boolean(manualSlide?.videoLoop);
     item.presentation = presentation;
     return item;
   }
@@ -450,6 +555,7 @@ function buildRuntimeStateFromMassDocument(document) {
     if (type === "reading") {
       const doc = buildReadingDocumentFromItem(item);
       organizerItem.sourceStem = doc.stem;
+      organizerItem.styleOverrides = readStyleOverridesFromPresentation(item.presentation);
       documents.push(doc);
       organizerSequence.push(organizerItem);
       continue;
@@ -464,6 +570,7 @@ function buildRuntimeStateFromMassDocument(document) {
       manual.text = item.content?.text || "";
       manual.textVAlign = item.presentation?.textVAlign || "middle";
       manual.imageUrl = null;
+      manual.styleOverrides = readStyleOverridesFromPresentation(item.presentation);
     } else if (type === "countdown") {
       manual.text = "";
       manual.textVAlign = null;
@@ -474,10 +581,20 @@ function buildRuntimeStateFromMassDocument(document) {
         ? String(item.presentation.countdownStyle)
         : "ring";
       manual.countdownSizePercent = Math.max(50, Math.min(200, Number(item.presentation?.countdownSizePercent) || 100));
+      manual.styleOverrides = {};
+    } else if (type === "movie") {
+      manual.text = item.content?.text || "";
+      manual.textVAlign = null;
+      manual.imageUrl = null;
+      manual.videoUrl = item.asset?.ref ? assetUrlFromRef(item.asset.ref) : null;
+      manual.videoLoop = Boolean(item.presentation?.loop);
+      manual.videoAutoAdvance = item.content?.autoAdvance !== false;
+      manual.styleOverrides = {};
     } else {
       manual.text = item.content?.text || "";
       manual.textVAlign = null;
       manual.imageUrl = item.asset?.ref ? assetUrlFromRef(item.asset.ref) : null;
+      manual.styleOverrides = {};
     }
 
     manualSlides[item.id] = manual;

@@ -30,7 +30,8 @@ const {
   normalizeCountdownSizePercent,
   normalizeCountdownStyle,
   normalizePhase,
-  normalizeType
+  normalizeType,
+  normalizeStyleOverrides
 } = require("./organizer");
 const { saveSession, loadSession, getSessionFilePath } = require("./persistence");
 const { themes: allThemes, getTheme, listThemes, DEFAULT_THEME } = require("./themes");
@@ -89,6 +90,9 @@ const GOOGLE_FONTS = new Set([
 const logInfo = logger.info;
 const logWarn = logger.warn;
 const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
+const IMAGE_ASSET_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
+const VIDEO_ASSET_EXT = new Set([".mp4"]);
+const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
 
 // ── ZIP export helpers ───────────────────────────────────────────────────────
 
@@ -293,6 +297,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   } else {
     for (const slide of Object.values(packageInfo.raw.manualSlides || {})) {
       if (slide.imageUrl) refs.push(slide.imageUrl);
+      if (slide.videoUrl) refs.push(slide.videoUrl);
     }
     for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
       if (packageInfo.raw.screenSettings?.[key]) refs.push(packageInfo.raw.screenSettings[key]);
@@ -394,6 +399,7 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
   state.manualSlides = {};
   state.readingsSource = { folderPath: CURRENT_MASS_DIR, documents: [] };
   state.massStartTime = null;
+  state.startupPrompt = null;
 
   state.screenSettings = normalizeScreenSettings(runtime.screenSettings || DEFAULT_SCREEN_SETTINGS);
   state.organizerSequence = normalizeOrganizerSequence(runtime.organizerSequence || []);
@@ -431,6 +437,57 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
   stopPostMassTimer();
   touch();
   ioRef.emit("state:update", getStateSnapshot());
+}
+
+function resetPresentationRuntimeState() {
+  state.presentation = {
+    title: "No presentation loaded",
+    sourceFile: null,
+    slides: []
+  };
+  state.readingsSource = { folderPath: null, documents: [] };
+  state.organizerSequence = [];
+  state.manualSlides = {};
+  state.currentSlideIndex = 0;
+  state.massStartTime = null;
+  state.activeMassArchiveId = null;
+  resetDisplayOverrides();
+  state.preMassRunning = false;
+  stopPreMassTimer();
+  stopGatheringTimer();
+  stopPostMassTimer();
+  if (_startTimer) {
+    clearTimeout(_startTimer);
+    _startTimer = null;
+  }
+}
+
+function setStartupPrompt(reason) {
+  state.startupPrompt = {
+    type: "mass-library",
+    reason: String(reason || "missing-current-mass")
+  };
+}
+
+function restoreCurrentMassOrPrompt(ioRef) {
+  const currentMassJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
+  if (!fs.existsSync(currentMassJsonPath)) {
+    resetPresentationRuntimeState();
+    setStartupPrompt("missing-current-mass");
+    return false;
+  }
+
+  try {
+    const packageInfo = readMassPackageDefinition(CURRENT_MASS_DIR, state.screenSettings);
+    state.activeMassArchiveId = null;
+    applyMassPackageFromCurrentDir(ioRef, packageInfo.raw);
+    return true;
+  } catch (error) {
+    resetPresentationRuntimeState();
+    setStartupPrompt("invalid-current-mass");
+    logWarn(`[persistence] Could not restore current_mass package from "${CURRENT_MASS_DIR}": ${error.message}`);
+    return false;
+  }
 }
 
 function normalizeScreenSettings(input = {}) {
@@ -563,6 +620,7 @@ function mergeManualSlideState(nextSequence, nextManualSlides) {
       ...(state.manualSlides[item.id] || {}),
       ...(nextManualSlides[item.id] || {})
     };
+    merged[item.id].styleOverrides = normalizeStyleOverrides(merged[item.id].styleOverrides);
   }
 
   return merged;
@@ -612,6 +670,7 @@ function normalizeOrganizerSequence(sequence = []) {
       type: normalizeType(item.type ?? item.kind),
       label: String(item.label || "Slide"),
       sourceStem: item.sourceStem ? String(item.sourceStem) : null,
+      styleOverrides: normalizeStyleOverrides(item.styleOverrides),
       phase,
       backgroundTheme: normalizeBackgroundTheme(
         item.backgroundTheme ??
@@ -697,8 +756,9 @@ function scheduleNextPreMassSlide(ioRef) {
     return;
   }
 
-  // Let countdown slides control auto-advance and skip the phase timer.
+  // Let countdown and movie slides control auto-advance and skip the phase timer.
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
+  if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
   const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
   const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
@@ -802,8 +862,9 @@ function scheduleNextGatheringSlide(ioRef) {
     return;
   }
 
-  // Let countdown slides control auto-advance and skip the phase timer.
+  // Let countdown and movie slides control auto-advance and skip the phase timer.
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
+  if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
   const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
   const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
@@ -892,8 +953,9 @@ function scheduleNextPostMassSlide(ioRef) {
     return;
   }
 
-  // Let countdown slides control auto-advance and skip the phase timer.
+  // Let countdown and movie slides control auto-advance and skip the phase timer.
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
+  if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
   const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
   const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
@@ -1056,6 +1118,34 @@ function startCountdownForSlide(ioRef) {
   }, durationMs);
 }
 
+function shouldMovieSlideControlAdvance(slide) {
+  return Boolean(slide) &&
+    slide.type === "movie" &&
+    slide.videoLoop !== true &&
+    slide.videoAutoAdvance !== false;
+}
+
+function advanceFromCurrentSlide(ioRef) {
+  const allSlides = state.presentation?.slides || [];
+  if (state.currentSlideIndex >= allSlides.length - 1) {
+    touch();
+    ioRef.emit("state:update", getStateSnapshot());
+    return false;
+  }
+
+  state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex + 1);
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+  scheduleSave();
+
+  if (state.preMassRunning) scheduleNextPreMassSlide(ioRef);
+  if (state.gatheringRunning) scheduleNextGatheringSlide(ioRef);
+  if (state.postMassRunning) scheduleNextPostMassSlide(ioRef);
+  const nextSlide = allSlides[state.currentSlideIndex];
+  if (nextSlide?.type === "countdown") startCountdownForSlide(ioRef);
+  return true;
+}
+
 /**
  * Schedule (or reschedule) the auto-advance to the first "mass" phase slide.
  * `io` is passed in because this runs in the server scope.
@@ -1100,102 +1190,63 @@ function scheduleSave(syncCurrentMass = false) {
  * Attempt to restore the last saved session.
  * Re-imports readings from the saved folder path if it still exists on disk.
  */
-function restoreSession() {
+function restoreSession(ioRef) {
   const session = loadSession();
   if (!session) {
     logInfo(`[persistence] No saved session found at ${getSessionFilePath()}`);
-    return;
-  }
+  } else {
+    logInfo(`[persistence] Restoring session saved at ${session.savedAt}`);
 
-  logInfo(`[persistence] Restoring session saved at ${session.savedAt}`);
-
-  const screenSettings = session.screenSettings || session.displaySettings;
-  if (screenSettings && typeof screenSettings === "object") {
-    state.screenSettings = normalizeScreenSettings(screenSettings);
-  }
-
-  if (session.massStartTime && typeof session.massStartTime === "string") {
-    state.massStartTime = session.massStartTime;
-  }
-
-  if (session.startPinHash && typeof session.startPinHash === "object") {
-    state.startPinHash = {
-      hash: String(session.startPinHash.hash || ""),
-      salt: String(session.startPinHash.salt || ""),
-      iterations: Number(session.startPinHash.iterations) || PIN_HASH_ITERATIONS,
-      digest: PIN_HASH_DIGEST
-    };
-    state.startPin = "";
-  } else if (session.startPin && typeof session.startPin === "string") {
-    // Migrate old plaintext PINs to hashed storage on restore.
-    const cleaned = String(session.startPin).replace(/\D/g, "").slice(0, 6);
-    if (cleaned.length >= 4) {
-      state.startPinHash = createPinHashRecord(cleaned);
-      state.startPin = "";
+    const screenSettings = session.screenSettings || session.displaySettings;
+    if (screenSettings && typeof screenSettings === "object") {
+      state.screenSettings = normalizeScreenSettings(screenSettings);
     }
-  }
 
-  const targetScreenIds = Array.isArray(session.targetScreenIds)
-    ? [...new Set(session.targetScreenIds.map((id) => Number(id)).filter(Number.isFinite))]
-    : [];
-  const targetScreenId = session.targetScreenId ?? session.targetDisplayId;
-  if (targetScreenIds.length > 0) {
-    state.targetScreenIds = targetScreenIds;
-    state.targetScreenId = targetScreenIds[0];
-  } else if (targetScreenId != null) {
-    state.targetScreenId = targetScreenId;
-    state.targetScreenIds = [targetScreenId];
-  }
-  if (session.screenFullscreen || session.displayFullscreen) {
-    state.screenFullscreen = true;
-  }
-  if (session.activeMassArchiveId && typeof session.activeMassArchiveId === "string") {
-    state.activeMassArchiveId = session.activeMassArchiveId;
-  }
-
-  if (session.appSettings && typeof session.appSettings === "object") {
-    if (!state.appSettings) state.appSettings = {};
-    if (session.appSettings.theme && getTheme(session.appSettings.theme)) {
-      state.appSettings.theme = session.appSettings.theme;
+    if (session.massStartTime && typeof session.massStartTime === "string") {
+      state.massStartTime = session.massStartTime;
     }
-  }
 
-  if (Array.isArray(session.organizerSequence)) {
-    state.organizerSequence = normalizeOrganizerSequence(session.organizerSequence);
-  }
-
-  if (session.manualSlides && typeof session.manualSlides === "object") {
-    state.manualSlides = mergeManualSlideState(state.organizerSequence, session.manualSlides);
-    propagateInterstitialImage(state.organizerSequence, state.manualSlides);
-  }
-
-  if (session.lastReadingsFolderPath) {
-    // Prefer current_mass directory; fall back to saved path for backward compatibility
-    const readingsPath = fs.existsSync(CURRENT_MASS_DIR) && fs.readdirSync(CURRENT_MASS_DIR).some((f) => f.endsWith(".txt"))
-      ? CURRENT_MASS_DIR
-      : session.lastReadingsFolderPath;
-    try {
-      const imported = importReadings(readingsPath, {
-        fontSizePx: state.screenSettings.fontSizePx,
-        fontFamily: state.screenSettings.fontFamily,
-        readingTextHeightPx: state.screenSettings.readingTextHeightPx
-      });
-      state.readingsSource = {
-        folderPath: readingsPath,
-        documents: imported.documents || []
+    if (session.startPinHash && typeof session.startPinHash === "object") {
+      state.startPinHash = {
+        hash: String(session.startPinHash.hash || ""),
+        salt: String(session.startPinHash.salt || ""),
+        iterations: Number(session.startPinHash.iterations) || PIN_HASH_ITERATIONS,
+        digest: PIN_HASH_DIGEST
       };
-      state.presentation = buildPresentationFromOrganizer({
-        title: session.presentationTitle || imported.title || path.basename(session.lastReadingsFolderPath),
-        documents: state.readingsSource.documents,
-        sequence: state.organizerSequence,
-        manualSlides: state.manualSlides,
-        screenSettings: state.screenSettings
-      });
-      logInfo(`[persistence] Restored "${state.presentation.title}" with ${state.presentation.slides.length} slides`);
-    } catch (err) {
-      logWarn(`[persistence] Could not reload readings from "${session.lastReadingsFolderPath}": ${err.message}`);
+      state.startPin = "";
+    } else if (session.startPin && typeof session.startPin === "string") {
+      // Migrate old plaintext PINs to hashed storage on restore.
+      const cleaned = String(session.startPin).replace(/\D/g, "").slice(0, 6);
+      if (cleaned.length >= 4) {
+        state.startPinHash = createPinHashRecord(cleaned);
+        state.startPin = "";
+      }
+    }
+
+    const targetScreenIds = Array.isArray(session.targetScreenIds)
+      ? [...new Set(session.targetScreenIds.map((id) => Number(id)).filter(Number.isFinite))]
+      : [];
+    const targetScreenId = session.targetScreenId ?? session.targetDisplayId;
+    if (targetScreenIds.length > 0) {
+      state.targetScreenIds = targetScreenIds;
+      state.targetScreenId = targetScreenIds[0];
+    } else if (targetScreenId != null) {
+      state.targetScreenId = targetScreenId;
+      state.targetScreenIds = [targetScreenId];
+    }
+    if (session.screenFullscreen || session.displayFullscreen) {
+      state.screenFullscreen = true;
+    }
+
+    if (session.appSettings && typeof session.appSettings === "object") {
+      if (!state.appSettings) state.appSettings = {};
+      if (session.appSettings.theme && getTheme(session.appSettings.theme)) {
+        state.appSettings.theme = session.appSettings.theme;
+      }
     }
   }
+
+  restoreCurrentMassOrPrompt(ioRef);
 }
 
 // ── Express / Socket.IO server ────────────────────────────────────────────────
@@ -1291,11 +1342,14 @@ function startServer(port = 17841, options = {}) {
       if (!dataUrl) {
         return res.status(400).json({ error: "dataUrl is required." });
       }
-      const match = String(dataUrl).match(/^data:(image\/[a-z+]+);base64,([A-Za-z0-9+/=]+)$/);
+      const match = String(dataUrl).match(/^data:((?:image\/[a-z+]+)|(?:video\/mp4));base64,([A-Za-z0-9+/=]+)$/);
       if (!match) {
-        return res.status(400).json({ error: "Invalid image data URL." });
+        return res.status(400).json({ error: "Invalid media data URL." });
       }
       const ext = match[1].split("/")[1].replace("jpeg", "jpg").replace("+", "");
+      if (!MEDIA_ASSET_EXT.has(`.${ext}`)) {
+        return res.status(400).json({ error: "Unsupported media type." });
+      }
       // Build a readable, collision-safe filename from the original name.
       const baseName = String(filename || "light")
         .replace(/\.[^.]+$/, "")          // strip extension
@@ -1326,11 +1380,20 @@ function startServer(port = 17841, options = {}) {
       if (!fs.existsSync(assetsDir)) {
         return res.json({ assets: [] });
       }
-      const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
+      const kind = String(req.query.kind || "all");
+      const allowedExt = kind === "image"
+        ? IMAGE_ASSET_EXT
+        : kind === "video"
+        ? VIDEO_ASSET_EXT
+        : MEDIA_ASSET_EXT;
       const files = fs.readdirSync(assetsDir)
-        .filter((f) => IMAGE_EXT.has(path.extname(f).toLowerCase()))
+        .filter((f) => allowedExt.has(path.extname(f).toLowerCase()))
         .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
-      const assets = files.map((f) => ({ name: f, url: `/api/mass-asset/${f}` }));
+      const assets = files.map((f) => ({
+        name: f,
+        url: `/api/mass-asset/${f}`,
+        mediaType: VIDEO_ASSET_EXT.has(path.extname(f).toLowerCase()) ? "video" : "image"
+      }));
       return res.json({ assets });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list assets." });
@@ -1805,6 +1868,7 @@ function startServer(port = 17841, options = {}) {
 
       // 2. Apply new title
       state.activeMassArchiveId = null;
+      state.startupPrompt = null;
       state.presentation.title = String(title).trim();
 
       // 3. Apply new start time (or clear it)
@@ -1859,36 +1923,37 @@ function startServer(port = 17841, options = {}) {
 
       // 2. Build a default organizer sequence with placeholder slides
       state.activeMassArchiveId = null;
-    const newSequence = [
-      { id: "pre-announcements", type: "text", label: "Sacra Lux", phase: "pre", backgroundTheme: "dark", durationSec: 30 },
-      { id: "gathering-countdown", type: "countdown", label: "30-Second Timer", phase: "gathering", backgroundTheme: "dark", durationSec: 30 },
-      { id: "mass-title", type: "text", label: "Mass Title", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-opening-hymn", type: "hymn", label: "Opening Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-1", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-gloria", type: "hymn", label: "Gloria", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-2", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-reading-1", type: "reading", label: "First Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-3", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-psalm", type: "reading", label: "Psalm", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-4", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-reading-2", type: "reading", label: "Second Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-5", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-gospel-acclamation", type: "hymn", label: "Gospel Acclamation", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-6", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-gospel", type: "reading", label: "Gospel", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-7", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-nicene-creed", type: "prayer", label: "Nicene Creed", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-8", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-offertory", type: "hymn", label: "Offertory Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-9", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-lords-prayer", type: "prayer", label: "The Lord's Prayer", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-10", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-communion", type: "hymn", label: "Communion Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-11", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-recessional", type: "hymn", label: "Recessional Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "mass-interstitial-12", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-      { id: "post-announcements", type: "text", label: "Sacra Lux", phase: "post", backgroundTheme: "dark", durationSec: 30 }
-    ];
+      state.startupPrompt = null;
+      const newSequence = [
+        { id: "pre-announcements", type: "text", label: "Sacra Lux", phase: "pre", backgroundTheme: "dark", durationSec: 30 },
+        { id: "gathering-countdown", type: "countdown", label: "30-Second Timer", phase: "gathering", backgroundTheme: "dark", durationSec: 30 },
+        { id: "mass-title", type: "text", label: "Mass Title", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-opening-hymn", type: "hymn", label: "Opening Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-1", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-gloria", type: "hymn", label: "Gloria", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-2", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-reading-1", type: "reading", label: "First Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-3", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-psalm", type: "reading", label: "Psalm", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-4", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-reading-2", type: "reading", label: "Second Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-5", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-gospel-acclamation", type: "hymn", label: "Gospel Acclamation", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-6", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-gospel", type: "reading", label: "Gospel", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-7", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-nicene-creed", type: "prayer", label: "Nicene Creed", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-8", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-offertory", type: "hymn", label: "Offertory Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-9", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-lords-prayer", type: "prayer", label: "The Lord's Prayer", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-10", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-communion", type: "hymn", label: "Communion Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-11", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-recessional", type: "hymn", label: "Recessional Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "mass-interstitial-12", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+        { id: "post-announcements", type: "text", label: "Sacra Lux", phase: "post", backgroundTheme: "dark", durationSec: 30 }
+      ];
 
       state.organizerSequence = normalizeOrganizerSequence(newSequence);
       const newManualSlides = {};
@@ -2001,7 +2066,7 @@ function startServer(port = 17841, options = {}) {
           const filename = getSafeZipEntryFilename(
             entry.entryName,
             "readings/assets/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
           );
           if (!filename) continue;
           fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
@@ -2016,7 +2081,7 @@ function startServer(port = 17841, options = {}) {
           const filename = getSafeZipEntryFilename(
             entry.entryName,
             "assets/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
           );
           if (!filename) continue;
           fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
@@ -2032,7 +2097,7 @@ function startServer(port = 17841, options = {}) {
           const filename = getSafeZipEntryFilename(
             entry.entryName,
             "uploads/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
           );
           if (!filename) continue;
           const dest = path.join(assetsImportDir, filename);
@@ -2102,7 +2167,7 @@ function startServer(port = 17841, options = {}) {
             const filename = getSafeZipEntryFilename(
               entry.entryName,
               "assets/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
             );
             if (!filename) continue;
             const assetDir = path.join(CURRENT_MASS_DIR, "assets");
@@ -2114,7 +2179,7 @@ function startServer(port = 17841, options = {}) {
             const filename = getSafeZipEntryFilename(
               entry.entryName,
               "readings/assets/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
             );
             if (!filename) continue;
             const assetDir = path.join(CURRENT_MASS_DIR, "assets");
@@ -2132,7 +2197,7 @@ function startServer(port = 17841, options = {}) {
             const filename = getSafeZipEntryFilename(
               entry.entryName,
               "uploads/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif)$/i
+              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
             );
             if (!filename) continue;
             const assetDir = path.join(CURRENT_MASS_DIR, "assets");
@@ -2255,6 +2320,7 @@ function startServer(port = 17841, options = {}) {
         folderPath: currentMassPath,
         documents: imported.documents || []
       };
+      state.startupPrompt = null;
 
       const defaults = createDefaultOrganizer(state.readingsSource.documents);
 
@@ -2337,7 +2403,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/preview-reading", (req, res) => {
     try {
-      const { text, stem, label, overrideSettings } = req.body || {};
+      const { text, stem, label, overrideSettings, styleOverrides } = req.body || {};
 
       const doc = state.readingsSource?.documents?.find((d) => d.stem === stem);
       if (!doc) {
@@ -2366,6 +2432,7 @@ function startServer(port = 17841, options = {}) {
         readingTextSizePx: settings.readingTextSizePx
       }).map((slide) => ({
         ...slide,
+        styleOverrides: normalizeStyleOverrides(styleOverrides),
         groupLabel: String(label || doc.section || "")
       }));
 
@@ -2400,6 +2467,7 @@ function startServer(port = 17841, options = {}) {
       manual.text = String(incomingManual.text || "");
       manual.notes = String(incomingManual.notes || "");
       manual.imageUrl = String(incomingManual.imageUrl || "").trim() || null;
+      manual.styleOverrides = normalizeStyleOverrides(incomingManual.styleOverrides);
       if (["top", "middle", "bottom"].includes(String(incomingManual.textVAlign || ""))) {
         manual.textVAlign = String(incomingManual.textVAlign);
       }
@@ -2614,6 +2682,13 @@ function startServer(port = 17841, options = {}) {
       activateGatheringSequence: true,
       activatePostMassLoop: true
     }));
+    socket.on("slide:video-ended", (payload) => {
+      const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const slideId = String(payload?.slideId || "");
+      if (!shouldMovieSlideControlAdvance(currentSlide)) return;
+      if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      advanceFromCurrentSlide(io);
+    });
     socket.on("screen:interstitial-hold", (payload) => {
       if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
@@ -2637,23 +2712,26 @@ function startServer(port = 17841, options = {}) {
         const sharp = require("sharp");
         const zip = new (getAdmZip())();
 
-        // Collect image URLs referenced by manual slides and screen settings.
-        const imageRefs = [];
+        // Collect media URLs referenced by manual slides and image URLs from screen settings.
+        const mediaRefs = [];
         for (const [id, slide] of Object.entries(state.manualSlides || {})) {
           if (slide.imageUrl) {
-            imageRefs.push({ url: slide.imageUrl, type: "slide", id });
+            mediaRefs.push({ url: slide.imageUrl, type: "slide", id });
+          }
+          if (slide.videoUrl) {
+            mediaRefs.push({ url: slide.videoUrl, type: "slide", id });
           }
         }
         for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
           const url = state.screenSettings?.[key];
-          if (url) imageRefs.push({ url, type: "screenSetting", key });
+          if (url) mediaRefs.push({ url, type: "screenSetting", key });
         }
 
         // Resolve image URLs to filesystem paths and skip built-ins or missing files.
         const CONVERTIBLE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif"]);
         const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
         const resolved = [];
-        for (const ref of imageRefs) {
+        for (const ref of mediaRefs) {
           const url = ref.url;
           let filePath = null;
           let originalName = null;
@@ -2743,7 +2821,7 @@ function startServer(port = 17841, options = {}) {
     logInfo(`Screen URL:   http://${host}:${listeningPort}/screen`);
 
     // Restore the session after the server is bound.
-    restoreSession();
+    restoreSession(io);
     scheduleStartTimer(io);
 
     const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
