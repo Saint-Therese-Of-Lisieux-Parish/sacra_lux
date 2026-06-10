@@ -3227,6 +3227,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/static/vendor/qrcode.min.js"></script>
+  <script src="/static/client/shared.js"></script>
   <script>
     const socket = io();
     const uiState = {
@@ -3469,11 +3470,7 @@
     }
 
     function formatCountdownTime(totalSeconds) {
-      const remainSec = Math.max(0, Number(totalSeconds) || 0);
-      if (remainSec < 60) return String(remainSec);
-      const mm = Math.floor(remainSec / 60);
-      const ss = String(remainSec % 60).padStart(2, "0");
-      return `${mm}:${ss}`;
+      return SacraLuxShared.formatCountdownTime(totalSeconds);
     }
 
     function stopEditorPreviewCountdownSimulation() {
@@ -3857,11 +3854,7 @@
 
     /** HTML-escape for use inside thumbnail innerHTML. */
     function escThumb(str) {
-      return String(str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+      return SacraLuxShared.escapeHtml(str || "");
     }
 
     /**
@@ -4037,12 +4030,7 @@
     };
 
     function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+      return SacraLuxShared.escapeHtml(value);
     }
 
     function replaceSelectOptions(selectEl, items, { placeholderLabel = "", placeholderValue = "" } = {}) {
