@@ -52,6 +52,32 @@ describe("server api integration", () => {
     expect(stateRes.body.startPin).toBeUndefined();
   });
 
+  test("theme endpoints list Catholic themes first", async () => {
+    const expectedCatholicIds = [
+      "carmelite",
+      "carmeliteDark",
+      "advent",
+      "lenten",
+      "easter",
+      "marian",
+      "sacredHeart",
+      "sanJuan",
+      "jesuit",
+      "dominican",
+      "franciscan",
+      "benedictine"
+    ];
+
+    const themesRes = await request(app).get("/api/themes").expect(200);
+    const themeVarsRes = await request(app).get("/api/theme-vars").expect(200);
+
+    expect(themesRes.body.themes.slice(0, expectedCatholicIds.length).map(({ id }) => id))
+      .toEqual(expectedCatholicIds);
+    expect(Object.keys(themeVarsRes.body.themes)).toEqual(
+      themesRes.body.themes.map(({ id }) => id)
+    );
+  });
+
   test("verify-pin rejects incorrect values and accepts correct ones", async () => {
     await request(app).post("/api/start-pin").send({ pin: "4567" }).expect(200);
 
