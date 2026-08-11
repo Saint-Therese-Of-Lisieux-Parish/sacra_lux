@@ -34,7 +34,7 @@ const {
   normalizeStyleOverrides
 } = require("./organizer");
 const { saveSession, loadSession, getSessionFilePath } = require("./persistence");
-const { themes: allThemes, getTheme, listThemes, DEFAULT_THEME } = require("./themes");
+const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./themes");
 const logger = require("./logger");
 const {
   CURRENT_MASS_DIR,
@@ -1500,7 +1500,7 @@ function startServer(port = 17841, options = {}) {
 
   app.get("/api/theme-vars", (_req, res) => {
     const out = {};
-    for (const [id, t] of Object.entries(allThemes)) {
+    for (const [id, t] of listThemeEntries()) {
       out[id] = { label: t.label, vars: t.vars, colorScheme: t.colorScheme || "light" };
     }
     res.json({ themes: out, current: state.appSettings?.theme || DEFAULT_THEME });

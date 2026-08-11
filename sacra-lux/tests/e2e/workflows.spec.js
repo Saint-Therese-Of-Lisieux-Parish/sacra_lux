@@ -29,6 +29,40 @@ async function dismissRemoteSplash(page) {
   await expect(page.locator("#remoteSplash")).toBeHidden();
 }
 
+test("App Settings lists Catholic themes first", async ({ page }) => {
+  await page.goto(`${baseUrl}/`);
+  await expect(page.locator("#massLibraryDialog")).toBeVisible();
+  await page.locator("#massLibraryCloseBtn").click();
+  await page.locator("#openAppSettingsBtn").click();
+  await expect(page.locator("#appSettingsDialog")).toBeVisible();
+  await expect(page.locator("#themePicker .theme-swatch")).toHaveCount(22);
+
+  await expect(page.locator("#themePicker .theme-swatch")).toHaveText([
+    "Carmel Light",
+    "Carmel Dark",
+    "Advent",
+    "Lenten",
+    "Easter",
+    "Marian",
+    "Sacred Heart",
+    "San Juan",
+    "Jesuit",
+    "Dominican",
+    "Franciscan",
+    "Benedictine",
+    "Light",
+    "Dark",
+    "Rose",
+    "Solarized",
+    "Ocean",
+    "High Contrast",
+    "Nord",
+    "Monokai",
+    "Stained Glass",
+    "Geaux Tigers"
+  ]);
+});
+
 test("remote splash dismisses into preview-first layout and arrow next advances slide", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {
