@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.54.2",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.4",
     "electron": "^41.0.0",
     "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
