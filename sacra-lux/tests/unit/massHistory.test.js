@@ -56,4 +56,20 @@ describe("massHistory", () => {
     expect(fs.existsSync(path.join(homeDir, ".sacra-lux", "mass_history", "Mass-A"))).toBe(false);
     expect(fs.existsSync(path.join(homeDir, ".sacra-lux", "mass_history", "Mass-B"))).toBe(true);
   });
+
+  test("deleteMassArchive rejects ids that resolve outside mass_history", () => {
+    const sacraDir = path.join(homeDir, ".sacra-lux");
+    const canary = path.join(sacraDir, "canary.txt");
+    fs.mkdirSync(sacraDir, { recursive: true });
+    fs.writeFileSync(canary, "keep", "utf8");
+
+    const history = require("../../src/massHistory");
+    for (const archiveId of [".", "..", "../.."]) {
+      expect(() => history.deleteMassArchive(archiveId)).toThrow("Invalid archive id.");
+      expect(() => history.getArchivePaths(archiveId)).toThrow("Invalid archive id.");
+    }
+
+    expect(fs.existsSync(sacraDir)).toBe(true);
+    expect(fs.readFileSync(canary, "utf8")).toBe("keep");
+  });
 });
