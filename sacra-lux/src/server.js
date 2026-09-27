@@ -105,29 +105,85 @@ const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
 // ── ZIP export helpers ───────────────────────────────────────────────────────
 
 /**
- * Copy readings into `~/.sacra-lux/current_mass/`.
- * Clear the destination first so it always matches the active Mass.
- * Return the current_mass path.
+ * Build a replacement Mass in a side directory and move it into place only
+ * after `populate` finishes. A throw leaves `current_mass` unchanged.
  */
-function copyReadingsToCurrentMass(srcFolder) {
-  // Clear the existing contents.
-  if (fs.existsSync(CURRENT_MASS_DIR)) {
-    fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
-  }
-  fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
+function replaceCurrentMassDir(populate) {
+  const parent = path.dirname(CURRENT_MASS_DIR);
+  const token = crypto.randomBytes(6).toString("hex");
+  const stagingDir = path.join(parent, `.current_mass-staging-${token}`);
+  const backupDir = path.join(parent, `.current_mass-backup-${token}`);
+  fs.mkdirSync(stagingDir, { recursive: true });
 
-  // Copy top-level files.
-  for (const file of fs.readdirSync(srcFolder)) {
-    const srcPath = path.join(srcFolder, file);
-    if (fs.statSync(srcPath).isFile()) {
-      fs.copyFileSync(srcPath, path.join(CURRENT_MASS_DIR, file));
+  try {
+    populate(stagingDir);
+  } catch (error) {
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    throw error;
+  }
+
+  let movedCurrent = false;
+  try {
+    if (fs.existsSync(CURRENT_MASS_DIR)) {
+      fs.renameSync(CURRENT_MASS_DIR, backupDir);
+      movedCurrent = true;
+    }
+    fs.renameSync(stagingDir, CURRENT_MASS_DIR);
+  } catch (error) {
+    if (movedCurrent && fs.existsSync(backupDir)) {
+      if (fs.existsSync(CURRENT_MASS_DIR)) {
+        fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
+      }
+      fs.renameSync(backupDir, CURRENT_MASS_DIR);
+    }
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    throw error;
+  }
+
+  fs.rmSync(backupDir, { recursive: true, force: true });
+}
+
+function writeZipMassPackage(zip, destDir, packageDefinition) {
+  fs.mkdirSync(destDir, { recursive: true });
+  const mediaPattern = /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i;
+  const groups = [
+    ["readings/", /^[^/\\:*?"<>|]+\.txt$/, ""],
+    ["readings/assets/", mediaPattern, "assets"],
+    ["assets/", mediaPattern, "assets"],
+    ["uploads/", mediaPattern, "assets"]
+  ];
+
+  for (const [prefix, pattern, subdir] of groups) {
+    for (const entry of zip.getEntries()) {
+      if (entry.isDirectory || entry.entryName === "mass.json" || entry.entryName === "settings.json") continue;
+      if (!entry.entryName.startsWith(prefix)) continue;
+      if (prefix === "readings/" && entry.entryName.startsWith("readings/assets/")) continue;
+      const filename = getSafeZipEntryFilename(entry.entryName, prefix, pattern);
+      if (!filename) continue;
+      const targetDir = subdir ? path.join(destDir, subdir) : destDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      const dest = path.join(targetDir, filename);
+      if (prefix === "uploads/" && fs.existsSync(dest)) continue;
+      fs.writeFileSync(dest, entry.getData());
     }
   }
 
-  // Copy the assets subdirectory when present.
+  fs.writeFileSync(path.join(destDir, "mass.json"), JSON.stringify(packageDefinition, null, 2), "utf8");
+  readMassPackageDefinition(destDir, state.screenSettings);
+}
+
+function copyFolderFilesInto(srcFolder, destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const file of fs.readdirSync(srcFolder)) {
+    const srcPath = path.join(srcFolder, file);
+    if (fs.statSync(srcPath).isFile()) {
+      fs.copyFileSync(srcPath, path.join(destDir, file));
+    }
+  }
+
   const srcAssets = path.join(srcFolder, "assets");
   if (fs.existsSync(srcAssets) && fs.statSync(srcAssets).isDirectory()) {
-    const destAssets = path.join(CURRENT_MASS_DIR, "assets");
+    const destAssets = path.join(destDir, "assets");
     fs.mkdirSync(destAssets, { recursive: true });
     for (const file of fs.readdirSync(srcAssets)) {
       const srcPath = path.join(srcAssets, file);
@@ -136,7 +192,21 @@ function copyReadingsToCurrentMass(srcFolder) {
       }
     }
   }
+}
 
+/**
+ * Copy readings into `~/.sacra-lux/current_mass/`.
+ * The previous package stays in place until the copy is complete.
+ * Return the current_mass path.
+ */
+function copyReadingsToCurrentMass(srcFolder) {
+  if (!srcFolder || !fs.existsSync(srcFolder) || !fs.statSync(srcFolder).isDirectory()) {
+    throw new ValidationError("Readings folder was not found.");
+  }
+
+  replaceCurrentMassDir((stagingDir) => {
+    copyFolderFilesInto(srcFolder, stagingDir);
+  });
   return CURRENT_MASS_DIR;
 }
 
@@ -2384,73 +2454,9 @@ function startServer(port = 17841, options = {}) {
       }
       const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
 
-      // Extract readings/ to ~/.sacra-lux/current_mass/
-      // Clear current_mass first so it reflects this import
-      if (fs.existsSync(CURRENT_MASS_DIR)) {
-        fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
-      }
-      fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-      const readingsEntries = zip.getEntries().filter(
-        (e) => e.entryName.startsWith("readings/") && !e.entryName.startsWith("readings/assets/") && !e.isDirectory
-      );
-      if (readingsEntries.length > 0) {
-        for (const entry of readingsEntries) {
-          const filename = getSafeZipEntryFilename(entry.entryName, "readings/", /^[^/\\:*?"<>|]+\.txt$/);
-          if (!filename) continue;
-          fs.writeFileSync(path.join(CURRENT_MASS_DIR, filename), entry.getData());
-        }
-      }
-      // Extract readings/assets/ — images co-located with the Mass
-      const assetEntries = zip.getEntries().filter(
-        (e) => e.entryName.startsWith("readings/assets/") && !e.isDirectory
-      );
-      if (assetEntries.length > 0) {
-        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
-        fs.mkdirSync(assetsImportDir, { recursive: true });
-        for (const entry of assetEntries) {
-          const filename = getSafeZipEntryFilename(
-            entry.entryName,
-            "readings/assets/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-          );
-          if (!filename) continue;
-          fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
-        }
-      }
-
-      const v3AssetEntries = zip.getEntries().filter((e) => e.entryName.startsWith("assets/") && !e.isDirectory);
-      if (v3AssetEntries.length > 0) {
-        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
-        fs.mkdirSync(assetsImportDir, { recursive: true });
-        for (const entry of v3AssetEntries) {
-          const filename = getSafeZipEntryFilename(
-            entry.entryName,
-            "assets/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-          );
-          if (!filename) continue;
-          fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
-        }
-      }
-
-      // Extract legacy uploads/ entries into current_mass/assets/
-      const uploadEntries = zip.getEntries().filter((e) => e.entryName.startsWith("uploads/") && !e.isDirectory);
-      if (uploadEntries.length > 0) {
-        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
-        fs.mkdirSync(assetsImportDir, { recursive: true });
-        for (const entry of uploadEntries) {
-          const filename = getSafeZipEntryFilename(
-            entry.entryName,
-            "uploads/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-          );
-          if (!filename) continue;
-          const dest = path.join(assetsImportDir, filename);
-          if (!fs.existsSync(dest)) {
-            fs.writeFileSync(dest, entry.getData());
-          }
-        }
-      }
+      replaceCurrentMassDir((stagingDir) => {
+        writeZipMassPackage(zip, stagingDir, packageDefinition);
+      });
 
       state.activeMassArchiveId = null;
       applyMassPackageFromCurrentDir(io, packageDefinition);
@@ -2481,19 +2487,21 @@ function startServer(port = 17841, options = {}) {
         return res.status(404).json({ error: "Mass archive not found." });
       }
 
-      if (fs.existsSync(CURRENT_MASS_DIR)) {
-        fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
-      }
-
+      let packageData = null;
       if (fs.existsSync(archivePaths.packageDir)) {
-        fs.cpSync(archivePaths.packageDir, CURRENT_MASS_DIR, { recursive: true });
-        const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
+        const massJsonPath = path.join(archivePaths.packageDir, "mass.json");
         if (!fs.existsSync(massJsonPath)) {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
-        const packageData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
-        state.activeMassArchiveId = archiveId;
-        applyMassPackageFromCurrentDir(io, packageData);
+        try {
+          packageData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
+        } catch {
+          return res.status(400).json({ error: "Archive package is missing mass.json." });
+        }
+        replaceCurrentMassDir((stagingDir) => {
+          fs.cpSync(archivePaths.packageDir, stagingDir, { recursive: true });
+          readMassPackageDefinition(stagingDir, state.screenSettings);
+        });
       } else if (fs.existsSync(archivePaths.compressedZipPath)) {
         const zipBuffer = fs.readFileSync(archivePaths.compressedZipPath);
         const zip = new (getAdmZip())(zipBuffer);
@@ -2503,59 +2511,20 @@ function startServer(port = 17841, options = {}) {
         if (!definitionEntry) {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
-        const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
-        fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-        for (const entry of zip.getEntries()) {
-          if (entry.isDirectory) continue;
-          if (entry.entryName === "settings.json" || entry.entryName === "mass.json") continue;
-          if (entry.entryName.startsWith("assets/")) {
-            const filename = getSafeZipEntryFilename(
-              entry.entryName,
-              "assets/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-            );
-            if (!filename) continue;
-            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-            fs.mkdirSync(assetDir, { recursive: true });
-            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
-            continue;
-          }
-          if (entry.entryName.startsWith("readings/assets/")) {
-            const filename = getSafeZipEntryFilename(
-              entry.entryName,
-              "readings/assets/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-            );
-            if (!filename) continue;
-            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-            fs.mkdirSync(assetDir, { recursive: true });
-            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
-            continue;
-          }
-          if (entry.entryName.startsWith("readings/")) {
-            const filename = getSafeZipEntryFilename(entry.entryName, "readings/", /^[^/\\:*?"<>|]+\.txt$/);
-            if (!filename) continue;
-            fs.writeFileSync(path.join(CURRENT_MASS_DIR, filename), entry.getData());
-            continue;
-          }
-          if (entry.entryName.startsWith("uploads/")) {
-            const filename = getSafeZipEntryFilename(
-              entry.entryName,
-              "uploads/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-            );
-            if (!filename) continue;
-            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-            fs.mkdirSync(assetDir, { recursive: true });
-            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
-          }
+        try {
+          packageData = JSON.parse(definitionEntry.getData().toString("utf8"));
+        } catch {
+          return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
-        state.activeMassArchiveId = archiveId;
-        applyMassPackageFromCurrentDir(io, packageDefinition);
+        replaceCurrentMassDir((stagingDir) => {
+          writeZipMassPackage(zip, stagingDir, packageData);
+        });
       } else {
         return res.status(400).json({ error: "Mass archive has no loadable package." });
       }
 
+      state.activeMassArchiveId = archiveId;
+      applyMassPackageFromCurrentDir(io, packageData);
       scheduleSave(true);
       return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null });
     } catch (error) {
@@ -2652,19 +2621,22 @@ function startServer(port = 17841, options = {}) {
       if (!folderPath) {
         return res.status(400).json({ error: "folderPath is required." });
       }
-
-      if (screenSettings && typeof screenSettings === "object") {
-        state.screenSettings = normalizeScreenSettings(screenSettings);
+      if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+        throw new ValidationError("Readings folder was not found.");
       }
 
-      // Copy readings into the standard current_mass directory.
-      const currentMassPath = copyReadingsToCurrentMass(folderPath);
-
-      const imported = importReadings(currentMassPath, {
-        fontSizePx: state.screenSettings.fontSizePx,
-        fontFamily: state.screenSettings.fontFamily,
-        readingTextHeightPx: state.screenSettings.readingTextHeightPx
+      const nextScreenSettings = screenSettings && typeof screenSettings === "object"
+        ? normalizeScreenSettings(screenSettings)
+        : state.screenSettings;
+      const imported = importReadings(folderPath, {
+        fontSizePx: nextScreenSettings.fontSizePx,
+        fontFamily: nextScreenSettings.fontFamily,
+        readingTextHeightPx: nextScreenSettings.readingTextHeightPx
       });
+
+      // Copy readings into the standard current_mass directory only after the source can be read.
+      const currentMassPath = copyReadingsToCurrentMass(folderPath);
+      state.screenSettings = nextScreenSettings;
 
       state.readingsSource = {
         folderPath: currentMassPath,
@@ -2708,7 +2680,7 @@ function startServer(port = 17841, options = {}) {
         totalSlides: state.presentation.slides.length
       });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to load readings." });
+      return sendApiError(res, error, "Failed to load readings.");
     }
   });
 

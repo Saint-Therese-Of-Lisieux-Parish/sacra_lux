@@ -269,6 +269,77 @@ describe("server api integration", () => {
     expect(saved.startsWith("Genesis 1:1")).toBe(true);
   });
 
+  function snapshotTree(rootDir) {
+    const files = {};
+    const walk = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (entry.isFile()) {
+          files[path.relative(rootDir, fullPath)] = fs.readFileSync(fullPath);
+        }
+      }
+    };
+    walk(rootDir);
+    return files;
+  }
+
+  test("a failed Mass replacement leaves the current Mass byte-for-byte", async () => {
+    const readingsDir = path.join(handle.homeDir, "keep-current-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
+    fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Keep Me\n");
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    fs.writeFileSync(path.join(currentMassDir, "canary.txt"), "keep-me");
+    const before = snapshotTree(currentMassDir);
+    const titleBefore = (await request(app).get("/api/state").expect(200)).body.presentation.title;
+
+    await request(app)
+      .post("/api/load-readings")
+      .send({ folderPath: path.join(handle.homeDir, "missing-readings-folder") })
+      .expect(400);
+
+    const brokenArchive = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Broken-Package", "package");
+    fs.mkdirSync(brokenArchive, { recursive: true });
+    fs.writeFileSync(path.join(brokenArchive, "note.txt"), "no mass json");
+    await request(app).post("/api/mass-history/Broken-Package/load").expect(400);
+
+    const emptyArchive = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Empty-Archive");
+    fs.mkdirSync(emptyArchive, { recursive: true });
+    await request(app).post("/api/mass-history/Empty-Archive/load").expect(400);
+
+    const badZip = new AdmZip();
+    badZip.addFile("mass.json", Buffer.from("{"));
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: badZip.toBuffer().toString("base64") })
+      .expect(500);
+
+    const nullZip = new AdmZip();
+    nullZip.addFile("mass.json", Buffer.from("null"));
+    const nullImport = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: nullZip.toBuffer().toString("base64") });
+    expect(nullImport.status).toBeGreaterThanOrEqual(400);
+
+    expect(snapshotTree(currentMassDir)).toEqual(before);
+    const titleAfter = (await request(app).get("/api/state").expect(200)).body.presentation.title;
+    expect(titleAfter).toBe(titleBefore);
+
+    const replacementDir = path.join(handle.homeDir, "replacement-readings");
+    fs.mkdirSync(replacementDir, { recursive: true });
+    fs.writeFileSync(path.join(replacementDir, "Gospel.txt"), "John 1:1\n\nIn the beginning was the Word.");
+    fs.writeFileSync(path.join(replacementDir, "mass_title.txt"), "Replacement\n");
+    await request(app).post("/api/load-readings").send({ folderPath: replacementDir }).expect(200);
+    expect(fs.existsSync(path.join(currentMassDir, "canary.txt"))).toBe(false);
+    expect(fs.existsSync(path.join(currentMassDir, "Gospel.txt"))).toBe(true);
+    expect((await request(app).get("/api/state").expect(200)).body.presentation.title).toBe("Replacement");
+  });
+
   test("startup prefers valid current_mass over stale session title", async () => {
     const homeDir = createTempHome("sacra-lux-startup-valid-");
     const appDir = path.join(homeDir, ".sacra-lux");
