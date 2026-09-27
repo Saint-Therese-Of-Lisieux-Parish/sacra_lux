@@ -3478,10 +3478,16 @@
       <div class="editor-dialog-body">
         <div class="modal-intro">
           <div class="modal-intro-title">Security</div>
-          <p class="modal-intro-copy">Set a 4 to 6 digit PIN to protect the QR code start flow. Parishioners must enter this PIN before they can start the Mass.</p>
+          <p class="modal-intro-copy">Set a 4 to 6 digit PIN. Slide changes, blackout, and Mass edits stay locked until this PIN is entered once.</p>
         </div>
         <div class="modal-panel">
           <div class="modal-field-grid">
+            <div class="modal-field modal-span-12" id="currentPinField" hidden>
+              <label>Current PIN
+                <input id="currentPinInput" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6"
+                  placeholder="Current PIN" style="font-size:1.2rem;padding:0.5rem 0.7rem;letter-spacing:0.25em;text-align:center">
+              </label>
+            </div>
             <div class="modal-field modal-span-12">
               <label>PIN Code
                 <input id="startPinInput" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6"
@@ -3492,6 +3498,7 @@
           <div class="modal-action-row">
             <span id="startPinStatus" class="modal-note"></span>
             <div class="modal-action-group">
+              <button id="unlockStartPinBtn" type="button">Unlock</button>
               <button id="clearStartPinBtn" type="button">Clear PIN</button>
               <button id="setStartPinBtn" class="primary" type="button">Set PIN</button>
             </div>
@@ -3760,7 +3767,10 @@
       pinDialog: document.getElementById("pinDialog"),
       pinCloseBtn: document.getElementById("pinCloseBtn"),
       startPinInput: document.getElementById("startPinInput"),
+      currentPinField: document.getElementById("currentPinField"),
+      currentPinInput: document.getElementById("currentPinInput"),
       setStartPinBtn: document.getElementById("setStartPinBtn"),
+      unlockStartPinBtn: document.getElementById("unlockStartPinBtn"),
       clearStartPinBtn: document.getElementById("clearStartPinBtn"),
       startPinStatus: document.getElementById("startPinStatus"),
       startPreMassBtn: document.getElementById("startPreMassBtn"),
@@ -5480,6 +5490,7 @@
       }
 
       // Update PIN status indicator and button icon
+      if (els.currentPinField) els.currentPinField.hidden = !data.hasStartPin;
       if (data.hasStartPin) {
         els.startPinStatus.textContent = "PIN active";
         els.startPinStatus.style.color = "var(--accent-2)";
@@ -7300,35 +7311,64 @@
       if (e.target === els.pinDialog) els.pinDialog.close();
     });
 
-    els.setStartPinBtn.addEventListener("click", async () => {
-      const pin = els.startPinInput.value.trim();
-      if (!pin || pin.replace(/\D/g, "").length < 4) {
-        els.startPinStatus.textContent = "PIN must be 4\u20136 digits";
-        return;
-      }
-      const res = await fetch("/api/start-pin", {
+    function rememberControl(data) {
+      if (!data?.controlToken) return;
+      socket.emit("control:auth", { token: data.controlToken });
+    }
+
+    els.unlockStartPinBtn.addEventListener("click", async () => {
+      const pin = (els.currentPinInput.value || els.startPinInput.value).trim();
+      const res = await fetch("/api/verify-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin })
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
+        rememberControl(data);
+        els.startPinStatus.textContent = "Unlocked";
+        els.currentPinInput.value = "";
+      } else {
+        els.startPinStatus.textContent = data.error || "Incorrect PIN";
+      }
+    });
+
+    els.setStartPinBtn.addEventListener("click", async () => {
+      const pin = els.startPinInput.value.trim();
+      if (!pin || pin.replace(/\D/g, "").length < 4) {
+        els.startPinStatus.textContent = "PIN must be 4\u20136 digits";
+        return;
+      }
+      const body = { pin };
+      if (uiState.data?.hasStartPin) body.currentPin = els.currentPinInput.value.trim();
+      const res = await fetch("/api/start-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        rememberControl(data);
         els.startPinStatus.textContent = "PIN set";
         els.startPinInput.value = "";
+        els.currentPinInput.value = "";
       } else {
         els.startPinStatus.textContent = data.error || "Failed to set PIN";
       }
     });
 
     els.clearStartPinBtn.addEventListener("click", async () => {
+      const body = { pin: "" };
+      if (uiState.data?.hasStartPin) body.currentPin = els.currentPinInput.value.trim();
       const res = await fetch("/api/start-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: "" })
+        body: JSON.stringify(body)
       });
       if (res.ok) {
         els.startPinStatus.textContent = "PIN cleared";
         els.startPinInput.value = "";
+        els.currentPinInput.value = "";
       }
     });
 
