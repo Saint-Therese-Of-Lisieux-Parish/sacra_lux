@@ -62,10 +62,14 @@ const {
   createSocketRateLimitGuard,
   getActiveLock,
   getClientIp,
+  clearControlAccess,
+  clientMayControl,
   hasPinConfigured,
   isStartTokenValid,
   issueStartToken,
+  noteControlUnlock,
   registerPinFailure,
+  socketMayControl,
   verifyPin
 } = require("./security");
 
@@ -208,6 +212,13 @@ function setAttachmentFilename(res, filename) {
   res.setHeader(
     "Content-Disposition",
     `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`
+  );
+}
+
+function setControlCookie(res, token) {
+  res.append(
+    "Set-Cookie",
+    `sacra_lux_control=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200`
   );
 }
 
@@ -1545,6 +1556,15 @@ function startServer(port = 17841, options = {}) {
 
   app.use(express.json({ limit: "200mb" }));
   app.use("/api", globalApiRateLimit);
+  app.use("/api", (req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+    if (req.path === "/verify-pin" || req.path === "/start-pin") return next();
+    if (req.path === "/preview-reading" || req.path === "/preview-manual-slide") return next();
+    if (!clientMayControl(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    return next();
+  });
 
   const publicDir = path.join(__dirname, "..", "public");
   app.use("/static", express.static(publicDir));
@@ -1872,22 +1892,36 @@ function startServer(port = 17841, options = {}) {
   // ── Start PIN management ───────────────────────────────────────────────────
   app.post("/api/start-pin", authRateLimit, (req, res) => {
     try {
-      const { pin } = req.body || {};
-      if (pin === null || pin === undefined || pin === "") {
+      const { pin, currentPin } = req.body || {};
+      const clearing = pin === null || pin === undefined || pin === "";
+      if (hasPinConfigured() && !verifyPin(currentPin)) {
+        registerPinFailure(getClientIp(req));
+        return res.status(403).json({ error: "Current PIN is required." });
+      }
+      if (hasPinConfigured()) clearPinFailures(getClientIp(req));
+
+      if (clearing) {
         state.startPin = "";
         state.startPinHash = null;
-      } else {
-        const cleaned = String(pin).replace(/\D/g, "").slice(0, 6);
-        if (cleaned.length < 4) {
-          return res.status(400).json({ error: "PIN must be 4–6 digits." });
-        }
-        state.startPinHash = createPinHashRecord(cleaned);
-        state.startPin = "";
+        clearControlAccess();
+        touch();
+        io.emit("state:update", getStateSnapshot());
+        scheduleSave(true);
+        return res.json({ ok: true, hasPin: false });
       }
+
+      const cleaned = String(pin).replace(/\D/g, "").slice(0, 6);
+      if (cleaned.length < 4) {
+        return res.status(400).json({ error: "PIN must be 4–6 digits." });
+      }
+      state.startPinHash = createPinHashRecord(cleaned);
+      state.startPin = "";
+      const controlToken = noteControlUnlock(req);
+      setControlCookie(res, controlToken);
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
-      return res.json({ ok: true, hasPin: hasPinConfigured() });
+      return res.json({ ok: true, hasPin: true, controlToken });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to set PIN." });
     }
@@ -1922,7 +1956,13 @@ function startServer(port = 17841, options = {}) {
         ip,
         userAgent: req.get("user-agent") || ""
       });
-      return res.json({ ok: true, redirect: `/api/start-redirect?token=${token}` });
+      const controlToken = noteControlUnlock(req);
+      setControlCookie(res, controlToken);
+      return res.json({
+        ok: true,
+        redirect: `/api/start-redirect?token=${token}`,
+        controlToken
+      });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Verification failed." });
     }
@@ -1977,6 +2017,8 @@ function startServer(port = 17841, options = {}) {
         if (!tokenValid) {
           return res.redirect("/start");
         }
+        const controlToken = noteControlUnlock(req);
+        setControlCookie(res, controlToken);
       }
 
       // Clear the token after use.
@@ -2988,30 +3030,50 @@ function startServer(port = 17841, options = {}) {
 
   // Initialize session restore and timers only after the HTTP server starts listening.
 
+  function withControl(socket, handler) {
+    return (...args) => {
+      if (!socketMayControl(socket)) {
+        socket.emit("control:required", { error: "Unlock required." });
+        return undefined;
+      }
+      return handler(...args);
+    };
+  }
+
   io.on("connection", (socket) => {
     socket.emit("state:update", getCachedStateSnapshot(true));
 
-    socket.on("screen:settings", (settings) => {
+    socket.on("control:auth", (payload) => {
+      socket.data.controlToken = String(payload?.token || "");
+      if (socketMayControl(socket)) {
+        socket.emit("control:ok");
+        return;
+      }
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: "Unlock required." });
+    });
+
+    socket.on("screen:settings", withControl(socket, (settings) => {
       state.screenSettings = normalizeScreenSettings(settings || {});
       repaginateReadingSlidesIfNeeded();
       broadcast();
-    });
+    }));
 
-    socket.on("slide:next", () => stepSlide(1));
-    socket.on("slide:prev", () => stepSlide(-1));
-    socket.on("slide:goto", (index) => setSlide(Number(index) || 0));
-    socket.on("slide:goto:remote", (index) => setSlide(Number(index) || 0, {
+    socket.on("slide:next", withControl(socket, () => stepSlide(1)));
+    socket.on("slide:prev", withControl(socket, () => stepSlide(-1)));
+    socket.on("slide:goto", withControl(socket, (index) => setSlide(Number(index) || 0)));
+    socket.on("slide:goto:remote", withControl(socket, (index) => setSlide(Number(index) || 0, {
       activateGatheringSequence: true,
       activatePostMassLoop: true
-    }));
-    socket.on("slide:video-ended", (payload) => {
+    })));
+    socket.on("slide:video-ended", withControl(socket, (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
       advanceFromCurrentSlide(io);
-    });
-    socket.on("image-slideshow:preload-error", (payload) => {
+    }));
+    socket.on("image-slideshow:preload-error", withControl(socket, (payload) => {
       const imageUrl = String(payload?.imageUrl || "");
       const slideId = String(payload?.slideId || "");
       const failedSlide = (state.presentation?.slides || []).find((slide) =>
@@ -3022,19 +3084,23 @@ function startServer(port = 17841, options = {}) {
       state.imageSlideshowError = `Could not preload ${failedSlide.slideshowImageName || "an image"}; it will be skipped.`;
       touch();
       io.emit("state:update", getStateSnapshot());
-    });
-    socket.on("screen:interstitial-hold", (payload) => {
+    }));
+    socket.on("screen:interstitial-hold", withControl(socket, (payload) => {
       if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
       }
-    });
+    }));
 
-    socket.on("screen:black", (isBlack) => {
+    socket.on("screen:black", withControl(socket, (isBlack) => {
       state.isBlack = Boolean(isBlack);
       broadcast();
-    });
+    }));
 
     socket.on("export:avif:start", async () => {
+      if (!socketMayControl(socket)) {
+        socket.emit("control:required", { error: "Unlock required." });
+        return;
+      }
       const limitState = heavySocketRateLimit(socket);
       if (!limitState.allowed) {
         socket.emit("export:avif:error", { error: `Too many requests. Retry after ${limitState.retryAfterSec}s.` });

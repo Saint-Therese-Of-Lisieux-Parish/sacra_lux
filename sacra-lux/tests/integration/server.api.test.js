@@ -14,6 +14,7 @@ describe("server api integration", () => {
   let app;
   let warnSpy;
   let resetSecurityState;
+  let state;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
 
   function extractTokenFromRedirect(redirectPath) {
@@ -28,10 +29,13 @@ describe("server api integration", () => {
     app = handle.app;
     app.set("trust proxy", true);
     ({ resetSecurityState } = require("../../src/security"));
+    ({ state } = require("../../src/state"));
   });
 
   beforeEach(() => {
     resetSecurityState();
+    state.startPin = "";
+    state.startPinHash = null;
     warnSpy = jest.spyOn(console, "warn").mockImplementation(() => { });
   });
 
@@ -77,6 +81,49 @@ describe("server api integration", () => {
     expect(Object.keys(themeVarsRes.body.themes)).toEqual(
       themesRes.body.themes.map(({ id }) => id)
     );
+  });
+
+  test("a client that has not unlocked the PIN cannot control the Mass", async () => {
+    await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+    const locked = await request(app)
+      .post("/api/new-mass")
+      .set("x-sacra-control", "not-a-session")
+      .send({ title: "Stolen Mass", startTime: "" })
+      .expect(401);
+    expect(locked.body.error).toMatch(/Unlock required/i);
+
+    await request(app)
+      .post("/api/screen-settings")
+      .set("x-sacra-control", "not-a-session")
+      .send({})
+      .expect(401);
+    await request(app)
+      .post("/api/start-pin")
+      .set("x-sacra-control", "not-a-session")
+      .send({ pin: "" })
+      .expect(403);
+
+    const stateBefore = await request(app).get("/api/state").expect(200);
+    expect(stateBefore.body.presentation.title).not.toBe("Stolen Mass");
+
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Operator Mass", startTime: "" })
+      .expect(200);
+
+    const phone = "203.0.113.77";
+    const unlocked = await request(app)
+      .post("/api/verify-pin")
+      .set("X-Forwarded-For", phone)
+      .send({ pin: "1234" })
+      .expect(200);
+    await request(app)
+      .post("/api/screen-settings")
+      .set("X-Forwarded-For", phone)
+      .set("x-sacra-control", unlocked.body.controlToken)
+      .send({})
+      .expect(200);
   });
 
   test("verify-pin rejects incorrect values and accepts correct ones", async () => {
@@ -928,7 +975,7 @@ describe("server api integration", () => {
       await request(app)
         .post("/api/start-pin")
         .set("X-Forwarded-For", ip)
-        .send({ pin: "2468" })
+        .send(i === 0 ? { pin: "2468" } : { pin: "2468", currentPin: "2468" })
         .expect(200);
     }
 

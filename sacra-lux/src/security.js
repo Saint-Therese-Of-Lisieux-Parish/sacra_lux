@@ -137,6 +137,78 @@ function clearStartToken() {
   startToken = null;
 }
 
+const CONTROL_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const controlSessions = new Map();
+let loopbackUnlocked = false;
+
+function isLoopbackAddress(value) {
+  const ip = String(value || "").trim().toLowerCase().replace(/^::ffff:/, "");
+  return ip === "127.0.0.1" || ip === "::1" || ip === "localhost";
+}
+
+function requestConnectionAddress(req) {
+  return req?.socket?.remoteAddress || req?.connection?.remoteAddress || "";
+}
+
+function readControlToken(source) {
+  if (!source) return "";
+  if (typeof source.get === "function") {
+    const header = source.get("x-sacra-control");
+    if (header) return String(header);
+  }
+  const headers = source.headers || {};
+  const headerToken = headers["x-sacra-control"];
+  if (headerToken) return String(Array.isArray(headerToken) ? headerToken[0] : headerToken);
+  const cookie = String(headers.cookie || "");
+  const match = cookie.match(/(?:^|;\s*)sacra_lux_control=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+function issueControlSession() {
+  const token = crypto.randomBytes(32).toString("hex");
+  controlSessions.set(token, Date.now() + CONTROL_SESSION_TTL_MS);
+  return token;
+}
+
+function isControlSessionValid(token) {
+  const key = String(token || "");
+  const expiresAt = controlSessions.get(key);
+  if (!expiresAt) return false;
+  if (expiresAt <= Date.now()) {
+    controlSessions.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function clearControlAccess() {
+  controlSessions.clear();
+  loopbackUnlocked = false;
+}
+
+function noteControlUnlock(req) {
+  if (isLoopbackAddress(requestConnectionAddress(req))) {
+    loopbackUnlocked = true;
+  }
+  return issueControlSession();
+}
+
+function clientMayControl(req) {
+  if (!hasPinConfigured()) return true;
+  const token = readControlToken(req);
+  if (token) return isControlSessionValid(token);
+  return loopbackUnlocked && isLoopbackAddress(requestConnectionAddress(req));
+}
+
+function socketMayControl(socket) {
+  if (!hasPinConfigured()) return true;
+  const explicit = socket?.data?.controlToken || socket?.handshake?.auth?.token || "";
+  const token = String(explicit || "") || readControlToken(socket?.handshake);
+  if (token) return isControlSessionValid(token);
+  const address = socket?.handshake?.address || socket?.conn?.remoteAddress || "";
+  return loopbackUnlocked && isLoopbackAddress(address);
+}
+
 function evaluateRateLimit({ bucket, key, windowMs, max, now = Date.now() }) {
   const store = rateLimitBuckets[bucket];
   if (!store) {
@@ -298,6 +370,7 @@ function cleanupSecurityState(now = Date.now()) {
 
 function resetSecurityState() {
   clearStartToken();
+  clearControlAccess();
   pinLockouts.clear();
   for (const store of Object.values(rateLimitBuckets)) {
     store.clear();
@@ -319,8 +392,10 @@ module.exports = {
   PIN_HASH_DIGEST,
   PIN_HASH_ITERATIONS,
   RATE_LIMIT_CONFIG,
+  clearControlAccess,
   clearPinFailures,
   clearStartToken,
+  clientMayControl,
   createConcurrentLimitMiddleware,
   createPinHashRecord,
   createRateLimitMiddleware,
@@ -330,7 +405,9 @@ module.exports = {
   hasPinConfigured,
   isStartTokenValid,
   issueStartToken,
+  noteControlUnlock,
   registerPinFailure,
   resetSecurityState,
+  socketMayControl,
   verifyPin
 };
