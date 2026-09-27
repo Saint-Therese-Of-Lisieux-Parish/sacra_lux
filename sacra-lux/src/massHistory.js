@@ -7,6 +7,13 @@ const SACRA_LUX_DIR = path.join(HOME_DIR, ".sacra-lux");
 const CURRENT_MASS_DIR = path.join(SACRA_LUX_DIR, "current_mass");
 const MASS_HISTORY_DIR = path.join(SACRA_LUX_DIR, "mass_history");
 
+class InvalidArchiveIdError extends Error {
+  constructor(message = "Invalid archive id.") {
+    super(message);
+    this.name = "InvalidArchiveIdError";
+  }
+}
+
 function sanitizeForFilename(str) {
   return String(str || "")
     .trim()
@@ -17,11 +24,38 @@ function sanitizeForFilename(str) {
 }
 
 function normalizeArchiveId(value) {
-  const cleaned = sanitizeForFilename(value);
-  if (!cleaned) {
-    throw new Error("Invalid archive id.");
+  const trimmed = String(value ?? "").trim();
+  if (
+    !trimmed ||
+    trimmed === "." ||
+    trimmed === ".." ||
+    trimmed.includes("/") ||
+    trimmed.includes("\\") ||
+    trimmed.includes("\0")
+  ) {
+    throw new InvalidArchiveIdError();
+  }
+  const cleaned = sanitizeForFilename(trimmed);
+  if (!cleaned || cleaned === "." || cleaned === "..") {
+    throw new InvalidArchiveIdError();
   }
   return cleaned;
+}
+
+function assertArchiveDirInsideHistory(archiveDir) {
+  const historyRoot = path.resolve(MASS_HISTORY_DIR);
+  const resolved = path.resolve(archiveDir);
+  const relative = path.relative(historyRoot, resolved);
+  if (
+    !relative ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative) ||
+    relative.includes(path.sep)
+  ) {
+    throw new InvalidArchiveIdError();
+  }
+  return resolved;
 }
 
 function ensureHistoryDir() {
@@ -38,7 +72,7 @@ function listArchiveIds() {
 
 function getArchivePaths(archiveId) {
   const id = normalizeArchiveId(archiveId);
-  const archiveDir = path.join(MASS_HISTORY_DIR, id);
+  const archiveDir = assertArchiveDirInsideHistory(path.join(MASS_HISTORY_DIR, id));
   return {
     archiveId: id,
     archiveDir,
@@ -217,6 +251,7 @@ function deleteMassArchive(archiveId) {
 module.exports = {
   CURRENT_MASS_DIR,
   MASS_HISTORY_DIR,
+  InvalidArchiveIdError,
   sanitizeForFilename,
   getArchivePaths,
   readMetadata,
