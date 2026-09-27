@@ -41,6 +41,7 @@ const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./the
 const logger = require("./logger");
 const {
   CURRENT_MASS_DIR,
+  InvalidArchiveIdError,
   sanitizeForFilename,
   getArchivePaths,
   readMetadata,
@@ -211,7 +212,7 @@ function setAttachmentFilename(res, filename) {
 }
 
 function sendApiError(res, error, fallbackMessage) {
-  const status = error instanceof ValidationError ? 400 : 500;
+  const status = error instanceof ValidationError || error instanceof InvalidArchiveIdError ? 400 : 500;
   return res.status(status).json({ error: error.message || fallbackMessage });
 }
 
@@ -2510,7 +2511,7 @@ function startServer(port = 17841, options = {}) {
       writeMetadata(archiveId, metadata);
       return res.json({ ok: true, archiveId, sizeBytes: zipBuffer.length });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to compress Mass archive." });
+      return sendApiError(res, error, "Failed to compress Mass archive.");
     }
   });
 
@@ -2526,7 +2527,7 @@ function startServer(port = 17841, options = {}) {
       }
       return res.json({ ok: true, archiveId });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to delete Mass archive." });
+      return sendApiError(res, error, "Failed to delete Mass archive.");
     }
   });
 
