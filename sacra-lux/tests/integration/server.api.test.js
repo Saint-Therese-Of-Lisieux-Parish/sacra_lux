@@ -510,6 +510,128 @@ describe("server api integration", () => {
     expect(stateRes.body.imageSlideshowEndsAt).toBeNull();
   });
 
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const currentItemId = (body) => body.presentation.slides[body.currentSlideIndex]?.organizerItemId;
+
+  test("gathering skips an empty image slideshow without jumping ahead to Mass", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "g-welcome", type: "text", label: "Welcome", phase: "gathering", backgroundTheme: "dark", durationSec: 1 },
+          { id: "g-empty", type: "imageSlideshow", label: "Empty", phase: "gathering", backgroundTheme: "light" },
+          { id: "g-hymn", type: "text", label: "Hymn", phase: "gathering", backgroundTheme: "dark", durationSec: 10 },
+          { id: "m-first", type: "text", label: "Mass", phase: "mass", backgroundTheme: "dark" }
+        ],
+        manualSlides: {
+          "g-welcome": { text: "Welcome" },
+          "g-empty": { images: [], slideshowDurationSec: 1, slideshowLoopCount: 1 },
+          "g-hymn": { text: "Hymn" },
+          "m-first": { text: "Mass" }
+        }
+      })
+      .expect(200);
+
+    await request(app).post("/api/gathering/start").expect(200);
+    await wait(1400);
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(currentItemId(stateRes.body)).toBe("g-hymn");
+    expect(stateRes.body.gatheringRunning).toBe(true);
+    await request(app).post("/api/gathering/stop").expect(200);
+  });
+
+  test("pre-mass loop skips an empty image slideshow without restarting the loop", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "p-a", type: "text", label: "A", phase: "pre", backgroundTheme: "dark", durationSec: 1 },
+          { id: "p-empty", type: "imageSlideshow", label: "Empty", phase: "pre", backgroundTheme: "light" },
+          { id: "p-b", type: "text", label: "B", phase: "pre", backgroundTheme: "dark", durationSec: 10 },
+          { id: "p-c", type: "text", label: "C", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: {
+          "p-a": { text: "A" },
+          "p-empty": { images: [], slideshowDurationSec: 1, slideshowLoopCount: 1 },
+          "p-b": { text: "B" },
+          "p-c": { text: "C" }
+        }
+      })
+      .expect(200);
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    await wait(1400);
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(currentItemId(stateRes.body)).toBe("p-b");
+    await request(app).post("/api/pre-mass/stop");
+  });
+
+  test("removing the playing slideshow during a pre-mass loop keeps the loop advancing", async () => {
+    const uploaded = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Loop.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const textItems = [
+      { id: "r-a", type: "text", label: "A", phase: "pre", backgroundTheme: "dark", durationSec: 1 },
+      { id: "r-b", type: "text", label: "B", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
+    ];
+    const textSlides = { "r-a": { text: "A" }, "r-b": { text: "B" } };
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "r-show", type: "imageSlideshow", label: "Show", phase: "pre", backgroundTheme: "light" },
+          ...textItems
+        ],
+        manualSlides: {
+          "r-show": { images: [{ url: uploaded.body.url, name: "Loop.png" }], slideshowDurationSec: 100, slideshowLoopCount: 1 },
+          ...textSlides
+        }
+      })
+      .expect(200);
+    await request(app).post("/api/pre-mass/start").expect(200);
+
+    await request(app).post("/api/organizer").send({ sequence: textItems, manualSlides: textSlides }).expect(200);
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(currentItemId(stateRes.body)).toBe("r-a");
+    expect(stateRes.body.preMassRunning).toBe(true);
+
+    await wait(1300);
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(currentItemId(stateRes.body)).toBe("r-b");
+    await request(app).post("/api/pre-mass/stop");
+  });
+
+  test("organizer saves keep a playing slideshow's loop progress", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Slideshow Progress", startTime: "" })
+      .expect(200);
+    const uploaded = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Progress.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const sequence = [
+      { id: "l-show", type: "imageSlideshow", label: "Loop three", phase: "mass", backgroundTheme: "light" },
+      { id: "l-after", type: "text", label: "After", phase: "mass", backgroundTheme: "dark" }
+    ];
+    const manualSlides = (afterText) => ({
+      "l-show": { images: [{ url: uploaded.body.url, name: "Progress.png" }], slideshowDurationSec: 1, slideshowLoopCount: 3 },
+      "l-after": { text: afterText }
+    });
+
+    await request(app).post("/api/organizer").send({ sequence, manualSlides: manualSlides("Before edit") }).expect(200);
+    await wait(1100);
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.imageSlideshowLoopIteration).toBe(2);
+
+    await request(app).post("/api/organizer").send({ sequence, manualSlides: manualSlides("After edit") }).expect(200);
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(currentItemId(stateRes.body)).toBe("l-show");
+    expect(stateRes.body.imageSlideshowLoopIteration).toBe(2);
+  });
+
   test("mass history tracks active and archived Masses", async () => {
     await request(app)
       .post("/api/new-mass")
