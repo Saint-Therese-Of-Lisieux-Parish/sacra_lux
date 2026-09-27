@@ -304,6 +304,85 @@ describe("massDocument", () => {
     });
   });
 
+  test("round trips image slideshow ordering, timing, loops, and asset names", () => {
+    const document = buildMassDocumentFromState({
+      presentation: { title: "Announcements" },
+      screenSettings: {},
+      organizerSequence: [{
+        id: "slideshow-1",
+        type: "imageSlideshow",
+        label: "Parish Announcements",
+        phase: "pre",
+        backgroundTheme: "light",
+        durationSec: 10
+      }],
+      manualSlides: {
+        "slideshow-1": {
+          notes: "Run before Mass",
+          images: [
+            { url: "/api/mass-asset/002-coffee.png", name: "Coffee Hour.png" },
+            { url: "/api/mass-asset/001-picnic.jpg", name: "Parish Picnic.jpg" }
+          ],
+          slideshowDurationSec: 6,
+          slideshowLoopCount: 4
+        }
+      },
+      readingsSource: { documents: [] }
+    });
+
+    expect(document.items[0]).toMatchObject({
+      kind: "imageSlideshow",
+      content: { secondsPerImage: 6, loopCount: 4 },
+      assets: [
+        { ref: "assets/002-coffee.png", name: "Coffee Hour.png" },
+        { ref: "assets/001-picnic.jpg", name: "Parish Picnic.jpg" }
+      ]
+    });
+    expect(document.assets).toMatchObject({
+      "assets/002-coffee.png": {},
+      "assets/001-picnic.jpg": {}
+    });
+
+    const runtime = buildRuntimeStateFromMassDocument(document);
+    expect(runtime.organizerSequence[0]).toMatchObject({
+      type: "imageSlideshow",
+      backgroundTheme: "light"
+    });
+    expect(runtime.manualSlides["slideshow-1"]).toMatchObject({
+      images: [
+        { url: "/api/mass-asset/002-coffee.png", name: "Coffee Hour.png" },
+        { url: "/api/mass-asset/001-picnic.jpg", name: "Parish Picnic.jpg" }
+      ],
+      slideshowDurationSec: 6,
+      slideshowLoopCount: 4
+    });
+  });
+
+  test("rejects invalid image slideshow timing and asset shapes", () => {
+    const base = {
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Bad slideshow" },
+      items: [{
+        id: "slideshow",
+        kind: "imageSlideshow",
+        label: "Slideshow",
+        section: "pre",
+        content: { secondsPerImage: 0, loopCount: 1 },
+        assets: []
+      }]
+    };
+    expect(() => validateMassDocument(base)).toThrow(/secondsPerImage/);
+    expect(() => validateMassDocument({
+      ...base,
+      items: [{
+        ...base.items[0],
+        content: { secondsPerImage: 5, loopCount: 1 },
+        assets: [{ ref: "../unsafe.png" }]
+      }]
+    })).toThrow(/Unsupported asset ref/);
+  });
+
   test("rejects duplicate item ids", () => {
     expect(() => validateMassDocument({
       format: "sacra-lux.mass",

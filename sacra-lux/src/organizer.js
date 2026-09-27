@@ -43,7 +43,7 @@ const SECTION_LABELS = {
   "Gospel": "Gospel"
 };
 
-const VALID_TYPES = ["reading", "image", "movie", "text", "prayer", "hymn", "countdown", "interstitial"];
+const VALID_TYPES = ["reading", "image", "imageSlideshow", "movie", "text", "prayer", "hymn", "countdown", "interstitial"];
 const VALID_PHASES = ["pre", "gathering", "mass", "post"];
 const VALID_BACKGROUND_THEMES = ["dark", "light"];
 const VALID_COUNTDOWN_STYLES = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"];
@@ -61,7 +61,7 @@ function normalizeBackgroundTheme(value, slideType) {
   if (value === "image") return "light";
   if (VALID_BACKGROUND_THEMES.includes(value)) return value;
   // Choose the default background from the slide type.
-  return (slideType === "image" || slideType === "interstitial" || slideType === "movie") ? "light" : "dark";
+  return (slideType === "image" || slideType === "imageSlideshow" || slideType === "interstitial" || slideType === "movie") ? "light" : "dark";
 }
 
 function normalizeType(value) {
@@ -77,6 +77,38 @@ function normalizeCountdownStyle(value) {
 
 function normalizeCountdownSizePercent(value) {
   return Math.max(50, Math.min(200, Number(value) || 100));
+}
+
+function slideshowImageName(entry) {
+  const explicitName = typeof entry?.name === "string" ? entry.name.trim() : "";
+  if (explicitName) return explicitName;
+  const url = typeof entry === "string" ? entry : entry?.url;
+  const withoutQuery = String(url || "").split(/[?#]/, 1)[0];
+  const filename = withoutQuery.split("/").pop() || "Image";
+  try {
+    return decodeURIComponent(filename) || "Image";
+  } catch (_error) {
+    return filename || "Image";
+  }
+}
+
+function normalizeSlideshowImages(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 500).map((entry) => {
+    const url = typeof entry === "string" ? entry : entry?.url;
+    return {
+      url: typeof url === "string" ? url.trim() : "",
+      name: slideshowImageName(entry)
+    };
+  });
+}
+
+function normalizeSlideshowDurationSec(value) {
+  return Math.max(1, Math.min(3600, Math.round(Number(value) || 10)));
+}
+
+function normalizeSlideshowLoopCount(value) {
+  return Math.max(1, Math.min(1000, Math.round(Number(value) || 1)));
 }
 
 function normalizeStyleOverrides(input) {
@@ -109,6 +141,19 @@ function displayLabelForDocument(doc) {
 }
 
 function createManualSlideRecord(type = "image") {
+  if (type === "imageSlideshow") {
+    return {
+      text: "",
+      notes: "",
+      textVAlign: null,
+      imageUrl: null,
+      images: [],
+      slideshowDurationSec: 10,
+      slideshowLoopCount: 1,
+      styleOverrides: {}
+    };
+  }
+
   if (type === "text" || type === "prayer" || type === "hymn") {
     return {
       text: "",
@@ -199,6 +244,47 @@ function buildManualSlide(item, manualSlide, index) {
     backgroundTheme: normalizeBackgroundTheme(item.backgroundTheme, item.type),
     index
   };
+
+  if (item.type === "imageSlideshow") {
+    const images = normalizeSlideshowImages(manualSlide?.images);
+    const durationSec = normalizeSlideshowDurationSec(manualSlide?.slideshowDurationSec);
+    const loopCount = normalizeSlideshowLoopCount(manualSlide?.slideshowLoopCount);
+    const slideshowBase = {
+      ...baseProps,
+      title: item.label || "Image Slideshow",
+      text: "",
+      slideshowDurationSec: durationSec,
+      slideshowLoopCount: loopCount,
+      slideshowImageCount: images.length,
+      totalPages: Math.max(1, images.length)
+    };
+
+    if (images.length === 0) {
+      return [{
+        ...slideshowBase,
+        id: `${item.id}:1`,
+        imageUrl: null,
+        slideshowImageName: null,
+        slideshowImageIndex: 0,
+        slideshowEmpty: true,
+        pageNumber: 1,
+        isFirstPage: true,
+        isLastPage: true
+      }];
+    }
+
+    return images.map((image, imageIndex) => ({
+      ...slideshowBase,
+      id: `${item.id}:${imageIndex + 1}`,
+      imageUrl: image.url || null,
+      slideshowImageName: image.name,
+      slideshowImageIndex: imageIndex,
+      slideshowEmpty: false,
+      pageNumber: imageIndex + 1,
+      isFirstPage: imageIndex === 0,
+      isLastPage: imageIndex === images.length - 1
+    }));
+  }
 
   // Do not split image, interstitial, or movie slides.
   if (item.type === "image" || item.type === "interstitial" || item.type === "movie") {
@@ -337,6 +423,9 @@ module.exports = {
   normalizeStyleOverrides,
   normalizeCountdownStyle,
   normalizeCountdownSizePercent,
+  normalizeSlideshowImages,
+  normalizeSlideshowDurationSec,
+  normalizeSlideshowLoopCount,
   VALID_COUNTDOWN_STYLES,
   createManualSlideRecord
 };

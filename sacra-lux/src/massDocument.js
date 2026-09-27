@@ -1,11 +1,11 @@
-const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "movie", "countdown", "interstitial"]);
+const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "imageSlideshow", "movie", "countdown", "interstitial"]);
 const VALID_SECTIONS = new Set(["pre", "gathering", "mass", "post"]);
-const ITEM_KEYS = new Set(["id", "kind", "label", "section", "durationSec", "notes", "content", "source", "asset", "presentation"]);
+const ITEM_KEYS = new Set(["id", "kind", "label", "section", "durationSec", "notes", "content", "source", "asset", "assets", "presentation"]);
 const TOP_LEVEL_KEYS = new Set(["format", "version", "metadata", "presentationDefaults", "items", "assets"]);
 const METADATA_KEYS = new Set(["title", "scheduledStart", "locale", "timezone", "rite"]);
-const CONTENT_KEYS = new Set(["text", "seconds", "showLabel", "label", "autoAdvance"]);
+const CONTENT_KEYS = new Set(["text", "seconds", "showLabel", "label", "autoAdvance", "secondsPerImage", "loopCount"]);
 const SOURCE_KEYS = new Set(["stem", "citation", "title", "translation", "attribution"]);
-const ASSET_KEYS = new Set(["ref"]);
+const ASSET_KEYS = new Set(["ref", "name"]);
 const PRESENTATION_KEYS = new Set([
   "background",
   "textAlign",
@@ -83,14 +83,14 @@ function runtimeBackgroundToDocument(value, kind) {
   if (normalized === "color") return "dark";
   if (normalized === "light") return "light";
   if (normalized === "dark") return "dark";
-  return (kind === "image" || kind === "interstitial" || kind === "movie") ? "light" : "dark";
+  return (kind === "image" || kind === "imageSlideshow" || kind === "interstitial" || kind === "movie") ? "light" : "dark";
 }
 
 function documentBackgroundToRuntime(value, kind) {
   const normalized = String(value || "");
   if (normalized === "light" || normalized === "image") return "light";
   if (normalized === "dark" || normalized === "color") return "dark";
-  return (kind === "image" || kind === "interstitial" || kind === "movie") ? "light" : "dark";
+  return (kind === "image" || kind === "imageSlideshow" || kind === "interstitial" || kind === "movie") ? "light" : "dark";
 }
 
 function sanitizeStem(value, fallbackId) {
@@ -128,6 +128,9 @@ function buildAssetsManifest(document) {
   const refs = new Set();
   for (const item of document.items || []) {
     if (item.asset?.ref) refs.add(item.asset.ref);
+    for (const asset of item.assets || []) {
+      if (asset?.ref) refs.add(asset.ref);
+    }
   }
   if (document.presentationDefaults?.darkBackgroundUrl) {
     if (String(document.presentationDefaults.darkBackgroundUrl).startsWith("assets/")) {
@@ -185,6 +188,21 @@ function validateContentForKind(kind, content) {
     return;
   }
 
+  if (kind === "imageSlideshow") {
+    const secondsPerImage = Number(content.secondsPerImage);
+    if (!Number.isInteger(secondsPerImage) || secondsPerImage < 1 || secondsPerImage > 3600) {
+      throw new ValidationError("imageSlideshow items require content.secondsPerImage between 1 and 3600.");
+    }
+    const loopCount = Number(content.loopCount);
+    if (!Number.isInteger(loopCount) || loopCount < 1 || loopCount > 1000) {
+      throw new ValidationError("imageSlideshow items require content.loopCount between 1 and 1000.");
+    }
+    if (content.text != null || content.seconds != null || content.autoAdvance != null) {
+      throw new ValidationError("imageSlideshow content only supports secondsPerImage and loopCount.");
+    }
+    return;
+  }
+
   if (kind === "interstitial") {
     if (content.text != null && typeof content.text !== "string") {
       throw new ValidationError("interstitial item content.text must be a string.");
@@ -198,7 +216,7 @@ function validateContentForKind(kind, content) {
 function validateSourceForKind(kind, source) {
   assertObject(source, "item.source");
   assertKnownKeys(source, SOURCE_KEYS, "item.source");
-  if (["image", "movie", "interstitial", "countdown"].includes(kind)) {
+  if (["image", "imageSlideshow", "movie", "interstitial", "countdown"].includes(kind)) {
     throw new ValidationError(`item.source is not allowed for kind "${kind}".`);
   }
 }
@@ -210,6 +228,27 @@ function validateAssetForKind(kind, asset) {
   assetUrlFromRef(asset.ref);
   if (!["image", "movie", "interstitial"].includes(kind)) {
     throw new ValidationError(`item.asset is not allowed for kind "${kind}".`);
+  }
+}
+
+function validateAssetsForKind(kind, assets) {
+  if (kind !== "imageSlideshow") {
+    throw new ValidationError(`item.assets is not allowed for kind "${kind}".`);
+  }
+  if (!Array.isArray(assets)) {
+    throw new ValidationError("imageSlideshow item.assets must be an array.");
+  }
+  if (assets.length > 500) {
+    throw new ValidationError("imageSlideshow item.assets cannot contain more than 500 images.");
+  }
+  for (const asset of assets) {
+    assertObject(asset, "item.assets entry");
+    assertKnownKeys(asset, ASSET_KEYS, "item.assets entry");
+    ensureNonEmptyString(asset.ref, "item.assets entry ref");
+    assetUrlFromRef(asset.ref);
+    if (asset.name != null && typeof asset.name !== "string") {
+      throw new ValidationError("item.assets entry name must be a string.");
+    }
   }
 }
 
@@ -316,6 +355,9 @@ function validateMassDocument(document) {
     if (item.asset != null) {
       validateAssetForKind(kind, item.asset);
     }
+    if (item.assets != null) {
+      validateAssetsForKind(kind, item.assets);
+    }
 
     if (["text", "prayer", "hymn", "reading", "countdown"].includes(kind) && item.asset != null) {
       throw new ValidationError(`item.asset is not allowed for kind "${kind}".`);
@@ -325,6 +367,15 @@ function validateMassDocument(document) {
     }
     if (kind === "countdown" && item.content == null) {
       throw new ValidationError("countdown items require item.content.");
+    }
+    if (kind === "imageSlideshow" && item.content == null) {
+      throw new ValidationError("imageSlideshow items require item.content.");
+    }
+    if (kind === "imageSlideshow" && item.asset != null) {
+      throw new ValidationError("imageSlideshow items use item.assets instead of item.asset.");
+    }
+    if (kind !== "imageSlideshow" && item.assets != null) {
+      throw new ValidationError(`item.assets is not allowed for kind "${kind}".`);
     }
   }
 
@@ -495,6 +546,26 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
     return item;
   }
 
+  if (organizerItem.type === "imageSlideshow") {
+    item.content = {
+      secondsPerImage: Math.max(1, Math.min(3600, Math.round(Number(manualSlide?.slideshowDurationSec) || 10))),
+      loopCount: Math.max(1, Math.min(1000, Math.round(Number(manualSlide?.slideshowLoopCount) || 1)))
+    };
+    item.assets = (Array.isArray(manualSlide?.images) ? manualSlide.images : [])
+      .map((entry) => {
+        const url = typeof entry === "string" ? entry : entry?.url;
+        const ref = assetRefFromUrl(url);
+        if (!ref) return null;
+        const name = typeof entry?.name === "string" && entry.name.trim()
+          ? entry.name.trim()
+          : ref.split("/").pop();
+        return { ref, name };
+      })
+      .filter(Boolean);
+    item.presentation = presentation;
+    return item;
+  }
+
   if (manualSlide?.text) {
     item.content = { text: manualSlide.text };
   }
@@ -589,6 +660,19 @@ function buildRuntimeStateFromMassDocument(document) {
       manual.videoUrl = item.asset?.ref ? assetUrlFromRef(item.asset.ref) : null;
       manual.videoLoop = Boolean(item.presentation?.loop);
       manual.videoAutoAdvance = item.content?.autoAdvance !== false;
+      manual.styleOverrides = {};
+    } else if (type === "imageSlideshow") {
+      manual.text = "";
+      manual.textVAlign = null;
+      manual.imageUrl = null;
+      manual.images = (item.assets || []).map((asset) => ({
+        url: assetUrlFromRef(asset.ref),
+        name: typeof asset.name === "string" && asset.name.trim()
+          ? asset.name.trim()
+          : asset.ref.split("/").pop()
+      }));
+      manual.slideshowDurationSec = Math.max(1, Math.min(3600, Number(item.content?.secondsPerImage) || 10));
+      manual.slideshowLoopCount = Math.max(1, Math.min(1000, Number(item.content?.loopCount) || 1));
       manual.styleOverrides = {};
     } else {
       manual.text = item.content?.text || "";

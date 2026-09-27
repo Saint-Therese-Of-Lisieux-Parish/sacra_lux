@@ -1653,13 +1653,17 @@
       const settings = getEffectiveScreenSettings(baseSettings, slide);
       applyScreenSettings(settings);
       applySectionTint(slide);
+      frame.dataset.slideId = slide?.id || "";
+      frame.dataset.organizerItemId = slide?.organizerItemId || "";
+      frame.dataset.slideType = slide?.type || "";
+      frame.dataset.imageUrl = slide?.imageUrl || "";
 
       // Pre-compute consistent font sizes for all reading groups.
       precomputeReadingGroupSizes(slides, baseSettings);
 
       // Per-slide image URL for image slides — use only the slide's own image;
       // never fall through to the global image background preset.
-      if (slide?.type === "image" || slide?.type === "interstitial") {
+      if (slide?.type === "image" || slide?.type === "imageSlideshow" || slide?.type === "interstitial") {
         const url = slide.imageUrl;
         frame.style.setProperty("--bg-light", url ? `url('${url.replace(/'/g, "\\'")}')` : "none");
       } else if (slide?.type === "movie") {
@@ -1679,7 +1683,7 @@
       } else if (slide.type === "reading") {
         applyBackgroundTheme(slide);
         showReading(slide);
-      } else if (slide.type === "image" || slide.type === "interstitial") {
+      } else if (slide.type === "image" || slide.type === "imageSlideshow" || slide.type === "interstitial") {
         applyBackgroundTheme(slide);
         showImageOnly();
       } else if (slide.type === "movie") {
@@ -1725,15 +1729,43 @@
     const FADE_MS = 700;
     let _fadeTimer = null;
     let _firstRender = true;
+    let _lastVisualSignature = null;
+
+    function getVisualState(state) {
+      const slides = state.presentation?.slides || [];
+      const currentIndex = Number(state.currentSlideIndex) || 0;
+      const effectiveIndex = state.interstitialHoldActive
+        ? Math.max(0, Math.min(Number(state.interstitialHoldSlideIndex) || 0, slides.length - 1))
+        : currentIndex;
+      return { effectiveIndex, slide: slides[effectiveIndex] || null };
+    }
+
+    function getVisualSignature(state, visualState) {
+      return JSON.stringify({
+        effectiveIndex: visualState.effectiveIndex,
+        slide: visualState.slide,
+        screenSettings: state.screenSettings || {},
+        isBlack: Boolean(state.isBlack),
+        countdownEndsAt: visualState.slide?.type === "countdown" ? state.countdownEndsAt : null
+      });
+    }
 
     function render(state) {
       window.__latestState = state;
       const transition = (state.screenSettings || {}).transition || "fade";
+      const visualState = getVisualState(state);
+      const visualSignature = getVisualSignature(state, visualState);
+
+      // Timer bookkeeping can emit a second state snapshot without changing
+      // the displayed slide. Do not restart an in-progress image crossfade.
+      if (visualSignature === _lastVisualSignature) return;
+      _lastVisualSignature = visualSignature;
 
       // Skip animation on the very first paint or when transition is disabled.
       if (_firstRender || transition === "none") {
         _firstRender = false;
         if (_fadeTimer) { clearTimeout(_fadeTimer); _fadeTimer = null; }
+        stage.dataset.slideshowTransitioning = "false";
         // Snap: ensure the active frame is visible and the inactive one is hidden.
         const inactiveSuffix = _activeSuffix === "a" ? "b" : "a";
         document.getElementById("frame-" + inactiveSuffix).style.opacity = "0";
@@ -1759,6 +1791,11 @@
       const inactiveSuffix = _activeSuffix === "a" ? "b" : "a";
       const activeFrame = document.getElementById("frame-" + _activeSuffix);
       const inactiveFrame = document.getElementById("frame-" + inactiveSuffix);
+      const isSlideshowImageTransition = activeFrame.dataset.slideType === "imageSlideshow" &&
+        visualState.slide?.type === "imageSlideshow" &&
+        activeFrame.dataset.organizerItemId === visualState.slide.organizerItemId &&
+        activeFrame.dataset.imageUrl !== visualState.slide.imageUrl;
+      stage.dataset.slideshowTransitioning = String(isSlideshowImageTransition);
 
       // Place the new frame on top so it fades in over the old one.
       // This prevents the dip-to-black flash when both backgrounds match.
@@ -1784,6 +1821,7 @@
         stopFrameMedia(activeFrame);
         _activeSuffix = inactiveSuffix;
         pointToFrame(_activeSuffix);
+        stage.dataset.slideshowTransitioning = "false";
         _fadeTimer = null;
       }, FADE_MS);
     }
@@ -1913,10 +1951,51 @@
       idleQrOverlay.classList.toggle("visible", idle && _qrGenerated);
     }
 
-    // Wrap render to also update idle overlay
+    const preloadedSlideshowUrls = new Set();
+    const failedSlideshowPreloads = new Set();
+
+    function findNextImageSlideshowSlide(state) {
+      const slides = state.presentation?.slides || [];
+      const currentIndex = Number(state.currentSlideIndex) || 0;
+      const current = slides[currentIndex];
+      if (current?.type !== "imageSlideshow") return null;
+      const related = slides
+        .map((slide, index) => ({ slide, index }))
+        .filter(({ slide }) => slide.type === "imageSlideshow" && slide.organizerItemId === current.organizerItemId && slide.imageUrl);
+      const position = related.findIndex(({ index }) => index === currentIndex);
+      if (position >= 0 && position < related.length - 1) return related[position + 1].slide;
+      if ((Number(state.imageSlideshowLoopIteration) || 1) < (Number(current.slideshowLoopCount) || 1)) {
+        return related[0]?.slide || null;
+      }
+      return slides.slice(currentIndex + 1).find((slide) => slide.imageUrl) || null;
+    }
+
+    function preloadNextImageSlideshowSlide(state) {
+      const nextSlide = findNextImageSlideshowSlide(state);
+      const url = nextSlide?.imageUrl;
+      if (!url || preloadedSlideshowUrls.has(url) || failedSlideshowPreloads.has(url)) return;
+      const image = new Image();
+      image.onload = async () => {
+        try {
+          if (typeof image.decode === "function") await image.decode();
+          preloadedSlideshowUrls.add(url);
+        } catch (_error) {
+          image.onerror();
+        }
+      };
+      image.onerror = () => {
+        if (failedSlideshowPreloads.has(url)) return;
+        failedSlideshowPreloads.add(url);
+        socket.emit("image-slideshow:preload-error", { slideId: nextSlide.id, imageUrl: url });
+      };
+      image.src = url;
+    }
+
+    // Wrap render to also update idle overlay and prepare the next slideshow image.
     const _originalRender = render;
     function renderWithIdle(state) {
       _originalRender(state);
+      preloadNextImageSlideshowSlide(state);
       updateIdleOverlay(state);
       checkFullscreenPrompt(state);
     }
