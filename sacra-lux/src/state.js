@@ -77,6 +77,9 @@ const state = {
   gatheringRunning: false,
   postMassRunning: false,
   countdownEndsAt: null,
+  imageSlideshowEndsAt: null,
+  imageSlideshowLoopIteration: 1,
+  imageSlideshowError: null,
   activeMassArchiveId: null,
   startupPrompt: null,
   lastUpdated: new Date().toISOString()

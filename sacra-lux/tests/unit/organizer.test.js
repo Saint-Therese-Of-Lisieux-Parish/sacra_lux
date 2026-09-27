@@ -4,6 +4,7 @@ const {
   normalizeBackgroundTheme,
   normalizePhase,
   normalizeType,
+  normalizeSlideshowImages,
   createManualSlideRecord
 } = require("../../src/organizer");
 
@@ -289,6 +290,86 @@ describe("organizer", () => {
       videoUrl: "/api/mass-asset/welcome.mp4",
       videoLoop: false,
       videoAutoAdvance: true
+    });
+  });
+
+  test("normalizes image slideshow records and derives one runtime slide per image", () => {
+    expect(createManualSlideRecord("imageSlideshow")).toMatchObject({
+      images: [],
+      slideshowDurationSec: 10,
+      slideshowLoopCount: 1
+    });
+    expect(normalizeSlideshowImages([
+      "/api/mass-asset/b-photo.png",
+      { url: "/api/mass-asset/a-photo.png", name: "A Photo.png" }
+    ])).toEqual([
+      { url: "/api/mass-asset/b-photo.png", name: "b-photo.png" },
+      { url: "/api/mass-asset/a-photo.png", name: "A Photo.png" }
+    ]);
+
+    const presentation = buildPresentationFromOrganizer({
+      title: "Slideshow",
+      documents: [],
+      sequence: [{
+        id: "imageSlideshow:announcements",
+        type: "imageSlideshow",
+        label: "Announcements",
+        phase: "pre",
+        backgroundTheme: "light"
+      }],
+      manualSlides: {
+        "imageSlideshow:announcements": {
+          images: [
+            { url: "/api/mass-asset/alpha.png", name: "Alpha.png" },
+            { url: "/api/mass-asset/beta.png", name: "Beta.png" }
+          ],
+          slideshowDurationSec: 7,
+          slideshowLoopCount: 3
+        }
+      },
+      screenSettings: {}
+    });
+
+    expect(presentation.slides).toHaveLength(2);
+    expect(presentation.slides[0]).toMatchObject({
+      type: "imageSlideshow",
+      imageUrl: "/api/mass-asset/alpha.png",
+      slideshowImageName: "Alpha.png",
+      slideshowImageIndex: 0,
+      slideshowImageCount: 2,
+      slideshowDurationSec: 7,
+      slideshowLoopCount: 3,
+      isFirstPage: true,
+      isLastPage: false
+    });
+    expect(presentation.slides[1]).toMatchObject({
+      imageUrl: "/api/mass-asset/beta.png",
+      slideshowImageIndex: 1,
+      isLastPage: true
+    });
+  });
+
+  test("keeps an empty slideshow selectable with safe placeholder metadata", () => {
+    const presentation = buildPresentationFromOrganizer({
+      title: "Empty slideshow",
+      documents: [],
+      sequence: [{
+        id: "imageSlideshow:empty",
+        type: "imageSlideshow",
+        label: "Empty",
+        phase: "mass",
+        backgroundTheme: "light"
+      }],
+      manualSlides: { "imageSlideshow:empty": { images: [] } },
+      screenSettings: {}
+    });
+
+    expect(presentation.slides).toHaveLength(1);
+    expect(presentation.slides[0]).toMatchObject({
+      type: "imageSlideshow",
+      imageUrl: null,
+      slideshowEmpty: true,
+      slideshowImageCount: 0
     });
   });
 });

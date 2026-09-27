@@ -722,6 +722,81 @@
       display: none;
     }
 
+    .slideshow-drop-zone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 92px;
+      margin-bottom: 0.7rem;
+      padding: 1rem;
+      border: 2px dashed var(--line);
+      border-radius: 12px;
+      color: var(--ink-soft);
+      background: color-mix(in srgb, var(--panel), var(--bg-alt) 16%);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .slideshow-drop-zone.drag-over {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--active-bg);
+    }
+
+    .slideshow-image-list {
+      display: grid;
+      gap: 0.45rem;
+      margin: 0.7rem 0;
+    }
+
+    .slideshow-image-row {
+      display: grid;
+      grid-template-columns: auto 68px minmax(0, 1fr) auto;
+      gap: 0.65rem;
+      align-items: center;
+      padding: 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .slideshow-image-row.dragging {
+      opacity: 0.45;
+    }
+
+    .slideshow-image-row.has-warning {
+      border-color: var(--danger, #b84a3a);
+    }
+
+    .slideshow-image-thumb {
+      width: 68px;
+      height: 42px;
+      object-fit: cover;
+      border-radius: 6px;
+      background: var(--bg-alt);
+    }
+
+    .slideshow-image-name {
+      overflow-wrap: anywhere;
+      font-weight: 650;
+    }
+
+    .slideshow-image-warning {
+      margin-top: 0.2rem;
+      color: var(--danger, #b84a3a);
+      font-size: 0.75rem;
+    }
+
+    .slideshow-row-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .slideshow-row-actions button {
+      min-width: 34px;
+      padding: 0.35rem 0.45rem;
+    }
+
     /* ── Connection info bar with QR codes ─────────────────────────────── */
     .connection-panel {
       border: 1px solid color-mix(in srgb, var(--line), white 10%);
@@ -2826,6 +2901,7 @@
                 <option value="prayer">Prayer</option>
                 <option value="hymn">Hymn</option>
                 <option value="image">Image</option>
+                <option value="imageSlideshow">Image Slideshow</option>
                 <option value="movie">Movie</option>
                 <option value="interstitial">Interstitial</option>
                 <option value="countdown">Countdown</option>
@@ -3041,6 +3117,7 @@
                   <select id="editorType">
                     <option value="reading">Reading</option>
                     <option value="image">Image</option>
+                    <option value="imageSlideshow">Image Slideshow</option>
                     <option value="movie">Movie</option>
                     <option value="interstitial">Interstitial</option>
                     <option value="text">Text</option>
@@ -3138,6 +3215,53 @@
             </div>
             <!-- Hidden URL input used internally by asset picker and uploads -->
             <input id="editorImageUrl" type="hidden">
+          </div>
+
+          <div id="editorSectionImageSlideshow" class="editor-type-section" hidden>
+            <div class="editor-section-label">Image Slideshow</div>
+            <div class="editor-help-text">Add a batch of images, then drag or use the arrow buttons to set playback order.</div>
+            <div class="image-preview-wrap" id="slideshowPreviewWrap">
+              <img id="slideshowPreview" class="image-preview" src="" alt="Current slideshow preview" hidden>
+              <div class="image-drop-zone" id="slideshowPreviewEmpty">Add images to preview the slideshow</div>
+            </div>
+            <div id="slideshowDropZone" class="slideshow-drop-zone" tabindex="0" role="button" aria-label="Add images to slideshow">
+              Drop images here or choose files
+              <input id="editorSlideshowFiles" type="file" accept="image/*" multiple hidden>
+            </div>
+            <div class="editor-row" style="margin-bottom:0.55rem">
+              <label style="flex:1">Add from Mass assets
+                <select id="editorSlideshowAssetPicker" style="width:100%;margin-top:0.25rem">
+                  <option value="">— select from assets folder —</option>
+                </select>
+              </label>
+              <button type="button" id="addSlideshowAssetBtn">Add image</button>
+            </div>
+            <div class="editor-row" style="justify-content:space-between;flex-wrap:wrap">
+              <div style="display:flex;gap:0.45rem">
+                <button type="button" id="sortSlideshowBtn">Sort A–Z</button>
+                <button type="button" id="reverseSlideshowBtn">Reverse order</button>
+              </div>
+              <span id="slideshowImageCount" class="muted-small">0 images</span>
+            </div>
+            <div id="slideshowImageList" class="slideshow-image-list" role="list" aria-label="Slideshow image order"></div>
+            <div class="modal-field-grid" style="margin-top:0.7rem">
+              <div class="modal-field modal-span-4">
+                <label>Seconds per image
+                  <input id="editorSlideshowDurationSec" type="number" min="1" max="3600" value="10">
+                </label>
+              </div>
+              <div class="modal-field modal-span-4">
+                <label>Loop count
+                  <input id="editorSlideshowLoopCount" type="number" min="1" max="1000" value="1">
+                </label>
+              </div>
+              <div class="modal-field modal-span-4">
+                <label>Total runtime
+                  <output id="slideshowRuntimePreview">0s</output>
+                </label>
+              </div>
+            </div>
+            <div id="slideshowPreflightSummary" class="muted-small" aria-live="polite" style="margin-top:0.6rem"></div>
           </div>
 
           <div id="editorSectionMovie" class="editor-type-section" hidden>
@@ -3656,6 +3780,7 @@
       /* editorTypeTitle removed — badge is now inline in header */
       editorSectionReading: document.getElementById("editorSectionReading"),
       editorSectionImage: document.getElementById("editorSectionImage"),
+      editorSectionImageSlideshow: document.getElementById("editorSectionImageSlideshow"),
       editorSectionMovie: document.getElementById("editorSectionMovie"),
       interstitialHint: document.getElementById("interstitialHint"),
       editorSectionText: document.getElementById("editorSectionText"),
@@ -3714,6 +3839,20 @@
       editorAssetPicker: document.getElementById("editorAssetPicker"),
       useImageFilenameLabelBtn: document.getElementById("useImageFilenameLabelBtn"),
       browseImageBtn: document.getElementById("browseImageBtn"),
+      slideshowPreview: document.getElementById("slideshowPreview"),
+      slideshowPreviewEmpty: document.getElementById("slideshowPreviewEmpty"),
+      slideshowDropZone: document.getElementById("slideshowDropZone"),
+      editorSlideshowFiles: document.getElementById("editorSlideshowFiles"),
+      editorSlideshowAssetPicker: document.getElementById("editorSlideshowAssetPicker"),
+      addSlideshowAssetBtn: document.getElementById("addSlideshowAssetBtn"),
+      sortSlideshowBtn: document.getElementById("sortSlideshowBtn"),
+      reverseSlideshowBtn: document.getElementById("reverseSlideshowBtn"),
+      slideshowImageCount: document.getElementById("slideshowImageCount"),
+      slideshowImageList: document.getElementById("slideshowImageList"),
+      editorSlideshowDurationSec: document.getElementById("editorSlideshowDurationSec"),
+      editorSlideshowLoopCount: document.getElementById("editorSlideshowLoopCount"),
+      slideshowRuntimePreview: document.getElementById("slideshowRuntimePreview"),
+      slideshowPreflightSummary: document.getElementById("slideshowPreflightSummary"),
       editorVideoUrl: document.getElementById("editorVideoUrl"),
       editorVideoFile: document.getElementById("editorVideoFile"),
       editorVideoAssetPicker: document.getElementById("editorVideoAssetPicker"),
@@ -4033,13 +4172,16 @@
           type: item.type,
           label: els.editorLabel.value || item.label || "Slide",
           phase: els.editorPhase.value || item.phase || "mass",
-          backgroundTheme: (item.type === "image" || item.type === "interstitial" || item.type === "movie")
+          backgroundTheme: (item.type === "image" || item.type === "imageSlideshow" || item.type === "interstitial" || item.type === "movie")
             ? "light"
             : (els.editorBackgroundTheme.value || item.backgroundTheme || "dark"),
           manualSlide: {
             text: els.editorText.value || "",
             notes: els.editorNotes.value || "",
             imageUrl: (els.editorImageUrl.value || "").trim() || null,
+            images: getEditorSlideshowImages(),
+            slideshowDurationSec: parseInt(els.editorSlideshowDurationSec?.value, 10) || 10,
+            slideshowLoopCount: parseInt(els.editorSlideshowLoopCount?.value, 10) || 1,
             videoUrl: (els.editorVideoUrl.value || "").trim() || null,
             videoLoop: Boolean(els.editorVideoLoop?.checked),
             videoAutoAdvance: els.editorVideoAutoAdvance?.checked !== false,
@@ -4072,7 +4214,7 @@
       }
 
       const effectiveType = els.editorType?.value || item.type;
-      if (effectiveType === "image" || effectiveType === "interstitial" || effectiveType === "movie") {
+      if (effectiveType === "image" || effectiveType === "imageSlideshow" || effectiveType === "interstitial" || effectiveType === "movie") {
         els.editorPreviewSection.hidden = true;
         return;
       }
@@ -4087,7 +4229,7 @@
     function renderEditorPreview() {
       // Image and movie slides use their own picker preview — skip live preview entirely
       const currentType = els.editorType?.value || "";
-      if (currentType === "image" || currentType === "interstitial" || currentType === "movie") {
+      if (currentType === "image" || currentType === "imageSlideshow" || currentType === "interstitial" || currentType === "movie") {
         els.editorPreviewSection.hidden = true;
         return;
       }
@@ -4337,6 +4479,7 @@
     function typeTag(type) {
       if (type === "reading") return { label: "READING", className: "tag-reading" };
       if (type === "image") return { label: "IMAGE", className: "tag-image" };
+      if (type === "imageSlideshow") return { label: "SLIDESHOW", className: "tag-image" };
       if (type === "movie") return { label: "MOVIE", className: "tag-image" };
       if (type === "interstitial") return { label: "INTERSTITIAL", className: "tag-interstitial" };
       if (type === "prayer") return { label: "PRAYER", className: "tag-text" };
@@ -4346,7 +4489,7 @@
     }
 
     function inferIsImage(item) {
-      return item.type === "image" || item.type === "interstitial";
+      return item.type === "image" || item.type === "imageSlideshow" || item.type === "interstitial";
     }
 
     function getRepresentativeSlide(item, slides) {
@@ -4762,6 +4905,14 @@
       const counts = slideCountsByOrganizer(slides);
       const screenSettings = uiState.data?.screenSettings || {};
       const manualSlides = uiState.data?.manualSlides || {};
+      const itemRuntimeSeconds = (item, slideCount) => {
+        if (item.type === "imageSlideshow") {
+          const manual = manualSlides[item.id] || {};
+          const validImageCount = Array.isArray(manual.images) ? manual.images.filter((image) => image?.url || typeof image === "string").length : 0;
+          return validImageCount * Math.max(1, Number(manual.slideshowDurationSec) || 10) * Math.max(1, Number(manual.slideshowLoopCount) || 1);
+        }
+        return slideCount * (item.durationSec || 10);
+      };
 
       const darkBg = screenSettings.darkBackgroundUrl || "/static/assets/background-dark.png";
       const lightBg = screenSettings.lightBackgroundUrl || "/static/assets/background-graphic.png";
@@ -4780,7 +4931,9 @@
         const active = item.id === uiState.selectedOrganizerId ? "active" : "";
         const pageCount = counts[item.id] || (item.type === "reading" ? 0 : 1);
         const isMovie = item.type === "movie";
-        const durationMeta = (!isMovie && (item.phase === "pre" || item.phase === "gathering" || item.phase === "post"))
+        const durationMeta = item.type === "imageSlideshow"
+          ? ` · \u23F1 ${manualSlides[item.id]?.slideshowDurationSec || 10}s/image × ${manualSlides[item.id]?.slideshowLoopCount || 1}`
+          : (!isMovie && (item.phase === "pre" || item.phase === "gathering" || item.phase === "post"))
           ? ` · \u23F1 ${item.durationSec || 10}s`
           : "";
 
@@ -4795,14 +4948,22 @@
           const videoFile = videoUrl ? decodeURIComponent(videoUrl.split("/").pop()) : "";
           if (videoFile) sourceMeta = ` · ${videoFile}`;
         } else if (isImage) {
-          const imgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || "";
+          const slideshowImages = Array.isArray(manualSlide?.images) ? manualSlide.images : [];
+          const imgUrl = item.type === "imageSlideshow"
+            ? (slideshowImages[0]?.url || repSlide?.imageUrl || "")
+            : (manualSlide?.imageUrl || repSlide?.imageUrl || "");
           const imgFile = imgUrl ? decodeURIComponent(imgUrl.split("/").pop()) : "";
-          if (imgFile) sourceMeta = ` · ${imgFile}`;
+          if (item.type === "imageSlideshow") {
+            sourceMeta = ` · ${slideshowImages.length} image${slideshowImages.length === 1 ? "" : "s"}`;
+          } else if (imgFile) sourceMeta = ` · ${imgFile}`;
         }
         // Image-type slides use their own image; other slides pick background by backgroundTheme.
         let thumbStyle;
         if (isImage) {
-          const bgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || lightBg;
+          const slideshowImages = Array.isArray(manualSlide?.images) ? manualSlide.images : [];
+          const bgUrl = item.type === "imageSlideshow"
+            ? (slideshowImages[0]?.url || repSlide?.imageUrl || lightBg)
+            : (manualSlide?.imageUrl || repSlide?.imageUrl || lightBg);
           thumbStyle = `background-image:url('${bgUrl.replace(/'/g, "\\'")}')`;
         } else if (isMovie) {
           thumbStyle = "background:linear-gradient(145deg, rgba(8,12,18,0.88), rgba(24,32,42,0.72))";
@@ -4829,7 +4990,7 @@
               if (seqItem.phase !== "pre") continue;
               const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
               if (seqItem.type === "movie") continue;
-              totalSec += sc * (seqItem.durationSec || 10);
+              totalSec += itemRuntimeSeconds(seqItem, sc);
             }
             if (totalSec > 0) {
               const mins = Math.floor(totalSec / 60);
@@ -4844,7 +5005,7 @@
               if (seqItem.phase !== "post") continue;
               const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
               if (seqItem.type === "movie") continue;
-              totalSec += sc * (seqItem.durationSec || 10);
+              totalSec += itemRuntimeSeconds(seqItem, sc);
             }
             if (totalSec > 0) {
               const mins = Math.floor(totalSec / 60);
@@ -4859,7 +5020,7 @@
               if (seqItem.phase !== "gathering") continue;
               const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
               if (seqItem.type === "movie") continue;
-              totalSec += sc * (seqItem.durationSec || 10);
+              totalSec += itemRuntimeSeconds(seqItem, sc);
             }
             if (totalSec > 0) {
               const mins = Math.floor(totalSec / 60);
@@ -4950,6 +5111,7 @@
     const EDITOR_TYPE_META = {
       "reading": { label: "READING", className: "tag-reading", title: "Reading" },
       "image": { label: "IMAGE", className: "tag-image", title: "Image Slide" },
+      "imageSlideshow": { label: "SLIDESHOW", className: "tag-image", title: "Image Slideshow" },
       "movie": { label: "MOVIE", className: "tag-image", title: "Movie Slide" },
       "interstitial": { label: "INTERSTITIAL", className: "tag-interstitial", title: "Interstitial Slide" },
       "text": { label: "TEXT", className: "tag-text", title: "Text Slide" },
@@ -4986,6 +5148,7 @@
 
       const isReading = item.type === "reading";
       const isImage = item.type === "image" || item.type === "interstitial";
+      const isImageSlideshow = item.type === "imageSlideshow";
       const isMovie = item.type === "movie";
       const isTextType = item.type === "text" || item.type === "prayer" || item.type === "hymn";
       const isCountdown = item.type === "countdown";
@@ -4994,6 +5157,7 @@
       // Show only the relevant type section
       els.editorSectionReading.hidden = !isReading;
       els.editorSectionImage.hidden = !isImage;
+      els.editorSectionImageSlideshow.hidden = !isImageSlideshow;
       els.editorSectionMovie.hidden = !isMovie;
       els.editorSectionText.hidden = !isTextType;
       els.editorSectionCountdown.hidden = !isCountdown;
@@ -5005,7 +5169,7 @@
       if (els.interstitialHint) els.interstitialHint.hidden = item.type !== "interstitial";
 
       // Hide live preview for image/interstitial/movie slides.
-      els.editorPreviewSection.hidden = isImage || isMovie;
+      els.editorPreviewSection.hidden = isImage || isImageSlideshow || isMovie;
       if (els.editorPreviewStylePanel) {
         els.editorPreviewStylePanel.hidden = !showStylePanel;
       }
@@ -5044,11 +5208,11 @@
       els.editorType.value = item.type;
       els.editorPhase.value = item.phase || "mass";
       // Duration only applies to non-mass phases (pre-mass auto-advance).
-      els.editorDurationWrap.hidden = (item.phase === "mass") || isCountdown || isMovie;
+      els.editorDurationWrap.hidden = (item.phase === "mass") || isCountdown || isMovie || isImageSlideshow;
       els.editorBackgroundTheme.value = item.backgroundTheme || "dark";
       // Image and movie slides have no configurable background — the uploaded media supplies it.
       if (els.editorBackgroundThemeWrap) {
-        els.editorBackgroundThemeWrap.hidden = isImage || isMovie;
+        els.editorBackgroundThemeWrap.hidden = isImage || isImageSlideshow || isMovie;
       }
 
       replaceSelectOptions(
@@ -5087,9 +5251,15 @@
       if (focused !== els.editorVideoUrl) updateMoviePreview(manual.videoUrl || "");
       if (els.editorVideoLoop) els.editorVideoLoop.checked = Boolean(manual.videoLoop);
       if (els.editorVideoAutoAdvance) els.editorVideoAutoAdvance.checked = manual.videoAutoAdvance !== false;
+      if (els.editorSlideshowDurationSec) els.editorSlideshowDurationSec.value = String(Math.max(1, Math.min(3600, Number(manual.slideshowDurationSec) || 10)));
+      if (els.editorSlideshowLoopCount) els.editorSlideshowLoopCount.value = String(Math.max(1, Math.min(1000, Number(manual.slideshowLoopCount) || 1)));
       // Refresh asset picker when the image section becomes visible.
       if (isImage) {
         refreshAssetPicker(manual.imageUrl || "");
+      }
+      if (isImageSlideshow) {
+        applyEditorSlideshowImages(manual.images || [], { save: false });
+        refreshAllMassAssetSelectors().catch(() => { });
       }
       if (isMovie) {
         refreshAllMassAssetSelectors({ videoUrl: manual.videoUrl || "" });
@@ -5614,6 +5784,175 @@
       els.editorLabel.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
+    let slideshowPreflightResults = [];
+    let slideshowPreflightRequest = 0;
+    let slideshowDragIndex = null;
+
+    function normalizeEditorSlideshowImage(entry) {
+      const url = typeof entry === "string" ? entry : entry?.url;
+      const normalizedUrl = String(url || "").trim();
+      const fallbackName = normalizedUrl ? decodeURIComponent(normalizedUrl.split(/[?#]/, 1)[0].split("/").pop() || "Image") : "Image";
+      return {
+        url: normalizedUrl,
+        name: String(entry?.name || fallbackName || "Image").trim() || "Image"
+      };
+    }
+
+    function compareSlideshowImages(a, b) {
+      return String(a?.name || "").localeCompare(String(b?.name || ""), undefined, {
+        numeric: true,
+        sensitivity: "base"
+      });
+    }
+
+    function getEditorSlideshowImages() {
+      if (!els.slideshowImageList) return [];
+      return Array.from(els.slideshowImageList.querySelectorAll(".slideshow-image-row")).map((row) => ({
+        url: row.dataset.url || "",
+        name: row.dataset.name || "Image"
+      }));
+    }
+
+    function formatRuntimeSeconds(totalSeconds) {
+      const total = Math.max(0, Math.round((Number(totalSeconds) || 0) * 10) / 10);
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const seconds = Math.round((total - (hours * 3600) - (minutes * 60)) * 10) / 10;
+      if (hours) return `${hours}h ${minutes}m ${seconds}s`;
+      if (minutes) return `${minutes}m ${seconds}s`;
+      return `${seconds}s`;
+    }
+
+    function updateSlideshowRuntimePreview(validCount = null) {
+      const imageCount = validCount == null ? getEditorSlideshowImages().length : Math.max(0, Number(validCount) || 0);
+      const durationSec = Math.max(1, Math.min(3600, parseInt(els.editorSlideshowDurationSec?.value, 10) || 10));
+      const loopCount = Math.max(1, Math.min(1000, parseInt(els.editorSlideshowLoopCount?.value, 10) || 1));
+      const frameCount = imageCount * loopCount;
+      const transitionSec = uiState.data?.screenSettings?.transition === "none" ? 0 : 0.7;
+      const totalSec = (frameCount * durationSec) + (Math.max(0, frameCount - 1) * transitionSec);
+      if (els.slideshowRuntimePreview) els.slideshowRuntimePreview.textContent = formatRuntimeSeconds(totalSec);
+      if (els.slideshowImageCount) els.slideshowImageCount.textContent = `${imageCount} valid image${imageCount === 1 ? "" : "s"}`;
+    }
+
+    function updateSlideshowPreview(images) {
+      const first = images.find((image) => image.url);
+      if (!els.slideshowPreview || !els.slideshowPreviewEmpty) return;
+      if (first) {
+        els.slideshowPreview.src = first.url;
+        els.slideshowPreview.alt = `Slideshow preview: ${first.name}`;
+        els.slideshowPreview.hidden = false;
+        els.slideshowPreviewEmpty.hidden = true;
+      } else {
+        els.slideshowPreview.removeAttribute("src");
+        els.slideshowPreview.hidden = true;
+        els.slideshowPreviewEmpty.hidden = false;
+      }
+    }
+
+    function renderSlideshowImageList(images, preflightResults = slideshowPreflightResults) {
+      const normalized = (Array.isArray(images) ? images : []).map(normalizeEditorSlideshowImage);
+      els.slideshowImageList.innerHTML = "";
+      normalized.forEach((image, index) => {
+        const result = preflightResults[index];
+        const warnings = Array.isArray(result?.warnings) ? result.warnings : [];
+        const row = document.createElement("div");
+        row.className = `slideshow-image-row${warnings.length ? " has-warning" : ""}`;
+        row.draggable = true;
+        row.dataset.index = String(index);
+        row.dataset.url = image.url;
+        row.dataset.name = image.name;
+        row.setAttribute("role", "listitem");
+
+        const handle = document.createElement("span");
+        handle.className = "drag-handle";
+        handle.textContent = "⠷";
+        handle.title = "Drag to reorder";
+        row.appendChild(handle);
+
+        const thumb = document.createElement("img");
+        thumb.className = "slideshow-image-thumb";
+        thumb.src = image.url;
+        thumb.alt = "";
+        row.appendChild(thumb);
+
+        const copy = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "slideshow-image-name";
+        name.textContent = `${index + 1}. ${image.name}`;
+        copy.appendChild(name);
+        if (warnings.length) {
+          const warning = document.createElement("div");
+          warning.className = "slideshow-image-warning";
+          warning.textContent = warnings.join(", ");
+          copy.appendChild(warning);
+        }
+        row.appendChild(copy);
+
+        const actions = document.createElement("div");
+        actions.className = "slideshow-row-actions";
+        for (const [action, label, title] of [
+          ["up", "↑", "Move image up"],
+          ["down", "↓", "Move image down"],
+          ["remove", "×", "Remove image"]
+        ]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.slideshowAction = action;
+          button.dataset.index = String(index);
+          button.textContent = label;
+          button.title = title;
+          button.setAttribute("aria-label", `${title}: ${image.name}`);
+          if (action === "up") button.disabled = index === 0;
+          if (action === "down") button.disabled = index === normalized.length - 1;
+          actions.appendChild(button);
+        }
+        row.appendChild(actions);
+        els.slideshowImageList.appendChild(row);
+      });
+      updateSlideshowPreview(normalized);
+      updateSlideshowRuntimePreview();
+    }
+
+    async function runSlideshowPreflight() {
+      const requestId = ++slideshowPreflightRequest;
+      const images = getEditorSlideshowImages();
+      if (images.length === 0) {
+        slideshowPreflightResults = [];
+        if (els.slideshowPreflightSummary) els.slideshowPreflightSummary.textContent = "Add at least one valid image before starting this slideshow.";
+        renderSlideshowImageList(images, []);
+        updateSlideshowRuntimePreview(0);
+        return;
+      }
+      try {
+        const response = await fetch("/api/image-slideshow/preflight", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ images })
+        });
+        const data = await response.json();
+        if (requestId !== slideshowPreflightRequest) return;
+        slideshowPreflightResults = Array.isArray(data.results) ? data.results : [];
+        renderSlideshowImageList(images, slideshowPreflightResults);
+        const warningCount = slideshowPreflightResults.filter((result) => result.warnings?.length).length;
+        if (els.slideshowPreflightSummary) {
+          els.slideshowPreflightSummary.textContent = warningCount
+            ? `${warningCount} image${warningCount === 1 ? " has" : "s have"} preflight warnings.`
+            : "Preflight passed.";
+        }
+        updateSlideshowRuntimePreview(data.validCount);
+      } catch (_error) {
+        if (requestId !== slideshowPreflightRequest) return;
+        if (els.slideshowPreflightSummary) els.slideshowPreflightSummary.textContent = "Preflight could not be completed.";
+      }
+    }
+
+    function applyEditorSlideshowImages(images, { save = true } = {}) {
+      slideshowPreflightResults = [];
+      renderSlideshowImageList(images, []);
+      runSlideshowPreflight().catch(() => { });
+      if (save) scheduleEditorSave();
+    }
+
     async function saveEditor() {
       await updateSelected((sequence, manualSlides, index) => {
         const item = sequence[index];
@@ -5630,9 +5969,11 @@
           sequence.splice(insertAt, 0, moved);
         }
         // Image, movie, and interstitial slides always use their uploaded media — backgroundTheme is always "light".
-        item.backgroundTheme = (nextType === "image" || nextType === "interstitial" || nextType === "movie") ? "light" : els.editorBackgroundTheme.value;
+        item.backgroundTheme = (nextType === "image" || nextType === "imageSlideshow" || nextType === "interstitial" || nextType === "movie") ? "light" : els.editorBackgroundTheme.value;
 
-        item.durationSec = (item.phase === "mass" || nextType === "movie")
+        item.durationSec = nextType === "imageSlideshow"
+          ? Math.max(1, Math.min(3600, parseInt(els.editorSlideshowDurationSec.value, 10) || 10))
+          : (item.phase === "mass" || nextType === "movie")
           ? null
           : Math.max(1, Math.min(3600, parseInt(els.editorDurationSec.value, 10) || 10));
 
@@ -5663,6 +6004,15 @@
             : null;
           manualSlides[item.id].videoLoop = Boolean(els.editorVideoLoop?.checked);
           manualSlides[item.id].videoAutoAdvance = els.editorVideoAutoAdvance?.checked !== false;
+          if (nextType === "imageSlideshow") {
+            manualSlides[item.id].images = getEditorSlideshowImages();
+            manualSlides[item.id].slideshowDurationSec = Math.max(1, Math.min(3600, parseInt(els.editorSlideshowDurationSec.value, 10) || 10));
+            manualSlides[item.id].slideshowLoopCount = Math.max(1, Math.min(1000, parseInt(els.editorSlideshowLoopCount.value, 10) || 1));
+          } else {
+            manualSlides[item.id].images = [];
+            manualSlides[item.id].slideshowDurationSec = 10;
+            manualSlides[item.id].slideshowLoopCount = 1;
+          }
           manualSlides[item.id].styleOverrides = (nextType === "text" || nextType === "prayer" || nextType === "hymn")
             ? getEditorStyleOverrides(nextType)
             : {};
@@ -5759,6 +6109,13 @@
         updateImagePreview(editorUrl);
       }
 
+      if (els.editorSlideshowAssetPicker) {
+        replaceSelectOptions(els.editorSlideshowAssetPicker, assetOptions, {
+          placeholderLabel: "\u2014 select from assets folder \u2014"
+        });
+        els.editorSlideshowAssetPicker.value = "";
+      }
+
       if (els.editorVideoAssetPicker) {
         replaceSelectOptions(els.editorVideoAssetPicker, videoAssetOptions, {
           placeholderLabel: "\u2014 select from assets folder \u2014"
@@ -5831,6 +6188,163 @@
         body: JSON.stringify({ filename, dataUrl })
       });
       return { resp, result: await resp.json() };
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error || new Error("Could not read image."));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function addFilesToImageSlideshow(fileList) {
+      const files = Array.from(fileList || [])
+        .filter((file) => file.type.startsWith("image/"))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+      if (files.length === 0) {
+        els.status.textContent = "Choose one or more supported image files.";
+        return;
+      }
+
+      const uploaded = [];
+      for (const file of files) {
+        try {
+          const dataUrl = await readFileAsDataUrl(file);
+          const { resp, result } = await uploadImageForSlide(file.name, dataUrl);
+          if (!resp.ok) {
+            els.status.textContent = result.error || `Could not upload ${file.name}.`;
+            continue;
+          }
+          uploaded.push({ url: result.url, name: result.name || file.name });
+        } catch (_error) {
+          els.status.textContent = `Could not upload ${file.name}.`;
+        }
+      }
+
+      if (uploaded.length) {
+        const existing = getEditorSlideshowImages();
+        applyEditorSlideshowImages([...existing, ...uploaded]);
+        await refreshAllMassAssetSelectors();
+        els.status.textContent = `${uploaded.length} slideshow image${uploaded.length === 1 ? "" : "s"} added.`;
+      }
+    }
+
+    if (els.editorSlideshowFiles) {
+      els.editorSlideshowFiles.addEventListener("change", async (event) => {
+        await addFilesToImageSlideshow(event.target.files);
+        event.target.value = "";
+      });
+    }
+
+    if (els.slideshowDropZone) {
+      els.slideshowDropZone.addEventListener("click", () => els.editorSlideshowFiles.click());
+      els.slideshowDropZone.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          els.editorSlideshowFiles.click();
+        }
+      });
+      els.slideshowDropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+        els.slideshowDropZone.classList.add("drag-over");
+      });
+      els.slideshowDropZone.addEventListener("dragleave", () => els.slideshowDropZone.classList.remove("drag-over"));
+      els.slideshowDropZone.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        els.slideshowDropZone.classList.remove("drag-over");
+        await addFilesToImageSlideshow(event.dataTransfer.files);
+      });
+    }
+
+    if (els.addSlideshowAssetBtn) {
+      els.addSlideshowAssetBtn.addEventListener("click", () => {
+        const option = els.editorSlideshowAssetPicker.selectedOptions[0];
+        if (!option?.value) return;
+        const images = getEditorSlideshowImages();
+        images.push({ url: option.value, name: option.textContent || labelFromImageUrl(option.value) || "Image" });
+        applyEditorSlideshowImages(images);
+        els.editorSlideshowAssetPicker.value = "";
+      });
+    }
+
+    if (els.sortSlideshowBtn) {
+      els.sortSlideshowBtn.addEventListener("click", () => {
+        applyEditorSlideshowImages(getEditorSlideshowImages().sort(compareSlideshowImages));
+      });
+    }
+
+    if (els.reverseSlideshowBtn) {
+      els.reverseSlideshowBtn.addEventListener("click", () => {
+        applyEditorSlideshowImages(getEditorSlideshowImages().reverse());
+      });
+    }
+
+    if (els.slideshowImageList) {
+      els.slideshowImageList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-slideshow-action]");
+        const row = event.target.closest(".slideshow-image-row");
+        if (!row) return;
+        const images = getEditorSlideshowImages();
+        const index = Number(button?.dataset.index ?? row.dataset.index);
+        if (button) {
+          const action = button.dataset.slideshowAction;
+          if (action === "remove") images.splice(index, 1);
+          if (action === "up" && index > 0) [images[index - 1], images[index]] = [images[index], images[index - 1]];
+          if (action === "down" && index < images.length - 1) [images[index + 1], images[index]] = [images[index], images[index + 1]];
+          applyEditorSlideshowImages(images);
+          return;
+        }
+        updateSlideshowPreview([images[index]]);
+      });
+      els.slideshowImageList.addEventListener("dragstart", (event) => {
+        const row = event.target.closest(".slideshow-image-row");
+        if (!row) return;
+        slideshowDragIndex = Number(row.dataset.index);
+        row.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+      });
+      els.slideshowImageList.addEventListener("dragover", (event) => {
+        if (slideshowDragIndex == null) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+      });
+      els.slideshowImageList.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const row = event.target.closest(".slideshow-image-row");
+        const targetIndex = Number(row?.dataset.index);
+        if (slideshowDragIndex == null || !Number.isInteger(targetIndex) || targetIndex === slideshowDragIndex) return;
+        const images = getEditorSlideshowImages();
+        const [moved] = images.splice(slideshowDragIndex, 1);
+        images.splice(targetIndex, 0, moved);
+        slideshowDragIndex = null;
+        applyEditorSlideshowImages(images);
+      });
+      els.slideshowImageList.addEventListener("dragend", () => {
+        slideshowDragIndex = null;
+        els.slideshowImageList.querySelectorAll(".dragging").forEach((row) => row.classList.remove("dragging"));
+      });
+    }
+
+    for (const input of [els.editorSlideshowDurationSec, els.editorSlideshowLoopCount]) {
+      input?.addEventListener("input", () => {
+        const images = getEditorSlideshowImages();
+        const validCount = slideshowPreflightResults.length === images.length
+          ? slideshowPreflightResults.filter((result) => result.valid).length
+          : null;
+        updateSlideshowRuntimePreview(validCount);
+        scheduleEditorSave();
+      });
+      input?.addEventListener("change", () => {
+        const images = getEditorSlideshowImages();
+        const validCount = slideshowPreflightResults.length === images.length
+          ? slideshowPreflightResults.filter((result) => result.valid).length
+          : null;
+        updateSlideshowRuntimePreview(validCount);
+        scheduleEditorSave();
+      });
     }
 
     els.browseImageBtn.addEventListener("click", async () => {
@@ -6187,7 +6701,7 @@
     });
     els.editorType.addEventListener("change", () => {
       const prev = els.editorType.dataset.prevType || "";
-      const hasContent = els.editorText.value.trim() || els.editorReadingText.value.trim() || els.editorImageUrl.value.trim() || els.editorVideoUrl.value.trim();
+      const hasContent = els.editorText.value.trim() || els.editorReadingText.value.trim() || els.editorImageUrl.value.trim() || els.editorVideoUrl.value.trim() || getEditorSlideshowImages().length;
       if (prev && prev !== els.editorType.value && hasContent) {
         if (!confirm(`Changing type from "${prev}" to "${els.editorType.value}" may discard existing content for this slide. Continue?`)) {
           els.editorType.value = prev;
@@ -6199,11 +6713,12 @@
       const newType = els.editorType.value;
       els.editorSectionReading.hidden = newType !== "reading";
       els.editorSectionImage.hidden = !(newType === "image" || newType === "interstitial");
+      els.editorSectionImageSlideshow.hidden = newType !== "imageSlideshow";
       els.editorSectionMovie.hidden = newType !== "movie";
       if (els.interstitialHint) els.interstitialHint.hidden = newType !== "interstitial";
       els.editorSectionText.hidden = !(newType === "text" || newType === "prayer" || newType === "hymn");
       els.editorSectionCountdown.hidden = newType !== "countdown";
-      els.editorPreviewSection.hidden = (newType === "image" || newType === "interstitial" || newType === "movie");
+      els.editorPreviewSection.hidden = (newType === "image" || newType === "imageSlideshow" || newType === "interstitial" || newType === "movie");
       if (els.editorPreviewStylePanel) {
         els.editorPreviewStylePanel.hidden = !(newType === "reading" || newType === "text" || newType === "prayer" || newType === "hymn");
       }
@@ -6222,7 +6737,10 @@
           : "Adjust only what this slide needs while watching the preview update above.";
       }
       if (els.editorBackgroundThemeWrap) {
-        els.editorBackgroundThemeWrap.hidden = (newType === "image" || newType === "interstitial" || newType === "movie");
+        els.editorBackgroundThemeWrap.hidden = (newType === "image" || newType === "imageSlideshow" || newType === "interstitial" || newType === "movie");
+      }
+      if (els.editorDurationWrap) {
+        els.editorDurationWrap.hidden = els.editorPhase.value === "mass" || newType === "countdown" || newType === "movie" || newType === "imageSlideshow";
       }
       if (els.editorPrayerWrap) {
         els.editorPrayerWrap.hidden = newType !== "prayer";
@@ -6479,6 +6997,7 @@
     els.newSlideBtn.addEventListener("click", async () => {
       const type = els.newSlideType?.value || "text";
       const isImage = type === "image" || type === "interstitial";
+      const isImageSlideshow = type === "imageSlideshow";
       const isMovie = type === "movie";
       const isReading = type === "reading";
       const isCountdown = type === "countdown";
@@ -6487,14 +7006,14 @@
         const id = uniqueId(type);
         const docs = getDocuments();
         const firstStem = docs[0]?.stem || null;
-        const label = type === "interstitial" ? "Interstitial" : type === "image" ? "Image" : type === "movie" ? "Movie" : isCountdown ? "Countdown" : isReading ? "Reading" : type.charAt(0).toUpperCase() + type.slice(1) + " Slide";
+        const label = type === "interstitial" ? "Interstitial" : type === "image" ? "Image" : isImageSlideshow ? "Image Slideshow" : type === "movie" ? "Movie" : isCountdown ? "Countdown" : isReading ? "Reading" : type.charAt(0).toUpperCase() + type.slice(1) + " Slide";
         sequence.splice(index + 1, 0, {
           id,
           type,
           label,
           sourceStem: isReading ? firstStem : null,
           phase,
-          backgroundTheme: (isImage || isMovie) ? "light" : "dark",
+          backgroundTheme: (isImage || isImageSlideshow || isMovie) ? "light" : "dark",
           durationSec: isMovie || phase === "mass" ? null : 10
         });
         if (!isReading) {
@@ -6502,6 +7021,8 @@
             manualSlides[id] = { text: "", notes: "", countdownSec: 60, countdownStyle: "ring", countdownFont: "", countdownSizePercent: 100 };
           } else if (isMovie) {
             manualSlides[id] = { text: "", notes: "", videoUrl: null, videoLoop: false, videoAutoAdvance: true };
+          } else if (isImageSlideshow) {
+            manualSlides[id] = { text: "", notes: "", imageUrl: null, images: [], slideshowDurationSec: 10, slideshowLoopCount: 1 };
           } else if (isImage) {
             // For new interstitials, inherit the image from existing interstitials
             let inheritedUrl = null;

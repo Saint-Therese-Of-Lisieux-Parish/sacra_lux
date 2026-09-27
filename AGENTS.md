@@ -98,6 +98,9 @@ Key state fields:
 - `gatheringRunning`
 - `postMassRunning`
 - `countdownEndsAt`
+- `imageSlideshowEndsAt`
+- `imageSlideshowLoopIteration`
+- `imageSlideshowError`
 - `activeMassArchiveId`
 
 Raw PIN values must never be exposed to clients. Use `getStateSnapshot()`.
@@ -129,10 +132,11 @@ High-value routes:
 - `POST /api/import-mass-zip`
 - `GET /api/export-mass-zip`
 - `GET /api/mass-history`
+- `POST /api/image-slideshow/preflight`
 
 Socket.IO events:
 
-- client to server: `slide:next`, `slide:prev`, `slide:goto`, `slide:goto:remote`, `screen:interstitial-hold`, `screen:black`, `screen:settings`, `export:avif:start`
+- client to server: `slide:next`, `slide:prev`, `slide:goto`, `slide:goto:remote`, `screen:interstitial-hold`, `screen:black`, `screen:settings`, `image-slideshow:preload-error`, `export:avif:start`
 - server to client: `state:update`, `export:avif:progress`, `export:avif:done`, `export:avif:error`, `interstitial:hold:error`
 
 ## Safety Expectations

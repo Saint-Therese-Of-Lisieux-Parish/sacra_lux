@@ -29,6 +29,9 @@ const {
   normalizeBackgroundTheme,
   normalizeCountdownSizePercent,
   normalizeCountdownStyle,
+  normalizeSlideshowDurationSec,
+  normalizeSlideshowImages,
+  normalizeSlideshowLoopCount,
   normalizePhase,
   normalizeType,
   normalizeStyleOverrides
@@ -290,6 +293,9 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   if (packageInfo.kind === "v3") {
     for (const item of packageInfo.raw.items || []) {
       if (item.asset?.ref) refs.push(item.asset.ref);
+      for (const asset of item.assets || []) {
+        if (asset?.ref) refs.push(asset.ref);
+      }
     }
     for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
       if (packageInfo.raw.presentationDefaults?.[key]) refs.push(packageInfo.raw.presentationDefaults[key]);
@@ -298,6 +304,10 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
     for (const slide of Object.values(packageInfo.raw.manualSlides || {})) {
       if (slide.imageUrl) refs.push(slide.imageUrl);
       if (slide.videoUrl) refs.push(slide.videoUrl);
+      for (const image of slide.images || []) {
+        const url = typeof image === "string" ? image : image?.url;
+        if (url) refs.push(url);
+      }
     }
     for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
       if (packageInfo.raw.screenSettings?.[key]) refs.push(packageInfo.raw.screenSettings[key]);
@@ -341,6 +351,11 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
     for (const item of massDocument.items || []) {
       if (item.asset?.ref && urlRemap.has(item.asset.ref)) {
         item.asset.ref = urlRemap.get(item.asset.ref);
+      }
+      for (const asset of item.assets || []) {
+        if (asset?.ref && urlRemap.has(asset.ref)) {
+          asset.ref = urlRemap.get(asset.ref);
+        }
       }
     }
     for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
@@ -621,6 +636,12 @@ function mergeManualSlideState(nextSequence, nextManualSlides) {
       ...(nextManualSlides[item.id] || {})
     };
     merged[item.id].styleOverrides = normalizeStyleOverrides(merged[item.id].styleOverrides);
+    if (item.type === "imageSlideshow") {
+      merged[item.id].images = normalizeSlideshowImages(merged[item.id].images);
+      merged[item.id].slideshowDurationSec = normalizeSlideshowDurationSec(merged[item.id].slideshowDurationSec);
+      merged[item.id].slideshowLoopCount = normalizeSlideshowLoopCount(merged[item.id].slideshowLoopCount);
+      merged[item.id].imageUrl = null;
+    }
   }
 
   return merged;
@@ -729,6 +750,186 @@ let _preMassTimer = null;
 // ── Gathering slideshow automation ───────────────────────────────────────────
 let _gatheringTimer = null;
 
+// ── Image Slideshow slide automation ─────────────────────────────────────────
+let _imageSlideshowTimer = null;
+const _imageSlideshowFailedUrls = new Set();
+const IMAGE_SLIDESHOW_FADE_MS = 700;
+
+function stopImageSlideshowTimer({ resetProgress = true, clearError = false } = {}) {
+  if (_imageSlideshowTimer) {
+    clearTimeout(_imageSlideshowTimer);
+    _imageSlideshowTimer = null;
+  }
+  state.imageSlideshowEndsAt = null;
+  if (resetProgress) state.imageSlideshowLoopIteration = 1;
+  if (clearError) state.imageSlideshowError = null;
+}
+
+function slideshowAssetPathFromUrl(url) {
+  const match = String(url || "").match(/^\/api\/mass-asset\/([^/]+)$/);
+  if (!match) return null;
+  const filename = path.basename(match[1]);
+  const filePath = path.join(CURRENT_MASS_DIR, "assets", filename);
+  if (!filePath.startsWith(path.join(CURRENT_MASS_DIR, "assets") + path.sep)) return null;
+  return filePath;
+}
+
+function isPlayableImageSlideshowSlide(slide) {
+  if (!slide || slide.type !== "imageSlideshow" || slide.slideshowEmpty || !slide.imageUrl) return false;
+  if (_imageSlideshowFailedUrls.has(slide.imageUrl)) return false;
+  const withoutQuery = String(slide.imageUrl).split(/[?#]/, 1)[0];
+  if (!IMAGE_ASSET_EXT.has(path.extname(withoutQuery).toLowerCase())) return false;
+  const localPath = slideshowAssetPathFromUrl(slide.imageUrl);
+  return !localPath || fs.existsSync(localPath);
+}
+
+function getPlayableImageSlideshowEntries(organizerItemId) {
+  return (state.presentation?.slides || [])
+    .map((slide, index) => ({ slide, index }))
+    .filter(({ slide }) => slide.organizerItemId === organizerItemId && isPlayableImageSlideshowSlide(slide));
+}
+
+function getRunnablePhaseIndices(phase) {
+  return (state.presentation?.slides || []).reduce((indices, slide, index) => {
+    if (slide.phase !== phase) return indices;
+    if (slide.type === "imageSlideshow" && !isPlayableImageSlideshowSlide(slide)) return indices;
+    indices.push(index);
+    return indices;
+  }, []);
+}
+
+function scheduleRuntimeForCurrentSlide(ioRef) {
+  const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+  if (!currentSlide) return;
+  if (currentSlide.type === "imageSlideshow") {
+    scheduleImageSlideshowSlide(ioRef);
+    return;
+  }
+  if (currentSlide.type === "countdown") {
+    startCountdownForSlide(ioRef);
+    return;
+  }
+  if (state.preMassRunning) scheduleNextPreMassSlide(ioRef);
+  if (state.gatheringRunning) scheduleNextGatheringSlide(ioRef);
+  if (state.postMassRunning) scheduleNextPostMassSlide(ioRef);
+}
+
+function advanceAfterImageSlideshow(ioRef) {
+  const slides = state.presentation?.slides || [];
+  let nextIndex = -1;
+
+  if (state.preMassRunning) {
+    const indices = getRunnablePhaseIndices("pre");
+    const position = indices.indexOf(state.currentSlideIndex);
+    if (indices.length === 0) {
+      stopPreMassTimer();
+    } else {
+      nextIndex = indices[(position >= 0 ? position + 1 : 0) % indices.length];
+    }
+  } else if (state.gatheringRunning) {
+    const indices = getRunnablePhaseIndices("gathering");
+    const position = indices.indexOf(state.currentSlideIndex);
+    if (position >= 0 && position < indices.length - 1) {
+      nextIndex = indices[position + 1];
+    } else {
+      stopGatheringTimer();
+      nextIndex = slides.findIndex((slide) => slide.phase === "mass");
+    }
+  } else if (state.postMassRunning) {
+    const indices = getRunnablePhaseIndices("post");
+    const position = indices.indexOf(state.currentSlideIndex);
+    if (indices.length === 0) {
+      stopPostMassTimer();
+    } else {
+      nextIndex = indices[(position >= 0 ? position + 1 : 0) % indices.length];
+    }
+  } else if (state.currentSlideIndex < slides.length - 1) {
+    nextIndex = state.currentSlideIndex + 1;
+  }
+
+  stopImageSlideshowTimer({ resetProgress: true });
+  if (nextIndex >= 0) {
+    state.currentSlideIndex = getSafeSlideIndex(nextIndex);
+  }
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+  scheduleSave();
+  if (nextIndex >= 0) scheduleRuntimeForCurrentSlide(ioRef);
+}
+
+function scheduleImageSlideshowSlide(ioRef) {
+  stopImageSlideshowTimer({ resetProgress: false });
+  const slides = state.presentation?.slides || [];
+  const currentSlide = slides[state.currentSlideIndex];
+  if (!currentSlide || currentSlide.type !== "imageSlideshow") return;
+
+  const playable = getPlayableImageSlideshowEntries(currentSlide.organizerItemId);
+  if (playable.length === 0) {
+    state.imageSlideshowError = "This Image Slideshow has no valid playable images.";
+    state.imageSlideshowEndsAt = null;
+    touch();
+    ioRef.emit("state:update", getStateSnapshot());
+    _imageSlideshowTimer = setTimeout(() => {
+      _imageSlideshowTimer = null;
+      advanceAfterImageSlideshow(ioRef);
+    }, 100);
+    return;
+  }
+
+  let position = playable.findIndex(({ index }) => index === state.currentSlideIndex);
+  if (position < 0) {
+    state.currentSlideIndex = getSafeSlideIndex(playable[0].index);
+    position = 0;
+  }
+  state.imageSlideshowError = null;
+  state.imageSlideshowLoopIteration = Math.max(
+    1,
+    Math.min(Number(currentSlide.slideshowLoopCount) || 1, Number(state.imageSlideshowLoopIteration) || 1)
+  );
+  const durationMs = normalizeSlideshowDurationSec(currentSlide.slideshowDurationSec) * 1000;
+  state.imageSlideshowEndsAt = Date.now() + durationMs;
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+
+  const scheduledSlideId = playable[position].slide.id;
+  _imageSlideshowTimer = setTimeout(() => {
+    _imageSlideshowTimer = null;
+    state.imageSlideshowEndsAt = null;
+    const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+    if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
+
+    const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
+    const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
+    if (latestPlayable.length === 0 || latestPosition < 0) {
+      advanceAfterImageSlideshow(ioRef);
+      return;
+    }
+
+    if (latestPosition < latestPlayable.length - 1) {
+      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
+    } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
+      state.imageSlideshowLoopIteration += 1;
+      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
+    } else {
+      advanceAfterImageSlideshow(ioRef);
+      return;
+    }
+
+    touch();
+    ioRef.emit("state:update", getStateSnapshot());
+    scheduleSave();
+    const transitionMs = state.screenSettings?.transition === "none" ? 0 : IMAGE_SLIDESHOW_FADE_MS;
+    if (transitionMs > 0) {
+      _imageSlideshowTimer = setTimeout(() => {
+        _imageSlideshowTimer = null;
+        scheduleImageSlideshowSlide(ioRef);
+      }, transitionMs);
+    } else {
+      scheduleImageSlideshowSlide(ioRef);
+    }
+  }, durationMs);
+}
+
 /**
  * Clear the pre-mass cycling timer and mark the slideshow as stopped.
  * Does NOT emit a state update — the caller is responsible for broadcasting.
@@ -756,7 +957,8 @@ function scheduleNextPreMassSlide(ioRef) {
     return;
   }
 
-  // Let countdown and movie slides control auto-advance and skip the phase timer.
+  // Let controlled slide types own auto-advance and skip the phase timer.
+  if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
   if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
@@ -811,7 +1013,14 @@ function getGatheringDurationMs() {
     if (item.phase !== "gathering") continue;
     const slideCount = slides.filter((s) => s.organizerItemId === item.id).length;
     if (slideCount === 0) continue;
-    totalMs += slideCount * Math.max(1000, (Number(item.durationSec) || 10) * 1000);
+    if (item.type === "imageSlideshow") {
+      const manual = state.manualSlides[item.id] || {};
+      const imageCount = normalizeSlideshowImages(manual.images).filter((image) => image.url).length;
+      totalMs += imageCount * normalizeSlideshowDurationSec(manual.slideshowDurationSec) *
+        normalizeSlideshowLoopCount(manual.slideshowLoopCount) * 1000;
+    } else {
+      totalMs += slideCount * Math.max(1000, (Number(item.durationSec) || 10) * 1000);
+    }
   }
   return totalMs;
 }
@@ -862,7 +1071,8 @@ function scheduleNextGatheringSlide(ioRef) {
     return;
   }
 
-  // Let countdown and movie slides control auto-advance and skip the phase timer.
+  // Let controlled slide types own auto-advance and skip the phase timer.
+  if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
   if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
@@ -953,7 +1163,8 @@ function scheduleNextPostMassSlide(ioRef) {
     return;
   }
 
-  // Let countdown and movie slides control auto-advance and skip the phase timer.
+  // Let controlled slide types own auto-advance and skip the phase timer.
+  if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
   if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
@@ -1012,6 +1223,7 @@ function stopActiveSlideTimers() {
   stopGatheringTimer();
   stopPostMassTimer();
   stopCountdownTimer();
+  stopImageSlideshowTimer({ resetProgress: true });
 }
 
 function findPreferredInterstitialSlideIndex(startIndex = state.currentSlideIndex) {
@@ -1069,11 +1281,15 @@ function stopAllRuntimeTimers() {
   if (_gatheringTimer) { clearTimeout(_gatheringTimer); _gatheringTimer = null; }
   if (_postMassTimer) { clearTimeout(_postMassTimer); _postMassTimer = null; }
   if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
+  if (_imageSlideshowTimer) { clearTimeout(_imageSlideshowTimer); _imageSlideshowTimer = null; }
   if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
   state.preMassRunning = false;
   state.gatheringRunning = false;
   state.postMassRunning = false;
   state.countdownEndsAt = null;
+  state.imageSlideshowEndsAt = null;
+  state.imageSlideshowLoopIteration = 1;
+  state.imageSlideshowError = null;
   clearInterstitialHoldState();
 }
 
@@ -1104,13 +1320,7 @@ function startCountdownForSlide(ioRef) {
       touch();
       ioRef.emit("state:update", getStateSnapshot());
       scheduleSave();
-      // Re-engage the active phase timer for the new slide.
-      if (state.preMassRunning) scheduleNextPreMassSlide(ioRef);
-      if (state.gatheringRunning) scheduleNextGatheringSlide(ioRef);
-      if (state.postMassRunning) scheduleNextPostMassSlide(ioRef);
-      // Start the next countdown when the next slide is also a countdown.
-      const nextSlide = allSlides[state.currentSlideIndex];
-      if (nextSlide?.type === "countdown") startCountdownForSlide(ioRef);
+      scheduleRuntimeForCurrentSlide(ioRef);
     } else {
       touch();
       ioRef.emit("state:update", getStateSnapshot());
@@ -1138,11 +1348,7 @@ function advanceFromCurrentSlide(ioRef) {
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
 
-  if (state.preMassRunning) scheduleNextPreMassSlide(ioRef);
-  if (state.gatheringRunning) scheduleNextGatheringSlide(ioRef);
-  if (state.postMassRunning) scheduleNextPostMassSlide(ioRef);
-  const nextSlide = allSlides[state.currentSlideIndex];
-  if (nextSlide?.type === "countdown") startCountdownForSlide(ioRef);
+  scheduleRuntimeForCurrentSlide(ioRef);
   return true;
 }
 
@@ -1360,8 +1566,14 @@ function startServer(port = 17841, options = {}) {
       const safeName = `${hex}-${baseName}.${ext}`;
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
       fs.mkdirSync(assetsDir, { recursive: true });
-      fs.writeFileSync(path.join(assetsDir, safeName), Buffer.from(match[2], "base64"));
-      return res.json({ ok: true, url: `/api/mass-asset/${safeName}` });
+      const bytes = Buffer.from(match[2], "base64");
+      fs.writeFileSync(path.join(assetsDir, safeName), bytes);
+      return res.json({
+        ok: true,
+        url: `/api/mass-asset/${safeName}`,
+        name: path.basename(String(filename || safeName)).slice(0, 200),
+        sha256: crypto.createHash("sha256").update(bytes).digest("hex")
+      });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Upload failed." });
     }
@@ -1397,6 +1609,63 @@ function startServer(port = 17841, options = {}) {
       return res.json({ assets });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list assets." });
+    }
+  });
+
+  app.post("/api/image-slideshow/preflight", async (req, res) => {
+    try {
+      const images = normalizeSlideshowImages(req.body?.images);
+      const results = [];
+      const hashes = new Map();
+      const seenUrls = new Map();
+      const sharp = require("sharp");
+
+      for (let index = 0; index < images.length; index++) {
+        const image = images[index];
+        const warnings = [];
+        const withoutQuery = String(image.url || "").split(/[?#]/, 1)[0];
+        const ext = path.extname(withoutQuery).toLowerCase();
+        const filePath = slideshowAssetPathFromUrl(image.url);
+        let hash = null;
+
+        if (!image.url) {
+          warnings.push("missing");
+        } else if (!IMAGE_ASSET_EXT.has(ext)) {
+          warnings.push("unsupported");
+        } else if (filePath && !fs.existsSync(filePath)) {
+          warnings.push("missing");
+        } else if (filePath) {
+          try {
+            const bytes = fs.readFileSync(filePath);
+            hash = crypto.createHash("sha256").update(bytes).digest("hex");
+            await sharp(bytes).metadata();
+          } catch (_error) {
+            warnings.push("unreadable");
+          }
+        }
+
+        if (image.url && seenUrls.has(image.url)) {
+          warnings.push("duplicate");
+          const firstIndex = seenUrls.get(image.url);
+          if (!results[firstIndex].warnings.includes("duplicate")) results[firstIndex].warnings.push("duplicate");
+        } else if (image.url) {
+          seenUrls.set(image.url, index);
+        }
+        if (hash && hashes.has(hash)) {
+          warnings.push("duplicate");
+          const firstIndex = hashes.get(hash);
+          if (!results[firstIndex].warnings.includes("duplicate")) results[firstIndex].warnings.push("duplicate");
+        } else if (hash) {
+          hashes.set(hash, index);
+        }
+
+        results.push({ index, url: image.url, name: image.name, valid: warnings.length === 0 || warnings.every((warning) => warning === "duplicate"), warnings });
+      }
+
+      const validCount = results.filter((result) => result.valid).length;
+      return res.json({ ok: true, validCount, results });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || "Image Slideshow preflight failed." });
     }
   });
 
@@ -2268,6 +2537,8 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "sequence array is required." });
       }
 
+      stopImageSlideshowTimer({ resetProgress: true, clearError: true });
+      _imageSlideshowFailedUrls.clear();
       state.organizerSequence = normalizeOrganizerSequence(sequence);
       state.manualSlides = mergeManualSlideState(state.organizerSequence, manualSlides || {});
       propagateInterstitialImage(state.organizerSequence, state.manualSlides);
@@ -2280,6 +2551,9 @@ function startServer(port = 17841, options = {}) {
         screenSettings: state.screenSettings
       });
       state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
+      if ((state.presentation?.slides || [])[state.currentSlideIndex]?.type === "imageSlideshow") {
+        scheduleImageSlideshowSlide(io);
+      }
       // Reschedule the Mass start timer because gathering durations may have changed.
       scheduleStartTimer(io);
       touch();
@@ -2468,6 +2742,11 @@ function startServer(port = 17841, options = {}) {
       manual.notes = String(incomingManual.notes || "");
       manual.imageUrl = String(incomingManual.imageUrl || "").trim() || null;
       manual.styleOverrides = normalizeStyleOverrides(incomingManual.styleOverrides);
+      if (type === "imageSlideshow") {
+        manual.images = normalizeSlideshowImages(incomingManual.images);
+        manual.slideshowDurationSec = normalizeSlideshowDurationSec(incomingManual.slideshowDurationSec);
+        manual.slideshowLoopCount = normalizeSlideshowLoopCount(incomingManual.slideshowLoopCount);
+      }
       if (["top", "middle", "bottom"].includes(String(incomingManual.textVAlign || ""))) {
         manual.textVAlign = String(incomingManual.textVAlign);
       }
@@ -2612,8 +2891,13 @@ function startServer(port = 17841, options = {}) {
       activateGatheringSequence = false,
       activatePostMassLoop = false
     } = options;
+    const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     state.currentSlideIndex = getSafeSlideIndex(index);
     const slide = (state.presentation?.slides || [])[state.currentSlideIndex];
+    const sameSlideshow = previousSlide?.type === "imageSlideshow" &&
+      slide?.type === "imageSlideshow" &&
+      previousSlide.organizerItemId === slide.organizerItemId;
+    stopImageSlideshowTimer({ resetProgress: !sameSlideshow, clearError: !sameSlideshow });
     if (activateGatheringSequence && slide?.phase === "gathering") {
       stopPreMassTimer();
       stopGatheringTimer();
@@ -2656,6 +2940,10 @@ function startServer(port = 17841, options = {}) {
     } else {
       stopCountdownTimer();
     }
+    if (slide?.type === "imageSlideshow" &&
+      !state.preMassRunning && !state.gatheringRunning && !state.postMassRunning) {
+      scheduleImageSlideshowSlide(io);
+    }
     broadcast();
   }
 
@@ -2689,6 +2977,18 @@ function startServer(port = 17841, options = {}) {
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
       advanceFromCurrentSlide(io);
     });
+    socket.on("image-slideshow:preload-error", (payload) => {
+      const imageUrl = String(payload?.imageUrl || "");
+      const slideId = String(payload?.slideId || "");
+      const failedSlide = (state.presentation?.slides || []).find((slide) =>
+        slide.type === "imageSlideshow" && slide.id === slideId && slide.imageUrl === imageUrl
+      );
+      if (!failedSlide || !imageUrl) return;
+      _imageSlideshowFailedUrls.add(imageUrl);
+      state.imageSlideshowError = `Could not preload ${failedSlide.slideshowImageName || "an image"}; it will be skipped.`;
+      touch();
+      io.emit("state:update", getStateSnapshot());
+    });
     socket.on("screen:interstitial-hold", (payload) => {
       if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
@@ -2720,6 +3020,10 @@ function startServer(port = 17841, options = {}) {
           }
           if (slide.videoUrl) {
             mediaRefs.push({ url: slide.videoUrl, type: "slide", id });
+          }
+          for (const image of slide.images || []) {
+            const url = typeof image === "string" ? image : image?.url;
+            if (url) mediaRefs.push({ url, type: "slide", id });
           }
         }
         for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
@@ -2778,6 +3082,13 @@ function startServer(port = 17841, options = {}) {
               item.asset.ref = urlRemap.get(url);
             }
           }
+          for (const asset of item.assets || []) {
+            if (!asset?.ref) continue;
+            const url = `/api/mass-asset/${path.basename(asset.ref)}`;
+            if (urlRemap.has(url)) {
+              asset.ref = urlRemap.get(url);
+            }
+          }
         }
         for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
           const ref = massDocument.presentationDefaults?.[key];
@@ -2827,6 +3138,8 @@ function startServer(port = 17841, options = {}) {
     const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (currentSlide?.type === "countdown") {
       startCountdownForSlide(io);
+    } else if (currentSlide?.type === "imageSlideshow") {
+      scheduleImageSlideshowSlide(io);
     }
 
     // Broadcast initial state to clients that connected before restore finished.

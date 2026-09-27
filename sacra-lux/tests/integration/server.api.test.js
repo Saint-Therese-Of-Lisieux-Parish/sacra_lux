@@ -367,6 +367,149 @@ describe("server api integration", () => {
     expect(String(res.body.error || "")).toMatch(/invalid filename/i);
   });
 
+  test("image slideshow organizer state preserves order, timing, and loops", async () => {
+    const betaUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Beta.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const alphaUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Alpha.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{
+          id: "slideshow:test",
+          type: "imageSlideshow",
+          label: "Announcements",
+          phase: "mass",
+          backgroundTheme: "light",
+          durationSec: 4
+        }],
+        manualSlides: {
+          "slideshow:test": {
+            images: [
+              { url: betaUpload.body.url, name: "Beta.png" },
+              { url: alphaUpload.body.url, name: "Alpha.png" }
+            ],
+            slideshowDurationSec: 4,
+            slideshowLoopCount: 3
+          }
+        }
+      })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.manualSlides["slideshow:test"]).toMatchObject({
+      images: [
+        { url: betaUpload.body.url, name: "Beta.png" },
+        { url: alphaUpload.body.url, name: "Alpha.png" }
+      ],
+      slideshowDurationSec: 4,
+      slideshowLoopCount: 3
+    });
+    expect(stateRes.body.presentation.slides).toHaveLength(2);
+    expect(stateRes.body.presentation.slides.map((slide) => slide.slideshowImageName)).toEqual(["Beta.png", "Alpha.png"]);
+    expect(stateRes.body.imageSlideshowEndsAt).toEqual(expect.any(Number));
+  });
+
+  test("image slideshow preflight reports duplicates, missing, unsupported, and unreadable files", async () => {
+    const uploaded = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Valid.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    fs.writeFileSync(path.join(assetsDir, "broken.png"), "not an image", "utf8");
+
+    const preflight = await request(app)
+      .post("/api/image-slideshow/preflight")
+      .send({
+        images: [
+          { url: uploaded.body.url, name: "Valid.png" },
+          { url: uploaded.body.url, name: "Valid copy.png" },
+          { url: "/api/mass-asset/missing.png", name: "Missing.png" },
+          { url: "/api/mass-asset/unsupported.bmp", name: "Unsupported.bmp" },
+          { url: "/api/mass-asset/broken.png", name: "Broken.png" }
+        ]
+      })
+      .expect(200);
+
+    expect(preflight.body.validCount).toBe(2);
+    expect(preflight.body.results[0].warnings).toContain("duplicate");
+    expect(preflight.body.results[1].warnings).toContain("duplicate");
+    expect(preflight.body.results[2].warnings).toContain("missing");
+    expect(preflight.body.results[3].warnings).toContain("unsupported");
+    expect(preflight.body.results[4].warnings).toContain("unreadable");
+  });
+
+  test("image slideshow includes fade time and loops exactly before advancing", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Slideshow Timer", startTime: "" })
+      .expect(200);
+    const uploaded = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Only.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "slideshow:timer", type: "imageSlideshow", label: "Loop twice", phase: "mass", backgroundTheme: "light", durationSec: 1 },
+          { id: "text:after", type: "text", label: "After", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: {
+          "slideshow:timer": {
+            images: [{ url: uploaded.body.url, name: "Only.png" }],
+            slideshowDurationSec: 1,
+            slideshowLoopCount: 2
+          },
+          "text:after": { text: "Finished" }
+        }
+      })
+      .expect(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.currentSlideIndex).toBe(0);
+    expect(stateRes.body.imageSlideshowLoopIteration).toBe(2);
+    expect(stateRes.body.imageSlideshowEndsAt).toBeNull();
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.currentSlideIndex).toBe(0);
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.currentSlideIndex).toBe(1);
+    expect(stateRes.body.imageSlideshowEndsAt).toBeNull();
+  });
+
+  test("empty image slideshows safely advance instead of becoming stuck", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "empty-slideshow", type: "imageSlideshow", label: "Empty", phase: "mass", backgroundTheme: "light" },
+          { id: "after-empty", type: "text", label: "Next", phase: "mass", backgroundTheme: "dark" }
+        ],
+        manualSlides: {
+          "empty-slideshow": { images: [], slideshowDurationSec: 1, slideshowLoopCount: 1 },
+          "after-empty": { text: "The next slide", textVAlign: "middle" }
+        }
+      })
+      .expect(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.presentation.slides[stateRes.body.currentSlideIndex].organizerItemId).toBe("after-empty");
+    expect(stateRes.body.imageSlideshowEndsAt).toBeNull();
+  });
+
   test("mass history tracks active and archived Masses", async () => {
     await request(app)
       .post("/api/new-mass")
@@ -521,6 +664,73 @@ describe("server api integration", () => {
     expect(massDocument.metadata.scheduledStart).toBe("2026-04-20T09:00");
     expect(massDocument.startPinHash).toBeUndefined();
     expect(massDocument.items.map((item) => item.id)).toEqual(["reading-1", "text-1"]);
+  });
+
+  test("image slideshow assets and settings round-trip through a Mass ZIP", async () => {
+    const alphaUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Alpha.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const betaUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Beta.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{
+          id: "slideshow-zip",
+          type: "imageSlideshow",
+          label: "Parish Photos",
+          phase: "mass",
+          backgroundTheme: "light"
+        }],
+        manualSlides: {
+          "slideshow-zip": {
+            images: [
+              { url: betaUpload.body.url, name: "Beta.png" },
+              { url: alphaUpload.body.url, name: "Alpha.png" }
+            ],
+            slideshowDurationSec: 7,
+            slideshowLoopCount: 3
+          }
+        }
+      })
+      .expect(200);
+
+    const zipRes = await request(app)
+      .get("/api/export-mass-zip")
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    const exportedZip = new AdmZip(zipRes.body);
+    const massDocument = JSON.parse(exportedZip.getEntry("mass.json").getData().toString("utf8"));
+    const slideshowItem = massDocument.items.find((item) => item.id === "slideshow-zip");
+    expect(slideshowItem.kind).toBe("imageSlideshow");
+    expect(slideshowItem.content).toEqual({ secondsPerImage: 7, loopCount: 3 });
+    expect(slideshowItem.assets.map((asset) => asset.name)).toEqual(["Beta.png", "Alpha.png"]);
+    slideshowItem.assets.forEach((asset) => {
+      expect(exportedZip.getEntry(asset.ref)).toBeTruthy();
+    });
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: exportedZip.toBuffer().toString("base64") })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.manualSlides["slideshow-zip"]).toMatchObject({
+      slideshowDurationSec: 7,
+      slideshowLoopCount: 3
+    });
+    expect(stateRes.body.manualSlides["slideshow-zip"].images.map((image) => image.name))
+      .toEqual(["Beta.png", "Alpha.png"]);
   });
 
   test("import-mass-zip accepts v3 mass documents with inline readings", async () => {
