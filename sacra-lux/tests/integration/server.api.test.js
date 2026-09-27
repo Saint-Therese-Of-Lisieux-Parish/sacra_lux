@@ -1,4 +1,5 @@
 const fs = require("fs");
+const http = require("http");
 const path = require("path");
 const AdmZip = require("adm-zip");
 const request = require("supertest");
@@ -609,6 +610,37 @@ describe("server api integration", () => {
 
     const historyRes = await request(app).get("/api/mass-history").expect(200);
     expect(historyRes.body.archives.map((entry) => entry.id)).toContain("Original-Mass");
+  });
+
+  test("escaped archive ids are rejected and leave the data directory in place", async () => {
+    const sacraDir = path.join(handle.homeDir, ".sacra-lux");
+    const canary = path.join(sacraDir, "canary.txt");
+    fs.mkdirSync(sacraDir, { recursive: true });
+    fs.writeFileSync(canary, "keep", "utf8");
+
+    const serverUrl = new URL(handle.baseUrl);
+    const rawRequest = (method, requestPath) => new Promise((resolve, reject) => {
+      const req = http.request({
+        hostname: serverUrl.hostname,
+        port: serverUrl.port,
+        method,
+        path: requestPath
+      }, (res) => {
+        res.resume();
+        res.on("end", () => resolve(res.statusCode));
+      });
+      req.on("error", reject);
+      req.end();
+    });
+
+    for (const encodedId of ["%2e%2e%2f%2e%2e", "..%2f..", "%2e%2e", "%2e"]) {
+      expect(await rawRequest("DELETE", `/api/mass-history/${encodedId}`)).toBe(400);
+      expect(await rawRequest("POST", `/api/mass-history/${encodedId}/load`)).toBe(400);
+      expect(await rawRequest("POST", `/api/mass-history/${encodedId}/compress`)).toBe(400);
+    }
+
+    expect(fs.existsSync(sacraDir)).toBe(true);
+    expect(fs.readFileSync(canary, "utf8")).toBe("keep");
   });
 
   test("import-mass-zip ignores nested and traversal entry paths", async () => {
