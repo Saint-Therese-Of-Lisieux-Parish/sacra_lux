@@ -32,6 +32,8 @@ const {
   normalizeSlideshowDurationSec,
   normalizeSlideshowImages,
   normalizeSlideshowLoopCount,
+  imageSlideshowRuntimeMs,
+  IMAGE_SLIDESHOW_FADE_MS,
   normalizePhase,
   normalizeType,
   normalizeStyleOverrides
@@ -753,7 +755,8 @@ let _gatheringTimer = null;
 // ── Image Slideshow slide automation ─────────────────────────────────────────
 let _imageSlideshowTimer = null;
 const _imageSlideshowFailedUrls = new Set();
-const IMAGE_SLIDESHOW_FADE_MS = 700;
+// Direction of the last manual slide step (1 = next, -1 = prev).
+let _manualNavigationDirection = 1;
 
 function stopImageSlideshowTimer({ resetProgress = true, clearError = false } = {}) {
   if (_imageSlideshowTimer) {
@@ -814,37 +817,44 @@ function scheduleRuntimeForCurrentSlide(ioRef) {
   if (state.postMassRunning) scheduleNextPostMassSlide(ioRef);
 }
 
-function advanceAfterImageSlideshow(ioRef) {
+// Last slide index belonging to the current slide's organizer item, so an
+// advance skips the remaining (possibly unplayable) pages of the same slideshow.
+function getCurrentItemLastIndex() {
   const slides = state.presentation?.slides || [];
+  const currentSlide = slides[state.currentSlideIndex];
+  let lastIndex = state.currentSlideIndex;
+  if (!currentSlide?.organizerItemId) return lastIndex;
+  while (slides[lastIndex + 1]?.organizerItemId === currentSlide.organizerItemId) lastIndex++;
+  return lastIndex;
+}
+
+function advanceAfterImageSlideshow(ioRef, { direction = 1 } = {}) {
+  const slides = state.presentation?.slides || [];
+  const afterIndex = getCurrentItemLastIndex();
   let nextIndex = -1;
 
-  if (state.preMassRunning) {
-    const indices = getRunnablePhaseIndices("pre");
-    const position = indices.indexOf(state.currentSlideIndex);
+  if (state.preMassRunning || state.postMassRunning) {
+    const indices = getRunnablePhaseIndices(state.preMassRunning ? "pre" : "post");
     if (indices.length === 0) {
-      stopPreMassTimer();
+      if (state.preMassRunning) stopPreMassTimer();
+      else stopPostMassTimer();
     } else {
-      nextIndex = indices[(position >= 0 ? position + 1 : 0) % indices.length];
+      nextIndex = indices.find((index) => index > afterIndex) ?? indices[0];
     }
   } else if (state.gatheringRunning) {
     const indices = getRunnablePhaseIndices("gathering");
-    const position = indices.indexOf(state.currentSlideIndex);
-    if (position >= 0 && position < indices.length - 1) {
-      nextIndex = indices[position + 1];
-    } else {
+    nextIndex = indices.find((index) => index > afterIndex) ?? -1;
+    if (nextIndex < 0) {
       stopGatheringTimer();
       nextIndex = slides.findIndex((slide) => slide.phase === "mass");
     }
-  } else if (state.postMassRunning) {
-    const indices = getRunnablePhaseIndices("post");
-    const position = indices.indexOf(state.currentSlideIndex);
-    if (indices.length === 0) {
-      stopPostMassTimer();
-    } else {
-      nextIndex = indices[(position >= 0 ? position + 1 : 0) % indices.length];
-    }
-  } else if (state.currentSlideIndex < slides.length - 1) {
-    nextIndex = state.currentSlideIndex + 1;
+  } else if (direction < 0) {
+    const currentItemId = slides[state.currentSlideIndex]?.organizerItemId;
+    let firstIndex = state.currentSlideIndex;
+    while (firstIndex > 0 && slides[firstIndex - 1]?.organizerItemId === currentItemId) firstIndex--;
+    nextIndex = firstIndex - 1;
+  } else if (afterIndex < slides.length - 1) {
+    nextIndex = afterIndex + 1;
   }
 
   stopImageSlideshowTimer({ resetProgress: true });
@@ -869,9 +879,11 @@ function scheduleImageSlideshowSlide(ioRef) {
     state.imageSlideshowEndsAt = null;
     touch();
     ioRef.emit("state:update", getStateSnapshot());
+    // Skip in the direction the operator was stepping so Prev can move past it.
+    const direction = _manualNavigationDirection;
     _imageSlideshowTimer = setTimeout(() => {
       _imageSlideshowTimer = null;
-      advanceAfterImageSlideshow(ioRef);
+      advanceAfterImageSlideshow(ioRef, { direction });
     }, 100);
     return;
   }
@@ -1014,10 +1026,7 @@ function getGatheringDurationMs() {
     const slideCount = slides.filter((s) => s.organizerItemId === item.id).length;
     if (slideCount === 0) continue;
     if (item.type === "imageSlideshow") {
-      const manual = state.manualSlides[item.id] || {};
-      const imageCount = normalizeSlideshowImages(manual.images).filter((image) => image.url).length;
-      totalMs += imageCount * normalizeSlideshowDurationSec(manual.slideshowDurationSec) *
-        normalizeSlideshowLoopCount(manual.slideshowLoopCount) * 1000;
+      totalMs += imageSlideshowRuntimeMs(state.manualSlides[item.id], state.screenSettings?.transition);
     } else {
       totalMs += slideCount * Math.max(1000, (Number(item.durationSec) || 10) * 1000);
     }
@@ -2537,7 +2546,10 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "sequence array is required." });
       }
 
-      stopImageSlideshowTimer({ resetProgress: true, clearError: true });
+      _manualNavigationDirection = 1;
+      const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const wasSlideshow = previousSlide?.type === "imageSlideshow";
+      stopImageSlideshowTimer({ resetProgress: false, clearError: true });
       _imageSlideshowFailedUrls.clear();
       state.organizerSequence = normalizeOrganizerSequence(sequence);
       state.manualSlides = mergeManualSlideState(state.organizerSequence, manualSlides || {});
@@ -2551,8 +2563,15 @@ function startServer(port = 17841, options = {}) {
         screenSettings: state.screenSettings
       });
       state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
-      if ((state.presentation?.slides || [])[state.currentSlideIndex]?.type === "imageSlideshow") {
+      const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const sameSlideshow = wasSlideshow && currentSlide?.type === "imageSlideshow" &&
+        currentSlide.organizerItemId === previousSlide.organizerItemId;
+      if (!sameSlideshow) state.imageSlideshowLoopIteration = 1;
+      if (currentSlide?.type === "imageSlideshow") {
         scheduleImageSlideshowSlide(io);
+      } else if (wasSlideshow) {
+        // The slideshow timer was driving the phase loop; hand control back to it.
+        scheduleRuntimeForCurrentSlide(io);
       }
       // Reschedule the Mass start timer because gathering durations may have changed.
       scheduleStartTimer(io);
@@ -2889,8 +2908,10 @@ function startServer(port = 17841, options = {}) {
   function setSlide(index, options = {}) {
     const {
       activateGatheringSequence = false,
-      activatePostMassLoop = false
+      activatePostMassLoop = false,
+      direction = 1
     } = options;
+    _manualNavigationDirection = direction < 0 ? -1 : 1;
     const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     state.currentSlideIndex = getSafeSlideIndex(index);
     const slide = (state.presentation?.slides || [])[state.currentSlideIndex];
@@ -2949,7 +2970,7 @@ function startServer(port = 17841, options = {}) {
 
   function stepSlide(step) {
     const nextIndex = state.currentSlideIndex + step;
-    setSlide(nextIndex);
+    setSlide(nextIndex, { direction: step });
   }
 
   // Initialize session restore and timers only after the HTTP server starts listening.
