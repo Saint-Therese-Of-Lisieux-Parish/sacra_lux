@@ -5,7 +5,8 @@ const {
   normalizePhase,
   normalizeType,
   normalizeSlideshowImages,
-  createManualSlideRecord
+  createManualSlideRecord,
+  imageSlideshowRuntimeMs
 } = require("../../src/organizer");
 
 describe("organizer", () => {
@@ -371,5 +372,17 @@ describe("organizer", () => {
       slideshowEmpty: true,
       slideshowImageCount: 0
     });
+  });
+
+  test("image slideshow runtime counts the crossfade between consecutive images", () => {
+    const manual = {
+      images: Array.from({ length: 60 }, (_, index) => ({ url: `/api/mass-asset/${index}.png` })),
+      slideshowDurationSec: 10,
+      slideshowLoopCount: 3
+    };
+    // 180 images shown for 10 s each, with 179 fades of 700 ms between them.
+    expect(imageSlideshowRuntimeMs(manual, "fade")).toBe(1800000 + 179 * 700);
+    expect(imageSlideshowRuntimeMs(manual, "none")).toBe(1800000);
+    expect(imageSlideshowRuntimeMs({ images: [] }, "fade")).toBe(0);
   });
 });
