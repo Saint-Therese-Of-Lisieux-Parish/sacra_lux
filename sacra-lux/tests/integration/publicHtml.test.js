@@ -34,6 +34,10 @@ describe("public html integration", () => {
   });
 
   test("start page markup includes a PIN label and live error region", async () => {
+    const stateRes = await request(app).get("/api/state").expect(200);
+    if (!stateRes.body.hasStartPin) {
+      await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+    }
     const res = await request(app).get("/start").expect(200);
 
     expect(res.text).toContain('<label for="pinInput" class="sr-only">PIN Code</label>');
