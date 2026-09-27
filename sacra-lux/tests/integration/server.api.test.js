@@ -183,6 +183,45 @@ describe("server api integration", () => {
     expect(res.body.slides[0].groupLabel).toBe("First Reading");
   });
 
+  test("save-reading rejects a stem that escapes the current Mass", async () => {
+    const readingsDir = path.join(handle.homeDir, "save-reading-guard");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(readingsDir, "Reading_I.txt"),
+      "Genesis 1:1\n\nIn the beginning.",
+      "utf8"
+    );
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+
+    const outsideFile = path.join(handle.homeDir, ".sacra-lux", "outside.txt");
+    const absoluteFile = path.join(handle.homeDir, "absolute-target.txt");
+    fs.writeFileSync(outsideFile, "keep-outside", "utf8");
+    fs.writeFileSync(absoluteFile, "keep-absolute", "utf8");
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "../outside", text: "pwned" })
+      .expect(400);
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: absoluteFile.slice(0, -4), text: "pwned" })
+      .expect(400);
+
+    expect(fs.readFileSync(outsideFile, "utf8")).toBe("keep-outside");
+    expect(fs.readFileSync(absoluteFile, "utf8")).toBe("keep-absolute");
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "Reading_I", text: "Updated text." })
+      .expect(200);
+    const saved = fs.readFileSync(
+      path.join(handle.homeDir, ".sacra-lux", "current_mass", "Reading_I.txt"),
+      "utf8"
+    );
+    expect(saved).toContain("Updated text.");
+    expect(saved.startsWith("Genesis 1:1")).toBe(true);
+  });
+
   test("startup prefers valid current_mass over stale session title", async () => {
     const homeDir = createTempHome("sacra-lux-startup-valid-");
     const appDir = path.join(homeDir, ".sacra-lux");

@@ -216,6 +216,39 @@ function sendApiError(res, error, fallbackMessage) {
   return res.status(status).json({ error: error.message || fallbackMessage });
 }
 
+function resolveReadingTxtInMass(folderPath, stem) {
+  const rawStem = String(stem ?? "");
+  const baseName = `${rawStem}.txt`;
+  if (
+    !rawStem ||
+    rawStem === "." ||
+    rawStem === ".." ||
+    rawStem.includes("/") ||
+    rawStem.includes("\\") ||
+    rawStem.includes("\0") ||
+    path.isAbsolute(rawStem) ||
+    path.basename(baseName) !== baseName
+  ) {
+    throw new ValidationError("Reading stem must stay inside the current Mass.");
+  }
+
+  const massRoot = path.resolve(CURRENT_MASS_DIR);
+  const folderRoot = path.resolve(String(folderPath || ""));
+  if (folderRoot !== massRoot && !folderRoot.startsWith(`${massRoot}${path.sep}`)) {
+    throw new ValidationError("Reading stem must stay inside the current Mass.");
+  }
+
+  const filePath = path.resolve(folderRoot, baseName);
+  if (
+    !filePath.startsWith(`${massRoot}${path.sep}`) ||
+    path.basename(filePath) !== baseName ||
+    !filePath.endsWith(".txt")
+  ) {
+    throw new ValidationError("Reading stem must stay inside the current Mass.");
+  }
+  return filePath;
+}
+
 function getSafeZipEntryFilename(entryName, prefix, allowedPattern) {
   const normalizedEntry = path.posix.normalize(String(entryName || ""));
   if (!normalizedEntry.startsWith(prefix) || normalizedEntry.endsWith("/")) {
@@ -2780,9 +2813,9 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "No Mass readings folder loaded or stem missing." });
       }
 
-      const filePath = path.join(folderPath, `${stem}.txt`);
+      const filePath = resolveReadingTxtInMass(folderPath, stem);
       if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: `File not found: ${filePath}` });
+        return res.status(404).json({ error: "Reading file not found." });
       }
 
       const fileContent = fs.readFileSync(filePath, "utf8");
@@ -2822,7 +2855,7 @@ function startServer(port = 17841, options = {}) {
 
       return res.json({ ok: true });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to save reading." });
+      return sendApiError(res, error, "Failed to save reading.");
     }
   });
 
