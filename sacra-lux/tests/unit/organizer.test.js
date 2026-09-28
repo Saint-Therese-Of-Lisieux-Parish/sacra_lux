@@ -75,6 +75,50 @@ describe("organizer", () => {
     ]);
   });
 
+  test("switching the selected psalm refrain rebuilds the slide list", () => {
+    const documents = [{
+      stem: "Responsorial_Psalm_1",
+      section: "Responsorial Psalm (1)",
+      passage: "Psalm 16",
+      textLines: [
+        "R. (11a) Lord, you will show us the path of life.",
+        "or:",
+        "R. Alleluia.",
+        "Keep me, O God, for in you I take refuge;",
+        "R. Alleluia."
+      ],
+      ending: null
+    }];
+    const sequence = [{
+      id: "reading:psalm",
+      type: "reading",
+      sourceStem: "Responsorial_Psalm_1",
+      label: "Psalm",
+      phase: "mass",
+      backgroundTheme: "dark",
+      psalmRefrainIndex: 1
+    }];
+
+    const presentation = buildPresentationFromOrganizer({
+      title: "Third Sunday",
+      documents,
+      sequence,
+      manualSlides: {},
+      screenSettings: {
+        fontSizePx: 60,
+        fontFamily: "Merriweather",
+        readingTextHeightPx: 840,
+        readingTextMarginXPx: 80
+      }
+    });
+
+    expect(presentation.slides.map((slide) => slide.text)).toEqual([
+      "R. Alleluia.",
+      "Keep me, O God, for in you I take refuge;",
+      "R. Alleluia."
+    ]);
+  });
+
   test("builds manual text slides with hard breaks", () => {
     const screenSettings = {
       fontFamily: "Merriweather",
