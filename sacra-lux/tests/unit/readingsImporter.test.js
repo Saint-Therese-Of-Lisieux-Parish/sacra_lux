@@ -166,4 +166,54 @@ describe("readingsImporter", () => {
     expect(slides[1].text).toBe("He guides me along right paths.");
     expect(slides[2].text).toBe("R. The Lord is my shepherd.");
   });
+
+  test("projects one selected psalm refrain and skips an or: slide", () => {
+    const docs = [
+      {
+        stem: "Responsorial_Psalm_1",
+        section: "Responsorial Psalm (1)",
+        passage: "Psalm 16:1-2, 5, 7-8, 9-10, 11",
+        textLines: [
+          "R. (11a) Lord, you will show us the path of life.",
+          "or:",
+          "R. Alleluia.",
+          "Keep me, O God, for in you I take refuge;",
+          "R. Lord, you will show us the path of life.",
+          "or:",
+          "R. Alleluia.",
+          "I bless the LORD who counsels me;",
+          "R. Lord, you will show us the path of life.",
+          "or:",
+          "R. Alleluia."
+        ],
+        ending: null
+      }
+    ];
+    const settings = {
+      fontSizePx: 60,
+      fontFamily: "Merriweather",
+      readingTextHeightPx: 840,
+      readingTextMarginXPx: 80
+    };
+
+    const sunday = paginateDocuments(docs, { ...settings, psalmRefrainIndex: 0 });
+    expect(sunday.map((slide) => slide.text)).toEqual([
+      "R. (11a) Lord, you will show us the path of life.",
+      "Keep me, O God, for in you I take refuge;",
+      "R. (11a) Lord, you will show us the path of life.",
+      "I bless the LORD who counsels me;",
+      "R. (11a) Lord, you will show us the path of life."
+    ]);
+    expect(sunday.some((slide) => slide.text.trim().toLowerCase() === "or:")).toBe(false);
+
+    const alleluia = paginateDocuments(docs, { ...settings, psalmRefrainIndex: 1 });
+    expect(alleluia.map((slide) => slide.text)).toEqual([
+      "R. Alleluia.",
+      "Keep me, O God, for in you I take refuge;",
+      "R. Alleluia.",
+      "I bless the LORD who counsels me;",
+      "R. Alleluia."
+    ]);
+    expect(alleluia.some((slide) => /path of life/i.test(slide.text))).toBe(false);
+  });
 });
