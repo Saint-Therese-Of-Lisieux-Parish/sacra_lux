@@ -78,36 +78,52 @@ const ENDING_BY_SECTION = {
   "Gospel": null
 };
 
-// Preferred display order for organizer insertion.
+// Parish export order: the psalm, then the readings, then the Gospel.
 const SECTION_ORDER = [
-  "Reading I",
   "Responsorial Psalm",
+  "Reading I",
   "Reading II",
+  "Reading III",
+  "Reading IV",
+  "Reading V",
+  "Reading VI",
+  "Reading VII",
+  "Epistle",
   "Verse Before the Gospel",
   "Gospel"
 ];
 
-// Map filename stems to canonical section names.
+// Longer keys must be tested before shorter prefixes such as Reading_I.
 const STEM_TO_SECTION = {
-  Reading_I: "Reading I",
-  Responsorial_Psalm: "Responsorial Psalm",
+  Reading_VII: "Reading VII",
+  Reading_VI: "Reading VI",
+  Reading_IV: "Reading IV",
+  Reading_III: "Reading III",
   Reading_II: "Reading II",
+  Reading_V: "Reading V",
+  Reading_I: "Reading I",
+  Reading_2: "Reading II",
+  Reading_1: "Reading I",
+  Responsorial_Psalm: "Responsorial Psalm",
   Verse_Before_the_Gospel: "Verse Before the Gospel",
+  Epistle: "Epistle",
   Gospel: "Gospel"
 };
+
+const STEM_KEYS_BY_LENGTH = Object.keys(STEM_TO_SECTION).sort((a, b) => b.length - a.length);
 
 function sectionFromStem(stem) {
   if (STEM_TO_SECTION[stem]) return STEM_TO_SECTION[stem];
 
   // Handle variants such as "Gospel-alternate_1" -> "Gospel (Alternate 1)".
-  for (const [key, canonical] of Object.entries(STEM_TO_SECTION)) {
+  for (const key of STEM_KEYS_BY_LENGTH) {
     if (stem.startsWith(key)) {
       const suffix = stem
         .slice(key.length)
         .replace(/^[-_]+/, "")
         .replace(/_/g, " ")
         .replace(/\b\w/g, (c) => c.toUpperCase());
-      return suffix ? `${canonical} (${suffix})` : canonical;
+      return suffix ? `${STEM_TO_SECTION[key]} (${suffix})` : STEM_TO_SECTION[key];
     }
   }
 
@@ -409,9 +425,11 @@ function loadReadingDocuments(folderPath) {
   }
 
   const sorted = txtFiles.sort((a, b) => {
-    const sa = sectionFromStem(path.basename(a, ".txt"));
-    const sb = sectionFromStem(path.basename(b, ".txt"));
-    return sectionSortKey(sa) - sectionSortKey(sb);
+    const stemA = path.basename(a, ".txt");
+    const stemB = path.basename(b, ".txt");
+    const keyDiff = sectionSortKey(sectionFromStem(stemA)) - sectionSortKey(sectionFromStem(stemB));
+    if (keyDiff !== 0) return keyDiff;
+    return stemA.localeCompare(stemB, undefined, { numeric: true });
   });
 
   const documents = [];
