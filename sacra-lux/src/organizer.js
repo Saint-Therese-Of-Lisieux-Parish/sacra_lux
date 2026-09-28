@@ -389,7 +389,8 @@ function buildReadingSlides(item, documents, screenSettings) {
     readingTextHeightPx: effectiveScreenSettings.readingTextHeightPx,
     readingTextSizePx: effectiveScreenSettings.readingTextSizePx,
     readingLineHeight: effectiveScreenSettings.readingLineHeight,
-    readingTextMarginXPx: effectiveScreenSettings.readingTextMarginXPx
+    readingTextMarginXPx: effectiveScreenSettings.readingTextMarginXPx,
+    psalmRefrainIndex: item.psalmRefrainIndex
   });
 
   return paginated.map((slide) => ({
