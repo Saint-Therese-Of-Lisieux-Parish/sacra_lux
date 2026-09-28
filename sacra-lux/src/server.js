@@ -808,6 +808,9 @@ function normalizeOrganizerSequence(sequence = []) {
       type: normalizeType(item.type ?? item.kind),
       label: String(item.label || "Slide"),
       sourceStem: item.sourceStem ? String(item.sourceStem) : null,
+      ...(Number(item.psalmRefrainIndex) > 0
+        ? { psalmRefrainIndex: Math.floor(Number(item.psalmRefrainIndex)) }
+        : {}),
       styleOverrides: normalizeStyleOverrides(item.styleOverrides),
       phase,
       backgroundTheme: normalizeBackgroundTheme(
@@ -2770,7 +2773,8 @@ function startServer(port = 17841, options = {}) {
         readingTextHeightPx: settings.readingTextHeightPx,
         readingLineHeight: settings.readingLineHeight,
         readingTextMarginXPx: settings.readingTextMarginXPx,
-        readingTextSizePx: settings.readingTextSizePx
+        readingTextSizePx: settings.readingTextSizePx,
+        psalmRefrainIndex: req.body?.psalmRefrainIndex
       }).map((slide) => ({
         ...slide,
         styleOverrides: normalizeStyleOverrides(styleOverrides),
