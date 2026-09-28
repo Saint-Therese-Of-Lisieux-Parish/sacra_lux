@@ -111,6 +111,20 @@ function normalizeSlideshowLoopCount(value) {
   return Math.max(1, Math.min(1000, Math.round(Number(value) || 1)));
 }
 
+const IMAGE_SLIDESHOW_FADE_MS = 700;
+
+/**
+ * Total play time of an Image Slideshow: every shown image plus the crossfade
+ * between consecutive images (the last image hands off without a fade).
+ */
+function imageSlideshowRuntimeMs(manualSlide, transition) {
+  const imageCount = normalizeSlideshowImages(manualSlide?.images).filter((image) => image.url).length;
+  const shownCount = imageCount * normalizeSlideshowLoopCount(manualSlide?.slideshowLoopCount);
+  const fadeMs = transition === "none" ? 0 : IMAGE_SLIDESHOW_FADE_MS;
+  return shownCount * normalizeSlideshowDurationSec(manualSlide?.slideshowDurationSec) * 1000 +
+    Math.max(0, shownCount - 1) * fadeMs;
+}
+
 function normalizeStyleOverrides(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     return {};
@@ -426,6 +440,8 @@ module.exports = {
   normalizeSlideshowImages,
   normalizeSlideshowDurationSec,
   normalizeSlideshowLoopCount,
+  imageSlideshowRuntimeMs,
+  IMAGE_SLIDESHOW_FADE_MS,
   VALID_COUNTDOWN_STYLES,
   createManualSlideRecord
 };
