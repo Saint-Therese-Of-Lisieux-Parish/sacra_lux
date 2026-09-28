@@ -25,6 +25,41 @@ describe("security", () => {
     expect(security.verifyPin("9999")).toBe(false);
   });
 
+  test("remote control stays locked until a session token is issued", () => {
+    state.startPinHash = security.createPinHashRecord("1234");
+    const remoteReq = {
+      headers: {},
+      socket: { remoteAddress: "192.168.1.50" },
+      get(name) {
+        return this.headers[String(name || "").toLowerCase()] || "";
+      }
+    };
+    const remoteSocket = { handshake: { address: "192.168.1.50", headers: {} }, data: {} };
+
+    expect(security.clientMayControl(remoteReq)).toBe(false);
+    expect(security.socketMayControl(remoteSocket)).toBe(false);
+
+    const token = security.noteControlUnlock(remoteReq);
+    remoteReq.headers["x-sacra-control"] = token;
+    remoteSocket.handshake.auth = { token: "not-a-session" };
+    expect(security.clientMayControl(remoteReq)).toBe(true);
+    expect(security.socketMayControl(remoteSocket)).toBe(false);
+
+    remoteSocket.handshake.auth = { token };
+    expect(security.socketMayControl(remoteSocket)).toBe(true);
+
+    const operatorReq = {
+      headers: {},
+      socket: { remoteAddress: "127.0.0.1" },
+      get() { return ""; }
+    };
+    security.noteControlUnlock(operatorReq);
+    const operatorSocket = { handshake: { address: "::ffff:127.0.0.1", headers: {} }, data: {} };
+    expect(security.socketMayControl(operatorSocket)).toBe(true);
+    remoteSocket.handshake.auth = { token: "not-a-session" };
+    expect(security.socketMayControl(remoteSocket)).toBe(false);
+  });
+
   test("issues start tokens bound to client ip and user agent", () => {
     const token = security.issueStartToken({
       ip: "127.0.0.1",

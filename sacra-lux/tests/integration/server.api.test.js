@@ -1,4 +1,5 @@
 const fs = require("fs");
+const http = require("http");
 const path = require("path");
 const AdmZip = require("adm-zip");
 const request = require("supertest");
@@ -13,6 +14,7 @@ describe("server api integration", () => {
   let app;
   let warnSpy;
   let resetSecurityState;
+  let state;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
 
   function extractTokenFromRedirect(redirectPath) {
@@ -27,10 +29,13 @@ describe("server api integration", () => {
     app = handle.app;
     app.set("trust proxy", true);
     ({ resetSecurityState } = require("../../src/security"));
+    ({ state } = require("../../src/state"));
   });
 
   beforeEach(() => {
     resetSecurityState();
+    state.startPin = "";
+    state.startPinHash = null;
     warnSpy = jest.spyOn(console, "warn").mockImplementation(() => { });
   });
 
@@ -76,6 +81,49 @@ describe("server api integration", () => {
     expect(Object.keys(themeVarsRes.body.themes)).toEqual(
       themesRes.body.themes.map(({ id }) => id)
     );
+  });
+
+  test("a client that has not unlocked the PIN cannot control the Mass", async () => {
+    await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+    const locked = await request(app)
+      .post("/api/new-mass")
+      .set("x-sacra-control", "not-a-session")
+      .send({ title: "Stolen Mass", startTime: "" })
+      .expect(401);
+    expect(locked.body.error).toMatch(/Unlock required/i);
+
+    await request(app)
+      .post("/api/screen-settings")
+      .set("x-sacra-control", "not-a-session")
+      .send({})
+      .expect(401);
+    await request(app)
+      .post("/api/start-pin")
+      .set("x-sacra-control", "not-a-session")
+      .send({ pin: "" })
+      .expect(403);
+
+    const stateBefore = await request(app).get("/api/state").expect(200);
+    expect(stateBefore.body.presentation.title).not.toBe("Stolen Mass");
+
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Operator Mass", startTime: "" })
+      .expect(200);
+
+    const phone = "203.0.113.77";
+    const unlocked = await request(app)
+      .post("/api/verify-pin")
+      .set("X-Forwarded-For", phone)
+      .send({ pin: "1234" })
+      .expect(200);
+    await request(app)
+      .post("/api/screen-settings")
+      .set("X-Forwarded-For", phone)
+      .set("x-sacra-control", unlocked.body.controlToken)
+      .send({})
+      .expect(200);
   });
 
   test("verify-pin rejects incorrect values and accepts correct ones", async () => {
@@ -180,6 +228,116 @@ describe("server api integration", () => {
 
     expect(res.body.ok).toBe(true);
     expect(res.body.slides[0].groupLabel).toBe("First Reading");
+  });
+
+  test("save-reading rejects a stem that escapes the current Mass", async () => {
+    const readingsDir = path.join(handle.homeDir, "save-reading-guard");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(readingsDir, "Reading_I.txt"),
+      "Genesis 1:1\n\nIn the beginning.",
+      "utf8"
+    );
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+
+    const outsideFile = path.join(handle.homeDir, ".sacra-lux", "outside.txt");
+    const absoluteFile = path.join(handle.homeDir, "absolute-target.txt");
+    fs.writeFileSync(outsideFile, "keep-outside", "utf8");
+    fs.writeFileSync(absoluteFile, "keep-absolute", "utf8");
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "../outside", text: "pwned" })
+      .expect(400);
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: absoluteFile.slice(0, -4), text: "pwned" })
+      .expect(400);
+
+    expect(fs.readFileSync(outsideFile, "utf8")).toBe("keep-outside");
+    expect(fs.readFileSync(absoluteFile, "utf8")).toBe("keep-absolute");
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "Reading_I", text: "Updated text." })
+      .expect(200);
+    const saved = fs.readFileSync(
+      path.join(handle.homeDir, ".sacra-lux", "current_mass", "Reading_I.txt"),
+      "utf8"
+    );
+    expect(saved).toContain("Updated text.");
+    expect(saved.startsWith("Genesis 1:1")).toBe(true);
+  });
+
+  function snapshotTree(rootDir) {
+    const files = {};
+    const walk = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (entry.isFile()) {
+          files[path.relative(rootDir, fullPath)] = fs.readFileSync(fullPath);
+        }
+      }
+    };
+    walk(rootDir);
+    return files;
+  }
+
+  test("a failed Mass replacement leaves the current Mass byte-for-byte", async () => {
+    const readingsDir = path.join(handle.homeDir, "keep-current-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
+    fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Keep Me\n");
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    fs.writeFileSync(path.join(currentMassDir, "canary.txt"), "keep-me");
+    const before = snapshotTree(currentMassDir);
+    const titleBefore = (await request(app).get("/api/state").expect(200)).body.presentation.title;
+
+    await request(app)
+      .post("/api/load-readings")
+      .send({ folderPath: path.join(handle.homeDir, "missing-readings-folder") })
+      .expect(400);
+
+    const brokenArchive = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Broken-Package", "package");
+    fs.mkdirSync(brokenArchive, { recursive: true });
+    fs.writeFileSync(path.join(brokenArchive, "note.txt"), "no mass json");
+    await request(app).post("/api/mass-history/Broken-Package/load").expect(400);
+
+    const emptyArchive = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Empty-Archive");
+    fs.mkdirSync(emptyArchive, { recursive: true });
+    await request(app).post("/api/mass-history/Empty-Archive/load").expect(400);
+
+    const badZip = new AdmZip();
+    badZip.addFile("mass.json", Buffer.from("{"));
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: badZip.toBuffer().toString("base64") })
+      .expect(500);
+
+    const nullZip = new AdmZip();
+    nullZip.addFile("mass.json", Buffer.from("null"));
+    const nullImport = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: nullZip.toBuffer().toString("base64") });
+    expect(nullImport.status).toBeGreaterThanOrEqual(400);
+
+    expect(snapshotTree(currentMassDir)).toEqual(before);
+    const titleAfter = (await request(app).get("/api/state").expect(200)).body.presentation.title;
+    expect(titleAfter).toBe(titleBefore);
+
+    const replacementDir = path.join(handle.homeDir, "replacement-readings");
+    fs.mkdirSync(replacementDir, { recursive: true });
+    fs.writeFileSync(path.join(replacementDir, "Gospel.txt"), "John 1:1\n\nIn the beginning was the Word.");
+    fs.writeFileSync(path.join(replacementDir, "mass_title.txt"), "Replacement\n");
+    await request(app).post("/api/load-readings").send({ folderPath: replacementDir }).expect(200);
+    expect(fs.existsSync(path.join(currentMassDir, "canary.txt"))).toBe(false);
+    expect(fs.existsSync(path.join(currentMassDir, "Gospel.txt"))).toBe(true);
+    expect((await request(app).get("/api/state").expect(200)).body.presentation.title).toBe("Replacement");
   });
 
   test("startup prefers valid current_mass over stale session title", async () => {
@@ -694,6 +852,37 @@ describe("server api integration", () => {
     expect(historyRes.body.archives.map((entry) => entry.id)).toContain("Original-Mass");
   });
 
+  test("escaped archive ids are rejected and leave the data directory in place", async () => {
+    const sacraDir = path.join(handle.homeDir, ".sacra-lux");
+    const canary = path.join(sacraDir, "canary.txt");
+    fs.mkdirSync(sacraDir, { recursive: true });
+    fs.writeFileSync(canary, "keep", "utf8");
+
+    const serverUrl = new URL(handle.baseUrl);
+    const rawRequest = (method, requestPath) => new Promise((resolve, reject) => {
+      const req = http.request({
+        hostname: serverUrl.hostname,
+        port: serverUrl.port,
+        method,
+        path: requestPath
+      }, (res) => {
+        res.resume();
+        res.on("end", () => resolve(res.statusCode));
+      });
+      req.on("error", reject);
+      req.end();
+    });
+
+    for (const encodedId of ["%2e%2e%2f%2e%2e", "..%2f..", "%2e%2e", "%2e"]) {
+      expect(await rawRequest("DELETE", `/api/mass-history/${encodedId}`)).toBe(400);
+      expect(await rawRequest("POST", `/api/mass-history/${encodedId}/load`)).toBe(400);
+      expect(await rawRequest("POST", `/api/mass-history/${encodedId}/compress`)).toBe(400);
+    }
+
+    expect(fs.existsSync(sacraDir)).toBe(true);
+    expect(fs.readFileSync(canary, "utf8")).toBe("keep");
+  });
+
   test("import-mass-zip ignores nested and traversal entry paths", async () => {
     const zip = new AdmZip();
     zip.addFile("settings.json", Buffer.from(JSON.stringify({
@@ -979,7 +1168,7 @@ describe("server api integration", () => {
       await request(app)
         .post("/api/start-pin")
         .set("X-Forwarded-For", ip)
-        .send({ pin: "2468" })
+        .send(i === 0 ? { pin: "2468" } : { pin: "2468", currentPin: "2468" })
         .expect(200);
     }
 

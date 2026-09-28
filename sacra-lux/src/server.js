@@ -43,6 +43,7 @@ const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./the
 const logger = require("./logger");
 const {
   CURRENT_MASS_DIR,
+  InvalidArchiveIdError,
   sanitizeForFilename,
   getArchivePaths,
   readMetadata,
@@ -63,10 +64,14 @@ const {
   createSocketRateLimitGuard,
   getActiveLock,
   getClientIp,
+  clearControlAccess,
+  clientMayControl,
   hasPinConfigured,
   isStartTokenValid,
   issueStartToken,
+  noteControlUnlock,
   registerPinFailure,
+  socketMayControl,
   verifyPin
 } = require("./security");
 
@@ -102,29 +107,85 @@ const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
 // ── ZIP export helpers ───────────────────────────────────────────────────────
 
 /**
- * Copy readings into `~/.sacra-lux/current_mass/`.
- * Clear the destination first so it always matches the active Mass.
- * Return the current_mass path.
+ * Build a replacement Mass in a side directory and move it into place only
+ * after `populate` finishes. A throw leaves `current_mass` unchanged.
  */
-function copyReadingsToCurrentMass(srcFolder) {
-  // Clear the existing contents.
-  if (fs.existsSync(CURRENT_MASS_DIR)) {
-    fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
-  }
-  fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
+function replaceCurrentMassDir(populate) {
+  const parent = path.dirname(CURRENT_MASS_DIR);
+  const token = crypto.randomBytes(6).toString("hex");
+  const stagingDir = path.join(parent, `.current_mass-staging-${token}`);
+  const backupDir = path.join(parent, `.current_mass-backup-${token}`);
+  fs.mkdirSync(stagingDir, { recursive: true });
 
-  // Copy top-level files.
-  for (const file of fs.readdirSync(srcFolder)) {
-    const srcPath = path.join(srcFolder, file);
-    if (fs.statSync(srcPath).isFile()) {
-      fs.copyFileSync(srcPath, path.join(CURRENT_MASS_DIR, file));
+  try {
+    populate(stagingDir);
+  } catch (error) {
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    throw error;
+  }
+
+  let movedCurrent = false;
+  try {
+    if (fs.existsSync(CURRENT_MASS_DIR)) {
+      fs.renameSync(CURRENT_MASS_DIR, backupDir);
+      movedCurrent = true;
+    }
+    fs.renameSync(stagingDir, CURRENT_MASS_DIR);
+  } catch (error) {
+    if (movedCurrent && fs.existsSync(backupDir)) {
+      if (fs.existsSync(CURRENT_MASS_DIR)) {
+        fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
+      }
+      fs.renameSync(backupDir, CURRENT_MASS_DIR);
+    }
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    throw error;
+  }
+
+  fs.rmSync(backupDir, { recursive: true, force: true });
+}
+
+function writeZipMassPackage(zip, destDir, packageDefinition) {
+  fs.mkdirSync(destDir, { recursive: true });
+  const mediaPattern = /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i;
+  const groups = [
+    ["readings/", /^[^/\\:*?"<>|]+\.txt$/, ""],
+    ["readings/assets/", mediaPattern, "assets"],
+    ["assets/", mediaPattern, "assets"],
+    ["uploads/", mediaPattern, "assets"]
+  ];
+
+  for (const [prefix, pattern, subdir] of groups) {
+    for (const entry of zip.getEntries()) {
+      if (entry.isDirectory || entry.entryName === "mass.json" || entry.entryName === "settings.json") continue;
+      if (!entry.entryName.startsWith(prefix)) continue;
+      if (prefix === "readings/" && entry.entryName.startsWith("readings/assets/")) continue;
+      const filename = getSafeZipEntryFilename(entry.entryName, prefix, pattern);
+      if (!filename) continue;
+      const targetDir = subdir ? path.join(destDir, subdir) : destDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      const dest = path.join(targetDir, filename);
+      if (prefix === "uploads/" && fs.existsSync(dest)) continue;
+      fs.writeFileSync(dest, entry.getData());
     }
   }
 
-  // Copy the assets subdirectory when present.
+  fs.writeFileSync(path.join(destDir, "mass.json"), JSON.stringify(packageDefinition, null, 2), "utf8");
+  readMassPackageDefinition(destDir, state.screenSettings);
+}
+
+function copyFolderFilesInto(srcFolder, destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const file of fs.readdirSync(srcFolder)) {
+    const srcPath = path.join(srcFolder, file);
+    if (fs.statSync(srcPath).isFile()) {
+      fs.copyFileSync(srcPath, path.join(destDir, file));
+    }
+  }
+
   const srcAssets = path.join(srcFolder, "assets");
   if (fs.existsSync(srcAssets) && fs.statSync(srcAssets).isDirectory()) {
-    const destAssets = path.join(CURRENT_MASS_DIR, "assets");
+    const destAssets = path.join(destDir, "assets");
     fs.mkdirSync(destAssets, { recursive: true });
     for (const file of fs.readdirSync(srcAssets)) {
       const srcPath = path.join(srcAssets, file);
@@ -133,7 +194,21 @@ function copyReadingsToCurrentMass(srcFolder) {
       }
     }
   }
+}
 
+/**
+ * Copy readings into `~/.sacra-lux/current_mass/`.
+ * The previous package stays in place until the copy is complete.
+ * Return the current_mass path.
+ */
+function copyReadingsToCurrentMass(srcFolder) {
+  if (!srcFolder || !fs.existsSync(srcFolder) || !fs.statSync(srcFolder).isDirectory()) {
+    throw new ValidationError("Readings folder was not found.");
+  }
+
+  replaceCurrentMassDir((stagingDir) => {
+    copyFolderFilesInto(srcFolder, stagingDir);
+  });
   return CURRENT_MASS_DIR;
 }
 
@@ -212,9 +287,49 @@ function setAttachmentFilename(res, filename) {
   );
 }
 
+function setControlCookie(res, token) {
+  res.append(
+    "Set-Cookie",
+    `sacra_lux_control=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=43200`
+  );
+}
+
 function sendApiError(res, error, fallbackMessage) {
-  const status = error instanceof ValidationError ? 400 : 500;
+  const status = error instanceof ValidationError || error instanceof InvalidArchiveIdError ? 400 : 500;
   return res.status(status).json({ error: error.message || fallbackMessage });
+}
+
+function resolveReadingTxtInMass(folderPath, stem) {
+  const rawStem = String(stem ?? "");
+  const baseName = `${rawStem}.txt`;
+  if (
+    !rawStem ||
+    rawStem === "." ||
+    rawStem === ".." ||
+    rawStem.includes("/") ||
+    rawStem.includes("\\") ||
+    rawStem.includes("\0") ||
+    path.isAbsolute(rawStem) ||
+    path.basename(baseName) !== baseName
+  ) {
+    throw new ValidationError("Reading stem must stay inside the current Mass.");
+  }
+
+  const massRoot = path.resolve(CURRENT_MASS_DIR);
+  const folderRoot = path.resolve(String(folderPath || ""));
+  if (folderRoot !== massRoot && !folderRoot.startsWith(`${massRoot}${path.sep}`)) {
+    throw new ValidationError("Reading stem must stay inside the current Mass.");
+  }
+
+  const filePath = path.resolve(folderRoot, baseName);
+  if (
+    !filePath.startsWith(`${massRoot}${path.sep}`) ||
+    path.basename(filePath) !== baseName ||
+    !filePath.endsWith(".txt")
+  ) {
+    throw new ValidationError("Reading stem must stay inside the current Mass.");
+  }
+  return filePath;
 }
 
 function getSafeZipEntryFilename(entryName, prefix, allowedPattern) {
@@ -1520,6 +1635,15 @@ function startServer(port = 17841, options = {}) {
 
   app.use(express.json({ limit: "200mb" }));
   app.use("/api", globalApiRateLimit);
+  app.use("/api", (req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+    if (req.path === "/verify-pin" || req.path === "/start-pin") return next();
+    if (req.path === "/preview-reading" || req.path === "/preview-manual-slide") return next();
+    if (!clientMayControl(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    return next();
+  });
 
   const publicDir = path.join(__dirname, "..", "public");
   app.use("/static", express.static(publicDir));
@@ -1847,22 +1971,36 @@ function startServer(port = 17841, options = {}) {
   // ── Start PIN management ───────────────────────────────────────────────────
   app.post("/api/start-pin", authRateLimit, (req, res) => {
     try {
-      const { pin } = req.body || {};
-      if (pin === null || pin === undefined || pin === "") {
+      const { pin, currentPin } = req.body || {};
+      const clearing = pin === null || pin === undefined || pin === "";
+      if (hasPinConfigured() && !verifyPin(currentPin)) {
+        registerPinFailure(getClientIp(req));
+        return res.status(403).json({ error: "Current PIN is required." });
+      }
+      if (hasPinConfigured()) clearPinFailures(getClientIp(req));
+
+      if (clearing) {
         state.startPin = "";
         state.startPinHash = null;
-      } else {
-        const cleaned = String(pin).replace(/\D/g, "").slice(0, 6);
-        if (cleaned.length < 4) {
-          return res.status(400).json({ error: "PIN must be 4–6 digits." });
-        }
-        state.startPinHash = createPinHashRecord(cleaned);
-        state.startPin = "";
+        clearControlAccess();
+        touch();
+        io.emit("state:update", getStateSnapshot());
+        scheduleSave(true);
+        return res.json({ ok: true, hasPin: false });
       }
+
+      const cleaned = String(pin).replace(/\D/g, "").slice(0, 6);
+      if (cleaned.length < 4) {
+        return res.status(400).json({ error: "PIN must be 4–6 digits." });
+      }
+      state.startPinHash = createPinHashRecord(cleaned);
+      state.startPin = "";
+      const controlToken = noteControlUnlock(req);
+      setControlCookie(res, controlToken);
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
-      return res.json({ ok: true, hasPin: hasPinConfigured() });
+      return res.json({ ok: true, hasPin: true, controlToken });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to set PIN." });
     }
@@ -1897,7 +2035,13 @@ function startServer(port = 17841, options = {}) {
         ip,
         userAgent: req.get("user-agent") || ""
       });
-      return res.json({ ok: true, redirect: `/api/start-redirect?token=${token}` });
+      const controlToken = noteControlUnlock(req);
+      setControlCookie(res, controlToken);
+      return res.json({
+        ok: true,
+        redirect: `/api/start-redirect?token=${token}`,
+        controlToken
+      });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Verification failed." });
     }
@@ -1952,6 +2096,8 @@ function startServer(port = 17841, options = {}) {
         if (!tokenValid) {
           return res.redirect("/start");
         }
+        const controlToken = noteControlUnlock(req);
+        setControlCookie(res, controlToken);
       }
 
       // Clear the token after use.
@@ -2317,73 +2463,9 @@ function startServer(port = 17841, options = {}) {
       }
       const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
 
-      // Extract readings/ to ~/.sacra-lux/current_mass/
-      // Clear current_mass first so it reflects this import
-      if (fs.existsSync(CURRENT_MASS_DIR)) {
-        fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
-      }
-      fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-      const readingsEntries = zip.getEntries().filter(
-        (e) => e.entryName.startsWith("readings/") && !e.entryName.startsWith("readings/assets/") && !e.isDirectory
-      );
-      if (readingsEntries.length > 0) {
-        for (const entry of readingsEntries) {
-          const filename = getSafeZipEntryFilename(entry.entryName, "readings/", /^[^/\\:*?"<>|]+\.txt$/);
-          if (!filename) continue;
-          fs.writeFileSync(path.join(CURRENT_MASS_DIR, filename), entry.getData());
-        }
-      }
-      // Extract readings/assets/ — images co-located with the Mass
-      const assetEntries = zip.getEntries().filter(
-        (e) => e.entryName.startsWith("readings/assets/") && !e.isDirectory
-      );
-      if (assetEntries.length > 0) {
-        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
-        fs.mkdirSync(assetsImportDir, { recursive: true });
-        for (const entry of assetEntries) {
-          const filename = getSafeZipEntryFilename(
-            entry.entryName,
-            "readings/assets/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-          );
-          if (!filename) continue;
-          fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
-        }
-      }
-
-      const v3AssetEntries = zip.getEntries().filter((e) => e.entryName.startsWith("assets/") && !e.isDirectory);
-      if (v3AssetEntries.length > 0) {
-        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
-        fs.mkdirSync(assetsImportDir, { recursive: true });
-        for (const entry of v3AssetEntries) {
-          const filename = getSafeZipEntryFilename(
-            entry.entryName,
-            "assets/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-          );
-          if (!filename) continue;
-          fs.writeFileSync(path.join(assetsImportDir, filename), entry.getData());
-        }
-      }
-
-      // Extract legacy uploads/ entries into current_mass/assets/
-      const uploadEntries = zip.getEntries().filter((e) => e.entryName.startsWith("uploads/") && !e.isDirectory);
-      if (uploadEntries.length > 0) {
-        const assetsImportDir = path.join(CURRENT_MASS_DIR, "assets");
-        fs.mkdirSync(assetsImportDir, { recursive: true });
-        for (const entry of uploadEntries) {
-          const filename = getSafeZipEntryFilename(
-            entry.entryName,
-            "uploads/",
-            /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-          );
-          if (!filename) continue;
-          const dest = path.join(assetsImportDir, filename);
-          if (!fs.existsSync(dest)) {
-            fs.writeFileSync(dest, entry.getData());
-          }
-        }
-      }
+      replaceCurrentMassDir((stagingDir) => {
+        writeZipMassPackage(zip, stagingDir, packageDefinition);
+      });
 
       state.activeMassArchiveId = null;
       applyMassPackageFromCurrentDir(io, packageDefinition);
@@ -2414,19 +2496,21 @@ function startServer(port = 17841, options = {}) {
         return res.status(404).json({ error: "Mass archive not found." });
       }
 
-      if (fs.existsSync(CURRENT_MASS_DIR)) {
-        fs.rmSync(CURRENT_MASS_DIR, { recursive: true, force: true });
-      }
-
+      let packageData = null;
       if (fs.existsSync(archivePaths.packageDir)) {
-        fs.cpSync(archivePaths.packageDir, CURRENT_MASS_DIR, { recursive: true });
-        const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
+        const massJsonPath = path.join(archivePaths.packageDir, "mass.json");
         if (!fs.existsSync(massJsonPath)) {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
-        const packageData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
-        state.activeMassArchiveId = archiveId;
-        applyMassPackageFromCurrentDir(io, packageData);
+        try {
+          packageData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
+        } catch {
+          return res.status(400).json({ error: "Archive package is missing mass.json." });
+        }
+        replaceCurrentMassDir((stagingDir) => {
+          fs.cpSync(archivePaths.packageDir, stagingDir, { recursive: true });
+          readMassPackageDefinition(stagingDir, state.screenSettings);
+        });
       } else if (fs.existsSync(archivePaths.compressedZipPath)) {
         const zipBuffer = fs.readFileSync(archivePaths.compressedZipPath);
         const zip = new (getAdmZip())(zipBuffer);
@@ -2436,59 +2520,20 @@ function startServer(port = 17841, options = {}) {
         if (!definitionEntry) {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
-        const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
-        fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-        for (const entry of zip.getEntries()) {
-          if (entry.isDirectory) continue;
-          if (entry.entryName === "settings.json" || entry.entryName === "mass.json") continue;
-          if (entry.entryName.startsWith("assets/")) {
-            const filename = getSafeZipEntryFilename(
-              entry.entryName,
-              "assets/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-            );
-            if (!filename) continue;
-            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-            fs.mkdirSync(assetDir, { recursive: true });
-            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
-            continue;
-          }
-          if (entry.entryName.startsWith("readings/assets/")) {
-            const filename = getSafeZipEntryFilename(
-              entry.entryName,
-              "readings/assets/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-            );
-            if (!filename) continue;
-            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-            fs.mkdirSync(assetDir, { recursive: true });
-            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
-            continue;
-          }
-          if (entry.entryName.startsWith("readings/")) {
-            const filename = getSafeZipEntryFilename(entry.entryName, "readings/", /^[^/\\:*?"<>|]+\.txt$/);
-            if (!filename) continue;
-            fs.writeFileSync(path.join(CURRENT_MASS_DIR, filename), entry.getData());
-            continue;
-          }
-          if (entry.entryName.startsWith("uploads/")) {
-            const filename = getSafeZipEntryFilename(
-              entry.entryName,
-              "uploads/",
-              /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i
-            );
-            if (!filename) continue;
-            const assetDir = path.join(CURRENT_MASS_DIR, "assets");
-            fs.mkdirSync(assetDir, { recursive: true });
-            fs.writeFileSync(path.join(assetDir, filename), entry.getData());
-          }
+        try {
+          packageData = JSON.parse(definitionEntry.getData().toString("utf8"));
+        } catch {
+          return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
-        state.activeMassArchiveId = archiveId;
-        applyMassPackageFromCurrentDir(io, packageDefinition);
+        replaceCurrentMassDir((stagingDir) => {
+          writeZipMassPackage(zip, stagingDir, packageData);
+        });
       } else {
         return res.status(400).json({ error: "Mass archive has no loadable package." });
       }
 
+      state.activeMassArchiveId = archiveId;
+      applyMassPackageFromCurrentDir(io, packageData);
       scheduleSave(true);
       return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null });
     } catch (error) {
@@ -2519,7 +2564,7 @@ function startServer(port = 17841, options = {}) {
       writeMetadata(archiveId, metadata);
       return res.json({ ok: true, archiveId, sizeBytes: zipBuffer.length });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to compress Mass archive." });
+      return sendApiError(res, error, "Failed to compress Mass archive.");
     }
   });
 
@@ -2535,7 +2580,7 @@ function startServer(port = 17841, options = {}) {
       }
       return res.json({ ok: true, archiveId });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to delete Mass archive." });
+      return sendApiError(res, error, "Failed to delete Mass archive.");
     }
   });
 
@@ -2595,19 +2640,22 @@ function startServer(port = 17841, options = {}) {
       if (!folderPath) {
         return res.status(400).json({ error: "folderPath is required." });
       }
-
-      if (screenSettings && typeof screenSettings === "object") {
-        state.screenSettings = normalizeScreenSettings(screenSettings);
+      if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
+        throw new ValidationError("Readings folder was not found.");
       }
 
-      // Copy readings into the standard current_mass directory.
-      const currentMassPath = copyReadingsToCurrentMass(folderPath);
-
-      const imported = importReadings(currentMassPath, {
-        fontSizePx: state.screenSettings.fontSizePx,
-        fontFamily: state.screenSettings.fontFamily,
-        readingTextHeightPx: state.screenSettings.readingTextHeightPx
+      const nextScreenSettings = screenSettings && typeof screenSettings === "object"
+        ? normalizeScreenSettings(screenSettings)
+        : state.screenSettings;
+      const imported = importReadings(folderPath, {
+        fontSizePx: nextScreenSettings.fontSizePx,
+        fontFamily: nextScreenSettings.fontFamily,
+        readingTextHeightPx: nextScreenSettings.readingTextHeightPx
       });
+
+      // Copy readings into the standard current_mass directory only after the source can be read.
+      const currentMassPath = copyReadingsToCurrentMass(folderPath);
+      state.screenSettings = nextScreenSettings;
 
       state.readingsSource = {
         folderPath: currentMassPath,
@@ -2651,7 +2699,7 @@ function startServer(port = 17841, options = {}) {
         totalSlides: state.presentation.slides.length
       });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to load readings." });
+      return sendApiError(res, error, "Failed to load readings.");
     }
   });
 
@@ -2798,9 +2846,9 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "No Mass readings folder loaded or stem missing." });
       }
 
-      const filePath = path.join(folderPath, `${stem}.txt`);
+      const filePath = resolveReadingTxtInMass(folderPath, stem);
       if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: `File not found: ${filePath}` });
+        return res.status(404).json({ error: "Reading file not found." });
       }
 
       const fileContent = fs.readFileSync(filePath, "utf8");
@@ -2840,7 +2888,7 @@ function startServer(port = 17841, options = {}) {
 
       return res.json({ ok: true });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Failed to save reading." });
+      return sendApiError(res, error, "Failed to save reading.");
     }
   });
 
@@ -2975,30 +3023,50 @@ function startServer(port = 17841, options = {}) {
 
   // Initialize session restore and timers only after the HTTP server starts listening.
 
+  function withControl(socket, handler) {
+    return (...args) => {
+      if (!socketMayControl(socket)) {
+        socket.emit("control:required", { error: "Unlock required." });
+        return undefined;
+      }
+      return handler(...args);
+    };
+  }
+
   io.on("connection", (socket) => {
     socket.emit("state:update", getCachedStateSnapshot(true));
 
-    socket.on("screen:settings", (settings) => {
+    socket.on("control:auth", (payload) => {
+      socket.data.controlToken = String(payload?.token || "");
+      if (socketMayControl(socket)) {
+        socket.emit("control:ok");
+        return;
+      }
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: "Unlock required." });
+    });
+
+    socket.on("screen:settings", withControl(socket, (settings) => {
       state.screenSettings = normalizeScreenSettings(settings || {});
       repaginateReadingSlidesIfNeeded();
       broadcast();
-    });
+    }));
 
-    socket.on("slide:next", () => stepSlide(1));
-    socket.on("slide:prev", () => stepSlide(-1));
-    socket.on("slide:goto", (index) => setSlide(Number(index) || 0));
-    socket.on("slide:goto:remote", (index) => setSlide(Number(index) || 0, {
+    socket.on("slide:next", withControl(socket, () => stepSlide(1)));
+    socket.on("slide:prev", withControl(socket, () => stepSlide(-1)));
+    socket.on("slide:goto", withControl(socket, (index) => setSlide(Number(index) || 0)));
+    socket.on("slide:goto:remote", withControl(socket, (index) => setSlide(Number(index) || 0, {
       activateGatheringSequence: true,
       activatePostMassLoop: true
-    }));
-    socket.on("slide:video-ended", (payload) => {
+    })));
+    socket.on("slide:video-ended", withControl(socket, (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
       advanceFromCurrentSlide(io);
-    });
-    socket.on("image-slideshow:preload-error", (payload) => {
+    }));
+    socket.on("image-slideshow:preload-error", withControl(socket, (payload) => {
       const imageUrl = String(payload?.imageUrl || "");
       const slideId = String(payload?.slideId || "");
       const failedSlide = (state.presentation?.slides || []).find((slide) =>
@@ -3009,19 +3077,23 @@ function startServer(port = 17841, options = {}) {
       state.imageSlideshowError = `Could not preload ${failedSlide.slideshowImageName || "an image"}; it will be skipped.`;
       touch();
       io.emit("state:update", getStateSnapshot());
-    });
-    socket.on("screen:interstitial-hold", (payload) => {
+    }));
+    socket.on("screen:interstitial-hold", withControl(socket, (payload) => {
       if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
       }
-    });
+    }));
 
-    socket.on("screen:black", (isBlack) => {
+    socket.on("screen:black", withControl(socket, (isBlack) => {
       state.isBlack = Boolean(isBlack);
       broadcast();
-    });
+    }));
 
     socket.on("export:avif:start", async () => {
+      if (!socketMayControl(socket)) {
+        socket.emit("control:required", { error: "Unlock required." });
+        return;
+      }
       const limitState = heavySocketRateLimit(socket);
       if (!limitState.allowed) {
         socket.emit("export:avif:error", { error: `Too many requests. Retry after ${limitState.retryAfterSec}s.` });
