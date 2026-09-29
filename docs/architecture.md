@@ -85,12 +85,20 @@ Derived runtime data:
 
 Sacra Lux has several timer families:
 
-- Mass start timer
+- Mass start timer (gathering lead-in)
+- Mass cutover timer (first Mass slide at the scheduled time)
 - pre-mass loop timer
 - gathering timer
 - post-mass loop timer
 - countdown-slide timer
 - debounced persistence timer
+
+The two Mass wall-clock timers are scheduled together from
+`scheduleStartTimer`. The lead-in arms gathering `gatheringMs` before
+`massStartTime`; the cutover shows the first Mass slide at `massStartTime`
+even if gathering overran or never started. When the app is opened late,
+gathering starts immediately for the portion that still fits, and an
+already-begun Mass jumps straight to its first slide.
 
 Countdown slides temporarily take over auto-advance from the active
 phase timer. The remote interstitial-hold feature pauses active slide
