@@ -2109,27 +2109,19 @@ function startServer(port = 17841, options = {}) {
       const slides = state.presentation?.slides || [];
       const now = Date.now();
       const massTime = state.massStartTime ? new Date(state.massStartTime).getTime() : null;
-      const isBeforeMass = !massTime || now < massTime;
+      const massHasBegun = Number.isFinite(massTime) && now >= massTime;
+      const phaseAlreadyRunning = state.preMassRunning || state.gatheringRunning || state.postMassRunning;
 
-      if (isBeforeMass) {
-        // Before Mass start time, begin pre-mass announcements.
+      // The first start before Mass may open the pre-Mass loop.
+      // A phone that joins after Mass has begun, or while a phase is already
+      // running, only attaches. It must not rewind the projector.
+      if (!massHasBegun && !phaseAlreadyRunning) {
         const firstPreIdx = slides.findIndex((s) => s.phase === "pre");
-        if (firstPreIdx >= 0 && !state.preMassRunning) {
+        if (firstPreIdx >= 0) {
           stopGatheringTimer();
           state.currentSlideIndex = getSafeSlideIndex(firstPreIdx);
           state.preMassRunning = true;
           scheduleNextPreMassSlide(io);
-          touch();
-          io.emit("state:update", getStateSnapshot());
-          scheduleSave();
-        }
-      } else {
-        // At or after Mass start time, jump to the first mass slide.
-        stopPreMassTimer();
-        stopGatheringTimer();
-        const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
-        if (firstMassIdx >= 0) {
-          state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
           touch();
           io.emit("state:update", getStateSnapshot());
           scheduleSave();

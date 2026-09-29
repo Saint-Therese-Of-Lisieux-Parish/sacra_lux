@@ -181,6 +181,46 @@ describe("server api integration", () => {
     nowSpy.mockRestore();
   });
 
+  test("a phone joining after Mass has begun does not rewind the projector", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "text:opening", type: "text", label: "Opening", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+          { id: "text:homily", type: "text", label: "Homily", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: {
+          "text:opening": { text: "Opening hymn" },
+          "text:homily": { text: "Homily" }
+        }
+      })
+      .expect(200);
+
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: new Date(Date.now() - (60 * 60 * 1000)).toISOString() })
+      .expect(200);
+
+    state.currentSlideIndex = 1;
+    state.preMassRunning = false;
+    state.gatheringRunning = false;
+    state.postMassRunning = false;
+
+    const before = await request(app).get("/api/state").expect(200);
+    expect(before.body.currentSlideIndex).toBe(1);
+
+    await request(app)
+      .get("/api/start-redirect")
+      .expect(302)
+      .expect("Location", "/remote");
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.currentSlideIndex).toBe(1);
+    expect(after.body.preMassRunning).toBe(false);
+    expect(after.body.gatheringRunning).toBe(false);
+    expect(after.body.postMassRunning).toBe(false);
+  });
+
   test("preview-manual-slide returns split slides for text hard breaks", async () => {
     const res = await request(app)
       .post("/api/preview-manual-slide")
