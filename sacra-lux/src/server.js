@@ -554,6 +554,12 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
     screenSettings: state.screenSettings
   });
 
+  // Reset before arming the clock. Catch-up is the last word, so a Mass whose
+  // gathering window or start time has already passed stays on that sequence.
+  state.currentSlideIndex = getSafeSlideIndex(0);
+  resetDisplayOverrides();
+  stopActiveSlideTimers();
+
   if (runtime.massStartTime && typeof runtime.massStartTime === "string") {
     state.massStartTime = runtime.massStartTime;
     scheduleStartTimer(ioRef);
@@ -562,9 +568,6 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
     clearStartTimers();
   }
 
-  state.currentSlideIndex = getSafeSlideIndex(0);
-  resetDisplayOverrides();
-  stopActiveSlideTimers();
   touch();
   ioRef.emit("state:update", getStateSnapshot());
 }
@@ -2314,6 +2317,21 @@ function startServer(port = 17841, options = {}) {
         propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       }
       repaginateReadingSlidesIfNeeded();
+      // Readings rebuild the slides above. A sequence with no readings still
+      // has to be built before the wall clock measures gathering.
+      if (
+        (!Array.isArray(state.readingsSource?.documents) || state.readingsSource.documents.length === 0) &&
+        (Array.isArray(payload.organizerSequence) || (payload.manualSlides && typeof payload.manualSlides === "object"))
+      ) {
+        state.presentation = buildPresentationFromOrganizer({
+          title: state.presentation?.title || "Mass Presentation",
+          documents: [],
+          sequence: state.organizerSequence,
+          manualSlides: state.manualSlides,
+          screenSettings: state.screenSettings
+        });
+        state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
+      }
       if (payload.presentationTitle && state.presentation) {
         state.presentation.title = String(payload.presentationTitle);
       }
@@ -2392,23 +2410,27 @@ function startServer(port = 17841, options = {}) {
       state.startupPrompt = null;
       state.presentation.title = String(title).trim();
 
-      // 3. Apply new start time (or clear it)
+      // 3. Validate the start time before playback moves.
+      let scheduledStart = null;
       if (startTime) {
         const parsed = new Date(String(startTime));
         if (isNaN(parsed.getTime())) {
           return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
         }
-        state.massStartTime = String(startTime);
+        scheduledStart = String(startTime);
+      }
+
+      // 4. Reset playback, then arm the clock from the slides this Mass already has.
+      state.currentSlideIndex = 0;
+      resetDisplayOverrides();
+      stopActiveSlideTimers();
+      if (scheduledStart) {
+        state.massStartTime = scheduledStart;
         scheduleStartTimer(io);
       } else {
         state.massStartTime = null;
         clearStartTimers();
       }
-
-      // 4. Reset playback state
-      state.currentSlideIndex = 0;
-      resetDisplayOverrides();
-      stopActiveSlideTimers();
 
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -2488,28 +2510,25 @@ function startServer(port = 17841, options = {}) {
       }
       state.manualSlides = newManualSlides;
 
-      // 3. Set title and start time
-      state.presentation.title = String(title).trim();
-      state.presentation.sourceFile = null;
+      // 3. Validate the start time before the slides are built and the clock is armed.
+      let scheduledStart = null;
       if (startTime) {
         const parsed = new Date(String(startTime));
         if (isNaN(parsed.getTime())) {
           return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
         }
-        state.massStartTime = String(startTime);
-        scheduleStartTimer(io);
-      } else {
-        state.massStartTime = null;
-        clearStartTimers();
+        scheduledStart = String(startTime);
       }
 
-      // 4. Clear readings and reset playback
+      // 4. Set title, clear readings, and reset playback
+      state.presentation.title = String(title).trim();
+      state.presentation.sourceFile = null;
       state.readingsSource = { folderPath: null, documents: [] };
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
       stopActiveSlideTimers();
 
-      // 5. Build presentation from new sequence
+      // 5. Build the slides, then arm the wall clock from this Mass's gathering length.
       state.presentation = buildPresentationFromOrganizer({
         title: state.presentation.title,
         documents: state.readingsSource.documents,
@@ -2517,6 +2536,13 @@ function startServer(port = 17841, options = {}) {
         manualSlides: state.manualSlides,
         screenSettings: state.screenSettings
       });
+      if (scheduledStart) {
+        state.massStartTime = scheduledStart;
+        scheduleStartTimer(io);
+      } else {
+        state.massStartTime = null;
+        clearStartTimers();
+      }
 
       touch();
       io.emit("state:update", getStateSnapshot());
