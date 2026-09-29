@@ -41,6 +41,7 @@ const {
 const { saveSession, loadSession, getSessionFilePath } = require("./persistence");
 const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./themes");
 const logger = require("./logger");
+const { createMovieEndGuard } = require("./movieAdvance");
 const {
   CURRENT_MASS_DIR,
   InvalidArchiveIdError,
@@ -869,6 +870,13 @@ function clearStartTimers() {
   if (_massStartTimer) { clearTimeout(_massStartTimer); _massStartTimer = null; }
 }
 
+// ── Movie-slide automation ───────────────────────────────────────────────────
+// `_movieTimer` is the fallback advance for a movie the phase timer stepped
+// aside for; `_movieEndGuard` dedupes several screen windows reporting the end
+// of the same movie.
+let _movieTimer = null;
+const _movieEndGuard = createMovieEndGuard();
+
 // ── Pre-mass slideshow automation ────────────────────────────────────────────
 let _preMassTimer = null;
 
@@ -925,6 +933,8 @@ function getRunnablePhaseIndices(phase) {
 }
 
 function scheduleRuntimeForCurrentSlide(ioRef) {
+  // Whatever fallback was armed for the previous slide no longer applies.
+  stopMovieAutoAdvanceTimer();
   const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
   if (!currentSlide) return;
   if (currentSlide.type === "imageSlideshow") {
@@ -1096,10 +1106,10 @@ function scheduleNextPreMassSlide(ioRef) {
   // Let controlled slide types own auto-advance and skip the phase timer.
   if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
-  if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
   const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
   const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
+  if (shouldMovieSlideControlAdvance(currentSlide)) { scheduleMovieAutoAdvance(ioRef, durationMs); return; }
 
   _preMassTimer = setTimeout(() => {
     _preMassTimer = null;
@@ -1207,10 +1217,10 @@ function scheduleNextGatheringSlide(ioRef) {
   // Let controlled slide types own auto-advance and skip the phase timer.
   if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
-  if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
   const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
   const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
+  if (shouldMovieSlideControlAdvance(currentSlide)) { scheduleMovieAutoAdvance(ioRef, durationMs); return; }
 
   _gatheringTimer = setTimeout(() => {
     _gatheringTimer = null;
@@ -1299,10 +1309,10 @@ function scheduleNextPostMassSlide(ioRef) {
   // Let controlled slide types own auto-advance and skip the phase timer.
   if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
   if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
-  if (shouldMovieSlideControlAdvance(currentSlide)) return;
 
   const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
   const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
+  if (shouldMovieSlideControlAdvance(currentSlide)) { scheduleMovieAutoAdvance(ioRef, durationMs); return; }
 
   _postMassTimer = setTimeout(() => {
     _postMassTimer = null;
@@ -1357,6 +1367,7 @@ function stopActiveSlideTimers() {
   stopPostMassTimer();
   stopCountdownTimer();
   stopImageSlideshowTimer({ resetProgress: true });
+  stopMovieAutoAdvanceTimer();
 }
 
 function findPreferredInterstitialSlideIndex(startIndex = state.currentSlideIndex) {
@@ -1415,6 +1426,8 @@ function stopAllRuntimeTimers() {
   if (_postMassTimer) { clearTimeout(_postMassTimer); _postMassTimer = null; }
   if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
   if (_imageSlideshowTimer) { clearTimeout(_imageSlideshowTimer); _imageSlideshowTimer = null; }
+  stopMovieAutoAdvanceTimer();
+  _movieEndGuard.reset();
   if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
   state.preMassRunning = false;
   state.gatheringRunning = false;
@@ -1466,6 +1479,39 @@ function shouldMovieSlideControlAdvance(slide) {
     slide.type === "movie" &&
     slide.videoLoop !== true &&
     slide.videoAutoAdvance !== false;
+}
+
+/**
+ * Advance past a movie that auto-advances and owns its own timing, when the
+ * phase timer deliberately steps aside for it. If no screen reports that the
+ * video ended — a blocked autoplay, a missing file, a paused projector — the
+ * liturgy would otherwise wait forever, so fall back to advancing when the
+ * organizer item's duration elapses. A movie that loops stays on its slide.
+ *
+ * The duration is read when the slide starts; the fallback runs only while
+ * that same slide is still current, so a manual or `slide:video-ended`
+ * advance silently cancels it.
+ */
+function scheduleMovieAutoAdvance(ioRef, durationMs) {
+  stopMovieAutoAdvanceTimer();
+  // A movie slide becoming current again (e.g. a looping pre-Mass sequence)
+  // gets a fresh end report.
+  _movieEndGuard.reset();
+  if (!shouldMovieSlideControlAdvance((state.presentation?.slides || [])[state.currentSlideIndex])) return;
+
+  _movieTimer = setTimeout(() => {
+    _movieTimer = null;
+    // A different slide (manual move, video-ended, phase change) supersedes it.
+    const current = (state.presentation?.slides || [])[state.currentSlideIndex];
+    if (!shouldMovieSlideControlAdvance(current)) return;
+    // Claim the end so a late `slide:video-ended` for this slide is ignored.
+    _movieEndGuard.markHandled(state.currentSlideIndex, current.id);
+    advanceFromCurrentSlide(ioRef);
+  }, durationMs);
+}
+
+function stopMovieAutoAdvanceTimer() {
+  if (_movieTimer) { clearTimeout(_movieTimer); _movieTimer = null; }
 }
 
 function advanceFromCurrentSlide(ioRef) {
@@ -3021,6 +3067,9 @@ function startServer(port = 17841, options = {}) {
       slide?.type === "imageSlideshow" &&
       previousSlide.organizerItemId === slide.organizerItemId;
     stopImageSlideshowTimer({ resetProgress: !sameSlideshow, clearError: !sameSlideshow });
+    // A movie's fallback advance belongs to the slide that scheduled it.
+    stopMovieAutoAdvanceTimer();
+    _movieEndGuard.reset();
     if (activateGatheringSequence && slide?.phase === "gathering") {
       stopPreMassTimer();
       stopGatheringTimer();
@@ -3118,7 +3167,20 @@ function startServer(port = 17841, options = {}) {
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      // Several screen windows can report the end of the same movie; the first
+      // one advances and the rest of that slide's reports are ignored.
+      if (_movieEndGuard.alreadyHandled(state.currentSlideIndex, slideId)) return;
+      _movieEndGuard.markHandled(state.currentSlideIndex, slideId);
       advanceFromCurrentSlide(io);
+    }));
+    socket.on("slide:video-ready", withControl(socket, (payload) => {
+      const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const slideId = String(payload?.slideId || "");
+      if (!shouldMovieSlideControlAdvance(currentSlide)) return;
+      if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      const durationMs = Number(payload?.durationMs);
+      if (!Number.isFinite(durationMs) || durationMs <= 0) return;
+      scheduleMovieAutoAdvance(io, durationMs);
     }));
     socket.on("image-slideshow:preload-error", withControl(socket, (payload) => {
       const imageUrl = String(payload?.imageUrl || "");
