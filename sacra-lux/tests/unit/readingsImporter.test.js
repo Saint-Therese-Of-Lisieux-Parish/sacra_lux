@@ -24,6 +24,98 @@ describe("readingsImporter", () => {
     expect(result.slides.length).toBeGreaterThanOrEqual(2);
   });
 
+  function importNamedFiles(folderName, filenames) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "parish-readings-"));
+    const folder = path.join(root, folderName);
+    fs.mkdirSync(folder);
+    for (const filename of filenames) {
+      fs.writeFileSync(path.join(folder, filename), "Citation 1:1\n\nSample text.", "utf8");
+    }
+    return importReadings(folder, {
+      fontSizePx: 60,
+      fontFamily: "Merriweather",
+      readingTextHeightPx: 840
+    }).documents.map((doc) => doc.section);
+  }
+
+  test("imports parish reading filenames in liturgical order", () => {
+    expect(importNamedFiles("Third_Sunday_of_Easter", [
+      "Gospel.txt",
+      "Reading_1.txt",
+      "Reading_2.txt",
+      "Responsorial_Psalm_1.txt"
+    ])).toEqual([
+      "Responsorial Psalm (1)",
+      "Reading I",
+      "Reading II",
+      "Gospel"
+    ]);
+
+    expect(importNamedFiles("Easter_Sunday", [
+      "Gospel-alternate_1.txt",
+      "Gospel.txt",
+      "Reading_1.txt",
+      "Reading_2-alternate_1.txt",
+      "Reading_2.txt",
+      "Responsorial_Psalm_1.txt"
+    ])).toEqual([
+      "Responsorial Psalm (1)",
+      "Reading I",
+      "Reading II",
+      "Reading II (Alternate 1)",
+      "Gospel",
+      "Gospel (Alternate 1)"
+    ]);
+
+    expect(importNamedFiles("Easter_Vigil", [
+      "Epistle.txt",
+      "Gospel.txt",
+      "Reading_I-alternate_1.txt",
+      "Reading_I-alternate_2.txt",
+      "Reading_I.txt",
+      "Reading_II-alternate_1.txt",
+      "Reading_II.txt",
+      "Reading_III.txt",
+      "Reading_IV.txt",
+      "Reading_V.txt",
+      "Reading_VI.txt",
+      "Reading_VII-alternate_1.txt",
+      "Reading_VII-alternate_2.txt",
+      "Reading_VII.txt",
+      "Responsorial_Psalm_1.txt",
+      "Responsorial_Psalm_2.txt",
+      "Responsorial_Psalm_3.txt",
+      "Responsorial_Psalm_4.txt",
+      "Responsorial_Psalm_5.txt",
+      "Responsorial_Psalm_6.txt",
+      "Responsorial_Psalm_7.txt",
+      "Responsorial_Psalm_8.txt"
+    ])).toEqual([
+      "Responsorial Psalm (1)",
+      "Responsorial Psalm (2)",
+      "Responsorial Psalm (3)",
+      "Responsorial Psalm (4)",
+      "Responsorial Psalm (5)",
+      "Responsorial Psalm (6)",
+      "Responsorial Psalm (7)",
+      "Responsorial Psalm (8)",
+      "Reading I",
+      "Reading I (Alternate 1)",
+      "Reading I (Alternate 2)",
+      "Reading II",
+      "Reading II (Alternate 1)",
+      "Reading III",
+      "Reading IV",
+      "Reading V",
+      "Reading VI",
+      "Reading VII",
+      "Reading VII (Alternate 1)",
+      "Reading VII (Alternate 2)",
+      "Epistle",
+      "Gospel"
+    ]);
+  });
+
   test("splits narrative readings on hard break markers", () => {
     const docs = [
       {

@@ -39,6 +39,12 @@ const SECTION_LABELS = {
   "Reading I": "First Reading",
   "Responsorial Psalm": "Psalm",
   "Reading II": "Second Reading",
+  "Reading III": "Third Reading",
+  "Reading IV": "Fourth Reading",
+  "Reading V": "Fifth Reading",
+  "Reading VI": "Sixth Reading",
+  "Reading VII": "Seventh Reading",
+  "Epistle": "Epistle",
   "Verse Before the Gospel": "Alleluia",
   "Gospel": "Gospel"
 };
@@ -151,7 +157,12 @@ function normalizeStyleOverrides(input) {
 }
 
 function displayLabelForDocument(doc) {
-  return SECTION_LABELS[doc.section] || doc.section;
+  const section = String(doc.section || "");
+  const splitAt = section.indexOf(" (");
+  const base = splitAt === -1 ? section : section.slice(0, splitAt);
+  const suffix = splitAt === -1 ? "" : section.slice(splitAt);
+  const label = SECTION_LABELS[base];
+  return label ? `${label}${suffix}` : section;
 }
 
 function createManualSlideRecord(type = "image") {

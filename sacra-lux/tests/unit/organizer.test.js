@@ -61,6 +61,20 @@ describe("organizer", () => {
     expect(manualSlides["image:Reading_I:1"]).toEqual(createManualSlideRecord("image"));
   });
 
+  test("labels a numbered psalm and an alternate reading from the base section", () => {
+    const { sequence } = createDefaultOrganizer([
+      { stem: "Responsorial_Psalm_1", section: "Responsorial Psalm (1)" },
+      { stem: "Reading_III", section: "Reading III" },
+      { stem: "Reading_II-alternate_1", section: "Reading II (Alternate 1)" }
+    ]);
+
+    expect(sequence.filter((item) => item.type === "reading").map((item) => item.label)).toEqual([
+      "Psalm (1)",
+      "Third Reading",
+      "Second Reading (Alternate 1)"
+    ]);
+  });
+
   test("builds manual text slides with hard breaks", () => {
     const screenSettings = {
       fontFamily: "Merriweather",
