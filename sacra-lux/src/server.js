@@ -1229,6 +1229,17 @@ function scheduleNextGatheringSlide(ioRef) {
       return acc;
     }, []);
 
+    const current = allSlides[state.currentSlideIndex];
+    if (!current || current.phase !== "gathering") {
+      // The operator left gathering, usually by starting the Mass early.
+      // A pending advance must not pull the projector back.
+      stopGatheringTimer();
+      touch();
+      ioRef.emit("state:update", getStateSnapshot());
+      scheduleSave();
+      return;
+    }
+
     const curPos = gatheringIndices.indexOf(state.currentSlideIndex);
     const isLast = curPos >= gatheringIndices.length - 1;
 
@@ -1533,18 +1544,24 @@ function advanceFromCurrentSlide(ioRef) {
 }
 
 /**
- * Jump to the first "mass" phase slide and stop whatever was advancing the
- * liturgy. Gathering often hands auto-advance to a countdown, slideshow, or
- * movie timer and then steps aside; those timers must be cleared too, or a
+ * Stop whatever was advancing the liturgy and show the Mass.
+ * Gathering often hands auto-advance to a countdown, slideshow, or movie
+ * timer and then steps aside; those timers must be cleared too, or a
  * gathering countdown fires after the cutover and skips the first Mass slide.
- * No-op when the presentation has no mass slides.
+ *
+ * When the projector is already on a Mass slide, leave it there. The operator
+ * may have started the entrance procession early. Otherwise jump to the first
+ * Mass slide. No-op when the presentation has no Mass slides.
  */
 function startMassSequence(ioRef) {
   const slides = state.presentation?.slides || [];
   const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
   if (firstMassIdx < 0) return false;
+  const alreadyOnMassSlide = slides[state.currentSlideIndex]?.phase === "mass";
   stopActiveSlideTimers();
-  state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+  if (!alreadyOnMassSlide) {
+    state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+  }
   touch();
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
@@ -1555,13 +1572,15 @@ function startMassSequence(ioRef) {
  * Schedule (or reschedule) the wall-clock automation for Mass:
  *  - a gathering lead-in timer that fires `gatheringMs` before Mass so all
  *    gathering slides can play through, and
- *  - a hard cutover timer that shows the first Mass slide at the scheduled
- *    time even if gathering overran or never started.
+ *  - a hard cutover timer at the scheduled time. It shows the first Mass
+ *    slide when gathering overran or never started, and leaves the current
+ *    slide when the operator is already in the Mass.
  *
  * If the gathering lead-in is already in the past when this runs (the app was
  * opened late), gathering starts immediately and the remaining window plays
- * out. If Mass time is already past, it switches straight to the first Mass
- * slide. `io` is passed in because this runs in the server scope.
+ * out. If Mass time is already past, it shows the first Mass slide, unless
+ * the projector is already on a Mass slide. `io` is passed in because this
+ * runs in the server scope.
  * massStartTime must be a datetime-local string (YYYY-MM-DDTHH:MM).
  *
  * Pass `catchUp: false` when rescheduling after an edit that must not move the
@@ -1577,7 +1596,8 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   const massHasBegun = now >= target;
   const phaseAlreadyRunning = state.preMassRunning || state.gatheringRunning || state.postMassRunning;
 
-  // Arm the hard cutover to the first Mass slide at the scheduled time.
+  // Arm the hard cutover at the scheduled time. It leaves a Mass slide that
+  // is already showing, and otherwise opens the first Mass slide.
   if (!massHasBegun) {
     _massStartTimer = setTimeout(() => {
       _massStartTimer = null;
@@ -1591,6 +1611,16 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   if (msUntilGathering > 0) {
     _startTimer = setTimeout(() => {
       _startTimer = null;
+      const slide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      if (slide?.phase === "mass") {
+        // The operator already started the Mass. Do not open gathering over it.
+        stopPreMassTimer();
+        stopGatheringTimer();
+        touch();
+        ioRef.emit("state:update", getStateSnapshot());
+        scheduleSave();
+        return;
+      }
       startGatheringSequence(ioRef);
     }, msUntilGathering);
     return;
@@ -1599,10 +1629,11 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   if (!catchUp) return;
 
   // The gathering lead-in is already past. Start the portion that still fits,
-  // but never rewind a phase that is already running.
+  // but never rewind a phase that is already running or a Mass already showing.
+  const onMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "mass";
   if (massHasBegun) {
     startMassSequence(ioRef);
-  } else if (!phaseAlreadyRunning) {
+  } else if (!phaseAlreadyRunning && !onMassSlide) {
     startGatheringSequence(ioRef);
   }
 }

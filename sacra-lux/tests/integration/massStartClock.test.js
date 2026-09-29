@@ -60,6 +60,9 @@ describe("mass start from the wall clock", () => {
     resetSecurityState();
     state.startPin = "";
     state.startPinHash = null;
+    // Tests share one server. A later case must not inherit a Mass slide the
+    // previous case left showing, or catch-up will treat the Mass as started.
+    state.currentSlideIndex = 0;
     jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
   });
 
@@ -114,6 +117,39 @@ describe("mass start from the wall clock", () => {
     expect(res.body.gatheringRunning).toBe(false);
     expect(currentPhase(res.body)).toBe("mass");
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "mass"));
+  });
+
+  test("cutover keeps the Mass slide an operator already reached", async () => {
+    // One minute before Mass. Gathering is 30s, so its lead-in is 9:59:30.
+    jest.setSystemTime(new Date("2026-05-03T09:59:00"));
+    await seedGatheringAndMass();
+
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    let res = await request(app).get("/api/state").expect(200);
+    const massSlides = res.body.presentation.slides
+      .map((slide, index) => ({ slide, index }))
+      .filter(({ slide }) => slide.phase === "mass");
+    const secondMassIndex = massSlides[1].index;
+    expect(massSlides[1].slide.title).toBe("Mass Second");
+    state.currentSlideIndex = secondMassIndex;
+
+    jest.advanceTimersByTime(30 * 1000);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(false);
+    expect(res.body.currentSlideIndex).toBe(secondMassIndex);
+
+    jest.advanceTimersByTime(30 * 1000);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(false);
+    expect(res.body.preMassRunning).toBe(false);
+    expect(res.body.currentSlideIndex).toBe(secondMassIndex);
+    expect(res.body.presentation.slides[res.body.currentSlideIndex].title).toBe("Mass Second");
   });
 
   test("opening after Mass time shows the first Mass slide", async () => {
