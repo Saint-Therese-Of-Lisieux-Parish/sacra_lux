@@ -892,6 +892,66 @@ describe("server api integration", () => {
     expect(historyRes.body.archives.map((entry) => entry.id)).toContain("Original-Mass");
   });
 
+  test("a countdown does not advance a newly created Mass", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "c-timer", type: "countdown", label: "Timer", phase: "pre", backgroundTheme: "dark" },
+          { id: "c-after", type: "text", label: "After", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: {
+          "c-timer": { text: "", countdownSec: 1 },
+          "c-after": { text: "After" }
+        }
+      })
+      .expect(200);
+    await request(app).post("/api/pre-mass/start").expect(200);
+
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(currentItemId(stateRes.body)).toBe("c-timer");
+
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Fresh Mass", startTime: "" })
+      .expect(200);
+
+    // The old 1-second countdown would fire about now; the new Mass must not move.
+    await wait(1300);
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.currentSlideIndex).toBe(0);
+    expect(stateRes.body.countdownEndsAt).toBeNull();
+  });
+
+  test("a post-Mass loop does not survive loading another Mass", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "post-a", type: "text", label: "Post A", phase: "post", backgroundTheme: "dark", durationSec: 1 },
+          { id: "post-b", type: "text", label: "Post B", phase: "post", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: { "post-a": { text: "Post A" }, "post-b": { text: "Post B" } }
+      })
+      .expect(200);
+    await request(app).post("/api/post-mass/start").expect(200);
+
+    await request(app)
+      .post("/api/duplicate-mass")
+      .send({ title: "After Post Mass", startTime: "" })
+      .expect(200);
+
+    let stateRes = await request(app).get("/api/state").expect(200);
+    const parkedIndex = stateRes.body.currentSlideIndex;
+    expect(stateRes.body.postMassRunning).toBe(false);
+
+    // The old 1-second post-Mass timer must not advance the duplicated Mass.
+    await wait(1300);
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.currentSlideIndex).toBe(parkedIndex);
+    expect(stateRes.body.postMassRunning).toBe(false);
+  });
+
   test("escaped archive ids are rejected and leave the data directory in place", async () => {
     const sacraDir = path.join(handle.homeDir, ".sacra-lux");
     const canary = path.join(sacraDir, "canary.txt");
