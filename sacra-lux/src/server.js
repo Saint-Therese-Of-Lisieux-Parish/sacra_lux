@@ -558,7 +558,7 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
     scheduleStartTimer(ioRef);
   } else {
     state.massStartTime = null;
-    if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+    clearStartTimers();
   }
 
   state.currentSlideIndex = getSafeSlideIndex(0);
@@ -588,10 +588,7 @@ function resetPresentationRuntimeState() {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
-  if (_startTimer) {
-    clearTimeout(_startTimer);
-    _startTimer = null;
-  }
+  clearStartTimers();
 }
 
 function setStartupPrompt(reason) {
@@ -862,7 +859,15 @@ let _saveTimer = null;
 let _syncCurrentMassOnSave = false;
 
 // ── Mass start-time automation ───────────────────────────────────────────────
+// _startTimer arms the gathering lead-in; _massStartTimer is the hard cutover
+// to the first Mass slide at the scheduled wall-clock time.
 let _startTimer = null;
+let _massStartTimer = null;
+
+function clearStartTimers() {
+  if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+  if (_massStartTimer) { clearTimeout(_massStartTimer); _massStartTimer = null; }
+}
 
 // ── Pre-mass slideshow automation ────────────────────────────────────────────
 let _preMassTimer = null;
@@ -1072,8 +1077,9 @@ function stopPreMassTimer() {
 /**
  * Schedule the next pre-mass slide advance.
  * Reads durationSec from the current slide's organizer item.
- * Loops through all pre-mass slides indefinitely; the start-time scheduler
- * (scheduleStartTimer) will stop it at mass time if massStartTime is set.
+ * Loops through all pre-mass slides indefinitely; the wall-clock scheduler
+ * (scheduleStartTimer) will start gathering before mass and cut over to the
+ * first Mass slide at mass time if massStartTime is set.
  */
 function scheduleNextPreMassSlide(ioRef) {
   if (_preMassTimer) { clearTimeout(_preMassTimer); _preMassTimer = null; }
@@ -1403,7 +1409,7 @@ function activateInterstitialHold() {
 }
 
 function stopAllRuntimeTimers() {
-  if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+  clearStartTimers();
   if (_preMassTimer) { clearTimeout(_preMassTimer); _preMassTimer = null; }
   if (_gatheringTimer) { clearTimeout(_gatheringTimer); _gatheringTimer = null; }
   if (_postMassTimer) { clearTimeout(_postMassTimer); _postMassTimer = null; }
@@ -1480,26 +1486,77 @@ function advanceFromCurrentSlide(ioRef) {
 }
 
 /**
- * Schedule (or reschedule) the auto-advance to the first "mass" phase slide.
- * `io` is passed in because this runs in the server scope.
- * massStartTime must be a datetime-local string (YYYY-MM-DDTHH:MM).
+ * Jump to the first "mass" phase slide and stop any pre-mass or gathering
+ * loop. Used at the scheduled wall-clock time and when the app is opened
+ * after that time. No-op when the presentation has no mass slides.
  */
-function scheduleStartTimer(ioRef) {
-  if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+function startMassSequence(ioRef) {
+  stopPreMassTimer();
+  stopGatheringTimer();
+  const slides = state.presentation?.slides || [];
+  const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
+  if (firstMassIdx < 0) return false;
+  state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+  scheduleSave();
+  return true;
+}
+
+/**
+ * Schedule (or reschedule) the wall-clock automation for Mass:
+ *  - a gathering lead-in timer that fires `gatheringMs` before Mass so all
+ *    gathering slides can play through, and
+ *  - a hard cutover timer that shows the first Mass slide at the scheduled
+ *    time even if gathering overran or never started.
+ *
+ * If the gathering lead-in is already in the past when this runs (the app was
+ * opened late), gathering starts immediately and the remaining window plays
+ * out. If Mass time is already past, it switches straight to the first Mass
+ * slide. `io` is passed in because this runs in the server scope.
+ * massStartTime must be a datetime-local string (YYYY-MM-DDTHH:MM).
+ *
+ * Pass `catchUp: false` when rescheduling after an edit that must not move the
+ * projector (e.g. saving the organizer mid-Mass); only future timers are armed.
+ */
+function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
+  clearStartTimers();
   const timeStr = state.massStartTime;
   if (!timeStr) return;
   const target = new Date(timeStr);
   if (isNaN(target.getTime())) return;
+  const now = Date.now();
+  const massHasBegun = now >= target;
+  const phaseAlreadyRunning = state.preMassRunning || state.gatheringRunning || state.postMassRunning;
 
-  // Fire early enough to play through all gathering slides before Mass starts.
+  // Arm the hard cutover to the first Mass slide at the scheduled time.
+  if (!massHasBegun) {
+    _massStartTimer = setTimeout(() => {
+      _massStartTimer = null;
+      startMassSequence(ioRef);
+    }, target - now);
+  }
+
   const gatheringMs = getGatheringDurationMs();
-  const msUntilGathering = (target - Date.now()) - gatheringMs;
-  if (msUntilGathering <= 0) return; // Already past
+  const msUntilGathering = (target - now) - gatheringMs;
 
-  _startTimer = setTimeout(() => {
-    _startTimer = null;
+  if (msUntilGathering > 0) {
+    _startTimer = setTimeout(() => {
+      _startTimer = null;
+      startGatheringSequence(ioRef);
+    }, msUntilGathering);
+    return;
+  }
+
+  if (!catchUp) return;
+
+  // The gathering lead-in is already past. Start the portion that still fits,
+  // but never rewind a phase that is already running.
+  if (massHasBegun) {
+    startMassSequence(ioRef);
+  } else if (!phaseAlreadyRunning) {
     startGatheringSequence(ioRef);
-  }, msUntilGathering);
+  }
 }
 
 /** Wait 600 ms after the last change before writing to disk. */
@@ -1953,7 +2010,7 @@ function startServer(port = 17841, options = {}) {
       const { time } = req.body || {};
       if (time === null || time === undefined || time === "") {
         state.massStartTime = null;
-        if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+        clearStartTimers();
       } else {
         const parsed = new Date(String(time));
         if (isNaN(parsed.getTime())) {
@@ -2223,7 +2280,7 @@ function startServer(port = 17841, options = {}) {
         scheduleStartTimer(io);
       } else if (payload.massStartTime === null) {
         state.massStartTime = null;
-        if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+        clearStartTimers();
       }
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -2300,7 +2357,7 @@ function startServer(port = 17841, options = {}) {
         scheduleStartTimer(io);
       } else {
         state.massStartTime = null;
-        if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+        clearStartTimers();
       }
 
       // 4. Reset playback state
@@ -2399,7 +2456,7 @@ function startServer(port = 17841, options = {}) {
         scheduleStartTimer(io);
       } else {
         state.massStartTime = null;
-        if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
+        clearStartTimers();
       }
 
       // 4. Clear readings and reset playback
@@ -2614,7 +2671,8 @@ function startServer(port = 17841, options = {}) {
         scheduleRuntimeForCurrentSlide(io);
       }
       // Reschedule the Mass start timer because gathering durations may have changed.
-      scheduleStartTimer(io);
+      // Do not catch up: an organizer save mid-Mass must not move the projector.
+      scheduleStartTimer(io, { catchUp: false });
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
