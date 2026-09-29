@@ -564,10 +564,7 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
 
   state.currentSlideIndex = getSafeSlideIndex(0);
   resetDisplayOverrides();
-  state.preMassRunning = false;
-  stopPreMassTimer();
-  stopGatheringTimer();
-  stopPostMassTimer();
+  stopActiveSlideTimers();
   touch();
   ioRef.emit("state:update", getStateSnapshot());
 }
@@ -585,10 +582,7 @@ function resetPresentationRuntimeState() {
   state.massStartTime = null;
   state.activeMassArchiveId = null;
   resetDisplayOverrides();
-  state.preMassRunning = false;
-  stopPreMassTimer();
-  stopGatheringTimer();
-  stopPostMassTimer();
+  stopActiveSlideTimers();
   clearStartTimers();
 }
 
@@ -1456,9 +1450,13 @@ function startCountdownForSlide(ioRef) {
   touch();
   ioRef.emit("state:update", getStateSnapshot());
 
+  const scheduledSlideId = slide.id;
   _countdownTimer = setTimeout(() => {
     _countdownTimer = null;
     state.countdownEndsAt = null;
+    // A new Mass or a manual move supersedes this countdown; do not advance then.
+    const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+    if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "countdown") return;
     // Advance only when the current slide is not already the last slide.
     const allSlides = state.presentation?.slides || [];
     if (state.currentSlideIndex < allSlides.length - 1) {
@@ -2410,8 +2408,7 @@ function startServer(port = 17841, options = {}) {
       // 4. Reset playback state
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
-      state.preMassRunning = false;
-      stopGatheringTimer();
+      stopActiveSlideTimers();
 
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -2510,8 +2507,7 @@ function startServer(port = 17841, options = {}) {
       state.readingsSource = { folderPath: null, documents: [] };
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
-      state.preMassRunning = false;
-      stopGatheringTimer();
+      stopActiveSlideTimers();
 
       // 5. Build presentation from new sequence
       state.presentation = buildPresentationFromOrganizer({
