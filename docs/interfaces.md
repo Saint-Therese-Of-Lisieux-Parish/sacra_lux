@@ -17,6 +17,8 @@
 - `slide:prev`: go back one slide
 - `slide:goto`: jump to a slide index
 - `slide:goto:remote`: jump from the remote and allow post-mass loop activation
+- `slide:video-ended`: a screen reports a movie finished; the first report for a slide advances, later reports for the same slide are ignored
+- `slide:video-ready`: a screen reports a movie's real length (`durationMs`) so the server can arm a fallback advance
 - `screen:interstitial-hold`: toggle remote interstitial hold
 - `screen:black`: toggle blackout mode
 - `export:avif:start`: start AVIF ZIP export

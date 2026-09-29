@@ -1014,6 +1014,22 @@
         if (slide.videoAutoAdvance === false) return;
         socket.emit("slide:video-ended", { slideId: slide.id });
       });
+      // A movie that cannot load (missing file, unsupported codec) would
+      // otherwise leave the phase waiting for an "ended" that never comes.
+      video.addEventListener("error", () => {
+        if (slide.videoAutoAdvance === false || slide.videoLoop) return;
+        socket.emit("slide:video-ended", { slideId: slide.id });
+      });
+      // Report the real length so the server's fallback advance never fires
+      // before the movie has actually had a chance to play.
+      video.addEventListener("loadedmetadata", () => {
+        if (slide.videoAutoAdvance === false || slide.videoLoop) return;
+        if (!Number.isFinite(video.duration) || video.duration <= 0) return;
+        socket.emit("slide:video-ready", {
+          slideId: slide.id,
+          durationMs: Math.round(video.duration * 1000)
+        });
+      });
       wrap.appendChild(video);
       const playAttempt = video.play();
       if (playAttempt && typeof playAttempt.catch === "function") {

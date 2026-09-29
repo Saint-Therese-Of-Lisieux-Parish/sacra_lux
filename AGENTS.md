@@ -62,6 +62,7 @@ The server broadcasts full state snapshots over Socket.IO after changes.
 - `src/readingsImporter.js`: reading import and pagination
 - `src/persistence.js`: session save/load and migration
 - `src/massHistory.js`: archive ID allocation, metadata, and archive lifecycle
+- `src/movieAdvance.js`: dedupe guard for multi-screen movie-end reports
 - `src/main.js`: Electron entry point and native IPC handlers
 - `src/web.js`: headless server entry point
 - `src/preload.js`: Electron renderer bridge
@@ -136,7 +137,7 @@ High-value routes:
 
 Socket.IO events:
 
-- client to server: `slide:next`, `slide:prev`, `slide:goto`, `slide:goto:remote`, `screen:interstitial-hold`, `screen:black`, `screen:settings`, `image-slideshow:preload-error`, `export:avif:start`
+- client to server: `slide:next`, `slide:prev`, `slide:goto`, `slide:goto:remote`, `slide:video-ended`, `slide:video-ready`, `screen:interstitial-hold`, `screen:black`, `screen:settings`, `image-slideshow:preload-error`, `export:avif:start`
 - server to client: `state:update`, `export:avif:progress`, `export:avif:done`, `export:avif:error`, `interstitial:hold:error`
 
 ## Safety Expectations
