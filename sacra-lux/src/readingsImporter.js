@@ -42,7 +42,8 @@ function _createPaginationCacheKey(documents, options) {
     readingTextHeightPx: options.readingTextHeightPx,
     readingLineHeight: options.readingLineHeight,
     readingTextMarginXPx: options.readingTextMarginXPx,
-    canvasWidth: options.canvasWidth
+    canvasWidth: options.canvasWidth,
+    psalmRefrainIndex: options.psalmRefrainIndex
   }));
   return hash.digest("hex").slice(0, 24);
 }
@@ -244,10 +245,45 @@ function estimateEndingPageLines(fontSizePx, readingTextHeightPx, lineHeight) {
   return clamp(Math.floor((boxHeight - endingPx) / lineHeightPx), 1, 20);
 }
 
-// Treat each "R." line as the start of a new psalm stanza.
-// Give each refrain line its own slide, and paginate verse blocks by
-// estimated visual line usage instead of raw source-line count.
-function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760) {
+function isOrMarker(line) {
+  return /^or:\s*$/i.test(String(line || "").trim());
+}
+
+function isRefrainLine(line) {
+  return /^\s*R\./.test(String(line || ""));
+}
+
+function refrainIdentity(line) {
+  return String(line || "")
+    .trim()
+    .replace(/^R\.\s*/, "")
+    .replace(/^\([^)]*\)\s*/, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function listPsalmRefrainOptions(lines) {
+  const options = [];
+  const seen = new Set();
+  for (const line of lines) {
+    if (!isRefrainLine(line)) continue;
+    const key = refrainIdentity(line);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    options.push(String(line).trim());
+  }
+  return options;
+}
+
+// Project one selected refrain between stanzas. A line that is only "or:"
+// is the parish marker between refrain choices and never becomes a slide.
+function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760, refrainIndex = 0) {
+  const options = listPsalmRefrainOptions(lines);
+  const index = options.length
+    ? Math.min(Math.max(Number(refrainIndex) || 0, 0), options.length - 1)
+    : 0;
+  const chosen = options[index] || null;
+  const chosenKey = chosen ? refrainIdentity(chosen) : null;
   const slides = [];
   let stanza = [];
 
@@ -275,13 +311,17 @@ function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760) {
   }
 
   for (const line of lines) {
-    if (line.startsWith("R.")) {
+    if (isOrMarker(line)) continue;
+    if (isRefrainLine(line)) {
       flushStanza();
-      // Give the refrain line its own slide.
-      slides.push(line);
-    } else {
-      stanza.push(line);
+      if (!chosenKey || refrainIdentity(line) === chosenKey) {
+        const text = chosen || String(line).trim();
+        if (slides[slides.length - 1] !== text) slides.push(text);
+      }
+      continue;
     }
+    if (String(line || "").trim() === "") continue;
+    stanza.push(line);
   }
 
   flushStanza();
@@ -492,7 +532,7 @@ function paginateDocuments(documents, options = {}) {
     const pages = [];
     for (const segment of segments) {
       const segPages = isPsalm
-        ? paginatePsalm(segment, visualLimit, fontSizePx, boxWidthPx)
+        ? paginatePsalm(segment, visualLimit, fontSizePx, boxWidthPx, options.psalmRefrainIndex)
         : paginateReading(segment, visualLimit, fontSizePx, boxWidthPx);
       pages.push(...segPages);
     }
@@ -584,6 +624,7 @@ function importReadings(folderPath, options = {}) {
 
 module.exports = {
   importReadings,
+  listPsalmRefrainOptions,
   paginateDocuments,
   clearPaginationCache
 };

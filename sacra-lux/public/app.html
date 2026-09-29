@@ -3163,6 +3163,11 @@
                 <select id="editorSourceStem" style="min-width:220px"></select>
               </label>
             </div>
+            <div class="editor-row" id="editorPsalmRefrainWrap" hidden style="margin-bottom:0.65rem">
+              <label style="flex:1">Psalm refrain
+                <select id="editorPsalmRefrain" style="min-width:220px"></select>
+              </label>
+            </div>
 
             <div class="editor-section-label">Reading Text <span id="editorPageCount" class="editor-page-count"></span>
             </div>
@@ -3812,6 +3817,8 @@
       editorBackgroundThemeWrap: document.getElementById("editorBackgroundThemeWrap"),
       editorBackgroundTheme: document.getElementById("editorBackgroundTheme"),
       editorSourceStem: document.getElementById("editorSourceStem"),
+      editorPsalmRefrainWrap: document.getElementById("editorPsalmRefrainWrap"),
+      editorPsalmRefrain: document.getElementById("editorPsalmRefrain"),
       editorReadingStyleFont: document.getElementById("editorReadingStyleFont"),
       editorReadingStyleSizePx: document.getElementById("editorReadingStyleSizePx"),
       editorReadingStyleBold: document.getElementById("editorReadingStyleBold"),
@@ -4150,6 +4157,7 @@
           stem,
           label,
           styleOverrides,
+          psalmRefrainIndex: els.editorPsalmRefrainWrap?.hidden ? 0 : Number(els.editorPsalmRefrain?.value || 0),
           overrideSettings: getEffectiveScreenSettingsForSlideLike("reading", styleOverrides)
         })
       });
@@ -5235,6 +5243,10 @@
         }))
       );
       els.editorSourceStem.value = item.sourceStem || documents[0]?.stem || "";
+      refreshPsalmRefrainSelect(
+        documents.find((doc) => doc.stem === els.editorSourceStem.value),
+        item.psalmRefrainIndex
+      );
 
       if (isReading) {
         const doc = documents.find(d => d.stem === els.editorSourceStem.value);
@@ -5992,6 +6004,9 @@
 
         if (nextType === "reading") {
           item.sourceStem = els.editorSourceStem.value;
+          item.psalmRefrainIndex = els.editorPsalmRefrainWrap?.hidden
+            ? 0
+            : Math.max(0, parseInt(els.editorPsalmRefrain.value, 10) || 0);
           item.styleOverrides = getEditorStyleOverrides("reading");
           delete manualSlides[item.id];
 
@@ -6783,12 +6798,48 @@
     });
 
     // Changing the source stem replaces the text with the new doc's original text
+    function psalmRefrainOptions(lines) {
+      const options = [];
+      const seen = new Set();
+      for (const line of lines || []) {
+        if (!/^\s*R\./.test(String(line || ""))) continue;
+        const key = String(line).trim().replace(/^R\.\s*/, "").replace(/^\([^)]*\)\s*/, "").replace(/\s+/g, " ").toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        options.push(String(line).trim());
+      }
+      return options;
+    }
+
+    function refreshPsalmRefrainSelect(doc, selectedIndex) {
+      const options = psalmRefrainOptions(doc?.textLines);
+      const show = options.length > 1;
+      if (els.editorPsalmRefrainWrap) els.editorPsalmRefrainWrap.hidden = !show;
+      if (!els.editorPsalmRefrain) return;
+      els.editorPsalmRefrain.innerHTML = "";
+      options.forEach((text, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = text.replace(/^R\.\s*/, "");
+        els.editorPsalmRefrain.appendChild(option);
+      });
+      const index = Math.min(Math.max(Number(selectedIndex) || 0, 0), Math.max(options.length - 1, 0));
+      els.editorPsalmRefrain.value = String(index);
+    }
+
     els.editorSourceStem.addEventListener("change", () => {
       const doc = uiState.data?.readingsSource?.documents?.find(d => d.stem === els.editorSourceStem.value);
       if (doc) {
         window.__lastReadingText = doc.textLines.join("\n");
         els.editorReadingText.value = window.__lastReadingText;
       }
+      refreshPsalmRefrainSelect(doc, 0);
+      editorPreviewIndex = 0;
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+
+    els.editorPsalmRefrain?.addEventListener("change", () => {
       editorPreviewIndex = 0;
       updateEditorPreview().catch(() => { });
       scheduleEditorSave();

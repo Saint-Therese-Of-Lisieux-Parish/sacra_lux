@@ -18,7 +18,8 @@ const PRESENTATION_KEYS = new Set([
   "shadow",
   "countdownStyle",
   "countdownSizePercent",
-  "loop"
+  "loop",
+  "psalmRefrainIndex"
 ]);
 const VALID_DOCUMENT_BACKGROUNDS = new Set(["dark", "light"]);
 const VALID_COUNTDOWN_STYLES = new Set(["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"]);
@@ -291,6 +292,12 @@ function validatePresentation(presentation) {
   if (presentation.loop != null && typeof presentation.loop !== "boolean") {
     throw new ValidationError("presentation.loop must be a boolean.");
   }
+  if (presentation.psalmRefrainIndex != null) {
+    const refrainIndex = Number(presentation.psalmRefrainIndex);
+    if (!Number.isInteger(refrainIndex) || refrainIndex < 0) {
+      throw new ValidationError("presentation.psalmRefrainIndex must be a non-negative integer.");
+    }
+  }
 }
 
 function validateMassDocument(document) {
@@ -497,6 +504,9 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
       ...presentation,
       ...serializeStyleOverrides(organizerItem.styleOverrides)
     };
+    if (Number(organizerItem.psalmRefrainIndex) > 0) {
+      readingPresentation.psalmRefrainIndex = Math.floor(Number(organizerItem.psalmRefrainIndex));
+    }
     item.presentation = readingPresentation;
     return item;
   }
@@ -626,6 +636,9 @@ function buildRuntimeStateFromMassDocument(document) {
     if (type === "reading") {
       const doc = buildReadingDocumentFromItem(item);
       organizerItem.sourceStem = doc.stem;
+      if (Number(item.presentation?.psalmRefrainIndex) > 0) {
+        organizerItem.psalmRefrainIndex = Math.floor(Number(item.presentation.psalmRefrainIndex));
+      }
       organizerItem.styleOverrides = readStyleOverridesFromPresentation(item.presentation);
       documents.push(doc);
       organizerSequence.push(organizerItem);
