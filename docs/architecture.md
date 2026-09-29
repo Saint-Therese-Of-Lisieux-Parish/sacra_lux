@@ -91,6 +91,7 @@ Sacra Lux has several timer families:
 - gathering timer
 - post-mass loop timer
 - countdown-slide timer
+- movie fallback timer
 - debounced persistence timer
 
 The two Mass wall-clock timers are scheduled together from
@@ -99,6 +100,13 @@ The two Mass wall-clock timers are scheduled together from
 even if gathering overran or never started. When the app is opened late,
 gathering starts immediately for the portion that still fits, and an
 already-begun Mass jumps straight to its first slide.
+
+An auto-advancing movie normally ends by a screen reporting
+`slide:video-ended`, but a blocked autoplay or missing file may mean that
+report never arrives. The phase timer steps aside and `scheduleMovieAutoAdvance`
+arms a fallback at the item's duration (or the movie's real length once a
+screen reports `slide:video-ready`). `src/movieAdvance.js` dedupes the end
+reports when several projector windows watch the same movie.
 
 Countdown slides temporarily take over auto-advance from the active
 phase timer. The remote interstitial-hold feature pauses active slide
