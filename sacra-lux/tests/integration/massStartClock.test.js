@@ -63,6 +63,9 @@ describe("mass start from the wall clock", () => {
     // Tests share one server. A later case must not inherit a Mass slide the
     // previous case left showing, or catch-up will treat the Mass as started.
     state.currentSlideIndex = 0;
+    state.preMassRunning = false;
+    state.gatheringRunning = false;
+    state.postMassRunning = false;
     jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
   });
 
@@ -334,5 +337,104 @@ describe("mass start from the wall clock", () => {
 
     res = await request(app).get("/api/state").expect(200);
     expect(res.body.currentSlideIndex).toBe(4);
+  });
+
+  test("setting the start time during pre-Mass starts gathering when the lead-in has passed", async () => {
+    // Mass is four minutes away and gathering is ten minutes, so the lead-in is past.
+    jest.setSystemTime(new Date("2026-05-03T09:56:00"));
+    const sequence = [
+      { id: "p-welcome", type: "text", label: "Welcome", phase: "pre", backgroundTheme: "dark", durationSec: 600 },
+      { id: "g-long", type: "text", label: "Gathering Long", phase: "gathering", backgroundTheme: "dark", durationSec: 600 },
+      { id: "m-first", type: "text", label: "Mass First", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
+    ];
+    const manualSlides = {
+      "p-welcome": { text: "Welcome" },
+      "g-long": { text: "Gathering Long" },
+      "m-first": { text: "Mass First" }
+    };
+
+    await request(app).post("/api/start-time").send({ time: "" }).expect(200);
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    await request(app).post("/api/pre-mass/start").expect(200);
+
+    let res = await request(app).get("/api/state").expect(200);
+    expect(res.body.preMassRunning).toBe(true);
+
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    expect(res.body.preMassRunning).toBe(false);
+    expect(currentPhase(res.body)).toBe("gathering");
+    expect(res.body.presentation.slides[res.body.currentSlideIndex].title).toBe("Gathering Long");
+  });
+
+  test("an organizer save that pushes the lead-in into the past starts gathering", async () => {
+    // Eight minutes until Mass. Five minutes of gathering still lies ahead.
+    jest.setSystemTime(new Date("2026-05-03T09:52:00"));
+    const massSlide = { id: "m-first", type: "text", label: "Mass First", phase: "mass", backgroundTheme: "dark", durationSec: 10 };
+    const shortGathering = { id: "g-short", type: "text", label: "Gathering Short", phase: "gathering", backgroundTheme: "dark", durationSec: 300 };
+    const longGathering = { id: "g-long", type: "text", label: "Gathering Long", phase: "gathering", backgroundTheme: "dark", durationSec: 720 };
+
+    await request(app).post("/api/start-time").send({ time: "" }).expect(200);
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [shortGathering, massSlide],
+        manualSlides: { "g-short": { text: "Gathering Short" }, "m-first": { text: "Mass First" } }
+      })
+      .expect(200);
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    let res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(false);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [longGathering, massSlide],
+        manualSlides: { "g-long": { text: "Gathering Long" }, "m-first": { text: "Mass First" } }
+      })
+      .expect(200);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    expect(res.body.preMassRunning).toBe(false);
+    expect(currentPhase(res.body)).toBe("gathering");
+    expect(res.body.presentation.slides[res.body.currentSlideIndex].title).toBe("Gathering Long");
+  });
+
+  test("saving the organizer leaves a gathering sequence where it is", async () => {
+    jest.setSystemTime(new Date("2026-05-03T09:59:50"));
+    await seedGatheringAndMass();
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    let res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    const gatheringSlides = res.body.presentation.slides
+      .map((slide, index) => ({ slide, index }))
+      .filter(({ slide }) => slide.phase === "gathering");
+    const secondGatheringIndex = gatheringSlides[1].index;
+    expect(gatheringSlides[1].slide.title).toBe("Gathering Two");
+    state.currentSlideIndex = secondGatheringIndex;
+
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence: gatheringSequence, manualSlides: gatheringManualSlides })
+      .expect(200);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    expect(res.body.currentSlideIndex).toBe(secondGatheringIndex);
+    expect(res.body.presentation.slides[res.body.currentSlideIndex].title).toBe("Gathering Two");
   });
 });
