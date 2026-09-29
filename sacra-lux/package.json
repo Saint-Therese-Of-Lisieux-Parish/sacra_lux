@@ -1,6 +1,6 @@
 {
   "name": "sacra-lux",
-  "version": "0.0.12-alpha",
+  "version": "0.0.13-alpha",
   "description": "Catholic Mass presentation app with phone remote control",
   "main": "src/main.js",
   "scripts": {
@@ -13,8 +13,8 @@
     "check:version-sync": "node ./scripts/check-version-sync.js",
     "precommit": "node ./scripts/precommit.js",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "node --localstorage-file=.jest-localstorage ./node_modules/jest/bin/jest.js --config ./jest.config.cjs tests/unit --runInBand",
-    "test:integration": "node --localstorage-file=.jest-localstorage ./node_modules/jest/bin/jest.js --config ./jest.config.cjs tests/integration --runInBand",
+    "test:unit": "jest --config ./jest.config.cjs tests/unit --runInBand",
+    "test:integration": "jest --config ./jest.config.cjs tests/integration --runInBand",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:install": "playwright install --with-deps chromium"
