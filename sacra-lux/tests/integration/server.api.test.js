@@ -865,9 +865,16 @@ describe("server api integration", () => {
   });
 
   test("duplicate-mass archives the current Mass and resets playback state", async () => {
+    // A start still ahead of its gathering lead-in stays on slide 0.
+    // A start already inside the gathering window is covered by the wall-clock tests.
+    const futureStart = (daysAhead) => {
+      const when = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}T${pad(when.getHours())}:${pad(when.getMinutes())}`;
+    };
     await request(app)
       .post("/api/new-mass")
-      .send({ title: "Original Mass", startTime: "2026-04-15T09:00" })
+      .send({ title: "Original Mass", startTime: futureStart(2) })
       .expect(200);
 
     await request(app)
@@ -876,7 +883,7 @@ describe("server api integration", () => {
 
     const duplicate = await request(app)
       .post("/api/duplicate-mass")
-      .send({ title: "Copied Mass", startTime: "2026-04-22T09:00" })
+      .send({ title: "Copied Mass", startTime: futureStart(7) })
       .expect(200);
 
     expect(duplicate.body.archivedMassId).toBe("Original-Mass");

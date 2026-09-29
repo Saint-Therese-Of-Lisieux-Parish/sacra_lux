@@ -179,6 +179,104 @@ describe("mass start from the wall clock", () => {
     expect(res.body.countdownEndsAt).toBeNull();
   });
 
+  test("a new Mass arms gathering from its own slides", async () => {
+    // Default gathering is one 30s countdown. Ten minutes out, the lead-in is
+    // 30s before Mass, not at Mass time.
+    jest.setSystemTime(new Date("2026-05-03T09:50:00"));
+
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Clock Mass", startTime: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    let res = await request(app).get("/api/state").expect(200);
+    const gatheringIndex = indexOfPhase(res.body, "gathering");
+    const massIndex = indexOfPhase(res.body, "mass");
+    expect(res.body.gatheringRunning).toBe(false);
+    expect(res.body.currentSlideIndex).toBe(0);
+    expect(res.body.presentation.slides[gatheringIndex].organizerItemId).toBe("gathering-countdown");
+
+    jest.advanceTimersByTime((9 * 60 + 30) * 1000);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    expect(res.body.currentSlideIndex).toBe(gatheringIndex);
+
+    jest.advanceTimersByTime(30 * 1000);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(false);
+    expect(res.body.currentSlideIndex).toBe(massIndex);
+    expect(res.body.presentation.slides[massIndex].organizerItemId).toBe("mass-title");
+  });
+
+  test("loading an archive after Mass time stays on the first Mass slide", async () => {
+    jest.setSystemTime(new Date("2026-05-03T09:00:00"));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Past Mass", startTime: "2026-05-03T10:00:00" })
+      .expect(200);
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Placeholder Past", startTime: "" })
+      .expect(200);
+
+    jest.setSystemTime(new Date("2026-05-03T10:05:00"));
+    await request(app).post("/api/mass-history/Past-Mass/load").expect(200);
+
+    let res = await request(app).get("/api/state").expect(200);
+    const massIndex = indexOfPhase(res.body, "mass");
+    expect(res.body.gatheringRunning).toBe(false);
+    expect(res.body.currentSlideIndex).toBe(massIndex);
+
+    jest.advanceTimersByTime(60 * 1000);
+
+    res = await request(app).get("/api/state").expect(200);
+    expect(res.body.currentSlideIndex).toBe(massIndex);
+    expect(currentPhase(res.body)).toBe("mass");
+  });
+
+  test("loading an archive inside the gathering window starts gathering", async () => {
+    jest.setSystemTime(new Date("2026-05-03T09:00:00"));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Window Mass", startTime: "2026-05-03T10:00:00" })
+      .expect(200);
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Placeholder Window", startTime: "" })
+      .expect(200);
+
+    // 30s of gathering, 10s left until Mass.
+    jest.setSystemTime(new Date("2026-05-03T09:59:50"));
+    await request(app).post("/api/mass-history/Window-Mass/load").expect(200);
+
+    const res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    expect(currentPhase(res.body)).toBe("gathering");
+    expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "gathering"));
+  });
+
+  test("duplicating a Mass inside the gathering window keeps gathering running", async () => {
+    jest.setSystemTime(new Date("2026-05-03T09:00:00"));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "To Copy", startTime: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    jest.setSystemTime(new Date("2026-05-03T09:59:50"));
+    await request(app)
+      .post("/api/duplicate-mass")
+      .send({ title: "Copied Window", startTime: "2026-05-03T10:00:00" })
+      .expect(200);
+
+    const res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(true);
+    expect(res.body.preMassRunning).toBe(false);
+    expect(currentPhase(res.body)).toBe("gathering");
+    expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "gathering"));
+  });
+
   test("saving the organizer during Mass does not rewind the projector", async () => {
     jest.setSystemTime(new Date("2026-05-03T10:20:00"));
     await seedGatheringAndMass();
