@@ -1532,16 +1532,17 @@ function advanceFromCurrentSlide(ioRef) {
 }
 
 /**
- * Jump to the first "mass" phase slide and stop any pre-mass or gathering
- * loop. Used at the scheduled wall-clock time and when the app is opened
- * after that time. No-op when the presentation has no mass slides.
+ * Jump to the first "mass" phase slide and stop whatever was advancing the
+ * liturgy. Gathering often hands auto-advance to a countdown, slideshow, or
+ * movie timer and then steps aside; those timers must be cleared too, or a
+ * gathering countdown fires after the cutover and skips the first Mass slide.
+ * No-op when the presentation has no mass slides.
  */
 function startMassSequence(ioRef) {
-  stopPreMassTimer();
-  stopGatheringTimer();
   const slides = state.presentation?.slides || [];
   const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
   if (firstMassIdx < 0) return false;
+  stopActiveSlideTimers();
   state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
   touch();
   ioRef.emit("state:update", getStateSnapshot());
