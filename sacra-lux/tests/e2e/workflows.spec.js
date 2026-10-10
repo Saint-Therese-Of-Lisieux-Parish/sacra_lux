@@ -129,6 +129,36 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
   }).toEqual(["Alpha.png", "Zeta.png"]);
 });
 
+test("Image Slideshow editor hides an unavailable preview image", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{
+        id: "imageSlideshow:missing-preview",
+        type: "imageSlideshow",
+        label: "Missing preview",
+        phase: "mass",
+        backgroundTheme: "light"
+      }],
+      manualSlides: {
+        "imageSlideshow:missing-preview": {
+          images: [{ url: "/uploads/does-not-exist.png", name: "Missing.png" }],
+          slideshowDurationSec: 10,
+          slideshowLoopCount: 1
+        }
+      }
+    }
+  });
+
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator('[data-edit-id="imageSlideshow:missing-preview"]').click();
+  await expect(page.locator("#editorSectionImageSlideshow")).toBeVisible();
+  await expect(page.locator("#slideshowPreview")).toBeHidden();
+  await expect(page.locator("#slideshowPreviewEmpty")).toBeVisible();
+});
+
 test("Image Slideshow crossfades between consecutive images", async ({ page, request }) => {
   async function uploadPng(filename, background) {
     const png = await sharp({

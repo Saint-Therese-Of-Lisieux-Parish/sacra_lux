@@ -694,6 +694,10 @@
       background: transparent;
     }
 
+    .image-preview[hidden] {
+      display: none;
+    }
+
     .image-preview[hidden]+.image-drop-zone {
       display: flex;
     }
@@ -4923,6 +4927,12 @@
       const counts = slideCountsByOrganizer(slides);
       const screenSettings = uiState.data?.screenSettings || {};
       const manualSlides = uiState.data?.manualSlides || {};
+      const formatRuntime = (totalSeconds) => {
+        const wholeSeconds = Math.max(0, Math.round(totalSeconds));
+        const minutes = Math.floor(wholeSeconds / 60);
+        const seconds = wholeSeconds % 60;
+        return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+      };
       const itemRuntimeSeconds = (item, slideCount) => {
         if (item.type === "imageSlideshow") {
           const manual = manualSlides[item.id] || {};
@@ -4949,10 +4959,17 @@
         const type = typeTag(item.type);
         const phase = phaseTag(item.phase);
         const active = item.id === uiState.selectedOrganizerId ? "active" : "";
-        const pageCount = counts[item.id] || (item.type === "reading" ? 0 : 1);
+        const slideshowImageCount = item.type === "imageSlideshow"
+          ? (Array.isArray(manualSlides[item.id]?.images)
+            ? manualSlides[item.id].images.filter((image) => image?.url || typeof image === "string").length
+            : 0)
+          : null;
+        const pageCount = item.type === "imageSlideshow"
+          ? slideshowImageCount
+          : (counts[item.id] || (item.type === "reading" ? 0 : 1));
         const isMovie = item.type === "movie";
         const durationMeta = item.type === "imageSlideshow"
-          ? ` · \u23F1 ${manualSlides[item.id]?.slideshowDurationSec || 10}s/image × ${manualSlides[item.id]?.slideshowLoopCount || 1}`
+          ? ` · \u23F1 ${formatRuntime(itemRuntimeSeconds(item, pageCount))}`
           : (!isMovie && (item.phase === "pre" || item.phase === "gathering" || item.phase === "post"))
           ? ` · \u23F1 ${item.durationSec || 10}s`
           : "";
@@ -4967,15 +4984,10 @@
           const videoUrl = manualSlide?.videoUrl || repSlide?.videoUrl || "";
           const videoFile = videoUrl ? decodeURIComponent(videoUrl.split("/").pop()) : "";
           if (videoFile) sourceMeta = ` · ${videoFile}`;
-        } else if (isImage) {
-          const slideshowImages = Array.isArray(manualSlide?.images) ? manualSlide.images : [];
-          const imgUrl = item.type === "imageSlideshow"
-            ? (slideshowImages[0]?.url || repSlide?.imageUrl || "")
-            : (manualSlide?.imageUrl || repSlide?.imageUrl || "");
+        } else if (isImage && item.type !== "imageSlideshow") {
+          const imgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || "";
           const imgFile = imgUrl ? decodeURIComponent(imgUrl.split("/").pop()) : "";
-          if (item.type === "imageSlideshow") {
-            sourceMeta = ` · ${slideshowImages.length} image${slideshowImages.length === 1 ? "" : "s"}`;
-          } else if (imgFile) sourceMeta = ` · ${imgFile}`;
+          if (imgFile) sourceMeta = ` · ${imgFile}`;
         }
         // Image-type slides use their own image; other slides pick background by backgroundTheme.
         let thumbStyle;
@@ -5863,11 +5875,17 @@
       const first = images.find((image) => image.url);
       if (!els.slideshowPreview || !els.slideshowPreviewEmpty) return;
       if (first) {
+        els.slideshowPreview.onerror = () => {
+          els.slideshowPreview.removeAttribute("src");
+          els.slideshowPreview.hidden = true;
+          els.slideshowPreviewEmpty.hidden = false;
+        };
         els.slideshowPreview.src = first.url;
         els.slideshowPreview.alt = `Slideshow preview: ${first.name}`;
         els.slideshowPreview.hidden = false;
         els.slideshowPreviewEmpty.hidden = true;
       } else {
+        els.slideshowPreview.onerror = null;
         els.slideshowPreview.removeAttribute("src");
         els.slideshowPreview.hidden = true;
         els.slideshowPreviewEmpty.hidden = false;
