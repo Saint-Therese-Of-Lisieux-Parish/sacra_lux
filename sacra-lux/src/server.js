@@ -347,6 +347,31 @@ function getSafeZipEntryFilename(entryName, prefix, allowedPattern) {
   return allowedPattern.test(relativePath) ? relativePath : null;
 }
 
+function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
+  const requestedName = path.basename(String(filename || ""))
+    .replace(/[\u0000-\u001f\\/:*?"<>|]/g, "")
+    .trim();
+  const fallbackName = `light.${mediaExtension}`;
+  let candidate = requestedName || fallbackName;
+  const extension = path.extname(candidate).toLowerCase();
+
+  // Keep the original filename, including spaces and capitalization, when it
+  // has a supported media extension. Otherwise retain its stem and use the
+  // extension that matches the uploaded data.
+  if (!MEDIA_ASSET_EXT.has(extension)) {
+    const stem = path.basename(candidate, extension).replace(/\.+$/g, "") || "light";
+    candidate = `${stem}.${mediaExtension}`;
+  }
+
+  const parsed = path.parse(candidate);
+  let result = candidate;
+  let collisionIndex = 1;
+  while (fs.existsSync(path.join(assetsDir, result))) {
+    result = `${parsed.name} (${collisionIndex++})${parsed.ext}`;
+  }
+  return result;
+}
+
 function loadReadingsFromFolder(folderPath, screenSettings) {
   const hasReadings = fs.existsSync(folderPath) &&
     fs.readdirSync(folderPath).some((file) => file.endsWith(".txt"));
@@ -1836,16 +1861,9 @@ function startServer(port = 17841, options = {}) {
       if (!MEDIA_ASSET_EXT.has(`.${ext}`)) {
         return res.status(400).json({ error: "Unsupported media type." });
       }
-      // Build a readable, collision-safe filename from the original name.
-      const baseName = String(filename || "light")
-        .replace(/\.[^.]+$/, "")          // strip extension
-        .replace(/[^a-zA-Z0-9_\-. ]/g, "")  // strip unsafe chars
-        .replace(/\s+/g, "_")
-        .slice(0, 60) || "light";
-      const hex = crypto.randomBytes(4).toString("hex");
-      const safeName = `${hex}-${baseName}.${ext}`;
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
       fs.mkdirSync(assetsDir, { recursive: true });
+      const safeName = buildUploadedAssetFilename(filename, ext, assetsDir);
       const bytes = Buffer.from(match[2], "base64");
       fs.writeFileSync(path.join(assetsDir, safeName), bytes);
       return res.json({

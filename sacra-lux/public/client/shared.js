@@ -29,5 +29,12 @@
     return `${mm}:${ss}`;
   }
 
-  return { escapeHtml, formatCountdownTime };
+  function formatDurationTime(totalSeconds) {
+    const wholeSeconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
+    const mm = Math.floor(wholeSeconds / 60);
+    const ss = String(wholeSeconds % 60).padStart(2, "0");
+    return `${String(mm).padStart(2, "0")}:${ss}`;
+  }
+
+  return { escapeHtml, formatCountdownTime, formatDurationTime };
 });
