@@ -9,7 +9,11 @@ const { saveSession } = require("./persistence");
 const { listThemes, getTheme } = require("./themes");
 const logger = require("./logger");
 
-const PORT = 17841;
+const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
+const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
+  ? configuredPort
+  : 17841;
+let PORT = DEFAULT_PORT;
 const PRELOAD_PATH = path.join(__dirname, "preload.js");
 
 const pkg = require("../package.json");
@@ -39,6 +43,40 @@ function getLocalIpv4Address() {
   }
 
   return "localhost";
+}
+
+/**
+ * Start the Electron-owned server, falling back to an ephemeral local port
+ * when the preferred port is already used by a separately running web server.
+ */
+function startDesktopServer() {
+  return new Promise((resolve, reject) => {
+    const { io, server } = startServer(PORT);
+
+    const onListening = () => {
+      const address = server.address();
+      if (address && typeof address === "object") {
+        PORT = address.port;
+      }
+      resolve(io);
+    };
+
+    const onInitialError = (error) => {
+      if (error?.code !== "EADDRINUSE") {
+        reject(error);
+        return;
+      }
+
+      server.removeListener("listening", onListening);
+      logger.info(`[desktop] Port ${PORT} is already in use; selecting an available local port.`);
+      server.once("listening", onListening);
+      server.once("error", reject);
+      server.listen(0, "0.0.0.0");
+    };
+
+    server.once("listening", onListening);
+    server.once("error", onInitialError);
+  });
 }
 
 function isRemotePopupUrl(rawUrl) {
@@ -891,10 +929,10 @@ function createSplash() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createSplash();
   const splashCreatedAt = Date.now();
-  const { io } = startServer(PORT);
+  const io = await startDesktopServer();
   buildAppMenu(io);
 
   // Create windows immediately — close splash once the app page loads
@@ -957,6 +995,10 @@ app.whenReady().then(() => {
       createWindows();
     }
   });
+}).catch((error) => {
+  logger.error(`[desktop] Failed to start: ${error.message}`);
+  dialog.showErrorBox("Sacra Lux could not start", error.message);
+  app.quit();
 });
 
 app.on("window-all-closed", () => {

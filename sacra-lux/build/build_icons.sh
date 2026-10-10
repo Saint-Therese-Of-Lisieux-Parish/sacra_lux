@@ -2,7 +2,8 @@
 set -euo pipefail
 
 # --- Configuration ---
-SOURCE_IMAGE="SacraLux-Logo.png"
+LOGO_SOURCE_IMAGE="SacraLux-Logo.png"
+ICON_SOURCE_IMAGE="SacraLux-Icon.png"
 ICON_NAME="icon"
 ICONSET_DIR="${ICON_NAME}.iconset"
 OUTPUT_ICNS="${ICON_NAME}.icns"
@@ -17,8 +18,13 @@ LEGACY_PNGS=("Sacra-Lux.png" "sacralux-1024.png")
 SIZES=(16 32 128 256 512)
 
 # --- Validation ---
-if [[ ! -f "$SOURCE_IMAGE" ]]; then
-  echo "Error: Source image '$SOURCE_IMAGE' not found." >&2
+if [[ ! -f "$LOGO_SOURCE_IMAGE" ]]; then
+  echo "Error: Logo source image '$LOGO_SOURCE_IMAGE' not found." >&2
+  exit 1
+fi
+
+if [[ ! -f "$ICON_SOURCE_IMAGE" ]]; then
+  echo "Error: Icon source image '$ICON_SOURCE_IMAGE' not found." >&2
   exit 1
 fi
 
@@ -36,11 +42,12 @@ TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 create_contained_png() {
-  local width="$1"
-  local height="$2"
-  local output="$3"
+  local source="$1"
+  local width="$2"
+  local height="$3"
+  local output="$4"
 
-  magick "$SOURCE_IMAGE" \
+  magick "$source" \
     -resize "${width}x${height}" \
     -background none \
     -gravity center \
@@ -48,13 +55,13 @@ create_contained_png() {
     "PNG32:${output}"
 }
 
-# --- Create app and splash PNGs without cropping the wordmark ---
-create_contained_png 1024 1024 "$OUTPUT_PNG"
-create_contained_png 407 240 "$SPLASH_PNG"
+# --- Create app icons from the square mark and splash image from the wordmark ---
+create_contained_png "$ICON_SOURCE_IMAGE" 1024 1024 "$OUTPUT_PNG"
+create_contained_png "$LOGO_SOURCE_IMAGE" 407 240 "$SPLASH_PNG"
 for legacy_png in "${LEGACY_PNGS[@]}"; do
   cp "$OUTPUT_PNG" "$legacy_png"
 done
-echo "Created $OUTPUT_PNG and $SPLASH_PNG from $SOURCE_IMAGE"
+echo "Created $OUTPUT_PNG from $ICON_SOURCE_IMAGE and $SPLASH_PNG from $LOGO_SOURCE_IMAGE"
 
 # --- Build iconset ---
 rm -rf "$ICONSET_DIR"
@@ -62,8 +69,8 @@ mkdir "$ICONSET_DIR"
 
 for size in "${SIZES[@]}"; do
   retina=$((size * 2))
-  create_contained_png "$size" "$size" "${ICONSET_DIR}/icon_${size}x${size}.png"
-  create_contained_png "$retina" "$retina" "${ICONSET_DIR}/icon_${size}x${size}@2x.png"
+  create_contained_png "$ICON_SOURCE_IMAGE" "$size" "$size" "${ICONSET_DIR}/icon_${size}x${size}.png"
+  create_contained_png "$ICON_SOURCE_IMAGE" "$retina" "$retina" "${ICONSET_DIR}/icon_${size}x${size}@2x.png"
 done
 
 # --- Generate .icns (macOS) ---
@@ -78,7 +85,7 @@ magick \
   "${ICONSET_DIR}/icon_512x512@2x.png" \
   "$TEMP_DIR/icon-sources.tiff"
 tiff2icns "$TEMP_DIR/icon-sources.tiff" "$OUTPUT_ICNS"
-echo "Created $OUTPUT_ICNS from $SOURCE_IMAGE"
+echo "Created $OUTPUT_ICNS from $ICON_SOURCE_IMAGE"
 
 # Keep older tracked macOS icon names synchronized with the canonical set.
 rm -rf "$LEGACY_ICONSET_DIR"
@@ -90,9 +97,9 @@ ICO_SIZES=(16 32 48 128 256)
 ICO_INPUTS=()
 for size in "${ICO_SIZES[@]}"; do
   out="$TEMP_DIR/ico_${size}.png"
-  create_contained_png "$size" "$size" "$out"
+  create_contained_png "$ICON_SOURCE_IMAGE" "$size" "$size" "$out"
   ICO_INPUTS+=("$out")
 done
 
 magick "${ICO_INPUTS[@]}" "$OUTPUT_ICO"
-echo "Created $OUTPUT_ICO from $SOURCE_IMAGE"
+echo "Created $OUTPUT_ICO from $ICON_SOURCE_IMAGE"
