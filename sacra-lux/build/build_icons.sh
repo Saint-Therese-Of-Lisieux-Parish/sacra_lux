@@ -55,6 +55,24 @@ create_contained_png() {
     "PNG32:${output}"
 }
 
+# macOS places legacy ICNS artwork inside its own rounded-square treatment.
+# Enlarge the supplied mark before cropping so the visible blue-and-gold
+# artwork fills that treatment rather than appearing as a small badge inside it.
+create_macos_icon_png() {
+  local source="$1"
+  local width="$2"
+  local height="$3"
+  local output="$4"
+
+  magick "$source" \
+    -resize "${width}x${height}" \
+    -resize 125% \
+    -background none \
+    -gravity center \
+    -crop "${width}x${height}+0+0" +repage \
+    "PNG32:${output}"
+}
+
 # --- Create app icons from the square mark and splash image from the wordmark ---
 create_contained_png "$ICON_SOURCE_IMAGE" 1024 1024 "$OUTPUT_PNG"
 create_contained_png "$LOGO_SOURCE_IMAGE" 407 240 "$SPLASH_PNG"
@@ -69,8 +87,8 @@ mkdir "$ICONSET_DIR"
 
 for size in "${SIZES[@]}"; do
   retina=$((size * 2))
-  create_contained_png "$ICON_SOURCE_IMAGE" "$size" "$size" "${ICONSET_DIR}/icon_${size}x${size}.png"
-  create_contained_png "$ICON_SOURCE_IMAGE" "$retina" "$retina" "${ICONSET_DIR}/icon_${size}x${size}@2x.png"
+  create_macos_icon_png "$ICON_SOURCE_IMAGE" "$size" "$size" "${ICONSET_DIR}/icon_${size}x${size}.png"
+  create_macos_icon_png "$ICON_SOURCE_IMAGE" "$retina" "$retina" "${ICONSET_DIR}/icon_${size}x${size}@2x.png"
 done
 
 # --- Generate .icns (macOS) ---
