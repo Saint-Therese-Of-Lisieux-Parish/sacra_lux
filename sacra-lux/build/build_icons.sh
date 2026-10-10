@@ -55,21 +55,68 @@ create_contained_png() {
     "PNG32:${output}"
 }
 
-# macOS places legacy ICNS artwork inside its own rounded-square treatment.
-# Enlarge the supplied mark before cropping so the visible blue-and-gold
-# artwork fills that treatment rather than appearing as a small badge inside it.
+# macOS Tahoe draws a light rounded plate behind an icon when any edge pixel
+# has alpha of 252 or less, and a plain zoom cuts off this mark's gold frame.
+# Scale the solid artwork until it meets the canvas, flatten the outside
+# corners onto the icon's navy, and force every pixel to opaque. The system
+# then clips the complete frame to the icon shape.
 create_macos_icon_png() {
   local source="$1"
   local width="$2"
   local height="$3"
   local output="$4"
+  local fitted="$TEMP_DIR/macos-fitted-${width}x${height}.png"
+  local scaled="$fitted"
 
   magick "$source" \
+    -filter Lanczos \
     -resize "${width}x${height}" \
-    -resize 125% \
     -background none \
     -gravity center \
-    -crop "${width}x${height}+0+0" +repage \
+    -extent "${width}x${height}" \
+    -channel A -threshold 50% +channel \
+    "PNG32:${fitted}"
+
+  local geometry box_w box_h box_x box_y rest
+  geometry=$(magick "$fitted" -format "%@" info:)
+  box_w=${geometry%%x*}
+  rest=${geometry#*x}
+  box_h=${rest%%+*}
+  rest=${rest#*+}
+  box_x=${rest%%+*}
+  box_y=${rest#*+}
+
+  local inset_left=$box_x
+  local inset_top=$box_y
+  local inset_right=$((width - box_x - box_w))
+  local inset_bottom=$((height - box_y - box_h))
+  local max_inset=$inset_left
+  local inset
+  for inset in "$inset_top" "$inset_right" "$inset_bottom"; do
+    if ((inset > max_inset)); then
+      max_inset=$inset
+    fi
+  done
+
+  if ((max_inset > 0 && width > max_inset * 2)); then
+    local percent
+    percent=$(awk -v w="$width" -v i="$max_inset" 'BEGIN { printf "%.4f", (w / (w - 2 * i)) * 100 }')
+    scaled="$TEMP_DIR/macos-scaled-${width}x${height}.png"
+    magick "$fitted" \
+      -filter Lanczos \
+      -resize "${percent}%" \
+      -gravity center \
+      -background none \
+      -crop "${width}x${height}+0+0" +repage \
+      "PNG32:${scaled}"
+  fi
+
+  magick "$scaled" \
+    -background "#041648" \
+    -alpha remove \
+    -alpha off \
+    -type TrueColorAlpha \
+    -channel A -evaluate set 100% +channel \
     "PNG32:${output}"
 }
 
