@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { escapeHtml, formatCountdownTime } = require("../../public/client/shared.js");
+const { escapeHtml, formatCountdownTime, formatDurationTime } = require("../../public/client/shared.js");
 
 describe("shared client helpers", () => {
   describe("escapeHtml", () => {
@@ -43,6 +43,21 @@ describe("shared client helpers", () => {
       expect(formatCountdownTime(-5)).toBe("0");
       expect(formatCountdownTime("abc")).toBe("0");
       expect(formatCountdownTime(undefined)).toBe("0");
+    });
+  });
+
+  describe("formatDurationTime", () => {
+    test("always renders slide durations as MM:SS", () => {
+      expect(formatDurationTime(0)).toBe("00:00");
+      expect(formatDurationTime(10)).toBe("00:10");
+      expect(formatDurationTime(65)).toBe("01:05");
+      expect(formatDurationTime(3665)).toBe("61:05");
+    });
+
+    test("rounds fractional seconds and clamps invalid input", () => {
+      expect(formatDurationTime(10.6)).toBe("00:11");
+      expect(formatDurationTime(-5)).toBe("00:00");
+      expect(formatDurationTime("abc")).toBe("00:00");
     });
   });
 

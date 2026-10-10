@@ -542,19 +542,33 @@ describe("server api integration", () => {
     expect(stateRes.body.screenSettings.textSlideTextOutlineWidthPx).toBe(20);
   });
 
-  test("mass asset upload sanitizes the stored filename", async () => {
+  test("mass asset upload preserves the original filename safely", async () => {
     const res = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Sanctuary Lamp.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    const storedName = String(res.body.url || "").split("/").pop();
+    expect(storedName).toBe("Sanctuary Lamp.png");
+    expect(res.body.name).toBe("Sanctuary Lamp.png");
+
+    const assetPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets", storedName);
+    expect(fs.existsSync(assetPath)).toBe(true);
+  });
+
+  test("mass asset upload strips unsafe filename characters and avoids collisions", async () => {
+    const first = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "../../unsafe<script>.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const second = await request(app)
       .post("/api/upload-mass-asset")
       .send({ filename: "../../unsafe<script>.png", dataUrl: tinyPngDataUrl })
       .expect(200);
 
-    const storedName = String(res.body.url || "").split("/").pop();
-    expect(storedName).toBeTruthy();
-    expect(storedName).not.toMatch(/[\\/<>:"|?*]/);
-    expect(storedName).toMatch(/\.png$/);
-
-    const assetPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets", storedName);
-    expect(fs.existsSync(assetPath)).toBe(true);
+    expect(first.body.url).toMatch(/unsafe?script\.png$/);
+    expect(second.body.url).toMatch(/unsafe?script \(1\)\.png$/);
+    expect(first.body.url).not.toBe(second.body.url);
   });
 
   test("mass asset route rejects invalid filenames", async () => {
