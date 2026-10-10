@@ -899,13 +899,14 @@ function createSplash() {
     -webkit-app-region: drag; user-select: none;
   }
   .card {
-    background: rgba(30,30,30,0.95); border-radius: 18px; padding: 32px 48px;
-    text-align: center;
+    background: rgba(255, 252, 245, 0.98); border: 1px solid rgba(183, 132, 33, 0.45);
+    border-radius: 18px; box-shadow: 0 14px 36px rgba(5, 31, 73, 0.32);
+    padding: 32px 48px; text-align: center;
   }
   .icon { width: 320px; margin-bottom: 14px; border-radius: 10px; }
-  h1 { color: #f0e8d8; font-size: 32px; margin: 0 0 8px; font-weight: 600; }
-  .version { color: #a89878; font-size: 20px; margin: 0 0 4px; }
-  .build-date { color: #807060; font-size: 17px; margin: 0; }
+  h1 { color: #0b356f; font-size: 32px; margin: 0 0 8px; font-weight: 600; }
+  .version { color: #546b89; font-size: 20px; margin: 0 0 4px; }
+  .build-date { color: #78684d; font-size: 17px; margin: 0; }
 </style></head><body>
 <div class="card">
   ${iconDataUrl ? `<img class="icon" src="${iconDataUrl}">` : ""}
