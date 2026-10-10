@@ -9,6 +9,15 @@ describe("themes", () => {
     expect(getTheme("missing-theme")).toBe(themes[DEFAULT_THEME]);
   });
 
+  test("uses the official Carmelite palette in both Carmel themes", () => {
+    for (const id of ["carmelite", "carmeliteDark"]) {
+      const colors = Object.values(themes[id].vars);
+      expect(colors).toContain("#3F2A2F");
+      expect(colors).toContain("#5E88B3");
+      expect(colors).toContain("#F56800");
+    }
+  });
+
   test("lists Catholic themes first with Carmelite themes at the start", () => {
     expect(listThemes()).toEqual([
       { id: "carmelite", label: "Carmel Light" },
