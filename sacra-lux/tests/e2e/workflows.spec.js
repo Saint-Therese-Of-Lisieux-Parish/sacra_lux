@@ -182,6 +182,47 @@ test("Dropping multiple images onto an image slide creates a titled slideshow", 
   }).toEqual({ type: "imageSlideshow", label: "Zulu", names: ["Zulu.png", "Alpha.png"] });
 });
 
+test("Dropping multiple images onto a phase header creates a titled slideshow", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{
+        id: "text:pre-existing",
+        type: "text",
+        label: "Welcome",
+        phase: "pre",
+        backgroundTheme: "light",
+        durationSec: 10
+      }],
+      manualSlides: {
+        "text:pre-existing": { text: "Welcome" }
+      }
+    }
+  });
+
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=", "base64");
+  await page.locator('[data-folder-import-phase="pre"]').evaluate((element, encodedPng) => {
+    const bytes = Uint8Array.from(atob(encodedPng), (character) => character.charCodeAt(0));
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([bytes], "Zulu.png", { type: "image/png" }));
+    dataTransfer.items.add(new File([bytes], "Alpha.png", { type: "image/png" }));
+    element.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+  }, png.toString("base64"));
+
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    const slideshow = state.organizerSequence.find((item) => item.type === "imageSlideshow" && item.phase === "pre");
+    return {
+      label: slideshow?.label,
+      names: slideshow ? state.manualSlides[slideshow.id]?.images?.map((image) => image.name) : null
+    };
+  }).toEqual({ label: "Zulu", names: ["Zulu.png", "Alpha.png"] });
+});
+
 test("Image Slideshow editor hides an unavailable preview image", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {

@@ -39,7 +39,8 @@ describe("public html integration", () => {
     expect(res.text).toContain('data-folder-import-phase');
     expect(res.text).toContain('"/api/import-slideshow-images"');
     expect(res.text).toContain("function importSingleMedia");
-    expect(res.text).toContain("Drop one image, MP4, or image folder");
+    expect(res.text).toContain("function importImageFiles");
+    expect(res.text).toContain("Drop one or more images, an MP4, or an image folder");
     expect(res.text).not.toContain("phase-folder-import-btn");
     expect(res.text).not.toContain("phaseFolderImportFiles");
   });

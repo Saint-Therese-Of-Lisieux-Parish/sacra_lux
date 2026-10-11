@@ -28,6 +28,7 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('data-folder-import-phase="${item.phase}"');
     expect(appHtml).toContain("function droppedImageFolder(dataTransfer)");
     expect(appHtml).toContain("function importSingleMedia");
+    expect(appHtml).toContain("function importImageFiles");
     expect(appHtml).not.toContain("phase-folder-import-btn");
     expect(appHtml).not.toContain("phaseFolderImportFiles");
   });
