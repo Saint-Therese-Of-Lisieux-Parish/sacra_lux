@@ -43,6 +43,11 @@ function _createPaginationCacheKey(documents, options) {
     readingLineHeight: options.readingLineHeight,
     readingTextMarginXPx: options.readingTextMarginXPx,
     canvasWidth: options.canvasWidth,
+    fontFamily: options.fontFamily,
+    readingTextFont: options.readingTextFont,
+    readingTextBold: options.readingTextBold,
+    readingTextItalic: options.readingTextItalic,
+    readingLetterSpacingPx: options.readingLetterSpacingPx,
     psalmRefrainIndex: options.psalmRefrainIndex
   }));
   return hash.digest("hex").slice(0, 24);
@@ -602,6 +607,8 @@ function paginateDocuments(documents, options = {}) {
     }
   }
 
+  _evictOldestCacheEntry(_paginationCache, _PAGINATION_CACHE_MAX);
+  _paginationCache.set(cacheKey, { slides, timestamp: Date.now() });
   return slides;
 }
 

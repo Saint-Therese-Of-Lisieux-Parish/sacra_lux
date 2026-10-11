@@ -377,6 +377,13 @@ function buildManualSlide(item, manualSlide, index) {
   }));
 }
 
+const RESOLUTION_CANVAS_WIDTHS = {
+  "720p": 1280,
+  "1080p": 1920,
+  "1440p": 2560,
+  "4k": 3840
+};
+
 function buildReadingSlides(item, documents, screenSettings) {
   const doc = documents.find((entry) => entry.stem === item.sourceStem);
   if (!doc) {
@@ -401,6 +408,11 @@ function buildReadingSlides(item, documents, screenSettings) {
     readingTextSizePx: effectiveScreenSettings.readingTextSizePx,
     readingLineHeight: effectiveScreenSettings.readingLineHeight,
     readingTextMarginXPx: effectiveScreenSettings.readingTextMarginXPx,
+    canvasWidth: RESOLUTION_CANVAS_WIDTHS[effectiveScreenSettings.resolution] || RESOLUTION_CANVAS_WIDTHS["1080p"],
+    readingTextFont: effectiveScreenSettings.readingTextFont,
+    readingTextBold: effectiveScreenSettings.readingTextBold,
+    readingTextItalic: effectiveScreenSettings.readingTextItalic,
+    readingLetterSpacingPx: effectiveScreenSettings.readingLetterSpacingPx,
     psalmRefrainIndex: item.psalmRefrainIndex
   });
 
