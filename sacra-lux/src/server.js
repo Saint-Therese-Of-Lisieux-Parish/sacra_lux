@@ -2676,6 +2676,17 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "title is required." });
       }
 
+      // Validate the start time before archiving or mutating any live state, so
+      // an unparseable value is rejected without changing the current Mass.
+      let scheduledStart = null;
+      if (startTime) {
+        const parsed = new Date(String(startTime));
+        if (isNaN(parsed.getTime())) {
+          return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
+        }
+        scheduledStart = String(startTime);
+      }
+
       const hasArchivableContent = state.organizerSequence.length > 0 ||
         (state.presentation?.title && state.presentation.title !== "No presentation loaded");
       let archivedMassId = null;
@@ -2689,17 +2700,7 @@ function startServer(port = 17841, options = {}) {
       state.startupPrompt = null;
       state.presentation.title = String(title).trim();
 
-      // 3. Validate the start time before playback moves.
-      let scheduledStart = null;
-      if (startTime) {
-        const parsed = new Date(String(startTime));
-        if (isNaN(parsed.getTime())) {
-          return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
-        }
-        scheduledStart = String(startTime);
-      }
-
-      // 4. Reset playback, then arm the clock from the slides this Mass already has.
+      // 3. Reset playback, then arm the clock from the slides this Mass already has.
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
       stopActiveSlideTimers();
@@ -2729,6 +2730,19 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/new-mass", heavyRateLimit, async (req, res) => {
     try {
       const { title, startTime, useLectionaryRss } = req.body || {};
+
+      // Validate the start time before fetching, archiving, or mutating any
+      // live state, so an unparseable value is rejected without changing the
+      // current Mass.
+      let scheduledStart = null;
+      if (startTime) {
+        const parsed = new Date(String(startTime));
+        if (isNaN(parsed.getTime())) {
+          return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
+        }
+        scheduledStart = String(startTime);
+      }
+
       let massTitle = String(title || "").trim();
       let lectionaryDocuments = [];
       if (useLectionaryRss) {
@@ -2820,17 +2834,7 @@ function startServer(port = 17841, options = {}) {
       }
       state.manualSlides = newManualSlides;
 
-      // 3. Validate the start time before the slides are built and the clock is armed.
-      let scheduledStart = null;
-      if (startTime) {
-        const parsed = new Date(String(startTime));
-        if (isNaN(parsed.getTime())) {
-          return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
-        }
-        scheduledStart = String(startTime);
-      }
-
-      // 4. Set title, clear readings, and reset playback
+      // 3. Set title, clear readings, and reset playback
       state.presentation.title = massTitle;
       state.presentation.sourceFile = null;
       state.readingsSource = { folderPath: null, documents: lectionaryDocuments };
@@ -2838,7 +2842,7 @@ function startServer(port = 17841, options = {}) {
       resetDisplayOverrides();
       stopActiveSlideTimers();
 
-      // 5. Build the slides, then arm the wall clock from this Mass's gathering length.
+      // 4. Build the slides, then arm the wall clock from this Mass's gathering length.
       state.presentation = buildPresentationFromOrganizer({
         title: state.presentation.title,
         documents: state.readingsSource.documents,
