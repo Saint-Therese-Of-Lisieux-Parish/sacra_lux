@@ -54,6 +54,8 @@ describe("web entry point", () => {
   });
 
   test("writes the banner before the server starts when stdout is a terminal", () => {
+    const originalNoColor = process.env.NO_COLOR;
+    delete process.env.NO_COLOR;
     const events = [];
     jest.spyOn(console, "log").mockImplementation((message) => {
       events.push(String(message));
@@ -65,12 +67,22 @@ describe("web entry point", () => {
 
     jest.doMock("../../src/server", () => ({ startServer }));
 
-    require("../../src/web");
+    try {
+      require("../../src/web");
 
-    const bannerIndex = events.findIndex((entry) => entry.includes("___   _   ___ ___"));
-    expect(bannerIndex).toBeGreaterThanOrEqual(0);
-    expect(events[bannerIndex]).toContain(pkg.version);
-    expect(events.indexOf("server-start")).toBeGreaterThan(bannerIndex);
+      const visible = (entry) => entry.replace(/\u001b\[[0-9;]*m/g, "");
+      const bannerIndex = events.findIndex((entry) => visible(entry).includes("___   _   ___ ___"));
+      expect(bannerIndex).toBeGreaterThanOrEqual(0);
+      expect(events[bannerIndex]).toMatch(/\u001b\[38;5;/);
+      expect(visible(events[bannerIndex])).toContain(pkg.version);
+      expect(events.indexOf("server-start")).toBeGreaterThan(bannerIndex);
+    } finally {
+      if (originalNoColor === undefined) {
+        delete process.env.NO_COLOR;
+      } else {
+        process.env.NO_COLOR = originalNoColor;
+      }
+    }
   });
 
   test("does not write the banner when quiet logs are on", () => {
