@@ -36,5 +36,44 @@
     return `${String(mm).padStart(2, "0")}:${ss}`;
   }
 
-  return { escapeHtml, formatCountdownTime, formatDurationTime };
+  /**
+   * Reduce a file name or URL to a human title: take the last path segment,
+   * drop any query/hash and file extension, and decode percent-encoding.
+   * Returns "" when no usable name is present.
+   */
+  function imageFileNameLabel(value) {
+    const normalized = String(value ?? "").trim();
+    if (!normalized) return "";
+    const withoutQuery = normalized.split(/[?#]/, 1)[0];
+    const filename = withoutQuery.split("/").pop() || "";
+    let decoded = filename;
+    try {
+      decoded = decodeURIComponent(filename);
+    } catch (_error) {
+      decoded = filename;
+    }
+    return decoded.replace(/\.[^.]+$/, "").trim();
+  }
+
+  /**
+   * Title an image slideshow built from dropped image file names. The first
+   * usable name wins because drop order is preserved, so the first file in
+   * the drop becomes the slide title.
+   */
+  function slideshowLabelFromFileNames(fileNames, fallback = "Image Slideshow") {
+    const names = Array.isArray(fileNames) ? fileNames : [];
+    for (const name of names) {
+      const label = imageFileNameLabel(name);
+      if (label) return label;
+    }
+    return fallback;
+  }
+
+  return {
+    escapeHtml,
+    formatCountdownTime,
+    formatDurationTime,
+    imageFileNameLabel,
+    slideshowLabelFromFileNames
+  };
 });
