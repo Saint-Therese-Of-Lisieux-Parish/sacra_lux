@@ -8,6 +8,7 @@ const { state } = require("./state");
 const { saveSession } = require("./persistence");
 const { listThemes, getTheme } = require("./themes");
 const logger = require("./logger");
+const { writeStartupBanner } = require("./cliBanner");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -50,6 +51,15 @@ function getLocalIpv4Address() {
  * when the preferred port is already used by a separately running web server.
  */
 function startDesktopServer() {
+  // Write the banner once. A later port retry does not write it again.
+  writeStartupBanner({
+    stdout: process.stdout,
+    env: process.env,
+    quiet: logger.isQuietLogs(),
+    version: pkg.version,
+    log: (message) => logger.info(message)
+  });
+
   return new Promise((resolve, reject) => {
     const { io, server } = startServer(PORT);
 
