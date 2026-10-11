@@ -24,8 +24,8 @@
 | `jest` | ^30.5.2 | unit and integration tests |
 | `supertest` | ^7.3.1 | API assertions |
 | `@playwright/test` | ^1.64.0 | browser E2E coverage |
-| `eslint` | ^9.39.4 | JavaScript linting |
-| `globals` | ^16.5.0 | ESLint environment globals |
+| `eslint` | ^10.12.0 | JavaScript linting |
+| `globals` | ^17.13.0 | ESLint environment globals |
 
 ## Other Development Tooling
 
@@ -66,7 +66,7 @@ which currently includes:
   `https://bible.usccb.org/readings.rss`.
 - the repo includes tracked hooks in `.githooks/`, but they are opt-in
   (`git config core.hooksPath .githooks`).
-- GitHub Actions workflows target the `main` branch while the default branch is
-  `master`, so they do not run on current PRs. Treat the local gates
-  (`lint`, `check:version-sync`, `test`, `test:e2e`) as the only gates. See
-  [review_notes.md](./review_notes.md).
+- GitHub Actions runs `ci.yml` (lint, version-sync, unit, integration, e2e) on
+  pull requests to and pushes to `master`. The separate `version-check.yml`
+  still targets `main` and does not run, so the version bump remains a local
+  obligation. See [review_notes.md](./review_notes.md).

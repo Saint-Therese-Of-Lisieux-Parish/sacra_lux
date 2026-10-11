@@ -60,9 +60,9 @@ Current capabilities include:
 - `npm test`
 - `npm run test:e2e`
 
-The GitHub Actions workflows target the `main` branch, while this repository's
-default branch is `master`, so they do not run on current PRs. Run the quality
-checks locally; they are the only gates.
+GitHub Actions runs these quality checks on pull requests to and pushes to
+`master` (`ci.yml`). The separate `version-check.yml` still targets `main`, so
+that one check does not run; treat the version bump as a local obligation.
 
 ## Documentation
 
@@ -74,4 +74,4 @@ checks locally; they are the only gates.
 
 ## Current Version
 
-The current package version is `0.0.26-alpha`.
+The current package version is `0.0.27-alpha`.

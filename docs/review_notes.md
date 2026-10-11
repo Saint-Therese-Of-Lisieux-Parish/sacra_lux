@@ -55,11 +55,12 @@ inside `public/app.html`, `public/screen.html`, and `public/remote.html`.
 `code_review_ears_report.md` records known control-authentication and import
 hardening gaps. They are documented, not fixed, in this pass.
 
-### GitHub Actions does not run on this repository
+### `version-check.yml` does not run
 
-The workflows target `main` while the default branch is `master`, so they never
-run. Fixing the workflow triggers is intentionally out of scope here and needs
-owner sign-off; until then the local gates are the only gates.
+`ci.yml` runs the quality gates on pull requests to `master`, but the separate
+`version-check.yml` workflow still targets the `main` branch (and calls
+`require('semver')` with no install step), so it never runs. Treat the version
+bump as a local obligation until that workflow is fixed.
 
 ### Release and packaging playbook remains light
 

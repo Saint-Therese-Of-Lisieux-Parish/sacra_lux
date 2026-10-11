@@ -185,9 +185,9 @@ markdownlint rules anyway.
 
 For PR work, bump the package version in
 [sacra-lux/package.json](./sacra-lux/package.json) above `master` and run
-`npm run check:version-sync`. The GitHub workflows target the `main` branch
-while the default branch is `master`, so version (and other) CI does not run on
-current PRs; treat the version bump and the local gates as manual obligations.
+`npm run check:version-sync`. `ci.yml` runs the quality checks on PRs to
+`master`, but the separate `version-check.yml` still targets the `main` branch
+and does not run; treat the version bump as a local obligation.
 
 ## Public Repo Posture
 

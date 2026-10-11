@@ -16,7 +16,7 @@ control path, but the specific gaps in SL-006 remain.
 ## Verification baseline
 
 - `npm run lint` — passed.
-- `npm test` — passed: 15 unit suites / 72 tests and 4 integration suites / 70 tests.
+- `npm test` — passed: 15 unit suites / 73 tests and 4 integration suites / 70 tests.
 - `npm run test:e2e` — passed: 10 scenarios.
 
 Passing tests establish the current baseline; they do not cover the risks below.
@@ -141,4 +141,4 @@ Create one issue per finding (`SL-001` through `SL-006`), using the finding titl
 
 ## Review limitations
 
-This review was performed from the checked-out source and automated tests. It did not create GitHub Issues or validate a packaged Electron build. The report is intentionally issue-ready so each finding can be copied into a GitHub Issue after triage. GitHub Actions does not run on current PRs (the workflows target `main`; the default branch is `master`), so the local gates above are the only gates.
+This review was performed from the checked-out source and automated tests. It did not create GitHub Issues or validate a packaged Electron build. The report is intentionally issue-ready so each finding can be copied into a GitHub Issue after triage. `ci.yml` runs the quality gates on PRs to `master`; the separate `version-check.yml` still targets `main` and does not run.
