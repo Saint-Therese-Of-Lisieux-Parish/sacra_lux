@@ -74,4 +74,4 @@ that one check does not run; treat the version bump as a local obligation.
 
 ## Current Version
 
-The current package version is `0.0.27-alpha`.
+The current package version is `0.0.28-alpha`.
