@@ -120,15 +120,15 @@ function normalizeSlideshowLoopCount(value) {
 const IMAGE_SLIDESHOW_FADE_MS = 700;
 
 /**
- * Total play time of an Image Slideshow: every shown image plus the crossfade
- * between consecutive images (the last image hands off without a fade).
+ * Total play time of an Image Slideshow. Crossfades run inside each image
+ * interval and do not add time to the slideshow.
  */
 function imageSlideshowRuntimeMs(manualSlide, transition) {
   const imageCount = normalizeSlideshowImages(manualSlide?.images).filter((image) => image.url).length;
   const shownCount = imageCount * normalizeSlideshowLoopCount(manualSlide?.slideshowLoopCount);
-  const fadeMs = transition === "none" ? 0 : IMAGE_SLIDESHOW_FADE_MS;
-  return shownCount * normalizeSlideshowDurationSec(manualSlide?.slideshowDurationSec) * 1000 +
-    Math.max(0, shownCount - 1) * fadeMs;
+  // Keep the transition argument for callers that still pass screen settings.
+  void transition;
+  return shownCount * normalizeSlideshowDurationSec(manualSlide?.slideshowDurationSec) * 1000;
 }
 
 function normalizeStyleOverrides(input) {
