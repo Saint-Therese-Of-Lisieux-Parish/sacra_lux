@@ -8,8 +8,40 @@ const {
   createManualSlideRecord,
   imageSlideshowRuntimeMs
 } = require("../../src/organizer");
+const { clearPaginationCache } = require("../../src/readingsImporter");
 
 describe("organizer", () => {
+  test("paginates a reading for the selected resolution", () => {
+    const line = "word ".repeat(30).trim();
+    const documents = [{
+      stem: "Reading_I",
+      section: "Reading I",
+      passage: "Isaiah 1:1",
+      textLines: Array.from({ length: 12 }, () => line),
+      ending: null
+    }];
+    const pageCount = (resolution) => {
+      clearPaginationCache();
+      return buildPresentationFromOrganizer({
+        title: "T",
+        documents,
+        sequence: [{ id: "reading:Reading_I", type: "reading", sourceStem: "Reading_I", phase: "mass" }],
+        manualSlides: {},
+        screenSettings: {
+          fontSizePx: 60,
+          fontFamily: "Merriweather",
+          readingTextHeightPx: 840,
+          readingTextMarginXPx: 80,
+          resolution
+        }
+      }).slides.length;
+    };
+
+    const pages720 = pageCount("720p");
+    const pages4k = pageCount("4k");
+    expect(pages720).toBeGreaterThan(pages4k);
+  });
+
   test("normalizes legacy values", () => {
     expect(normalizeType("reading-group")).toBe("reading");
     expect(normalizeType("graphic")).toBe("image");

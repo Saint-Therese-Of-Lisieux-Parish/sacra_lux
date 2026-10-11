@@ -217,3 +217,21 @@ describe("readingsImporter", () => {
     expect(alleluia.some((slide) => /path of life/i.test(slide.text))).toBe(false);
   });
 });
+
+describe("pagination cache key", () => {
+  const { paginateDocuments, clearPaginationCache } = require("../../src/readingsImporter");
+  const docs = [{ stem: "R", section: "Reading I", passage: "P", textLines: ["a b c"], ending: null }];
+  const base = { fontSizePx: 60, readingTextHeightPx: 840 };
+
+  test.each([
+    ["readingTextFont", "Lora"],
+    ["readingTextBold", true],
+    ["readingTextItalic", true],
+    ["readingLetterSpacingPx", 4]
+  ])("rebuilds page breaks when %s changes", (key, value) => {
+    clearPaginationCache();
+    const first = paginateDocuments(docs, base);
+    expect(paginateDocuments(docs, base)).toBe(first);
+    expect(paginateDocuments(docs, { ...base, [key]: value })).not.toBe(first);
+  });
+});
