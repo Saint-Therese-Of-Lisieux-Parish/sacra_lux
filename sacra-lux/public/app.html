@@ -6482,10 +6482,12 @@
       });
     }
 
-    async function addFilesToImageSlideshow(fileList) {
+    async function addFilesToImageSlideshow(fileList, { sort = true, save = true } = {}) {
       const files = Array.from(fileList || [])
-        .filter((file) => file.type.startsWith("image/"))
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+        .filter((file) => file.type.startsWith("image/"));
+      if (sort) {
+        files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+      }
       if (files.length === 0) {
         els.status.textContent = "Choose one or more supported image files.";
         return;
@@ -6508,7 +6510,7 @@
 
       if (uploaded.length) {
         const existing = getEditorSlideshowImages();
-        applyEditorSlideshowImages([...existing, ...uploaded]);
+        applyEditorSlideshowImages([...existing, ...uploaded], { save });
         await refreshAllMassAssetSelectors();
         els.status.textContent = `${uploaded.length} slideshow image${uploaded.length === 1 ? "" : "s"} added.`;
       }
@@ -7517,7 +7519,20 @@
       els.imagePreviewWrap.addEventListener("drop", async (e) => {
         e.preventDefault();
         if (els.imageDropZone) els.imageDropZone.classList.remove("drag-over");
-        const file = e.dataTransfer.files[0];
+        const imageFiles = Array.from(e.dataTransfer.files || [])
+          .filter((file) => file.type.startsWith("image/"));
+        if (imageFiles.length >= 2) {
+          await addFilesToImageSlideshow(imageFiles, { sort: false, save: false });
+          const label = labelFromImageUrl(imageFiles[0].name);
+          if (label) els.editorLabel.value = label;
+          // The drop itself is an explicit conversion, so do not show the manual
+          // type-change warning before revealing the slideshow controls.
+          els.editorType.value = "imageSlideshow";
+          els.editorType.dataset.prevType = "imageSlideshow";
+          els.editorType.dispatchEvent(new Event("change", { bubbles: true }));
+          return;
+        }
+        const file = imageFiles[0];
         if (!file || !file.type.startsWith("image/")) return;
         const reader = new FileReader();
         reader.onload = async () => {
