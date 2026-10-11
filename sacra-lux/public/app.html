@@ -5752,25 +5752,17 @@
       return { folderName: folder.name, files };
     }
 
-    async function importImageFolder(phase, files, folderName) {
-      if (!["pre", "gathering", "post"].includes(phase)) return;
-      const images = files
-        .filter(({ file }) => isImageFile(file))
-        .sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: "base" }));
-      if (!images.length) {
-        els.status.textContent = "That folder does not contain supported image files.";
-        return;
-      }
+    async function importImagesAsSlideshow(phase, images, label) {
       if (images.length > 500) {
-        els.status.textContent = "Choose a folder with no more than 500 images.";
+        els.status.textContent = "Choose no more than 500 images.";
         return;
       }
 
-      els.status.textContent = `Importing ${images.length} image${images.length === 1 ? "" : "s"} from ${folderName || "folder"}…`;
+      els.status.textContent = `Importing ${images.length} image${images.length === 1 ? "" : "s"}…`;
       try {
         const payload = [];
         for (const image of images) {
-          payload.push({ filename: image.filename, dataUrl: await readFileAsDataUrl(image.file) });
+          payload.push({ filename: image.name, dataUrl: await readFileAsDataUrl(image.file) });
         }
         const response = await fetch("/api/import-slideshow-images", {
           method: "POST",
@@ -5779,20 +5771,19 @@
         });
         const result = await response.json();
         if (!response.ok) {
-          els.status.textContent = result.error || "Could not import the image folder.";
+          els.status.textContent = result.error || "Could not import the images.";
           return;
         }
 
         const imported = Array.isArray(result.images) ? result.images : [];
         if (!imported.length) {
-          els.status.textContent = "The folder did not contain importable images.";
+          els.status.textContent = "No importable images were found.";
           return;
         }
 
         const sequence = getSequence();
         const manualSlides = getManualSlides();
         const id = uniqueId("imageSlideshow");
-        const label = folderName || "Image Folder";
         sequence.splice(phaseInsertIndex(sequence, phase), 0, {
           id,
           type: "imageSlideshow",
@@ -5816,15 +5807,41 @@
           await refreshAllMassAssetSelectors();
         }
       } catch (_error) {
-        els.status.textContent = "Could not import the image folder.";
+        els.status.textContent = "Could not import the images.";
       }
+    }
+
+    async function importImageFolder(phase, files, folderName) {
+      if (!["pre", "gathering", "post"].includes(phase)) return;
+      const images = files
+        .filter(({ file }) => isImageFile(file))
+        .sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: "base" }))
+        .map(({ file, filename }) => ({ file, name: filename }));
+      if (!images.length) {
+        els.status.textContent = "That folder does not contain supported image files.";
+        return;
+      }
+      await importImagesAsSlideshow(phase, images, folderName || "Image Folder");
+    }
+
+    async function importImageFiles(phase, files) {
+      if (!["pre", "gathering", "post"].includes(phase)) return;
+      const images = files
+        .filter(isImageFile)
+        .map((file) => ({ file, name: file.name }));
+      if (!images.length) {
+        els.status.textContent = "Drop one or more images, an MP4, or an image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+        return;
+      }
+      const label = labelFromImageUrl(images[0].name) || "Image Slideshow";
+      await importImagesAsSlideshow(phase, images, label);
     }
 
     async function importSingleMedia(phase, file) {
       if (!["pre", "gathering", "post"].includes(phase)) return;
       const type = isImageFile(file) ? "image" : isVideoFile(file) ? "movie" : null;
       if (!type) {
-        els.status.textContent = "Drop an image, MP4, or image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+        els.status.textContent = "Drop one or more images, an MP4, or an image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
         return;
       }
 
@@ -5921,12 +5938,17 @@
               await importImageFolder(header.dataset.folderImportPhase, folder.files, folder.folderName);
               return;
             }
-            const [file, ...remainingFiles] = Array.from(e.dataTransfer.files || []);
+            const droppedFiles = Array.from(e.dataTransfer.files || []);
+            if (droppedFiles.filter(isImageFile).length >= 2) {
+              await importImageFiles(header.dataset.folderImportPhase, droppedFiles);
+              return;
+            }
+            const [file, ...remainingFiles] = droppedFiles;
             if (file && remainingFiles.length === 0) {
               await importSingleMedia(header.dataset.folderImportPhase, file);
               return;
             }
-            els.status.textContent = "Drop one image, MP4, or image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+            els.status.textContent = "Drop one or more images, an MP4, or an image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
           }
           return;
         }
