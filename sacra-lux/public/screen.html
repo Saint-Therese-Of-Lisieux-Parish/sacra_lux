@@ -69,17 +69,17 @@
       inset: 0;
       background-size: cover;
       background-position: center;
-      background-image: var(--bg-dark, url('/static/assets/background-dark.png'));
+      background-image: var(--bg-dark, url('/static/assets/default-text-background.png'));
       z-index: -2;
       transition: opacity 200ms ease;
     }
 
     .frame.bg-dark::before {
-      background-image: var(--bg-dark, url('/static/assets/background-dark.png'));
+      background-image: var(--bg-dark, url('/static/assets/default-text-background.png'));
     }
 
     .frame.bg-light::before {
-      background-image: var(--bg-light, url('/static/assets/background-graphic.png'));
+      background-image: var(--bg-light, url('/static/assets/default-interstitial.png'));
     }
 
     .content {
@@ -1327,8 +1327,8 @@
     function applyScreenSettings(settings = {}) {
       const fontFamily = settings.fontFamily || "Merriweather";
       const fontSizePx = Math.min(200, Math.max(24, Number(settings.fontSizePx) || 60));
-      const darkBg = settings.darkBackgroundUrl || "/static/assets/background-dark.png";
-      const lightBg = settings.lightBackgroundUrl || "/static/assets/background-graphic.png";
+      const darkBg = settings.darkBackgroundUrl || "/static/assets/default-text-background.png";
+      const lightBg = settings.lightBackgroundUrl || "/static/assets/default-interstitial.png";
 
       // All global screen CSS vars are set on #stage so both frames inherit them.
       // Per-slide overrides (e.g. imageUrl) are set directly on the inactive frame in applyRender.
@@ -1681,7 +1681,12 @@
       // never fall through to the global image background preset.
       if (slide?.type === "image" || slide?.type === "imageSlideshow" || slide?.type === "interstitial") {
         const url = slide.imageUrl;
-        frame.style.setProperty("--bg-light", url ? `url('${url.replace(/'/g, "\\'")}')` : "none");
+        if (url) {
+          frame.style.setProperty("--bg-light", `url('${url.replace(/'/g, "\\'")}')`);
+        } else {
+          // A blank interstitial uses the configured default rather than a blank frame.
+          frame.style.removeProperty("--bg-light");
+        }
       } else if (slide?.type === "movie") {
         frame.style.setProperty("--bg-light", "none");
       } else if (slide?.imageUrl) {

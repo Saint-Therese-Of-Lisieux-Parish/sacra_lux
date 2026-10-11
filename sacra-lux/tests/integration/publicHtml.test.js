@@ -76,4 +76,12 @@ describe("public html integration", () => {
     expect(res.text).toContain("maintainPreviewPinning(220);");
     expect(res.text).not.toContain('id="titleSection"');
   });
+
+  test("screen markup preserves the branded default backgrounds for blank interstitials", async () => {
+    const res = await request(app).get("/screen").expect(200);
+
+    expect(res.text).toContain("/static/assets/default-text-background.png");
+    expect(res.text).toContain("/static/assets/default-interstitial.png");
+    expect(res.text).toContain('frame.style.removeProperty("--bg-light")');
+  });
 });
