@@ -373,6 +373,44 @@ function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
   return result;
 }
 
+const MAX_SLIDESHOW_IMPORT_IMAGES = 500;
+const MAX_SLIDESHOW_IMPORT_BYTES = 120 * 1024 * 1024;
+
+function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET_EXT) {
+  const match = String(dataUrl || "").match(/^data:((?:image\/[a-z+]+)|(?:video\/mp4));base64,([A-Za-z0-9+/=]+)$/);
+  if (!match) {
+    throw new ValidationError("Invalid media data URL.");
+  }
+
+  const mimeType = match[1].toLowerCase();
+  const mediaExtension = mimeType === "image/jpeg"
+    ? "jpg"
+    : mimeType === "image/svg+xml"
+    ? "svg"
+    : mimeType.split("/")[1];
+  if (!allowedExtensions.has(`.${mediaExtension}`)) {
+    throw new ValidationError("Unsupported media type.");
+  }
+
+  return {
+    filename,
+    mediaExtension,
+    bytes: Buffer.from(match[2], "base64")
+  };
+}
+
+function saveMassAssetUpload(upload) {
+  const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+  fs.mkdirSync(assetsDir, { recursive: true });
+  const safeName = buildUploadedAssetFilename(upload.filename, upload.mediaExtension, assetsDir);
+  fs.writeFileSync(path.join(assetsDir, safeName), upload.bytes);
+  return {
+    url: `/api/mass-asset/${safeName}`,
+    name: path.basename(String(upload.filename || safeName)).slice(0, 200),
+    sha256: crypto.createHash("sha256").update(upload.bytes).digest("hex")
+  };
+}
+
 function loadReadingsFromFolder(folderPath, screenSettings) {
   const hasReadings = fs.existsSync(folderPath) &&
     fs.readdirSync(folderPath).some((file) => file.endsWith(".txt"));
@@ -1859,30 +1897,15 @@ function startServer(port = 17841, options = {}) {
     try {
       fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
       const { filename, dataUrl } = req.body || {};
-      if (!dataUrl) {
-        return res.status(400).json({ error: "dataUrl is required." });
-      }
-      const match = String(dataUrl).match(/^data:((?:image\/[a-z+]+)|(?:video\/mp4));base64,([A-Za-z0-9+/=]+)$/);
-      if (!match) {
-        return res.status(400).json({ error: "Invalid media data URL." });
-      }
-      const ext = match[1].split("/")[1].replace("jpeg", "jpg").replace("+", "");
-      if (!MEDIA_ASSET_EXT.has(`.${ext}`)) {
-        return res.status(400).json({ error: "Unsupported media type." });
-      }
-      const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
-      fs.mkdirSync(assetsDir, { recursive: true });
-      const safeName = buildUploadedAssetFilename(filename, ext, assetsDir);
-      const bytes = Buffer.from(match[2], "base64");
-      fs.writeFileSync(path.join(assetsDir, safeName), bytes);
+      if (!dataUrl) return res.status(400).json({ error: "dataUrl is required." });
+      const asset = saveMassAssetUpload(parseMassAssetUpload(filename, dataUrl));
       return res.json({
         ok: true,
-        url: `/api/mass-asset/${safeName}`,
-        name: path.basename(String(filename || safeName)).slice(0, 200),
-        sha256: crypto.createHash("sha256").update(bytes).digest("hex")
+        ...asset
       });
     } catch (error) {
-      return res.status(500).json({ error: error.message || "Upload failed." });
+      const status = error instanceof ValidationError ? 400 : 500;
+      return res.status(status).json({ error: error.message || "Upload failed." });
     }
   }
 
@@ -1891,6 +1914,37 @@ function startServer(port = 17841, options = {}) {
 
   // Keep a backward-compatible alias for legacy callers.
   app.post("/api/upload-image", uploadRateLimit, uploadConcurrentLimit, handleMassAssetUpload);
+
+  // Import a directory's images in one bounded request so a large slideshow
+  // does not exhaust the single-file upload rate limit.
+  app.post("/api/import-slideshow-images", uploadRateLimit, uploadConcurrentLimit, (req, res) => {
+    try {
+      const images = Array.isArray(req.body?.images) ? req.body.images : [];
+      if (images.length === 0) {
+        return res.status(400).json({ error: "Choose one or more image files." });
+      }
+      if (images.length > MAX_SLIDESHOW_IMPORT_IMAGES) {
+        return res.status(400).json({ error: `A slideshow can contain at most ${MAX_SLIDESHOW_IMPORT_IMAGES} images.` });
+      }
+
+      let totalBytes = 0;
+      const uploads = images.map((image) => {
+        const upload = parseMassAssetUpload(image?.filename, image?.dataUrl, IMAGE_ASSET_EXT);
+        totalBytes += upload.bytes.length;
+        return upload;
+      });
+      if (totalBytes > MAX_SLIDESHOW_IMPORT_BYTES) {
+        return res.status(400).json({ error: "The selected images are too large to import together." });
+      }
+
+      fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
+      const imported = uploads.map(saveMassAssetUpload);
+      return res.json({ ok: true, images: imported });
+    } catch (error) {
+      const status = error instanceof ValidationError ? 400 : 500;
+      return res.status(status).json({ error: error.message || "Image folder import failed." });
+    }
+  });
 
   // List images in current_mass/assets/ for the asset picker.
   app.get("/api/mass-assets", (req, res) => {

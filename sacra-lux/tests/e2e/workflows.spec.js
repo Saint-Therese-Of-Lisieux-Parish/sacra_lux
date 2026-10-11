@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 const sharp = require("sharp");
+const { clearRateLimitState } = require("../../src/security");
 
 const {
   createTempHome,
@@ -16,6 +17,10 @@ test.beforeAll(async () => {
   readingsPath = makeReadingsFolder(homeDir);
   handle = await startIsolatedServer({ port: 0, homeDir });
   baseUrl = handle.baseUrl;
+});
+
+test.beforeEach(() => {
+  clearRateLimitState();
 });
 
 test.afterAll(async () => {
@@ -127,6 +132,54 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
     const state = await (await request.get(`${baseUrl}/api/state`)).json();
     return state.manualSlides["imageSlideshow:e2e"]?.images?.map((image) => image.name);
   }).toEqual(["Alpha.png", "Zeta.png"]);
+});
+
+test("Dropping multiple images onto an image slide creates a titled slideshow", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{
+        id: "image:multi-drop",
+        type: "image",
+        label: "Image",
+        phase: "mass",
+        backgroundTheme: "light"
+      }],
+      manualSlides: {
+        "image:multi-drop": { imageUrl: null }
+      }
+    }
+  });
+
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator('[data-edit-id="image:multi-drop"]').click();
+  await expect(page.locator("#editorSectionImage")).toBeVisible();
+
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=", "base64");
+  await page.locator("#imagePreviewWrap").evaluate((element, encodedPng) => {
+    const bytes = Uint8Array.from(atob(encodedPng), (character) => character.charCodeAt(0));
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([bytes], "Zulu.png", { type: "image/png" }));
+    dataTransfer.items.add(new File([bytes], "Alpha.png", { type: "image/png" }));
+    element.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer }));
+  }, png.toString("base64"));
+
+  await expect(page.locator("#editorSectionImageSlideshow")).toBeVisible();
+  await expect(page.locator("#editorLabel")).toHaveValue("Zulu");
+  await expect(page.locator("#slideshowImageList .slideshow-image-name")).toHaveText([
+    "1. Zulu.png",
+    "2. Alpha.png"
+  ]);
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return {
+      type: state.organizerSequence.find((item) => item.id === "image:multi-drop")?.type,
+      label: state.organizerSequence.find((item) => item.id === "image:multi-drop")?.label,
+      names: state.manualSlides["image:multi-drop"]?.images?.map((image) => image.name)
+    };
+  }).toEqual({ type: "imageSlideshow", label: "Zulu", names: ["Zulu.png", "Alpha.png"] });
 });
 
 test("Image Slideshow editor hides an unavailable preview image", async ({ page, request }) => {

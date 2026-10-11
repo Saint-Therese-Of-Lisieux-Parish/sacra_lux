@@ -116,6 +116,41 @@
       background: linear-gradient(90deg, var(--phase-line), var(--line));
     }
 
+    .phase-section-header.folder-import-target {
+      border-radius: 10px;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .phase-section-header.folder-import-target.drag-over {
+      color: var(--accent);
+      background: var(--active-bg);
+      outline: 2px dashed var(--accent);
+      outline-offset: 3px;
+    }
+
+    .phase-folder-import-btn {
+      order: 2;
+      border: 1px dashed color-mix(in srgb, var(--accent), var(--line) 45%);
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .phase-folder-import-btn:hover,
+    .phase-folder-import-btn:focus-visible {
+      color: var(--accent);
+      border-style: solid;
+      outline: none;
+    }
+
     .phase-slide-count {
       order: 1;
       font-size: 0.8rem;
@@ -2936,6 +2971,7 @@
           </div>
 
           <div class="sequence-list card" id="sequenceList"></div>
+          <input id="phaseFolderImportFiles" type="file" accept="image/*" webkitdirectory multiple hidden>
         </div>
       </div>
 
@@ -3795,6 +3831,7 @@
       preMassStatus: document.getElementById("preMassStatus"),
       status: document.getElementById("status"),
       sequenceList: document.getElementById("sequenceList"),
+      phaseFolderImportFiles: document.getElementById("phaseFolderImportFiles"),
       editorEmpty: document.getElementById("editorEmpty"),
       editorBody: document.getElementById("editorBody"),
       editorDialog: document.getElementById("editorDialog"),
@@ -5079,7 +5116,11 @@
               label += ` \u00B7 ${mFmt}`;
             }
           }
-          phaseHeader = `<div class="phase-section-header">${escapeHtml(label)}<span class="phase-slide-count">${phaseTotal} ${slidesWord}</span>${durationPill}</div>`;
+          const canImportFolder = ["pre", "gathering", "post"].includes(item.phase);
+          const folderImportControl = canImportFolder
+            ? `<button type="button" class="phase-folder-import-btn" data-folder-import-phase="${item.phase}" aria-label="Add an image folder to ${escapeHtml(PHASE_LABELS[item.phase])}">Add image folder</button>`
+            : "";
+          phaseHeader = `<div class="phase-section-header${canImportFolder ? " folder-import-target" : ""}"${canImportFolder ? ` data-folder-import-phase="${item.phase}"` : ""}>${escapeHtml(label)}<span class="phase-slide-count">${phaseTotal} ${slidesWord}</span>${durationPill}${folderImportControl}</div>`;
         }
 
         return `${phaseHeader}
@@ -5689,6 +5730,175 @@
       return sequence.length;
     }
 
+    let phaseFolderImportPhase = null;
+    const IMAGE_FILE_NAME = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
+    const VIDEO_FILE_NAME = /\.mp4$/i;
+
+    function isImageFile(file) {
+      return Boolean(file) && (String(file.type || "").startsWith("image/") || IMAGE_FILE_NAME.test(file.name || ""));
+    }
+
+    function isVideoFile(file) {
+      return Boolean(file) && (String(file.type || "").toLowerCase() === "video/mp4" || VIDEO_FILE_NAME.test(file.name || ""));
+    }
+
+    function readDirectoryEntries(reader) {
+      return new Promise((resolve, reject) => {
+        const entries = [];
+        const readNext = () => reader.readEntries((batch) => {
+          if (!batch.length) return resolve(entries);
+          entries.push(...batch);
+          readNext();
+        }, reject);
+        readNext();
+      });
+    }
+
+    function readEntryFile(entry) {
+      return new Promise((resolve, reject) => entry.file(resolve, reject));
+    }
+
+    async function collectDirectoryFiles(entry, relativePath = "") {
+      if (entry.isFile) {
+        const file = await readEntryFile(entry);
+        return [{ file, filename: `${relativePath}${file.name}` }];
+      }
+      if (!entry.isDirectory) return [];
+      const children = await readDirectoryEntries(entry.createReader());
+      const prefix = `${relativePath}${entry.name}/`;
+      const nested = await Promise.all(children.map((child) => collectDirectoryFiles(child, prefix)));
+      return nested.flat();
+    }
+
+    async function droppedImageFolder(dataTransfer) {
+      const entries = Array.from(dataTransfer?.items || [])
+        .map((item) => item.webkitGetAsEntry?.())
+        .filter(Boolean)
+        .filter((entry) => entry.isDirectory);
+      if (entries.length !== 1) return null;
+      const folder = entries[0];
+      const files = await collectDirectoryFiles(folder);
+      return { folderName: folder.name, files };
+    }
+
+    async function importImageFolder(phase, files, folderName) {
+      if (!["pre", "gathering", "post"].includes(phase)) return;
+      const images = files
+        .filter(({ file }) => isImageFile(file))
+        .sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: "base" }));
+      if (!images.length) {
+        els.status.textContent = "That folder does not contain supported image files.";
+        return;
+      }
+      if (images.length > 500) {
+        els.status.textContent = "Choose a folder with no more than 500 images.";
+        return;
+      }
+
+      els.status.textContent = `Importing ${images.length} image${images.length === 1 ? "" : "s"} from ${folderName || "folder"}…`;
+      try {
+        const payload = [];
+        for (const image of images) {
+          payload.push({ filename: image.filename, dataUrl: await readFileAsDataUrl(image.file) });
+        }
+        const response = await fetch("/api/import-slideshow-images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ images: payload })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          els.status.textContent = result.error || "Could not import the image folder.";
+          return;
+        }
+
+        const imported = Array.isArray(result.images) ? result.images : [];
+        if (!imported.length) {
+          els.status.textContent = "The folder did not contain importable images.";
+          return;
+        }
+
+        const sequence = getSequence();
+        const manualSlides = getManualSlides();
+        const id = uniqueId("imageSlideshow");
+        const label = folderName || "Image Folder";
+        sequence.splice(phaseInsertIndex(sequence, phase), 0, {
+          id,
+          type: "imageSlideshow",
+          label,
+          sourceStem: null,
+          phase,
+          backgroundTheme: "light",
+          durationSec: 10
+        });
+        manualSlides[id] = {
+          text: "",
+          notes: "",
+          imageUrl: null,
+          images: imported.map(({ url, name }) => ({ url, name })),
+          slideshowDurationSec: 10,
+          slideshowLoopCount: 1
+        };
+        uiState.selectedOrganizerId = id;
+        const phaseLabel = PHASE_LABELS[phase] || phase;
+        if (await saveOrganizer(sequence, manualSlides, `${label} added to ${phaseLabel}`)) {
+          await refreshAllMassAssetSelectors();
+        }
+      } catch (_error) {
+        els.status.textContent = "Could not import the image folder.";
+      }
+    }
+
+    async function importSingleMedia(phase, file) {
+      if (!["pre", "gathering", "post"].includes(phase)) return;
+      const type = isImageFile(file) ? "image" : isVideoFile(file) ? "movie" : null;
+      if (!type) {
+        els.status.textContent = "Drop an image, MP4, or image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+        return;
+      }
+
+      els.status.textContent = `Importing ${file.name}…`;
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        const { resp, result } = await uploadImageForSlide(file.name, dataUrl);
+        if (!resp.ok) {
+          els.status.textContent = result.error || `Could not import ${file.name}.`;
+          return;
+        }
+
+        const sequence = getSequence();
+        const manualSlides = getManualSlides();
+        const id = uniqueId(type);
+        const label = labelFromImageUrl(result.url) || file.name.replace(/\.[^.]+$/, "") || (type === "movie" ? "Movie" : "Image");
+        sequence.splice(phaseInsertIndex(sequence, phase), 0, {
+          id,
+          type,
+          label,
+          sourceStem: null,
+          phase,
+          backgroundTheme: "light",
+          durationSec: type === "movie" ? null : 10
+        });
+        manualSlides[id] = {
+          text: "",
+          notes: "",
+          imageUrl: type === "image" ? result.url : null,
+          videoUrl: type === "movie" ? result.url : null,
+          videoLoop: false,
+          videoAutoAdvance: true,
+          textVAlign: null,
+          styleOverrides: {}
+        };
+        uiState.selectedOrganizerId = id;
+        const phaseLabel = PHASE_LABELS[phase] || phase;
+        if (await saveOrganizer(sequence, manualSlides, `${label} added to ${phaseLabel}`)) {
+          await refreshAllMassAssetSelectors();
+        }
+      } catch (_error) {
+        els.status.textContent = `Could not import ${file.name}.`;
+      }
+    }
+
     // ── Drag-and-drop reordering ──────────────────────────────────────────────
     function setupDragDrop() {
       els.sequenceList.addEventListener("dragstart", (e) => {
@@ -5701,6 +5911,14 @@
       });
 
       els.sequenceList.addEventListener("dragover", (e) => {
+        if (Array.from(e.dataTransfer?.types || []).includes("Files")) {
+          const header = e.target.closest("[data-folder-import-phase]");
+          if (!header) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          header.classList.add("drag-over");
+          return;
+        }
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         const row = e.target.closest("[data-item-id]");
@@ -5716,11 +5934,31 @@
       });
 
       els.sequenceList.addEventListener("dragleave", (e) => {
+        const header = e.target.closest("[data-folder-import-phase]");
+        if (header && !header.contains(e.relatedTarget)) header.classList.remove("drag-over");
         if (!els.sequenceList.contains(e.relatedTarget)) clearDndVisuals();
       });
 
       els.sequenceList.addEventListener("drop", async (e) => {
         e.preventDefault();
+        if (Array.from(e.dataTransfer?.types || []).includes("Files")) {
+          const header = e.target.closest("[data-folder-import-phase]");
+          if (header) {
+            header.classList.remove("drag-over");
+            const folder = await droppedImageFolder(e.dataTransfer);
+            if (folder) {
+              await importImageFolder(header.dataset.folderImportPhase, folder.files, folder.folderName);
+              return;
+            }
+            const [file, ...remainingFiles] = Array.from(e.dataTransfer.files || []);
+            if (file && remainingFiles.length === 0) {
+              await importSingleMedia(header.dataset.folderImportPhase, file);
+              return;
+            }
+            els.status.textContent = "Drop one image, MP4, or image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+          }
+          return;
+        }
         const targetRow = e.target.closest("[data-item-id]");
         if (!targetRow || !dnd.srcId || targetRow.dataset.itemId === dnd.srcId) {
           clearDndState();
@@ -6244,10 +6482,12 @@
       });
     }
 
-    async function addFilesToImageSlideshow(fileList) {
+    async function addFilesToImageSlideshow(fileList, { sort = true, save = true } = {}) {
       const files = Array.from(fileList || [])
-        .filter((file) => file.type.startsWith("image/"))
-        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+        .filter((file) => file.type.startsWith("image/"));
+      if (sort) {
+        files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+      }
       if (files.length === 0) {
         els.status.textContent = "Choose one or more supported image files.";
         return;
@@ -6270,7 +6510,7 @@
 
       if (uploaded.length) {
         const existing = getEditorSlideshowImages();
-        applyEditorSlideshowImages([...existing, ...uploaded]);
+        applyEditorSlideshowImages([...existing, ...uploaded], { save });
         await refreshAllMassAssetSelectors();
         els.status.textContent = `${uploaded.length} slideshow image${uploaded.length === 1 ? "" : "s"} added.`;
       }
@@ -6301,6 +6541,20 @@
         event.preventDefault();
         els.slideshowDropZone.classList.remove("drag-over");
         await addFilesToImageSlideshow(event.dataTransfer.files);
+      });
+    }
+
+    if (els.phaseFolderImportFiles) {
+      els.phaseFolderImportFiles.addEventListener("change", async (event) => {
+        const files = Array.from(event.target.files || []).map((file) => ({
+          file,
+          filename: file.webkitRelativePath || file.name
+        }));
+        const folderName = files[0]?.filename.split("/")[0] || "Image Folder";
+        const phase = phaseFolderImportPhase;
+        phaseFolderImportPhase = null;
+        event.target.value = "";
+        if (phase) await importImageFolder(phase, files, folderName);
       });
     }
 
@@ -6682,6 +6936,12 @@
 
     let _clickTimer = null;
     els.sequenceList.addEventListener("click", (event) => {
+      const folderImportButton = event.target.closest(".phase-folder-import-btn");
+      if (folderImportButton) {
+        phaseFolderImportPhase = folderImportButton.dataset.folderImportPhase || null;
+        if (phaseFolderImportPhase) els.phaseFolderImportFiles?.click();
+        return;
+      }
       // Edit button opens the editor dialog directly
       const editBtn = event.target.closest(".seq-edit-btn");
       if (editBtn) {
@@ -7259,7 +7519,20 @@
       els.imagePreviewWrap.addEventListener("drop", async (e) => {
         e.preventDefault();
         if (els.imageDropZone) els.imageDropZone.classList.remove("drag-over");
-        const file = e.dataTransfer.files[0];
+        const imageFiles = Array.from(e.dataTransfer.files || [])
+          .filter((file) => file.type.startsWith("image/"));
+        if (imageFiles.length >= 2) {
+          await addFilesToImageSlideshow(imageFiles, { sort: false, save: false });
+          const label = labelFromImageUrl(imageFiles[0].name);
+          if (label) els.editorLabel.value = label;
+          // The drop itself is an explicit conversion, so do not show the manual
+          // type-change warning before revealing the slideshow controls.
+          els.editorType.value = "imageSlideshow";
+          els.editorType.dataset.prevType = "imageSlideshow";
+          els.editorType.dispatchEvent(new Event("change", { bubbles: true }));
+          return;
+        }
+        const file = imageFiles[0];
         if (!file || !file.type.startsWith("image/")) return;
         const reader = new FileReader();
         reader.onload = async () => {

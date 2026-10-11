@@ -622,6 +622,35 @@ describe("server api integration", () => {
     expect(first.body.url).not.toBe(second.body.url);
   });
 
+  test("folder slideshow import saves a bounded batch of image assets", async () => {
+    const res = await request(app)
+      .post("/api/import-slideshow-images")
+      .send({
+        images: [
+          { filename: "Summer Photos/Photo 2.png", dataUrl: tinyPngDataUrl },
+          { filename: "Summer Photos/Photo 10.png", dataUrl: tinyPngDataUrl }
+        ]
+      })
+      .expect(200);
+
+    expect(res.body.images).toEqual([
+      expect.objectContaining({ url: "/api/mass-asset/Photo 2.png", name: "Photo 2.png" }),
+      expect.objectContaining({ url: "/api/mass-asset/Photo 10.png", name: "Photo 10.png" })
+    ]);
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    expect(fs.existsSync(path.join(assetsDir, "Photo 2.png"))).toBe(true);
+    expect(fs.existsSync(path.join(assetsDir, "Photo 10.png"))).toBe(true);
+  });
+
+  test("folder slideshow import rejects non-image assets", async () => {
+    const res = await request(app)
+      .post("/api/import-slideshow-images")
+      .send({ images: [{ filename: "clip.mp4", dataUrl: "data:video/mp4;base64,AAAA" }] })
+      .expect(400);
+
+    expect(res.body.error).toMatch(/unsupported media type/i);
+  });
+
   test("mass asset route rejects invalid filenames", async () => {
     const res = await request(app)
       .get("/api/mass-asset/bad:name.png")
