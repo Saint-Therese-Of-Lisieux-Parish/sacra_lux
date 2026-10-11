@@ -309,6 +309,47 @@ describe("organizer", () => {
     expect(presentation.slides[0].phase).toBe("pre");
   });
 
+  test("countdown font values are whitelisted and fall back to empty", () => {
+    const screenSettings = {
+      fontFamily: "Merriweather",
+      fontSizePx: 60,
+      readingTextHeightPx: 840,
+      readingTextSizePx: 0,
+      readingLineHeight: 1.58,
+      readingTextMarginXPx: 80
+    };
+
+    const build = (countdownFont) => buildPresentationFromOrganizer({
+      title: "Countdown font",
+      documents: [],
+      sequence: [
+        {
+          id: "countdown:font",
+          type: "countdown",
+          label: "Mass starts in",
+          phase: "pre",
+          backgroundTheme: "light"
+        }
+      ],
+      manualSlides: {
+        "countdown:font": {
+          countdownSec: 60,
+          countdownFont
+        }
+      },
+      screenSettings
+    });
+
+    const markupSlide = build('<img src=x onerror=alert(1)>').slides[0];
+    expect(markupSlide.countdownFont).toBe("");
+
+    const unknownSlide = build("Comic Sans MS").slides[0];
+    expect(unknownSlide.countdownFont).toBe("");
+
+    const validSlide = build("Open Sans").slides[0];
+    expect(validSlide.countdownFont).toBe("Open Sans");
+  });
+
   test("movie slides stay single-page and carry playback metadata", () => {
     const screenSettings = {
       fontFamily: "Merriweather",

@@ -29,6 +29,7 @@ const {
   createManualSlideRecord,
   normalizeBackgroundTheme,
   normalizeCountdownSizePercent,
+  normalizeCountdownFont,
   normalizeCountdownStyle,
   normalizeSlideshowDurationSec,
   normalizeSlideshowImages,
@@ -848,6 +849,7 @@ function mergeManualSlideState(nextSequence, nextManualSlides) {
       ...(nextManualSlides[item.id] || {})
     };
     merged[item.id].styleOverrides = normalizeStyleOverrides(merged[item.id].styleOverrides);
+    merged[item.id].countdownFont = normalizeCountdownFont(merged[item.id].countdownFont);
     if (item.type === "imageSlideshow") {
       merged[item.id].images = normalizeSlideshowImages(merged[item.id].images);
       merged[item.id].slideshowDurationSec = normalizeSlideshowDurationSec(merged[item.id].slideshowDurationSec);
@@ -3269,7 +3271,7 @@ function startServer(port = 17841, options = {}) {
       }
       if (type === "countdown") {
         manual.countdownSec = Math.max(1, Math.min(300, Number(incomingManual.countdownSec) || 60));
-        manual.countdownFont = String(incomingManual.countdownFont || "");
+        manual.countdownFont = normalizeCountdownFont(incomingManual.countdownFont);
         manual.countdownStyle = normalizeCountdownStyle(String(incomingManual.countdownStyle || ""));
         manual.countdownSizePercent = normalizeCountdownSizePercent(incomingManual.countdownSizePercent);
       }
