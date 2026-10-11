@@ -2571,6 +2571,30 @@ function startServer(port = 17841, options = {}) {
       ];
 
       state.organizerSequence = normalizeOrganizerSequence(newSequence);
+      if (useLectionaryRss) {
+        const documentsBySection = new Map(
+          lectionaryDocuments.map((document) => [document.section, document])
+        );
+        const readingSlots = new Map([
+          ["mass-reading-1", "Reading I"],
+          ["mass-psalm", "Responsorial Psalm"],
+          ["mass-reading-2", "Reading II"],
+          ["mass-gospel", "Gospel"]
+        ]);
+        const verseBeforeGospel = documentsBySection.get("Verse Before the Gospel");
+        state.organizerSequence = state.organizerSequence.map((item) => {
+          const document = documentsBySection.get(readingSlots.get(item.id));
+          if (document) return { ...item, sourceStem: document.stem };
+          if (item.id === "mass-gospel-acclamation" && verseBeforeGospel) {
+            return {
+              ...item,
+              type: "reading",
+              sourceStem: verseBeforeGospel.stem
+            };
+          }
+          return item;
+        });
+      }
       const newManualSlides = {};
       for (const item of state.organizerSequence) {
         if (item.type === "text" || item.type === "prayer" || item.type === "hymn") {
