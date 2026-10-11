@@ -33,6 +33,17 @@ describe("public html integration", () => {
     expect(res.text).toContain('target="_blank" rel="noopener noreferrer"');
   });
 
+  test("operator app supports drag-and-drop media imports into announcement sections", async () => {
+    const res = await request(app).get("/").expect(200);
+
+    expect(res.text).toContain('data-folder-import-phase');
+    expect(res.text).toContain('"/api/import-slideshow-images"');
+    expect(res.text).toContain("function importSingleMedia");
+    expect(res.text).toContain("Drop one image, MP4, or image folder");
+    expect(res.text).not.toContain("phase-folder-import-btn");
+    expect(res.text).not.toContain("phaseFolderImportFiles");
+  });
+
   test("start page markup includes a PIN label and live error region", async () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     if (!stateRes.body.hasStartPin) {

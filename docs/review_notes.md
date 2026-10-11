@@ -2,37 +2,67 @@
 
 ## Review Status
 
-The Markdown set was reviewed against the current codebase on
-`2026-04-03` and refreshed to align with:
+The Markdown set was reviewed against the current codebase on `2026-10-11` and
+refreshed to align with:
 
-- the redesigned operator UI, Display Settings dialog, and Slide Editor
-- current route set, including `/app` as an operator alias
-- current Socket.IO event names, including remote interstitial hold
-- current state snapshot fields, including interstitial-hold state
-- current remote behavior and timer-resume semantics
-- current archive, asset, AVIF, and PDF export flows
+- the current route set, including `import-slideshow-images`,
+  `image-slideshow/preflight`, and the `new-mass` USCCB path
+- the current Socket.IO event set, including `control:auth`, `control:required`,
+  `control:ok`, and `image-slideshow:preload-error`
+- the current Electron bridge, including `pickVideoFile` and `setTargetMonitors`
+- the image-slideshow and movie slide models, `styleOverrides`, and countdown
+  style and size fields
+- the version 3 Mass Document (`mass.json`) as the persisted package format
+- control-session authentication and the current rate-limit buckets
+- new operator/user guides and a troubleshooting page
 
 ## Major Corrections in This Pass
 
-- removed stale `/app` versus `/` inconsistencies
-- corrected package-level agent guidance that incorrectly treated `/app` as the only operator route
-- documented the remote interstitial-hold behavior
-- documented `textSlideShowPageNumber` and the current reading outline split
-- aligned the docs with the current preload bridge and route list
+- replaced the stale organizer `type` union with the current nine types,
+  including `imageSlideshow` and `movie`
+- renamed the organizer background field from `backgroundType` to the canonical
+  `backgroundTheme` (`dark`/`light`) and noted the legacy aliases
+- documented `styleOverrides` and the countdown `countdownStyle` and
+  `countdownSizePercent` fields
+- corrected the global background settings to canonical
+  `darkBackgroundUrl`/`lightBackgroundUrl` and marked the old names import-only
+- added the missing snapshot fields (`imageSlideshow*`, `startupPrompt`,
+  `hasStartPin`) and documented the stripped fields
+- added `src/massDocument.js`, `src/lectionaryRss.js`, `src/themes.js`,
+  `src/themes.json`, and `public/client/shared.js` to the component inventory
+- refreshed the dependency versions and removed the false claim that CI runs
+  the quality gates on current PRs
+- corrected the doc version strings to `0.0.25-alpha`
+- added `mass_document.md`, `user-guide.md`, and `troubleshooting.md`, and
+  expanded the workflow set to fifteen flows
+- corrected `AGENTS.md` version policy wording and the command blocks in both
+  AGENTS files
 
 ## Remaining Gaps
 
 ### `src/server.js` is still large
 
-The docs describe the boundaries accurately, but the main runtime
-composition file still carries many concerns.
+The docs describe the boundaries accurately, but the main runtime composition
+file still carries many concerns across roughly 3575 lines.
 
 ### Frontend internals are summarized, not exhaustively mapped
 
-The docs describe current UI responsibilities and flows, but not every
-section inside `public/app.html`, `public/screen.html`, and `public/remote.html`.
+The docs describe current UI responsibilities and flows, but not every section
+inside `public/app.html`, `public/screen.html`, and `public/remote.html`.
 
-### Packaging and operational docs remain light
+### Security findings are documented but unresolved
 
-The current docs describe build targets and runtime storage, but not a
-full release checklist or deployment playbook.
+`code_review_ears_report.md` records known control-authentication and import
+hardening gaps. They are documented, not fixed, in this pass.
+
+### `version-check.yml` does not run
+
+`ci.yml` runs the quality gates on pull requests to `master`, but the separate
+`version-check.yml` workflow still targets the `main` branch (and calls
+`require('semver')` with no install step), so it never runs. Treat the version
+bump as a local obligation until that workflow is fixed.
+
+### Release and packaging playbook remains light
+
+Build targets and storage are documented, but there is no full release
+checklist or deployment playbook.

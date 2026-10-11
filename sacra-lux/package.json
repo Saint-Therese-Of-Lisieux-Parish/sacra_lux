@@ -1,6 +1,6 @@
 {
   "name": "sacra-lux",
-  "version": "0.0.25-alpha",
+  "version": "0.0.29-alpha",
   "description": "Catholic Mass presentation app with phone remote control",
   "main": "src/main.js",
   "scripts": {
@@ -39,21 +39,21 @@
   },
   "homepage": "https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux",
   "dependencies": {
-    "adm-zip": "^0.6.0",
+    "adm-zip": "^0.6.1",
     "express": "^5.2.1",
     "pdf-lib": "^1.17.1",
-    "sharp": "^0.35.3",
-    "socket.io": "^4.8.3"
+    "sharp": "^0.35.5",
+    "socket.io": "^4.8.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.2",
-    "concurrently": "^9.2.1",
-    "electron": "^41.0.0",
+    "@playwright/test": "^1.64.0",
+    "concurrently": "^10.0.6",
+    "electron": "^44.4.5",
     "electron-builder": "^26.8.1",
-    "eslint": "^9.39.4",
-    "globals": "^16.5.0",
-    "jest": "^30.1.3",
-    "supertest": "^7.1.4"
+    "eslint": "^10.12.0",
+    "globals": "^17.13.0",
+    "jest": "^30.5.2",
+    "supertest": "^7.3.1"
   },
   "build": {
     "appId": "com.toups.sacra-lux",
