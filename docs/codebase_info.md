@@ -4,7 +4,7 @@
 
 - name: Sacra Lux
 - package: `sacra-lux`
-- version: `0.0.28-alpha`
+- version: `0.0.32-alpha`
 - author: Robert Toups
 - license: ISC
 - repository: `https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux.git`
@@ -13,9 +13,9 @@
 
 | Layer | Technology |
 | --- | --- |
-| desktop runtime | Electron 44 |
+| desktop runtime | Electron 44 (bundles Node 24) |
 | packaging | electron-builder 26 (macOS DMG, Windows NSIS) |
-| server | Node.js, Express 5, Socket.IO 4 |
+| server | Node.js 26, Express 5, Socket.IO 4 |
 | frontend | vanilla HTML, CSS, and JavaScript |
 | ZIP and image processing | adm-zip, sharp |
 | PDF export | Electron offscreen capture plus pdf-lib |
