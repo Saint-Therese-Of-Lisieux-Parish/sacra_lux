@@ -22,12 +22,16 @@ npm start
 npm run web
 npm run build
 npm run build:win
+npm run build:all
 npm run lint
 npm run check:version-sync
+npm run precommit
 npm test
 npm run test:unit
 npm run test:integration
 npm run test:e2e
+npm run test:e2e:headed
+npm run test:e2e:install
 ```
 
 ## Important Invariants
@@ -39,16 +43,21 @@ npm run test:e2e
 5. Normalize and clamp `screenSettings` on the server.
 6. Repaginate reading slides when layout-affecting reading settings change.
 7. Keep interstitial hold, blackout, and timer-resume behavior in server-owned state.
+8. Keep control-session authorization in `src/security.js`, never in a client.
 
 ## Notable Current Areas
 
-- `src/security.js` — PINs, lockouts, and rate limiting
+- `src/security.js` — PINs, control sessions, lockouts, and rate limiting
+- `src/massDocument.js` — `mass.json` version 3 validation and serialization
+- `src/lectionaryRss.js` — USCCB Daily Readings import
+- `src/themes.js` / `src/themes.json` — app UI theme definitions
 - `src/logger.js` — runtime logging policy
 - `src/massHistory.js` — archive lifecycle
 - `src/preload.js` — Electron-only bridge
 - `public/app.html` — operator UI, organizer, dialogs, and settings
 - `public/screen.html` — projector renderer and idle QR overlay
 - `public/remote.html` — grouped remote controls and interstitial hold
+- `public/client/shared.js` — shared browser helpers
 
 ## Current Screen Settings Notes
 

@@ -9,6 +9,7 @@ single canonical source of repository guidance.
   [sacra-lux/](../sacra-lux)
 - mutate shared runtime state in `src/server.js` only
 - use `getStateSnapshot()` for client-visible state
+- keep control-session authorization in `src/security.js`
 - treat `organizerSequence` and `manualSlides` as persistent truth
 - treat `presentation.slides` as derived runtime data
 - update docs when routes, settings, IPC, or workflows change

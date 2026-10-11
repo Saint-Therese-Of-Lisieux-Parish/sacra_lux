@@ -4,7 +4,7 @@
 
 - name: Sacra Lux
 - package: `sacra-lux`
-- version: `0.0.1-alpha`
+- version: `0.0.27-alpha`
 - author: Robert Toups
 - license: ISC
 - repository: `https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux.git`
@@ -13,12 +13,13 @@
 
 | Layer | Technology |
 | --- | --- |
-| desktop runtime | Electron 41 |
+| desktop runtime | Electron 44 |
+| packaging | electron-builder 26 (macOS DMG, Windows NSIS) |
 | server | Node.js, Express 5, Socket.IO 4 |
 | frontend | vanilla HTML, CSS, and JavaScript |
 | ZIP and image processing | adm-zip, sharp |
 | PDF export | Electron offscreen capture plus pdf-lib |
-| tests | Jest, supertest, Playwright |
+| tests | Jest 30, supertest, Playwright 1.64 |
 | linting | ESLint 9 |
 
 ## Repository Layout
@@ -26,15 +27,20 @@
 ```text
 repo-root/
 ├── sacra-lux/
-│   ├── public/
-│   ├── src/
-│   ├── tests/
-│   ├── scripts/
+│   ├── public/            # app.html, screen.html, remote.html, start.html, client/, assets/, fonts/, vendor/
+│   ├── src/               # server, domain modules, Electron entry points
+│   ├── tests/             # unit/, integration/, e2e/, helpers/
+│   ├── scripts/           # check-version-sync.js, precommit.js
+│   ├── jest.config.cjs
+│   ├── playwright.config.js
 │   ├── package.json
 │   └── README.md
-├── docs/
-├── .github/
-├── .githooks/
+├── docs/                  # maintained codebase reference
+├── homepage/              # brand and marketing copy (not a technical source)
+├── Pre-Mass Automation/   # standalone Python slide generators (separate tooling)
+├── .claude/skills/        # repository agent skills
+├── .github/               # CI workflows and Copilot instructions
+├── .githooks/             # tracked local pre-commit hook
 ├── README.md
 ├── AGENTS.md
 ├── CLAUDE.md
@@ -47,17 +53,23 @@ Sacra Lux writes runtime data under `~/.sacra-lux/`:
 
 | Path | Purpose |
 | --- | --- |
-| `session.json` | persisted session snapshot |
-| `current_mass/` | active Mass package, assets, and `mass.json` |
-| `mass_history/` | archived Mass folders and compressed ZIPs |
+| `session.json` | persisted session snapshot (version 2) |
+| `current_mass/` | active Mass package: readings `.txt`, `mass.json`, and `assets/` |
+| `mass_history/<id>/` | archived Mass package, `metadata.json`, and optional `archive-avif.zip` |
 | `prayers/` | prayer text storage |
+
+`current_mass/` is a self-contained package and is preferred over
+`session.json` during restore. Tests redirect `HOME` to a temp directory so
+they never touch this path.
 
 ## Build Targets
 
-- macOS DMG
-- Windows NSIS installer
+- macOS DMG, arm64 and x64
+- Windows NSIS installer, x64 and arm64
 
-Build output defaults to `~/Documents/sacra-lux-dist/`.
+Build output defaults to `~/Documents/sacra-lux-dist/`. The packaged app
+unpacks `public/` (`asarUnpack`) so Express can stream the pages, and ships
+`prayers/` as an extra resource.
 
 ## Default URLs
 
