@@ -1,6 +1,7 @@
 /*
 !/.gitignore
 !/.markdownlintignore
+!/.nvmrc
 !/README.md
 !/AGENTS.md
 !/CLAUDE.md

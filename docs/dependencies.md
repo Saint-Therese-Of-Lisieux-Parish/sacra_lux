@@ -60,6 +60,9 @@ which currently includes:
 
 ## Operational Notes
 
+- Node.js 26 is the supported runtime. `sacra-lux/package.json` declares
+  `"engines": { "node": ">=26" }` and the repo ships a root `.nvmrc` (`26`);
+  CI (`.github/workflows/ci.yml`, `smoke.yml`) pins `node-version: 26`.
 - AVIF export and image-slideshow preflight require `sharp` at runtime.
 - PDF export depends on Electron and is not available in plain web mode.
 - USCCB Daily Readings import requires outbound network access to
