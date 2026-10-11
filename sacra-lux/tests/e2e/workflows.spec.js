@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 const sharp = require("sharp");
+const { clearRateLimitState } = require("../../src/security");
 
 const {
   createTempHome,
@@ -16,6 +17,10 @@ test.beforeAll(async () => {
   readingsPath = makeReadingsFolder(homeDir);
   handle = await startIsolatedServer({ port: 0, homeDir });
   baseUrl = handle.baseUrl;
+});
+
+test.beforeEach(() => {
+  clearRateLimitState();
 });
 
 test.afterAll(async () => {
