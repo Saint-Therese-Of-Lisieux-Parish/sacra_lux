@@ -368,16 +368,20 @@ function cleanupSecurityState(now = Date.now()) {
   }
 }
 
-function resetSecurityState() {
-  clearStartToken();
-  clearControlAccess();
-  pinLockouts.clear();
+function clearRateLimitState() {
   for (const store of Object.values(rateLimitBuckets)) {
     store.clear();
   }
   for (const store of Object.values(concurrentLimitBuckets)) {
     store.clear();
   }
+}
+
+function resetSecurityState() {
+  clearStartToken();
+  clearControlAccess();
+  pinLockouts.clear();
+  clearRateLimitState();
 }
 
 const securityCleanupInterval = setInterval(() => {
@@ -394,6 +398,7 @@ module.exports = {
   RATE_LIMIT_CONFIG,
   clearControlAccess,
   clearPinFailures,
+  clearRateLimitState,
   clearStartToken,
   clientMayControl,
   createConcurrentLimitMiddleware,
