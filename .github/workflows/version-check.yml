@@ -4,9 +4,17 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-version:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: github.actor != 'dependabot[bot]'
     steps:
       - name: Checkout PR branch
@@ -26,7 +34,10 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Compare versions
+        env:
+          PR_VERSION: ${{ steps.pr.outputs.version }}
+          BASE_VERSION: ${{ steps.base.outputs.version }}
         run: |
-          echo "PR version:   ${{ steps.pr.outputs.version }}"
-          echo "Base version: ${{ steps.base.outputs.version }}"
-          node sacra-lux/scripts/check-version-bump.js "${{ steps.pr.outputs.version }}" "${{ steps.base.outputs.version }}"
+          echo "PR version:   $PR_VERSION"
+          echo "Base version: $BASE_VERSION"
+          node sacra-lux/scripts/check-version-bump.js "$PR_VERSION" "$BASE_VERSION"
