@@ -5732,9 +5732,14 @@
 
     let phaseFolderImportPhase = null;
     const IMAGE_FILE_NAME = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
+    const VIDEO_FILE_NAME = /\.mp4$/i;
 
     function isImageFile(file) {
       return Boolean(file) && (String(file.type || "").startsWith("image/") || IMAGE_FILE_NAME.test(file.name || ""));
+    }
+
+    function isVideoFile(file) {
+      return Boolean(file) && (String(file.type || "").toLowerCase() === "video/mp4" || VIDEO_FILE_NAME.test(file.name || ""));
     }
 
     function readDirectoryEntries(reader) {
@@ -5844,6 +5849,56 @@
       }
     }
 
+    async function importSingleMedia(phase, file) {
+      if (!["pre", "gathering", "post"].includes(phase)) return;
+      const type = isImageFile(file) ? "image" : isVideoFile(file) ? "movie" : null;
+      if (!type) {
+        els.status.textContent = "Drop an image, MP4, or image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+        return;
+      }
+
+      els.status.textContent = `Importing ${file.name}…`;
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        const { resp, result } = await uploadImageForSlide(file.name, dataUrl);
+        if (!resp.ok) {
+          els.status.textContent = result.error || `Could not import ${file.name}.`;
+          return;
+        }
+
+        const sequence = getSequence();
+        const manualSlides = getManualSlides();
+        const id = uniqueId(type);
+        const label = labelFromImageUrl(result.url) || file.name.replace(/\.[^.]+$/, "") || (type === "movie" ? "Movie" : "Image");
+        sequence.splice(phaseInsertIndex(sequence, phase), 0, {
+          id,
+          type,
+          label,
+          sourceStem: null,
+          phase,
+          backgroundTheme: "light",
+          durationSec: type === "movie" ? null : 10
+        });
+        manualSlides[id] = {
+          text: "",
+          notes: "",
+          imageUrl: type === "image" ? result.url : null,
+          videoUrl: type === "movie" ? result.url : null,
+          videoLoop: false,
+          videoAutoAdvance: true,
+          textVAlign: null,
+          styleOverrides: {}
+        };
+        uiState.selectedOrganizerId = id;
+        const phaseLabel = PHASE_LABELS[phase] || phase;
+        if (await saveOrganizer(sequence, manualSlides, `${label} added to ${phaseLabel}`)) {
+          await refreshAllMassAssetSelectors();
+        }
+      } catch (_error) {
+        els.status.textContent = `Could not import ${file.name}.`;
+      }
+    }
+
     // ── Drag-and-drop reordering ──────────────────────────────────────────────
     function setupDragDrop() {
       els.sequenceList.addEventListener("dragstart", (e) => {
@@ -5891,11 +5946,16 @@
           if (header) {
             header.classList.remove("drag-over");
             const folder = await droppedImageFolder(e.dataTransfer);
-            if (!folder) {
-              els.status.textContent = "Drop one image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
+            if (folder) {
+              await importImageFolder(header.dataset.folderImportPhase, folder.files, folder.folderName);
               return;
             }
-            await importImageFolder(header.dataset.folderImportPhase, folder.files, folder.folderName);
+            const [file, ...remainingFiles] = Array.from(e.dataTransfer.files || []);
+            if (file && remainingFiles.length === 0) {
+              await importSingleMedia(header.dataset.folderImportPhase, file);
+              return;
+            }
+            els.status.textContent = "Drop one image, MP4, or image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
           }
           return;
         }
