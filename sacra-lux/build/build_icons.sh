@@ -55,6 +55,23 @@ create_contained_png() {
     "PNG32:${output}"
 }
 
+create_splash_png() {
+  local source="$1"
+  local output="$2"
+
+  # The source wordmark has a tall aspect ratio. Trim its transparent canvas
+  # before scaling so the visible logo, rather than invisible padding, fills
+  # the native splash card.
+  magick "$source" \
+    -trim +repage \
+    -filter Lanczos \
+    -resize "360x260>" \
+    -background none \
+    -gravity center \
+    -extent 360x260 \
+    "PNG32:${output}"
+}
+
 # macOS Tahoe draws a light rounded plate behind an icon when any edge pixel
 # has alpha of 252 or less, and a plain zoom cuts off this mark's gold frame.
 # Scale the solid artwork until it meets the canvas, flatten the outside
@@ -122,7 +139,7 @@ create_macos_icon_png() {
 
 # --- Create app icons from the square mark and splash image from the wordmark ---
 create_contained_png "$ICON_SOURCE_IMAGE" 1024 1024 "$OUTPUT_PNG"
-create_contained_png "$LOGO_SOURCE_IMAGE" 407 240 "$SPLASH_PNG"
+create_splash_png "$LOGO_SOURCE_IMAGE" "$SPLASH_PNG"
 for legacy_png in "${LEGACY_PNGS[@]}"; do
   cp "$OUTPUT_PNG" "$legacy_png"
 done
