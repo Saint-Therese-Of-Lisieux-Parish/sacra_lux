@@ -718,10 +718,10 @@ function normalizeScreenSettings(input = {}) {
     fontFamily,
     fontSizePx: Math.min(200, Math.max(24, Number(input.fontSizePx) || current.fontSizePx || 60)),
     darkBackgroundUrl: String(
-      darkBackgroundUrl || current.darkBackgroundUrl || "/static/assets/background-dark.png"
+      darkBackgroundUrl || current.darkBackgroundUrl || "/static/assets/default-text-background.png"
     ),
     lightBackgroundUrl: String(
-      lightBackgroundUrl || current.lightBackgroundUrl || "/static/assets/background-graphic.png"
+      lightBackgroundUrl || current.lightBackgroundUrl || "/static/assets/default-interstitial.png"
     ),
     boldText: Boolean(input.boldText ?? current.boldText ?? false),
     resolution,
