@@ -931,6 +931,26 @@ function clearStartTimers() {
   if (_massStartTimer) { clearTimeout(_massStartTimer); _massStartTimer = null; }
 }
 
+// setTimeout stores its delay in a 32-bit signed integer. A start time more
+// than ~24.8 days away overflows: Node warns with TimeoutOverflowWarning and
+// fires the callback almost immediately, which would start gathering (and then
+// the Mass cutover) the moment a far-future date is saved. Wait in capped
+// chunks and re-arm until the full delay has elapsed. `assign` stores the live
+// handle so clearStartTimers() can cancel a chain that is still waiting.
+const MAX_TIMER_DELAY_MS = 2147483647;
+
+function scheduleLongTimeout(delayMs, callback, assign) {
+  const remaining = Math.max(0, Number(delayMs) || 0);
+  assign(setTimeout(() => {
+    if (remaining > MAX_TIMER_DELAY_MS) {
+      scheduleLongTimeout(remaining - MAX_TIMER_DELAY_MS, callback, assign);
+    } else {
+      assign(null);
+      callback();
+    }
+  }, Math.min(remaining, MAX_TIMER_DELAY_MS)));
+}
+
 // ── Movie-slide automation ───────────────────────────────────────────────────
 // `_movieTimer` is the fallback advance for a movie the phase timer stepped
 // aside for; `_movieEndGuard` dedupes several screen windows reporting the end
@@ -1666,10 +1686,9 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   // Arm the hard cutover at the scheduled time. It leaves a Mass slide that
   // is already showing, and otherwise opens the first Mass slide.
   if (!massHasBegun) {
-    _massStartTimer = setTimeout(() => {
-      _massStartTimer = null;
+    scheduleLongTimeout(target - now, () => {
       startMassSequence(ioRef);
-    }, target - now);
+    }, (handle) => { _massStartTimer = handle; });
   }
 
   const gatheringMs = getGatheringDurationMs();
@@ -1679,8 +1698,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
     // Re-arming the lead-in would jump a gathering sequence already playing
     // back to its first slide.
     if (!state.gatheringRunning) {
-      _startTimer = setTimeout(() => {
-        _startTimer = null;
+      scheduleLongTimeout(msUntilGathering, () => {
         const slide = (state.presentation?.slides || [])[state.currentSlideIndex];
         if (slide?.phase === "mass") {
           // The operator already started the Mass. Do not open gathering over it.
@@ -1692,7 +1710,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
           return;
         }
         startGatheringSequence(ioRef);
-      }, msUntilGathering);
+      }, (handle) => { _startTimer = handle; });
     }
     return;
   }

@@ -437,4 +437,41 @@ describe("mass start from the wall clock", () => {
     expect(res.body.currentSlideIndex).toBe(secondGatheringIndex);
     expect(res.body.presentation.slides[res.body.currentSlideIndex].title).toBe("Gathering Two");
   });
+
+  test("a start time more than 24 days away waits instead of starting now", async () => {
+    // A delay above setTimeout's 32-bit ceiling (2,147,483,647 ms, about 24.8
+    // days) overflows and fires almost immediately. Forty days out must arm the
+    // start timers without tripping them.
+    jest.setSystemTime(new Date("2026-05-03T09:00:00"));
+    await seedGatheringAndMass();
+
+    const scheduledDelays = [];
+    const passthrough = global.setTimeout;
+    const setTimeoutSpy = jest
+      .spyOn(global, "setTimeout")
+      .mockImplementation((callback, delay, ...rest) => {
+        scheduledDelays.push(delay);
+        return passthrough(callback, delay, ...rest);
+      });
+
+    try {
+      await request(app)
+        .post("/api/start-time")
+        .send({ time: "2026-06-12T10:00:00" })
+        .expect(200);
+
+      jest.advanceTimersByTime(60 * 1000);
+
+      const res = await request(app).get("/api/state").expect(200);
+      expect(res.body.gatheringRunning).toBe(false);
+      expect(res.body.preMassRunning).toBe(false);
+      expect(res.body.currentSlideIndex).toBe(0);
+
+      const longDelays = scheduledDelays.filter((delay) => delay > 60 * 1000);
+      expect(longDelays.length).toBeGreaterThan(0);
+      expect(Math.max(...longDelays)).toBeLessThanOrEqual(2147483647);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
 });
