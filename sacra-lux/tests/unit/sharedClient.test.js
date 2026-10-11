@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { escapeHtml, formatCountdownTime, formatDurationTime } = require("../../public/client/shared.js");
+const { escapeHtml, formatCountdownTime, formatDurationTime, imageFileNameLabel, slideshowLabelFromFileNames } = require("../../public/client/shared.js");
 
 describe("shared client helpers", () => {
   describe("escapeHtml", () => {
@@ -61,6 +61,58 @@ describe("shared client helpers", () => {
     });
   });
 
+  describe("imageFileNameLabel", () => {
+    test("strips the extension from a bare file name", () => {
+      expect(imageFileNameLabel("Zulu.png")).toBe("Zulu");
+    });
+
+    test("takes the last path segment for a URL", () => {
+      expect(imageFileNameLabel("/api/mass-asset/Easter%20Vigil.jpg")).toBe("Easter Vigil");
+    });
+
+    test("drops query strings and hashes", () => {
+      expect(imageFileNameLabel("Photo 1.jpeg?cache=2")).toBe("Photo 1");
+      expect(imageFileNameLabel("Photo 1.jpeg#top")).toBe("Photo 1");
+    });
+
+    test("decodes percent-encoded names and survives malformed escapes", () => {
+      expect(imageFileNameLabel("Easter%20Vigil.jpg")).toBe("Easter Vigil");
+      expect(imageFileNameLabel("100%.png")).toBe("100%");
+    });
+
+    test("returns an empty string for unusable input", () => {
+      expect(imageFileNameLabel("")).toBe("");
+      expect(imageFileNameLabel("   ")).toBe("");
+      expect(imageFileNameLabel(null)).toBe("");
+      expect(imageFileNameLabel(undefined)).toBe("");
+    });
+  });
+
+  describe("slideshowLabelFromFileNames", () => {
+    test("titles a multi-image drop from the first file in drop order", () => {
+      expect(slideshowLabelFromFileNames(["Zulu.png", "Alpha.png"])).toBe("Zulu");
+      expect(slideshowLabelFromFileNames(["Alpha.png", "Zulu.png"])).toBe("Alpha");
+    });
+
+    test("strips the extension and any directory from the first name", () => {
+      expect(slideshowLabelFromFileNames(["folder/2 - Entrance.jpeg"])).toBe("2 - Entrance");
+    });
+
+    test("skips blank names in favor of the first usable one", () => {
+      expect(slideshowLabelFromFileNames(["", "   ", "Alpha.png"])).toBe("Alpha");
+    });
+
+    test("falls back when no usable name is present", () => {
+      expect(slideshowLabelFromFileNames([])).toBe("Image Slideshow");
+      expect(slideshowLabelFromFileNames(["", "   "])).toBe("Image Slideshow");
+      expect(slideshowLabelFromFileNames(undefined)).toBe("Image Slideshow");
+    });
+
+    test("honors a custom fallback", () => {
+      expect(slideshowLabelFromFileNames([], "Slideshow")).toBe("Slideshow");
+    });
+  });
+
   describe("page wiring", () => {
     const pages = ["app.html", "screen.html", "remote.html"];
 
@@ -81,6 +133,15 @@ describe("shared client helpers", () => {
         "utf8"
       );
       expect(html).not.toMatch(/\.replace(All)?\((\/&\/g|"&")/);
+    });
+
+    test("app titles phase-drop slideshows through the shared label helper", () => {
+      const html = fs.readFileSync(
+        path.join(__dirname, "../../public/app.html"),
+        "utf8"
+      );
+      expect(html).toContain("SacraLuxShared.slideshowLabelFromFileNames(");
+      expect(html).not.toContain("labelFromImageUrl(images[0].name)");
     });
   });
 });

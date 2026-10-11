@@ -5833,7 +5833,7 @@
         els.status.textContent = "Drop one or more images, an MP4, or an image folder onto a Pre-Mass, Gathering, or Post-Mass section.";
         return;
       }
-      const label = labelFromImageUrl(images[0].name) || "Image Slideshow";
+      const label = SacraLuxShared.slideshowLabelFromFileNames(images.map((image) => image.name));
       await importImagesAsSlideshow(phase, images, label);
     }
 
@@ -6042,12 +6042,7 @@
     }
 
     function labelFromImageUrl(url) {
-      const normalizedUrl = String(url || "").trim();
-      if (!normalizedUrl) return "";
-      const withoutQuery = normalizedUrl.split(/[?#]/, 1)[0];
-      const filename = withoutQuery.split("/").pop() || "";
-      const decodedFilename = decodeURIComponent(filename);
-      return decodedFilename.replace(/\.[^.]+$/, "").trim();
+      return SacraLuxShared.imageFileNameLabel(url);
     }
 
     function applyUrlFilenameToLabel(url) {
