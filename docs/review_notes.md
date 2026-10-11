@@ -37,6 +37,8 @@ refreshed to align with:
   expanded the workflow set to fifteen flows
 - corrected `AGENTS.md` version policy wording and the command blocks in both
   AGENTS files
+- corrected the stale `version-check.yml` note: the workflow now targets
+  `master` and runs on pull requests, so CI enforces the version bump
 
 ## Remaining Gaps
 
@@ -54,13 +56,6 @@ inside `public/app.html`, `public/screen.html`, and `public/remote.html`.
 
 `code_review_ears_report.md` records known control-authentication and import
 hardening gaps. They are documented, not fixed, in this pass.
-
-### `version-check.yml` does not run
-
-`ci.yml` runs the quality gates on pull requests to `master`, but the separate
-`version-check.yml` workflow still targets the `main` branch (and calls
-`require('semver')` with no install step), so it never runs. Treat the version
-bump as a local obligation until that workflow is fixed.
 
 ### Release and packaging playbook remains light
 

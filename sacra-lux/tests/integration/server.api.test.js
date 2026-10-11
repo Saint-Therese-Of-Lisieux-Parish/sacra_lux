@@ -798,47 +798,50 @@ describe("server api integration", () => {
     expect(preflight.body.results[4].warnings).toContain("unreadable");
   });
 
-  test("image slideshow includes fade time and loops exactly before advancing", async () => {
+  test("image slideshow keeps fade transitions inside exact image intervals", async () => {
     await request(app)
       .post("/api/new-mass")
       .send({ title: "Slideshow Timer", startTime: "" })
       .expect(200);
-    const uploaded = await request(app)
+    const first = await request(app)
       .post("/api/upload-mass-asset")
-      .send({ filename: "Only.png", dataUrl: tinyPngDataUrl })
+      .send({ filename: "First.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+    const second = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Second.png", dataUrl: tinyPngDataUrl })
       .expect(200);
 
     await request(app)
       .post("/api/organizer")
       .send({
         sequence: [
-          { id: "slideshow:timer", type: "imageSlideshow", label: "Loop twice", phase: "mass", backgroundTheme: "light", durationSec: 1 },
+          { id: "slideshow:timer", type: "imageSlideshow", label: "Two images", phase: "mass", backgroundTheme: "light", durationSec: 1 },
           { id: "text:after", type: "text", label: "After", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
         ],
         manualSlides: {
           "slideshow:timer": {
-            images: [{ url: uploaded.body.url, name: "Only.png" }],
+            images: [
+              { url: first.body.url, name: "First.png" },
+              { url: second.body.url, name: "Second.png" }
+            ],
             slideshowDurationSec: 1,
-            slideshowLoopCount: 2
+            slideshowLoopCount: 1
           },
           "text:after": { text: "Finished" }
         }
       })
       .expect(200);
 
-    await new Promise((resolve) => setTimeout(resolve, 1100));
+    await wait(1100);
     let stateRes = await request(app).get("/api/state").expect(200);
-    expect(stateRes.body.currentSlideIndex).toBe(0);
-    expect(stateRes.body.imageSlideshowLoopIteration).toBe(2);
-    expect(stateRes.body.imageSlideshowEndsAt).toBeNull();
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    stateRes = await request(app).get("/api/state").expect(200);
-    expect(stateRes.body.currentSlideIndex).toBe(0);
-
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.currentSlideIndex).toBe(1);
+    expect(stateRes.body.imageSlideshowLoopIteration).toBe(1);
+    expect(stateRes.body.imageSlideshowEndsAt).not.toBeNull();
+
+    await wait(1100);
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.currentSlideIndex).toBe(2);
     expect(stateRes.body.imageSlideshowEndsAt).toBeNull();
   });
 

@@ -71,5 +71,5 @@ which currently includes:
   (`git config core.hooksPath .githooks`).
 - GitHub Actions runs `ci.yml` (lint, version-sync, unit, integration, e2e) on
   pull requests to and pushes to `master`. The separate `version-check.yml`
-  still targets `main` and does not run, so the version bump remains a local
-  obligation. See [review_notes.md](./review_notes.md).
+  workflow runs on pull requests to `master`. It fails the pull request when
+  the version is not above `master`. See [review_notes.md](./review_notes.md).

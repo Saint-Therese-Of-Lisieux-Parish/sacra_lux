@@ -33,8 +33,6 @@ const {
   normalizeSlideshowDurationSec,
   normalizeSlideshowImages,
   normalizeSlideshowLoopCount,
-  imageSlideshowRuntimeMs,
-  IMAGE_SLIDESHOW_FADE_MS,
   normalizePhase,
   normalizeType,
   normalizeStyleOverrides
@@ -995,12 +993,18 @@ function scheduleLongTimeout(delayMs, callback, assign) {
 // of the same movie.
 let _movieTimer = null;
 const _movieEndGuard = createMovieEndGuard();
+let _moviePlaybackStartedAt = null;
+let _moviePlaybackSlideId = null;
 
 // ── Pre-mass slideshow automation ────────────────────────────────────────────
 let _preMassTimer = null;
+let _preMassDeadlineAt = null;
+let _preMassDeadlineSlideId = null;
 
 // ── Gathering slideshow automation ───────────────────────────────────────────
 let _gatheringTimer = null;
+let _gatheringDeadlineAt = null;
+let _gatheringDeadlineSlideId = null;
 
 // ── Image Slideshow slide automation ─────────────────────────────────────────
 let _imageSlideshowTimer = null;
@@ -1182,15 +1186,7 @@ function scheduleImageSlideshowSlide(ioRef) {
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
-    const transitionMs = state.screenSettings?.transition === "none" ? 0 : IMAGE_SLIDESHOW_FADE_MS;
-    if (transitionMs > 0) {
-      _imageSlideshowTimer = setTimeout(() => {
-        _imageSlideshowTimer = null;
-        scheduleImageSlideshowSlide(ioRef);
-      }, transitionMs);
-    } else {
-      scheduleImageSlideshowSlide(ioRef);
-    }
+    scheduleImageSlideshowSlide(ioRef);
   }, durationMs);
 }
 
@@ -1200,7 +1196,20 @@ function scheduleImageSlideshowSlide(ioRef) {
  */
 function stopPreMassTimer() {
   if (_preMassTimer) { clearTimeout(_preMassTimer); _preMassTimer = null; }
+  _preMassDeadlineAt = null;
+  _preMassDeadlineSlideId = null;
   state.preMassRunning = false;
+}
+
+function getAutomaticSlideDurationMs(slide) {
+  const orgItem = state.organizerSequence.find((item) => item.id === slide?.organizerItemId);
+  return Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
+}
+
+function isPhaseOwnedSlide(slide) {
+  return slide?.type === "imageSlideshow" ||
+    slide?.type === "countdown" ||
+    shouldMovieSlideControlAdvance(slide);
 }
 
 /**
@@ -1212,7 +1221,11 @@ function stopPreMassTimer() {
  */
 function scheduleNextPreMassSlide(ioRef) {
   if (_preMassTimer) { clearTimeout(_preMassTimer); _preMassTimer = null; }
-  if (!state.preMassRunning) return;
+  if (!state.preMassRunning) {
+    _preMassDeadlineAt = null;
+    _preMassDeadlineSlideId = null;
+    return;
+  }
 
   const slides = state.presentation?.slides || [];
   const currentSlide = slides[state.currentSlideIndex];
@@ -1223,12 +1236,21 @@ function scheduleNextPreMassSlide(ioRef) {
   }
 
   // Let controlled slide types own auto-advance and skip the phase timer.
-  if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
-  if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
+  if (isPhaseOwnedSlide(currentSlide)) {
+    _preMassDeadlineAt = null;
+    _preMassDeadlineSlideId = null;
+    if (currentSlide.type === "imageSlideshow") scheduleImageSlideshowSlide(ioRef);
+    else if (currentSlide.type === "countdown") startCountdownForSlide(ioRef);
+    else scheduleMovieAutoAdvance(ioRef, getAutomaticSlideDurationMs(currentSlide));
+    return;
+  }
 
-  const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
-  const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
-  if (shouldMovieSlideControlAdvance(currentSlide)) { scheduleMovieAutoAdvance(ioRef, durationMs); return; }
+  const durationMs = getAutomaticSlideDurationMs(currentSlide);
+  if (_preMassDeadlineSlideId !== currentSlide.id || _preMassDeadlineAt == null) {
+    _preMassDeadlineAt = Date.now() + durationMs;
+    _preMassDeadlineSlideId = currentSlide.id;
+  }
+  const deadlineAt = _preMassDeadlineAt;
 
   _preMassTimer = setTimeout(() => {
     _preMassTimer = null;
@@ -1249,12 +1271,21 @@ function scheduleNextPreMassSlide(ioRef) {
 
     const curPos = preSlideIndices.indexOf(state.currentSlideIndex);
     const nextPos = (curPos + 1) % preSlideIndices.length;
-    state.currentSlideIndex = getSafeSlideIndex(preSlideIndices[nextPos]);
+    const nextIndex = getSafeSlideIndex(preSlideIndices[nextPos]);
+    const nextSlide = allSlides[nextIndex];
+    state.currentSlideIndex = nextIndex;
+    if (isPhaseOwnedSlide(nextSlide)) {
+      _preMassDeadlineAt = null;
+      _preMassDeadlineSlideId = null;
+    } else {
+      _preMassDeadlineAt = deadlineAt + getAutomaticSlideDurationMs(nextSlide);
+      _preMassDeadlineSlideId = nextSlide?.id || null;
+    }
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
     scheduleNextPreMassSlide(ioRef);
-  }, durationMs);
+  }, Math.max(0, deadlineAt - Date.now()));
 }
 
 /**
@@ -1263,6 +1294,8 @@ function scheduleNextPreMassSlide(ioRef) {
  */
 function stopGatheringTimer() {
   if (_gatheringTimer) { clearTimeout(_gatheringTimer); _gatheringTimer = null; }
+  _gatheringDeadlineAt = null;
+  _gatheringDeadlineSlideId = null;
   state.gatheringRunning = false;
 }
 
@@ -1279,7 +1312,11 @@ function getGatheringDurationMs() {
     const slideCount = slides.filter((s) => s.organizerItemId === item.id).length;
     if (slideCount === 0) continue;
     if (item.type === "imageSlideshow") {
-      totalMs += imageSlideshowRuntimeMs(state.manualSlides[item.id], state.screenSettings?.transition);
+      const playableCount = slides.filter((slide) =>
+        slide.organizerItemId === item.id && isPlayableImageSlideshowSlide(slide)
+      ).length;
+      totalMs += playableCount * normalizeSlideshowDurationSec(state.manualSlides[item.id]?.slideshowDurationSec) *
+        normalizeSlideshowLoopCount(state.manualSlides[item.id]?.slideshowLoopCount) * 1000;
     } else {
       totalMs += slideCount * Math.max(1000, (Number(item.durationSec) || 10) * 1000);
     }
@@ -1323,7 +1360,11 @@ function startGatheringSequence(ioRef) {
  */
 function scheduleNextGatheringSlide(ioRef) {
   if (_gatheringTimer) { clearTimeout(_gatheringTimer); _gatheringTimer = null; }
-  if (!state.gatheringRunning) return;
+  if (!state.gatheringRunning) {
+    _gatheringDeadlineAt = null;
+    _gatheringDeadlineSlideId = null;
+    return;
+  }
 
   const slides = state.presentation?.slides || [];
   const currentSlide = slides[state.currentSlideIndex];
@@ -1334,12 +1375,21 @@ function scheduleNextGatheringSlide(ioRef) {
   }
 
   // Let controlled slide types own auto-advance and skip the phase timer.
-  if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
-  if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
+  if (isPhaseOwnedSlide(currentSlide)) {
+    _gatheringDeadlineAt = null;
+    _gatheringDeadlineSlideId = null;
+    if (currentSlide.type === "imageSlideshow") scheduleImageSlideshowSlide(ioRef);
+    else if (currentSlide.type === "countdown") startCountdownForSlide(ioRef);
+    else scheduleMovieAutoAdvance(ioRef, getAutomaticSlideDurationMs(currentSlide));
+    return;
+  }
 
-  const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
-  const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
-  if (shouldMovieSlideControlAdvance(currentSlide)) { scheduleMovieAutoAdvance(ioRef, durationMs); return; }
+  const durationMs = getAutomaticSlideDurationMs(currentSlide);
+  if (_gatheringDeadlineSlideId !== currentSlide.id || _gatheringDeadlineAt == null) {
+    _gatheringDeadlineAt = Date.now() + durationMs;
+    _gatheringDeadlineSlideId = currentSlide.id;
+  }
+  const deadlineAt = _gatheringDeadlineAt;
 
   _gatheringTimer = setTimeout(() => {
     _gatheringTimer = null;
@@ -1377,23 +1427,36 @@ function scheduleNextGatheringSlide(ioRef) {
       scheduleSave();
     } else {
       // Advance to the next gathering slide.
-      state.currentSlideIndex = getSafeSlideIndex(gatheringIndices[curPos + 1]);
+      const nextIndex = getSafeSlideIndex(gatheringIndices[curPos + 1]);
+      const nextSlide = allSlides[nextIndex];
+      state.currentSlideIndex = nextIndex;
+      if (isPhaseOwnedSlide(nextSlide)) {
+        _gatheringDeadlineAt = null;
+        _gatheringDeadlineSlideId = null;
+      } else {
+        _gatheringDeadlineAt = deadlineAt + getAutomaticSlideDurationMs(nextSlide);
+        _gatheringDeadlineSlideId = nextSlide?.id || null;
+      }
       touch();
       ioRef.emit("state:update", getStateSnapshot());
       scheduleSave();
       scheduleNextGatheringSlide(ioRef);
     }
-  }, durationMs);
+  }, Math.max(0, deadlineAt - Date.now()));
 }
 
 // ── Post-mass slideshow automation ───────────────────────────────────────────
 let _postMassTimer = null;
+let _postMassDeadlineAt = null;
+let _postMassDeadlineSlideId = null;
 
 /**
  * Clear the post-mass cycling timer and mark the slideshow as stopped.
  */
 function stopPostMassTimer() {
   if (_postMassTimer) { clearTimeout(_postMassTimer); _postMassTimer = null; }
+  _postMassDeadlineAt = null;
+  _postMassDeadlineSlideId = null;
   state.postMassRunning = false;
 }
 
@@ -1426,7 +1489,11 @@ function startPostMassSequence(ioRef) {
  */
 function scheduleNextPostMassSlide(ioRef) {
   if (_postMassTimer) { clearTimeout(_postMassTimer); _postMassTimer = null; }
-  if (!state.postMassRunning) return;
+  if (!state.postMassRunning) {
+    _postMassDeadlineAt = null;
+    _postMassDeadlineSlideId = null;
+    return;
+  }
 
   const slides = state.presentation?.slides || [];
   const currentSlide = slides[state.currentSlideIndex];
@@ -1437,12 +1504,21 @@ function scheduleNextPostMassSlide(ioRef) {
   }
 
   // Let controlled slide types own auto-advance and skip the phase timer.
-  if (currentSlide.type === "imageSlideshow") { scheduleImageSlideshowSlide(ioRef); return; }
-  if (currentSlide.type === "countdown") { startCountdownForSlide(ioRef); return; }
+  if (isPhaseOwnedSlide(currentSlide)) {
+    _postMassDeadlineAt = null;
+    _postMassDeadlineSlideId = null;
+    if (currentSlide.type === "imageSlideshow") scheduleImageSlideshowSlide(ioRef);
+    else if (currentSlide.type === "countdown") startCountdownForSlide(ioRef);
+    else scheduleMovieAutoAdvance(ioRef, getAutomaticSlideDurationMs(currentSlide));
+    return;
+  }
 
-  const orgItem = state.organizerSequence.find((item) => item.id === currentSlide.organizerItemId);
-  const durationMs = Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
-  if (shouldMovieSlideControlAdvance(currentSlide)) { scheduleMovieAutoAdvance(ioRef, durationMs); return; }
+  const durationMs = getAutomaticSlideDurationMs(currentSlide);
+  if (_postMassDeadlineSlideId !== currentSlide.id || _postMassDeadlineAt == null) {
+    _postMassDeadlineAt = Date.now() + durationMs;
+    _postMassDeadlineSlideId = currentSlide.id;
+  }
+  const deadlineAt = _postMassDeadlineAt;
 
   _postMassTimer = setTimeout(() => {
     _postMassTimer = null;
@@ -1463,12 +1539,21 @@ function scheduleNextPostMassSlide(ioRef) {
 
     const curPos = postSlideIndices.indexOf(state.currentSlideIndex);
     const nextPos = (curPos + 1) % postSlideIndices.length;
-    state.currentSlideIndex = getSafeSlideIndex(postSlideIndices[nextPos]);
+    const nextIndex = getSafeSlideIndex(postSlideIndices[nextPos]);
+    const nextSlide = allSlides[nextIndex];
+    state.currentSlideIndex = nextIndex;
+    if (isPhaseOwnedSlide(nextSlide)) {
+      _postMassDeadlineAt = null;
+      _postMassDeadlineSlideId = null;
+    } else {
+      _postMassDeadlineAt = deadlineAt + getAutomaticSlideDurationMs(nextSlide);
+      _postMassDeadlineSlideId = nextSlide?.id || null;
+    }
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
     scheduleNextPostMassSlide(ioRef);
-  }, durationMs);
+  }, Math.max(0, deadlineAt - Date.now()));
 }
 
 // ── Countdown automation ─────────────────────────────────────────────────────
@@ -1554,6 +1639,12 @@ function stopAllRuntimeTimers() {
   if (_preMassTimer) { clearTimeout(_preMassTimer); _preMassTimer = null; }
   if (_gatheringTimer) { clearTimeout(_gatheringTimer); _gatheringTimer = null; }
   if (_postMassTimer) { clearTimeout(_postMassTimer); _postMassTimer = null; }
+  _preMassDeadlineAt = null;
+  _preMassDeadlineSlideId = null;
+  _gatheringDeadlineAt = null;
+  _gatheringDeadlineSlideId = null;
+  _postMassDeadlineAt = null;
+  _postMassDeadlineSlideId = null;
   if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
   if (_imageSlideshowTimer) { clearTimeout(_imageSlideshowTimer); _imageSlideshowTimer = null; }
   stopMovieAutoAdvanceTimer();
@@ -1626,26 +1717,36 @@ function shouldMovieSlideControlAdvance(slide) {
  * that same slide is still current, so a manual or `slide:video-ended`
  * advance silently cancels it.
  */
-function scheduleMovieAutoAdvance(ioRef, durationMs) {
+function scheduleMovieAutoAdvance(ioRef, durationMs, { startedAt = null } = {}) {
+  const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+  const playbackStartedAt = Number.isFinite(startedAt) ? startedAt : Date.now();
   stopMovieAutoAdvanceTimer();
   // A movie slide becoming current again (e.g. a looping pre-Mass sequence)
   // gets a fresh end report.
   _movieEndGuard.reset();
-  if (!shouldMovieSlideControlAdvance((state.presentation?.slides || [])[state.currentSlideIndex])) return;
+  if (!shouldMovieSlideControlAdvance(currentSlide)) return;
+
+  _moviePlaybackStartedAt = playbackStartedAt;
+  _moviePlaybackSlideId = currentSlide.id;
+  const deadlineAt = playbackStartedAt + Math.max(1, Number(durationMs) || 0);
 
   _movieTimer = setTimeout(() => {
     _movieTimer = null;
+    _moviePlaybackStartedAt = null;
+    _moviePlaybackSlideId = null;
     // A different slide (manual move, video-ended, phase change) supersedes it.
     const current = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (!shouldMovieSlideControlAdvance(current)) return;
     // Claim the end so a late `slide:video-ended` for this slide is ignored.
     _movieEndGuard.markHandled(state.currentSlideIndex, current.id);
     advanceFromCurrentSlide(ioRef);
-  }, durationMs);
+  }, Math.max(0, deadlineAt - Date.now()));
 }
 
 function stopMovieAutoAdvanceTimer() {
   if (_movieTimer) { clearTimeout(_movieTimer); _movieTimer = null; }
+  _moviePlaybackStartedAt = null;
+  _moviePlaybackSlideId = null;
 }
 
 function advanceFromCurrentSlide(ioRef) {
@@ -3420,6 +3521,7 @@ function startServer(port = 17841, options = {}) {
       // one advances and the rest of that slide's reports are ignored.
       if (_movieEndGuard.alreadyHandled(state.currentSlideIndex, slideId)) return;
       _movieEndGuard.markHandled(state.currentSlideIndex, slideId);
+      stopMovieAutoAdvanceTimer();
       advanceFromCurrentSlide(io);
     }));
     socket.on("slide:video-ready", withControl(socket, (payload) => {
@@ -3429,7 +3531,8 @@ function startServer(port = 17841, options = {}) {
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
       const durationMs = Number(payload?.durationMs);
       if (!Number.isFinite(durationMs) || durationMs <= 0) return;
-      scheduleMovieAutoAdvance(io, durationMs);
+      const startedAt = _moviePlaybackSlideId === currentSlide.id ? _moviePlaybackStartedAt : null;
+      scheduleMovieAutoAdvance(io, durationMs, { startedAt });
     }));
     socket.on("image-slideshow:preload-error", withControl(socket, (payload) => {
       const imageUrl = String(payload?.imageUrl || "");
