@@ -3584,6 +3584,12 @@
                 <input id="newMassStartTime" type="datetime-local">
               </label>
             </div>
+            <div class="modal-field modal-span-12">
+              <label class="settings-check-row">
+                <input id="newMassUseLectionaryRss" type="checkbox">
+                <span>Import today's readings from the USCCB Daily Readings RSS feed</span>
+              </label>
+            </div>
           </div>
           <div class="modal-action-row">
             <div></div>
@@ -3914,6 +3920,7 @@
       newMassDialog: document.getElementById("newMassDialog"),
       newMassTitle: document.getElementById("newMassTitle"),
       newMassStartTime: document.getElementById("newMassStartTime"),
+      newMassUseLectionaryRss: document.getElementById("newMassUseLectionaryRss"),
       newMassConfirmBtn: document.getElementById("newMassConfirmBtn"),
       newMassCancelBtn: document.getElementById("newMassCancelBtn"),
       newMassCloseBtn: document.getElementById("newMassCloseBtn"),
@@ -4868,6 +4875,7 @@
     function showNewMassDialog() {
       els.newMassTitle.value = "";
       els.newMassStartTime.value = "";
+      els.newMassUseLectionaryRss.checked = false;
       if (!els.newMassDialog.open) {
         els.newMassDialog.showModal();
       }
@@ -7607,8 +7615,9 @@
 
     els.newMassConfirmBtn.addEventListener("click", async () => {
       const title = els.newMassTitle.value.trim();
-      if (!title) {
-        els.status.textContent = "Mass title is required.";
+      const useLectionaryRss = els.newMassUseLectionaryRss.checked;
+      if (!title && !useLectionaryRss) {
+        els.status.textContent = "Mass title is required unless importing USCCB Daily Readings.";
         return;
       }
       els.newMassConfirmBtn.disabled = true;
@@ -7619,7 +7628,8 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title,
-            startTime: els.newMassStartTime.value || null
+            startTime: els.newMassStartTime.value || null,
+            useLectionaryRss
           })
         });
         const data = await resp.json();
@@ -7628,7 +7638,9 @@
         } else {
           els.status.textContent = data.archivedMassId
             ? `New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`
-            : "New Mass created.";
+            : data.lectionaryReadingsImported
+              ? "New Mass created with USCCB Daily Readings."
+              : "New Mass created.";
           els.newMassDialog.close();
         }
       } catch (err) {

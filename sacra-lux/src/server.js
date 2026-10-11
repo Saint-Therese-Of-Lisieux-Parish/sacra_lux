@@ -13,6 +13,7 @@ function getAdmZip() {
 }
 
 const { importReadings, paginateDocuments } = require("./readingsImporter");
+const { fetchUsccbDailyReadings } = require("./lectionaryRss");
 const {
   ValidationError,
   buildMassDocumentFromLegacyPackage,
@@ -2512,10 +2513,17 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── New Mass ───────────────────────────────────────────────────────────────
-  app.post("/api/new-mass", (req, res) => {
+  app.post("/api/new-mass", heavyRateLimit, async (req, res) => {
     try {
-      const { title, startTime } = req.body || {};
-      if (!title || !String(title).trim()) {
+      const { title, startTime, useLectionaryRss } = req.body || {};
+      let massTitle = String(title || "").trim();
+      let lectionaryDocuments = [];
+      if (useLectionaryRss) {
+        const lectionary = await fetchUsccbDailyReadings();
+        massTitle = massTitle || lectionary.title;
+        lectionaryDocuments = lectionary.documents;
+      }
+      if (!massTitle) {
         return res.status(400).json({ error: "title is required." });
       }
 
@@ -2586,9 +2594,9 @@ function startServer(port = 17841, options = {}) {
       }
 
       // 4. Set title, clear readings, and reset playback
-      state.presentation.title = String(title).trim();
+      state.presentation.title = massTitle;
       state.presentation.sourceFile = null;
-      state.readingsSource = { folderPath: null, documents: [] };
+      state.readingsSource = { folderPath: null, documents: lectionaryDocuments };
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
       stopActiveSlideTimers();
@@ -2619,7 +2627,8 @@ function startServer(port = 17841, options = {}) {
         title: state.presentation.title,
         massStartTime: state.massStartTime,
         organizerCount: state.organizerSequence.length,
-        slideCount: state.presentation.slides.length
+        slideCount: state.presentation.slides.length,
+        lectionaryReadingsImported: Boolean(useLectionaryRss)
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to create new mass." });
