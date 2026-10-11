@@ -65,10 +65,10 @@ create_splash_png() {
   magick "$source" \
     -trim +repage \
     -filter Lanczos \
-    -resize "360x260>" \
+    -resize "720x520>" \
     -background none \
     -gravity center \
-    -extent 360x260 \
+    -extent 720x520 \
     "PNG32:${output}"
 }
 
