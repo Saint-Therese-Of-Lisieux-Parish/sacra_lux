@@ -375,6 +375,44 @@ function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
 
 const MAX_SLIDESHOW_IMPORT_IMAGES = 500;
 const MAX_SLIDESHOW_IMPORT_BYTES = 120 * 1024 * 1024;
+const MAX_MASS_ZIP_COMPRESSED_BYTES = 50 * 1024 * 1024;
+const MAX_MASS_ZIP_ENTRIES = 1000;
+const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
+const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
+
+function validateMassZipArchive(zip, compressedBytes) {
+  if (compressedBytes > MAX_MASS_ZIP_COMPRESSED_BYTES) {
+    throw new ValidationError(
+      `Mass ZIP compressed size exceeds the ${MAX_MASS_ZIP_COMPRESSED_BYTES} byte limit.`
+    );
+  }
+
+  const entries = zip.getEntries();
+  if (entries.length > MAX_MASS_ZIP_ENTRIES) {
+    throw new ValidationError(
+      `Mass ZIP contains too many entries; the limit is ${MAX_MASS_ZIP_ENTRIES}.`
+    );
+  }
+
+  let totalUncompressedBytes = 0;
+  for (const entry of entries) {
+    const entryBytes = Number(entry.header?.size);
+    if (!Number.isSafeInteger(entryBytes) || entryBytes < 0) {
+      throw new ValidationError(`Mass ZIP entry "${entry.entryName}" has an invalid size.`);
+    }
+    if (entryBytes > MAX_MASS_ZIP_ENTRY_BYTES) {
+      throw new ValidationError(
+        `Mass ZIP entry "${entry.entryName}" exceeds the ${MAX_MASS_ZIP_ENTRY_BYTES} byte limit.`
+      );
+    }
+    totalUncompressedBytes += entryBytes;
+    if (totalUncompressedBytes > MAX_MASS_ZIP_UNCOMPRESSED_BYTES) {
+      throw new ValidationError(
+        `Mass ZIP uncompressed size exceeds the ${MAX_MASS_ZIP_UNCOMPRESSED_BYTES} byte limit.`
+      );
+    }
+  }
+}
 
 function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET_EXT) {
   const match = String(dataUrl || "").match(/^data:((?:image\/[a-z+]+)|(?:video\/mp4));base64,([A-Za-z0-9+/=]+)$/);
@@ -2743,8 +2781,21 @@ function startServer(port = 17841, options = {}) {
       if (!match) {
         return res.status(400).json({ error: "Invalid zip data." });
       }
-      const zipBuf = Buffer.from(match[1].replace(/\s/g, ""), "base64");
+      const encodedZip = match[1].replace(/\s/g, "");
+      const maxEncodedZipLength = Math.ceil(MAX_MASS_ZIP_COMPRESSED_BYTES / 3) * 4;
+      if (encodedZip.length > maxEncodedZipLength) {
+        throw new ValidationError(
+          `Mass ZIP compressed size exceeds the ${MAX_MASS_ZIP_COMPRESSED_BYTES} byte limit.`
+        );
+      }
+      const zipBuf = Buffer.from(encodedZip, "base64");
+      if (zipBuf.length > MAX_MASS_ZIP_COMPRESSED_BYTES) {
+        throw new ValidationError(
+          `Mass ZIP compressed size exceeds the ${MAX_MASS_ZIP_COMPRESSED_BYTES} byte limit.`
+        );
+      }
       const zip = new (getAdmZip())(zipBuf);
+      validateMassZipArchive(zip, zipBuf.length);
 
       const massEntry = zip.getEntry("mass.json");
       const settingsEntry = zip.getEntry("settings.json");
@@ -3589,5 +3640,12 @@ function startServer(port = 17841, options = {}) {
 
 module.exports = {
   startServer,
-  saveCurrentMass
+  saveCurrentMass,
+  validateMassZipArchive,
+  MASS_ZIP_LIMITS: Object.freeze({
+    maxCompressedBytes: MAX_MASS_ZIP_COMPRESSED_BYTES,
+    maxEntries: MAX_MASS_ZIP_ENTRIES,
+    maxUncompressedBytes: MAX_MASS_ZIP_UNCOMPRESSED_BYTES,
+    maxEntryBytes: MAX_MASS_ZIP_ENTRY_BYTES
+  })
 };
