@@ -432,15 +432,15 @@ describe("organizer", () => {
     });
   });
 
-  test("image slideshow runtime counts the crossfade between consecutive images", () => {
+  test("image slideshow runtime keeps crossfades inside image time", () => {
     const manual = {
-      images: Array.from({ length: 60 }, (_, index) => ({ url: `/api/mass-asset/${index}.png` })),
-      slideshowDurationSec: 10,
-      slideshowLoopCount: 3
+      images: Array.from({ length: 10 }, (_, index) => ({ url: `/api/mass-asset/${index}.png` })),
+      slideshowDurationSec: 5,
+      slideshowLoopCount: 1
     };
-    // 180 images shown for 10 s each, with 179 fades of 700 ms between them.
-    expect(imageSlideshowRuntimeMs(manual, "fade")).toBe(1800000 + 179 * 700);
-    expect(imageSlideshowRuntimeMs(manual, "none")).toBe(1800000);
+    expect(imageSlideshowRuntimeMs(manual, "fade")).toBe(50000);
+    expect(imageSlideshowRuntimeMs(manual, "none")).toBe(50000);
+    expect(imageSlideshowRuntimeMs({ ...manual, slideshowLoopCount: 3 }, "fade")).toBe(150000);
     expect(imageSlideshowRuntimeMs({ images: [] }, "fade")).toBe(0);
   });
 });
