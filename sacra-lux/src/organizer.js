@@ -53,6 +53,12 @@ const VALID_TYPES = ["reading", "image", "imageSlideshow", "movie", "text", "pra
 const VALID_PHASES = ["pre", "gathering", "mass", "post"];
 const VALID_BACKGROUND_THEMES = ["dark", "light"];
 const VALID_COUNTDOWN_STYLES = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"];
+const VALID_COUNTDOWN_FONTS = new Set([
+  "Merriweather", "Lora", "Playfair Display", "Cormorant Garamond", "EB Garamond",
+  "Libre Baskerville", "Crimson Pro", "Noto Serif", "PT Serif", "Source Sans 3",
+  "Inter", "Open Sans", "Roboto", "Work Sans", "Noto Sans", "PT Sans",
+  "Montserrat", "Poppins", "Raleway"
+]);
 const STYLE_OVERRIDE_BOOLEAN_KEYS = ["bold", "italic", "outline", "shadow"];
 
 function normalizePhase(value) {
@@ -83,6 +89,11 @@ function normalizeCountdownStyle(value) {
 
 function normalizeCountdownSizePercent(value) {
   return Math.max(50, Math.min(200, Number(value) || 100));
+}
+
+function normalizeCountdownFont(value) {
+  const name = typeof value === "string" ? value : "";
+  return VALID_COUNTDOWN_FONTS.has(name) ? name : "";
 }
 
 function slideshowImageName(entry) {
@@ -336,7 +347,7 @@ function buildManualSlide(item, manualSlide, index) {
       title: item.label || "Countdown",
       text: "",
       countdownSec: Math.max(1, Math.min(300, Number(manualSlide?.countdownSec) || 60)),
-      countdownFont: manualSlide?.countdownFont || "",
+      countdownFont: normalizeCountdownFont(manualSlide?.countdownFont),
       countdownStyle: normalizeCountdownStyle(manualSlide?.countdownStyle),
       countdownSizePercent: normalizeCountdownSizePercent(manualSlide?.countdownSizePercent),
       countdownShowLabel: false,
@@ -455,5 +466,6 @@ module.exports = {
   imageSlideshowRuntimeMs,
   IMAGE_SLIDESHOW_FADE_MS,
   VALID_COUNTDOWN_STYLES,
+  normalizeCountdownFont,
   createManualSlideRecord
 };
