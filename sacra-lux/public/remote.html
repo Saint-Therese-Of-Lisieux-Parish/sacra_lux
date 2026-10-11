@@ -955,9 +955,10 @@
       els.interstitialBtn.textContent = interstitialHoldActive ? "Return to Slide" : "Interstitial Slide";
       els.interstitialBtn.disabled = !hasInterstitial;
 
-      // Update Next Slide Group button — becomes "Start Mass" during pre/post phases
-      const isPreOrPost = _preMassRunning || _currentPhase === "pre" || _currentPhase === "post";
-      els.nextSectionBtn.textContent = isPreOrPost ? "Start Mass" : "Next Slide Group";
+      // Update the primary button. It becomes "Start Mass" only before Mass.
+      // After Mass the button stays "Next Slide Group" so it moves within post-Mass.
+      const isBeforeMass = _preMassRunning || _currentPhase === "pre";
+      els.nextSectionBtn.textContent = isBeforeMass ? "Start Mass" : "Next Slide Group";
 
       const shouldAnimateCarousel =
         hadSlides &&
@@ -1167,25 +1168,30 @@
       socket.emit("screen:interstitial-hold");
     });
     els.nextSectionBtn.addEventListener("click", () => {
-      const isPreOrPost = _preMassRunning || _currentPhase === "pre" || _currentPhase === "post";
-      if (isPreOrPost) {
-        // Jump to first Mass section slide
+      const isBeforeMass = _preMassRunning || _currentPhase === "pre";
+      if (isBeforeMass) {
+        // Before Mass: jump to the first Mass section slide.
         const firstMass = currentSlides.find((s) => s.phase === "mass");
         if (firstMass) {
           goToRemoteSlide(firstMass.index);
           scrollToPreview();
         }
-      } else {
-        // Normal: advance to next organizer group
-        const currentGroupId = currentSlides[currentActive]?.organizerItemId || currentSlides[currentActive]?.id;
-        const nextSlide = currentSlides.find((s) => {
-          const gid = s.organizerItemId || s.id;
-          return s.index > currentActive && gid !== currentGroupId;
-        });
-        if (nextSlide) {
-          goToRemoteSlide(nextSlide.index);
-          scrollToPreview();
+        return;
+      }
+      // Otherwise advance to the next organizer group. During post-Mass the
+      // search stays in the post phase, so the Mass slides do not change.
+      const isPostMass = _currentPhase === "post";
+      const currentGroupId = currentSlides[currentActive]?.organizerItemId || currentSlides[currentActive]?.id;
+      const nextSlide = currentSlides.find((s) => {
+        if (isPostMass && s.phase !== "post") {
+          return false;
         }
+        const gid = s.organizerItemId || s.id;
+        return s.index > currentActive && gid !== currentGroupId;
+      });
+      if (nextSlide) {
+        goToRemoteSlide(nextSlide.index);
+        scrollToPreview();
       }
     });
 
