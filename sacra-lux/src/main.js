@@ -869,7 +869,7 @@ function buildAppMenu(ioRef) {
 function createSplash() {
   splashWindow = new BrowserWindow({
     width: 500,
-    height: 420,
+    height: 400,
     frame: false,
     transparent: true,
     resizable: false,
@@ -901,16 +901,14 @@ function createSplash() {
   .card {
     background: rgba(255, 252, 245, 0.98); border: 1px solid rgba(183, 132, 33, 0.45);
     border-radius: 18px; box-shadow: 0 14px 36px rgba(5, 31, 73, 0.32);
-    padding: 32px 48px; text-align: center;
+    padding: 26px 36px 28px; text-align: center;
   }
-  .icon { width: 320px; margin-bottom: 14px; border-radius: 10px; }
-  h1 { color: #0b356f; font-size: 32px; margin: 0 0 8px; font-weight: 600; }
-  .version { color: #546b89; font-size: 20px; margin: 0 0 4px; }
-  .build-date { color: #78684d; font-size: 17px; margin: 0; }
+  .icon { display: block; width: 360px; max-width: 100%; margin: 0 auto 10px; }
+  .version { color: #546b89; font-size: 16px; margin: 0 0 4px; }
+  .build-date { color: #78684d; font-size: 14px; margin: 0; }
 </style></head><body>
 <div class="card">
   ${iconDataUrl ? `<img class="icon" src="${iconDataUrl}">` : ""}
-  <h1>Sacra Lux</h1>
   <p class="version">Version ${pkg.version}</p>
   <p class="build-date">${buildDate}</p>
 </div></body></html>`;
