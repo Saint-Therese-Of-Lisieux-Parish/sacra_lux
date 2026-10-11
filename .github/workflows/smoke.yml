@@ -46,7 +46,7 @@ jobs:
         run: npm ci
 
       - name: Build unpacked app
-        run: npx electron-builder --dir ${{ matrix.build }} -c.directories.output=dist
+        run: npx electron-builder --dir ${{ matrix.build }} "--config.directories.output=dist"
 
       - name: Smoke test packaged app
         env:
