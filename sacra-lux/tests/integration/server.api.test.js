@@ -15,6 +15,8 @@ describe("server api integration", () => {
   let warnSpy;
   let resetSecurityState;
   let state;
+  let validateMassZipArchive;
+  let MASS_ZIP_LIMITS;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
 
   function extractTokenFromRedirect(redirectPath) {
@@ -30,6 +32,7 @@ describe("server api integration", () => {
     app.set("trust proxy", true);
     ({ resetSecurityState } = require("../../src/security"));
     ({ state } = require("../../src/state"));
+    ({ validateMassZipArchive, MASS_ZIP_LIMITS } = require("../../src/server"));
   });
 
   beforeEach(() => {
@@ -387,6 +390,8 @@ describe("server api integration", () => {
     const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
     fs.writeFileSync(path.join(currentMassDir, "canary.txt"), "keep-me");
     const before = snapshotTree(currentMassDir);
+    const appDir = path.dirname(currentMassDir);
+    const stagingEntriesBefore = fs.readdirSync(appDir).filter((name) => name.startsWith(".current_mass-"));
     const titleBefore = (await request(app).get("/api/state").expect(200)).body.presentation.title;
 
     await request(app)
@@ -418,6 +423,8 @@ describe("server api integration", () => {
     expect(nullImport.status).toBeGreaterThanOrEqual(400);
 
     expect(snapshotTree(currentMassDir)).toEqual(before);
+    expect(fs.readdirSync(appDir).filter((name) => name.startsWith(".current_mass-")))
+      .toEqual(stagingEntriesBefore);
     const titleAfter = (await request(app).get("/api/state").expect(200)).body.presentation.title;
     expect(titleAfter).toBe(titleBefore);
 
@@ -429,6 +436,60 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(currentMassDir, "canary.txt"))).toBe(false);
     expect(fs.existsSync(path.join(currentMassDir, "Gospel.txt"))).toBe(true);
     expect((await request(app).get("/api/state").expect(200)).body.presentation.title).toBe("Replacement");
+  });
+
+  test("rejects ZIP metadata that exceeds each configured resource limit", () => {
+    const entry = (name, size) => ({ entryName: name, header: { size } });
+    const archive = (...entries) => ({ getEntries: () => entries });
+
+    expect(() => validateMassZipArchive(
+      archive(entry("mass.json", 1)),
+      MASS_ZIP_LIMITS.maxCompressedBytes + 1
+    )).toThrow(/compressed size exceeds/i);
+    expect(() => validateMassZipArchive(
+      archive(...Array.from({ length: MASS_ZIP_LIMITS.maxEntries + 1 }, (_, index) => entry(`file-${index}`, 1))),
+      1
+    )).toThrow(/too many entries/i);
+    expect(() => validateMassZipArchive(
+      archive(entry("large.bin", MASS_ZIP_LIMITS.maxEntryBytes + 1)),
+      1
+    )).toThrow(/entry .* exceeds/i);
+    expect(() => validateMassZipArchive(
+      archive(
+        ...Array.from({ length: 5 }, (_, index) => entry(`large-${index}.bin`, MASS_ZIP_LIMITS.maxEntryBytes)),
+        entry("overflow.bin", 1)
+      ),
+      1
+    )).toThrow(/uncompressed size exceeds/i);
+  });
+
+  test("rejects a too-many-entry ZIP before replacing current_mass", async () => {
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    const canaryPath = path.join(currentMassDir, "resource-limit-canary.txt");
+    fs.writeFileSync(canaryPath, "keep", "utf8");
+
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Should Not Import",
+      screenSettings: {},
+      organizerSequence: [],
+      manualSlides: {}
+    })));
+    for (let index = 0; index <= MASS_ZIP_LIMITS.maxEntries; index += 1) {
+      zip.addFile(`readings/extra-${index}.txt`, Buffer.from("x"));
+    }
+
+    const response = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/too many entries/i);
+    expect(fs.readFileSync(canaryPath, "utf8")).toBe("keep");
+    expect(fs.readdirSync(path.dirname(currentMassDir)).filter((name) => name.startsWith(".current_mass-")))
+      .toEqual([]);
   });
 
   test("startup prefers valid current_mass over stale session title", async () => {
