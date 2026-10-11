@@ -253,10 +253,24 @@ test("Image Slideshow crossfades between consecutive images", async ({ page, req
   await page.goto(`${baseUrl}/screen`);
   await expect(page.locator(`.frame[data-image-url="${first.url}"]`)).toHaveCSS("opacity", "1");
   const stage = page.locator("#stage");
+  // Advance the deck from a client socket. Keep the socket open until the
+  // server has confirmed the advance: disconnecting immediately after emit()
+  // can drop the buffered packet, so the Mass never moves and the crossfade
+  // assertion flakes.
   await page.evaluate(async () => {
     const testSocket = io();
     await new Promise((resolve) => testSocket.on("connect", resolve));
+    const advanced = new Promise((resolve) => {
+      const timer = setTimeout(resolve, 2000);
+      testSocket.on("state:update", (state) => {
+        if (Number(state?.currentSlideIndex) >= 1) {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
+    });
     testSocket.emit("slide:next");
+    await advanced;
     testSocket.disconnect();
   });
   await expect(stage).toHaveAttribute("data-slideshow-transitioning", "true", { timeout: 3500 });
