@@ -8,6 +8,9 @@ maintained architecture docs, CI/workflow config, and tracked git hooks.
 
 - `sacra-lux/` — application package
 - `docs/` — maintained codebase reference
+- `homepage/` — brand and marketing copy
+- `Pre-Mass Automation/` — standalone Python slide generators
+- `.claude/skills/` — repository agent skills
 - `.github/` — CI and repository automation
 - `.githooks/` — tracked local hooks
 - `AGENTS.md` — canonical repository guidance for coding agents
@@ -40,12 +43,12 @@ Sacra Lux keeps three synchronized clients in step during a Mass:
 
 Current capabilities include:
 
-- readings import from structured `.txt` files
-- organizer editing for readings, text, prayers, hymns, images, interstitials, and countdown slides
-- redesigned operator UI for volunteer-friendly control
-- live screen preview and slide editor
-- pre-mass, gathering, and post-mass automation
-- QR and PIN-gated remote start flow
+- readings import from structured `.txt` files or the USCCB Daily Readings RSS feed
+- organizer editing for readings, text, prayers, hymns, images, image slideshows, movies, interstitials, and countdown slides
+- volunteer-friendly operator UI with live screen preview and a slide editor
+- twelve app UI themes, including liturgical seasons
+- pre-mass, gathering, and post-mass automation driven by a Mass start time
+- QR and PIN-gated remote start flow with server-side control sessions
 - Mass-local asset uploads with live picker refresh
 - archive history, duplication, loading, compression, and ZIP import/export
 - AVIF export and Electron-only PDF export
@@ -57,14 +60,18 @@ Current capabilities include:
 - `npm test`
 - `npm run test:e2e`
 
-GitHub Actions runs the same quality gates on pushes and pull requests to `main`.
+The GitHub Actions workflows target the `main` branch, while this repository's
+default branch is `master`, so they do not run on current PRs. Run the quality
+checks locally; they are the only gates.
 
 ## Documentation
 
 - package README: [sacra-lux/README.md](./sacra-lux/README.md)
 - docs index: [docs/index.md](./docs/index.md)
+- operator guide: [docs/user-guide.md](./docs/user-guide.md)
+- troubleshooting: [docs/troubleshooting.md](./docs/troubleshooting.md)
 - agent guidance: [AGENTS.md](./AGENTS.md)
 
 ## Current Version
 
-The current package version is `0.0.1-alpha`.
+The current package version is `0.0.26-alpha`.

@@ -47,7 +47,7 @@ sequenceDiagram
     Server->>Server: set countdownEndsAt
     Server->>Screen: state:update
     Screen->>Screen: render countdown
-    Note over Server: timer expires
+    Note over Server: _countdownTimer expires
     Server->>Server: clear countdownEndsAt
     Server->>Server: advance slide
     Server->>Server: resume active phase timer
@@ -89,8 +89,8 @@ sequenceDiagram
         Phone->>Server: POST /api/verify-pin
         Server->>Security: verify PIN and lockout state
         alt valid
-            Server->>Security: issue start token
-            Server-->>Phone: redirect payload
+            Server->>Security: issue start token and control session
+            Server-->>Phone: redirect payload with cookie
             Phone->>Server: GET /api/start-redirect?token=...
             Server->>Security: validate token
             Server-->>Phone: redirect /remote
@@ -102,7 +102,29 @@ sequenceDiagram
     end
 ```
 
-## 6. Mass Asset Upload and Refresh
+## 6. Control Authentication
+
+```mermaid
+sequenceDiagram
+    participant Client as "Operator / Remote"
+    participant Server as "server.js"
+    participant Security as "security.js"
+
+    Client->>Server: POST /api/organizer (no token)
+    Server->>Security: clientMayControl(req)
+    Security-->>Server: false
+    Server-->>Client: 401 Unlock required
+    Client->>Server: POST /api/verify-pin
+    Server->>Security: noteControlUnlock(req)
+    Security-->>Server: control token
+    Server-->>Client: ok + sacra_lux_control cookie
+    Client->>Server: POST /api/organizer (cookie)
+    Server->>Security: clientMayControl(req)
+    Security-->>Server: true
+    Server->>Server: apply mutation
+```
+
+## 7. Mass Asset Upload and Refresh
 
 ```mermaid
 sequenceDiagram
@@ -117,37 +139,87 @@ sequenceDiagram
     App->>App: refresh editor + background selectors
 ```
 
-## 7. ZIP Import
+## 8. Image Slideshow Import and Play
+
+```mermaid
+sequenceDiagram
+    participant App as "App UI"
+    participant Server as "server.js"
+    participant Organizer as "organizer.js"
+    participant Screen as "/screen"
+
+    App->>Server: POST /api/import-slideshow-images
+    Server->>Server: validate count, bytes, extensions and save assets
+    Server-->>App: imported image URLs
+    App->>Server: POST /api/image-slideshow/preflight
+    Server->>Server: hash, read metadata, flag duplicates/missing/unreadable
+    Server-->>App: per-image warnings and validCount
+    App->>Server: POST /api/organizer (images + duration + loop)
+    Server->>Organizer: buildPresentationFromOrganizer(...)
+    Server->>Server: arm _imageSlideshowTimer for total runtime
+    Server->>Screen: state:update
+    Screen->>Screen: crossfade images on schedule
+    Screen->>Server: image-slideshow:preload-error (on failure)
+    Note over Server: timer advances or loops, then resumes phase
+```
+
+## 9. Movie Playback and Fallback
+
+```mermaid
+sequenceDiagram
+    participant Server as "server.js"
+    participant Screen as "/screen"
+    participant Guard as "movieAdvance.js"
+
+    Server->>Screen: state:update (movie slide)
+    Screen->>Screen: play video
+    alt screen reports real length
+        Screen->>Server: slide:video-ready { durationMs }
+        Server->>Server: arm _movieTimer fallback
+    end
+    alt video ends
+        Screen->>Server: slide:video-ended
+        Server->>Guard: alreadyHandled(index, slideId)?
+        Guard-->>Server: first report only
+        Server->>Server: advance slide
+    else fallback fires
+        Note over Server: _movieTimer expires
+        Server->>Server: advance slide
+    end
+```
+
+## 10. ZIP Import
 
 ```mermaid
 flowchart TD
     A["POST /api/import-mass-zip"] --> B["decode base64 ZIP"]
-    B --> C["read settings.json"]
-    C --> D["clear current_mass"]
+    B --> C["read mass.json or settings.json"]
+    C --> D["replace current_mass via staging dir"]
     D --> E["extract safe readings entries only"]
-    E --> F["extract safe assets entries only"]
+    E --> F["extract safe media entries only"]
     F --> G["apply package to current state"]
     G --> H["emit state:update and scheduleSave(true)"]
 ```
 
-Unsafe nested or traversal-style ZIP entry paths are ignored.
+Unsafe nested or traversal-style ZIP entry paths are ignored, and the previous
+package stays in place until the new package is fully written.
 
-## 8. ZIP Export
+## 11. ZIP Export
 
 ```mermaid
 flowchart TD
     A["GET /api/export-mass-zip"] --> B["saveCurrentMass()"]
     B --> C["read current_mass package"]
-    C --> D["build settings payload"]
+    C --> D["build v3 mass.json"]
     D --> E["bundle readings and assets"]
     E --> F["stream ZIP response"]
 ```
 
-## 9. AVIF Export
+## 12. AVIF Export
 
 ```mermaid
 flowchart TD
-    A["client emits export:avif:start"] --> B["socket rate limit check"]
+    A["client emits export:avif:start"] --> B["socket rate limit + control check"]
     B --> C["saveCurrentMass()"]
     C --> D["convert eligible images with sharp"]
     D --> E["emit export:avif:progress"]
@@ -156,7 +228,7 @@ flowchart TD
     G --> H["client downloads /api/export-mass-zip-avif?token=..."]
 ```
 
-## 10. Archive Compression
+## 13. Archive Compression
 
 ```mermaid
 flowchart TD
@@ -167,19 +239,38 @@ flowchart TD
     E --> F["update metadata to storage=compressed"]
 ```
 
-## 11. Session Restore
+## 14. New Mass from USCCB Readings
+
+```mermaid
+sequenceDiagram
+    participant App as "App UI"
+    participant Server as "server.js"
+    participant RSS as "lectionaryRss.js"
+    participant USCCB as "bible.usccb.org"
+
+    App->>Server: POST /api/new-mass { useLectionaryRss: true }
+    Server->>RSS: fetchUsccbDailyReadings()
+    RSS->>USCCB: GET /readings.rss
+    USCCB-->>RSS: RSS XML
+    RSS-->>Server: { title, documents }
+    Server->>Server: build default organizer + attach reading stems
+    Server->>Server: build presentation and arm start timer
+    Server->>Server: emit state:update and scheduleSave(true)
+    Server-->>App: title, slideCount, lectionaryReadingsImported
+```
+
+## 15. Session Restore
 
 ```mermaid
 flowchart TD
-    A["server starts listening"] --> B["restoreSession()"]
-    B --> C{"session exists?"}
-    C -->|no| D["keep defaults"]
-    C -->|yes| E["restore session fields"]
-    E --> F{"current_mass has readings?"}
-    F -->|yes| G["import from current_mass"]
-    F -->|no| H["fallback to lastReadingsFolderPath"]
-    G --> I["build presentation"]
-    H --> I
-    I --> J["schedule start timer"]
-    J --> K["emit initial state:update"]
+    A["server starts listening"] --> B{"current_mass/mass.json exists?"}
+    B -->|no| C["reset runtime and set startupPrompt mass-library"]
+    B -->|yes| D["readMassPackageDefinition()"]
+    D --> E{"valid v3 document?"}
+    E -->|no| C
+    E -->|yes| F["apply package to state"]
+    F --> G["rebuild presentation"]
+    G --> H["schedule start timer"]
+    H --> I["emit initial state:update"]
+    C --> I
 ```

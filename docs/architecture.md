@@ -2,8 +2,8 @@
 
 ## System Model
 
-Sacra Lux is a server-centric presentation system. Every client renders
-from shared state, but only the server mutates that state.
+Sacra Lux is a server-centric presentation system. Every client renders from
+shared state, but only the server mutates that state.
 
 ```text
 operator UI / screen UI / remote UI
@@ -31,17 +31,19 @@ Sacra Lux has three synchronized client surfaces:
 - `/screen` — projector display
 - `/remote` — phone remote
 
-The operator UI owns organizer editing, slide editing, archive flows,
-screen settings, and app theme controls. The screen is a pure renderer.
-The remote is intentionally smaller and focuses on navigation, grouped
-jumping, section advance, and interstitial hold.
+The operator UI owns organizer editing, slide editing, archive flows, screen
+settings, app theme controls, and the PIN and Screen dialogs. The screen is a
+pure renderer that also reports movie end/ready and image-preload failures. The
+remote is intentionally smaller and focuses on navigation, grouped jumping,
+section advance, interstitial hold, and PIN handoff.
 
 ## Entry Points
 
 ### Electron mode
 
 `src/main.js` starts the shared server, opens BrowserWindows, manages the
-application menu, and exposes native-only actions through IPC and the preload bridge.
+application menu, and exposes native-only actions through IPC and the preload
+bridge.
 
 ### Web mode
 
@@ -57,14 +59,18 @@ application menu, and exposes native-only actions through IPC and the preload br
 ### Domain logic
 
 - `src/organizer.js` — organizer normalization and slide derivation
-- `src/readingsImporter.js` — reading import and pagination
+- `src/readingsImporter.js` — reading import, pagination, and pagination cache
+- `src/massDocument.js` — `mass.json` version 3 validation and serialization
 - `src/massHistory.js` — archive lifecycle and storage rules
+- `src/lectionaryRss.js` — USCCB Daily Readings RSS import
 
 ### Support and safety
 
-- `src/security.js` — PIN hashing, start tokens, lockouts, rate limits
+- `src/security.js` — PIN hashing, start tokens, control sessions, lockouts,
+  and rate limits
 - `src/logger.js` — consistent runtime logging
 - `src/persistence.js` — session save/load and migration
+- `src/themes.js` / `src/themes.json` — app UI theme definitions
 
 ## Persistent vs Derived Data
 
@@ -74,6 +80,10 @@ Persistent source of truth:
 - `manualSlides`
 - `screenSettings`
 - selected runtime metadata such as `massStartTime`
+- `appSettings.theme`
+
+Persisted to `~/.sacra-lux/current_mass/mass.json` as a version 3 Mass
+Document (see [mass_document.md](./mass_document.md)).
 
 Derived runtime data:
 
@@ -83,16 +93,19 @@ Derived runtime data:
 
 ## Timer Model
 
-Sacra Lux has several timer families:
+Sacra Lux has several timer families, all owned by `src/server.js`:
 
-- Mass start timer (gathering lead-in)
-- Mass cutover timer (first Mass slide at the scheduled time)
-- pre-mass loop timer
-- gathering timer
-- post-mass loop timer
-- countdown-slide timer
-- movie fallback timer
-- debounced persistence timer
+| Timer | Purpose |
+| --- | --- |
+| `_startTimer` | gathering lead-in, armed `gatheringMs` before `massStartTime` |
+| `_massStartTimer` | hard cutover to the first Mass slide at `massStartTime` |
+| `_preMassTimer` | pre-mass loop advance |
+| `_gatheringTimer` | gathering loop advance |
+| `_postMassTimer` | post-mass loop advance |
+| `_countdownTimer` | countdown-slide expiry and resume |
+| `_movieTimer` | movie fallback advance |
+| `_imageSlideshowTimer` | image-slideshow auto-advance |
+| `_saveTimer` | debounced persistence |
 
 The two Mass wall-clock timers are scheduled together from
 `scheduleStartTimer`. The lead-in arms gathering `gatheringMs` before
@@ -108,16 +121,21 @@ arms a fallback at the item's duration (or the movie's real length once a
 screen reports `slide:video-ready`). `src/movieAdvance.js` dedupes the end
 reports when several projector windows watch the same movie.
 
-Countdown slides temporarily take over auto-advance from the active
-phase timer. The remote interstitial-hold feature pauses active slide
-timers, swaps the rendered display to a chosen interstitial slide, then
-restores the previous slide and restarts timing as if the slide had just
-been selected.
+Image slideshows advance on `_imageSlideshowTimer` for their total runtime
+(every image plus the crossfades between them), including loop iterations, and
+fall back to the next slide when empty. Screens can report a failed preload
+via `image-slideshow:preload-error`, which drops the image from playable
+entries.
+
+Countdown slides temporarily take over auto-advance from the active phase
+timer. The remote interstitial-hold feature pauses active slide timers, swaps
+the rendered display to a chosen interstitial slide, then restores the previous
+slide and restarts timing as if the slide had just been selected.
 
 ## Display Override Model
 
-The screen can render from the selected `currentSlideIndex`, but runtime
-overrides may temporarily change what is shown:
+The screen renders from the selected `currentSlideIndex`, but runtime overrides
+may temporarily change what is shown:
 
 - `isBlack` hides content visually without changing slide selection
 - `interstitialHoldActive` renders an interstitial slide while preserving the
@@ -126,7 +144,16 @@ overrides may temporarily change what is shown:
 Those overrides are server-owned state and must not be implemented as
 client-only display hacks.
 
+## Control Authentication Model
+
+When a start PIN is configured, the server issues a control session token on
+PIN verification or start-pin change. Mutating HTTP requests and
+control-sensitive socket events require that token (cookie or
+`x-sacra-control` header). The full surface and its current limitations are in
+[interfaces.md](./interfaces.md) and
+[code_review_ears_report.md](./code_review_ears_report.md).
+
 ## Naming Notes
 
-`screenSettings` is the canonical runtime term. `displaySettings`
-remains compatibility language only for older imports and saved sessions.
+`screenSettings` is the canonical runtime term. `displaySettings` remains
+compatibility language only for older imports and saved sessions.

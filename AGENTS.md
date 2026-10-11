@@ -8,6 +8,7 @@ This file is the single maintained source of agent guidance for the
 repository.
 
 - [CLAUDE.md](./CLAUDE.md) and [GEMINI.md](./GEMINI.md) are compatibility pointers only
+- [.github/copilot-instructions.md](./.github/copilot-instructions.md) is a Copilot summary that defers here
 - tool-specific files should defer here instead of duplicating policy
 
 ## Working Directory
@@ -22,13 +23,16 @@ npm start
 npm run web
 npm run build
 npm run build:win
+npm run build:all
 npm run lint
 npm run check:version-sync
+npm run precommit
 npm test
 npm run test:unit
 npm run test:integration
 npm run test:e2e
 npm run test:e2e:headed
+npm run test:e2e:install
 ```
 
 ## Primary Architecture Rules
@@ -41,6 +45,7 @@ npm run test:e2e:headed
 6. Rebuild reading slides when layout-affecting reading settings change.
 7. Keep the Electron preload bridge narrow and documented.
 8. Treat remote display overrides such as interstitial hold as server-owned state, not client-only UI behavior.
+9. Keep control-session authorization in `src/security.js`; never gate control in a client.
 
 ## App Model
 
@@ -55,13 +60,16 @@ The server broadcasts full state snapshots over Socket.IO after changes.
 ## Key Modules
 
 - `src/server.js`: HTTP and Socket.IO composition root, timers, route wiring, and state mutation
-- `src/security.js`: PIN hashing, one-time start tokens, lockouts, and rate limiting
+- `src/security.js`: PIN hashing, one-time start tokens, control sessions, lockouts, and rate limiting
 - `src/logger.js`: shared runtime logging
 - `src/state.js`: in-memory state and safe client snapshot generation
 - `src/organizer.js`: pure organizer normalization and slide generation
-- `src/readingsImporter.js`: reading import and pagination
+- `src/readingsImporter.js`: reading import, pagination, and pagination cache
+- `src/massDocument.js`: `mass.json` version 3 validation and serialization
+- `src/lectionaryRss.js`: USCCB Daily Readings RSS import
 - `src/persistence.js`: session save/load and migration
 - `src/massHistory.js`: archive ID allocation, metadata, and archive lifecycle
+- `src/themes.js` / `src/themes.json`: app UI theme definitions
 - `src/movieAdvance.js`: dedupe guard for multi-screen movie-end reports
 - `src/main.js`: Electron entry point and native IPC handlers
 - `src/web.js`: headless server entry point
@@ -73,8 +81,10 @@ The approved `window.api` surface is:
 
 - `pickFolder()`
 - `pickImageFile()`
+- `pickVideoFile()`
 - `getMonitors()`
 - `setTargetMonitor()`
+- `setTargetMonitors()`
 - `setScreenFullscreen()`
 - `openMassFolder()`
 - `exportPdf()`
@@ -85,6 +95,7 @@ The approved `window.api` surface is:
 
 Key state fields:
 
+- `appSettings`
 - `presentation`
 - `readingsSource`
 - `organizerSequence`
@@ -95,6 +106,10 @@ Key state fields:
 - `interstitialHoldActive`
 - `interstitialHoldSlideIndex`
 - `massStartTime`
+- `hasStartPin`
+- `targetScreenId`
+- `targetScreenIds`
+- `screenFullscreen`
 - `preMassRunning`
 - `gatheringRunning`
 - `postMassRunning`
@@ -103,14 +118,23 @@ Key state fields:
 - `imageSlideshowLoopIteration`
 - `imageSlideshowError`
 - `activeMassArchiveId`
+- `startupPrompt`
+- `lastUpdated`
 
-Raw PIN values must never be exposed to clients. Use `getStateSnapshot()`.
+Raw PIN values must never be exposed to clients. Use `getStateSnapshot()`,
+which strips `startPin`, `startPinHash`, `interstitialHoldReturnSlideIndex`,
+and `interstitialHoldResumeState`, and adds `hasStartPin`.
 
 ## Screen Settings Notes
 
 `screenSettings` is the canonical rendering settings boundary.
 Legacy `displaySettings` naming still exists only for backward-compatible
 import or restore paths.
+
+Global fields include `fontFamily`, `fontSizePx`, `darkBackgroundUrl`,
+`lightBackgroundUrl`, `boldText`, `resolution` (`720p`/`1080p`/`1440p`/`4k`),
+and `transition` (`none`/`fade`). `colorBackgroundUrl` and `imageBackgroundUrl`
+are accepted only as legacy import aliases.
 
 Reading-related settings include separate outline controls for:
 
@@ -130,15 +154,17 @@ High-value routes:
 - `POST /api/screen-settings`
 - `POST /api/start-pin`
 - `POST /api/verify-pin`
+- `POST /api/new-mass`
 - `POST /api/import-mass-zip`
 - `GET /api/export-mass-zip`
 - `GET /api/mass-history`
+- `POST /api/import-slideshow-images`
 - `POST /api/image-slideshow/preflight`
 
 Socket.IO events:
 
-- client to server: `slide:next`, `slide:prev`, `slide:goto`, `slide:goto:remote`, `slide:video-ended`, `slide:video-ready`, `screen:interstitial-hold`, `screen:black`, `screen:settings`, `image-slideshow:preload-error`, `export:avif:start`
-- server to client: `state:update`, `export:avif:progress`, `export:avif:done`, `export:avif:error`, `interstitial:hold:error`
+- client to server: `control:auth`, `slide:next`, `slide:prev`, `slide:goto`, `slide:goto:remote`, `slide:video-ended`, `slide:video-ready`, `screen:interstitial-hold`, `screen:black`, `screen:settings`, `image-slideshow:preload-error`, `export:avif:start`
+- server to client: `state:update`, `control:required`, `control:ok`, `export:avif:progress`, `export:avif:done`, `export:avif:error`, `interstitial:hold:error`
 
 ## Safety Expectations
 
@@ -149,13 +175,19 @@ Socket.IO events:
 
 ## Markdown Workflow
 
-Markdown edits may trigger the repo markdownlint hook. Treat hook findings as part of the editing loop.
+The repo ships a `.markdownlintignore` (`sacra-lux/node_modules/`) for editors
+or agent harnesses that run markdownlint locally. No markdownlint config,
+dependency, npm script, or git hook is wired into this repository, so treat
+lint findings as editor/agent-local and keep the docs passing default
+markdownlint rules anyway.
 
 ## Version Policy
 
-For PR work targeting `main`, bump the package version in
-[sacra-lux/package.json](./sacra-lux/package.json).
-CI enforces version change and version-sync rules.
+For PR work, bump the package version in
+[sacra-lux/package.json](./sacra-lux/package.json) above `master` and run
+`npm run check:version-sync`. The GitHub workflows target the `main` branch
+while the default branch is `master`, so version (and other) CI does not run on
+current PRs; treat the version bump and the local gates as manual obligations.
 
 ## Public Repo Posture
 

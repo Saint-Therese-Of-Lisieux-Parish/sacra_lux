@@ -11,14 +11,15 @@ operator app, projector screen, and phone remote synchronized in real time.
 
 ## Core Capabilities
 
-- import readings from parish `.txt` files
-- build and edit a Mass organizer with readings, images, interstitials, text, prayers, hymns, and countdown slides
+- import readings from parish `.txt` files or the USCCB Daily Readings RSS feed
+- build and edit a Mass organizer with readings, images, image slideshows, movies, interstitials, text, prayers, hymns, and countdown slides
 - tune projector typography, background presets, outlines, and reading layout in the Display Settings dialog
 - edit slides with live preview in the Slide Editor dialog
 - use volunteer-friendly organizer controls, keyboard navigation, and grouped remote controls
 - run pre-mass, gathering, and post-mass automation
 - hold the display on an interstitial slide from the phone remote and resume the previous slide cleanly
-- manage Mass-local assets and background presets
+- choose from twelve app UI themes, including liturgical seasons
+- manage Mass-local assets, background presets, and image-slideshow batches
 - archive, duplicate, load, compress, import, and export Mass packages
 - export AVIF-optimized ZIPs and Electron-only PDFs
 
@@ -33,10 +34,13 @@ Key modules:
 - `src/server.js` — routes, sockets, timers, runtime orchestration
 - `src/state.js` — in-memory state and safe snapshot generation
 - `src/organizer.js` — organizer normalization and derived slide generation
-- `src/readingsImporter.js` — readings import and pagination
+- `src/readingsImporter.js` — readings import, pagination, and pagination cache
+- `src/massDocument.js` — `mass.json` version 3 validation and serialization
+- `src/lectionaryRss.js` — USCCB Daily Readings RSS import
 - `src/persistence.js` — session save/load and migration
 - `src/massHistory.js` — archive lifecycle and metadata
-- `src/security.js` — PIN verification, start tokens, lockouts, and rate limits
+- `src/security.js` — PINs, control sessions, start tokens, lockouts, and rate limits
+- `src/themes.js` / `src/themes.json` — app UI theme definitions
 - `src/main.js` — Electron entry point and native integrations
 - `src/preload.js` — narrow Electron renderer bridge
 
@@ -48,8 +52,10 @@ npm start
 npm run web
 npm run build
 npm run build:win
+npm run build:all
 npm run lint
 npm run check:version-sync
+npm run precommit
 npm test
 npm run test:unit
 npm run test:integration
@@ -79,7 +85,9 @@ Expected files include:
 - `Gospel.txt`
 - `mass_title.txt` optional
 
-Alternates like `Gospel-alternate_1.txt` are supported.
+Alternates like `Gospel-alternate_1.txt` are supported. Files named
+`description.txt`, `mass_title.txt`, and `passage_filenames.txt` are ignored as
+readings.
 
 Each reading file uses:
 
@@ -87,19 +95,24 @@ Each reading file uses:
 2. blank line
 3. reading body
 
-`---` on its own line forces a manual page break.
+`---` on its own line forces a manual page break. A line beginning with `R.`
+starts a new slide so a psalm refrain gets its own page.
+
+Sections are derived from the file stem, and the parish reading order is the
+psalm, then the readings, then the Gospel.
 
 ## Runtime Storage
 
 Sacra Lux stores mutable runtime data in `~/.sacra-lux/`:
 
-- `session.json`
-- `current_mass/`
-- `mass_history/`
-- `prayers/`
+- `session.json` — persisted session (version 2)
+- `current_mass/` — active Mass package (`mass.json`, readings, `assets/`)
+- `mass_history/` — archived Mass folders and compressed ZIPs
+- `prayers/` — prayer text storage
 
 `current_mass/` is treated as the active self-contained Mass package and is
-preferred during restore.
+preferred during restore. Its `mass.json` is a version 3 Mass Document; see
+[../docs/mass_document.md](../docs/mass_document.md).
 
 ## Electron Notes
 
