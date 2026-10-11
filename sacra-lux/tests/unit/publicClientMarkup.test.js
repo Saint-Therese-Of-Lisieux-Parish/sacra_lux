@@ -24,6 +24,14 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('${pageCount} slide${pageCount === 1 ? "" : "s"}${safeSourceMeta}');
   });
 
+  test("announcement sections import media by drag and drop without picker buttons", () => {
+    expect(appHtml).toContain('data-folder-import-phase="${item.phase}"');
+    expect(appHtml).toContain("function droppedImageFolder(dataTransfer)");
+    expect(appHtml).toContain("function importSingleMedia");
+    expect(appHtml).not.toContain("phase-folder-import-btn");
+    expect(appHtml).not.toContain("phaseFolderImportFiles");
+  });
+
   test("editor focus trap uses visible controls only", () => {
     expect(appHtml).toContain("function getVisibleFocusableElements(container)");
     expect(appHtml).toContain("const focusable = getVisibleFocusableElements(els.editorDialog);");
