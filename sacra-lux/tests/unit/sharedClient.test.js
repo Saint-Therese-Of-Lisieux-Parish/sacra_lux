@@ -1,6 +1,13 @@
 const fs = require("fs");
 const path = require("path");
-const { escapeHtml, formatCountdownTime, formatDurationTime, imageFileNameLabel, slideshowLabelFromFileNames } = require("../../public/client/shared.js");
+const {
+  escapeHtml,
+  formatCountdownTime,
+  formatDurationTime,
+  imageFileNameLabel,
+  knownFontName,
+  slideshowLabelFromFileNames
+} = require("../../public/client/shared.js");
 
 describe("shared client helpers", () => {
   describe("escapeHtml", () => {
@@ -142,6 +149,24 @@ describe("shared client helpers", () => {
       );
       expect(html).toContain("SacraLuxShared.slideshowLabelFromFileNames(");
       expect(html).not.toContain("labelFromImageUrl(images[0].name)");
+    });
+  });
+
+  describe("knownFontName", () => {
+    test("returns known font names unchanged", () => {
+      expect(knownFontName("Merriweather")).toBe("Merriweather");
+      expect(knownFontName("Source Sans 3")).toBe("Source Sans 3");
+    });
+
+    test("falls back for unknown or markup-bearing names", () => {
+      expect(knownFontName("Comic Sans MS")).toBe("");
+      expect(knownFontName('<img src=x onerror=alert(1)>')).toBe("");
+      expect(knownFontName("Lora', serif")).toBe("");
+    });
+
+    test("honors a custom fallback", () => {
+      expect(knownFontName("Unknown", "Merriweather")).toBe("Merriweather");
+      expect(knownFontName(undefined, "Merriweather")).toBe("Merriweather");
     });
   });
 });

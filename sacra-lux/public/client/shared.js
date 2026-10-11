@@ -21,6 +21,16 @@
       .replace(/'/g, "&#39;");
   }
 
+  /**
+   * Font names reach the projector through a CSS font-family string, so the
+   * pages use one known-Fonts whitelist for the names they render.
+   * Returns the exact whitelisted name, or "" for anything else.
+   */
+  function knownFontName(value, fallback = "") {
+    const name = typeof value === "string" ? value : String(value ?? "");
+    return VALID_FONT_NAMES.has(name) ? name : fallback;
+  }
+
   function formatCountdownTime(totalSeconds) {
     const remainSec = Math.max(0, Number(totalSeconds) || 0);
     if (remainSec < 60) return String(remainSec);
@@ -69,8 +79,31 @@
     return fallback;
   }
 
+  const VALID_FONT_NAMES = new Set([
+    "Merriweather",
+    "Lora",
+    "Playfair Display",
+    "Cormorant Garamond",
+    "EB Garamond",
+    "Libre Baskerville",
+    "Crimson Pro",
+    "Noto Serif",
+    "PT Serif",
+    "Source Sans 3",
+    "Inter",
+    "Open Sans",
+    "Roboto",
+    "Work Sans",
+    "Noto Sans",
+    "PT Sans",
+    "Montserrat",
+    "Poppins",
+    "Raleway"
+  ]);
+
   return {
     escapeHtml,
+    knownFontName,
     formatCountdownTime,
     formatDurationTime,
     imageFileNameLabel,

@@ -61,8 +61,9 @@ Current capabilities include:
 - `npm run test:e2e`
 
 GitHub Actions runs these quality checks on pull requests to and pushes to
-`master` (`ci.yml`). The separate `version-check.yml` still targets `main`, so
-that one check does not run; treat the version bump as a local obligation.
+`master` (`ci.yml`). The separate `version-check.yml` workflow also runs on pull
+requests to `master`. It fails the pull request when the package version is not
+above the `master` version. Bump the version in `sacra-lux/package.json`.
 
 ## Documentation
 
