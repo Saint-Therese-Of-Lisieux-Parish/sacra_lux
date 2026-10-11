@@ -47,6 +47,24 @@ describe("startup banner", () => {
     }
   });
 
+  test("paints each wordmark line with three gold tones", () => {
+    const { buildStartupBanner } = loadBanner();
+    const lines = buildStartupBanner({
+      version: pkg.version,
+      env: {}
+    }).split("\n");
+
+    for (const line of lines.slice(0, 4)) {
+      const codes = line.match(/\u001b\[38;5;\d+m/g);
+      expect(codes).toHaveLength(3);
+      expect(new Set(codes).size).toBeGreaterThanOrEqual(2);
+      expect(line.endsWith("\u001b[0m")).toBe(true);
+      expect(line.length).toBeLessThanOrEqual(80);
+    }
+    expect(lines[4]).toContain("\u001b[38;5;74m");
+    expect(lines[4]).toContain(pkg.version);
+  });
+
   test("omits color control codes when NO_COLOR is set", () => {
     const { buildStartupBanner } = loadBanner();
     const text = buildStartupBanner({
