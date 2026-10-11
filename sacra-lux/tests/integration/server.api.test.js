@@ -611,6 +611,35 @@ describe("server api integration", () => {
     });
   });
 
+  test("preview-manual-slide keeps only known countdown font names", async () => {
+    const basePayload = {
+      type: "countdown",
+      label: "Mass starts in",
+      phase: "pre",
+      backgroundTheme: "light",
+      manualSlide: {
+        text: "",
+        countdownSec: 60,
+        countdownStyle: "ring"
+      }
+    };
+
+    const markupRes = await request(app)
+      .post("/api/preview-manual-slide")
+      .send({ ...basePayload, manualSlide: { ...basePayload.manualSlide, countdownFont: '<img src=x onerror=alert(1)>' } })
+      .expect(200);
+
+    expect(markupRes.body.slides[0].countdownFont).toBe("");
+    expect(JSON.stringify(markupRes.body)).not.toContain("<img");
+
+    const validRes = await request(app)
+      .post("/api/preview-manual-slide")
+      .send({ ...basePayload, manualSlide: { ...basePayload.manualSlide, countdownFont: "Open Sans" } })
+      .expect(200);
+
+    expect(validRes.body.slides[0].countdownFont).toBe("Open Sans");
+  });
+
   test("organizer endpoint validates sequence payload", async () => {
     const res = await request(app)
       .post("/api/organizer")
@@ -1086,6 +1115,26 @@ describe("server api integration", () => {
     stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.currentSlideIndex).toBe(0);
     expect(stateRes.body.countdownEndsAt).toBeNull();
+  });
+
+  test("the organizer drops countdown font markup before it reaches the state", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "countdown:guard", type: "countdown", label: "Timer", phase: "pre", backgroundTheme: "dark", durationSec: 10 },
+          { id: "countdown:after", type: "text", label: "After", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: {
+          "countdown:guard": { text: "", countdownSec: 30, countdownFont: '<img src=x onerror=alert(1)>', countdownStyle: "ring", countdownSizePercent: 100 },
+          "countdown:after": { text: "After", notes: "", textVAlign: "middle", imageUrl: null }
+        }
+      })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.manualSlides["countdown:guard"].countdownFont).toBe("");
+    expect(JSON.stringify(stateRes.body)).not.toContain("<img");
   });
 
   test("a post-Mass loop does not survive loading another Mass", async () => {
