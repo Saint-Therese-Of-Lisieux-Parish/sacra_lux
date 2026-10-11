@@ -1069,7 +1069,9 @@
       const totalSec = Math.max(1, Math.min(300, Number(slide.countdownSec) || 60));
       const circumference = 2 * Math.PI * 90;
       const settings = window.__screenSettings || {};
-      const fontFamily = slide.countdownFont || settings.fontFamily || "Merriweather";
+      // Keep only known font names; markup or unknown values fall back to the screen font.
+      const fontFamily = SacraLuxShared.knownFontName(slide.countdownFont)
+        || SacraLuxShared.knownFontName(settings.fontFamily, "Merriweather");
       const countdownSizePercent = Math.max(50, Math.min(200, Number(slide.countdownSizePercent) || 100));
       const countdownStyle = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"].includes(slide.countdownStyle)
         ? slide.countdownStyle
