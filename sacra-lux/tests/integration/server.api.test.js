@@ -57,6 +57,57 @@ describe("server api integration", () => {
     expect(stateRes.body.startPin).toBeUndefined();
   });
 
+  test("new Mass can import the latest USCCB RSS readings", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Sample Lectionary Mass</title><description>
+          &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading"&gt;Isaiah 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The vision of Isaiah.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Alleluia &lt;a href="https://example.test/verse"&gt;Mark 1:15&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;R. Alleluia, alleluia.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;In the beginning was the Word.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      const response = await request(app)
+        .post("/api/new-mass")
+        .send({ useLectionaryRss: true })
+        .expect(200);
+
+      expect(response.body).toMatchObject({
+        title: "Sample Lectionary Mass",
+        lectionaryReadingsImported: true
+      });
+      expect(state.readingsSource.documents).toEqual([
+        expect.objectContaining({ section: "Reading I", passage: "Isaiah 1:1" }),
+        expect.objectContaining({ section: "Verse Before the Gospel", passage: "Mark 1:15" }),
+        expect.objectContaining({ section: "Gospel", passage: "John 1:1" })
+      ]);
+      expect(state.presentation.slides).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          organizerItemId: "mass-reading-1",
+          type: "reading",
+          passage: "Isaiah 1:1"
+        }),
+        expect.objectContaining({
+          organizerItemId: "mass-gospel",
+          type: "reading",
+          passage: "John 1:1"
+        }),
+        expect.objectContaining({
+          organizerItemId: "mass-gospel-acclamation",
+          type: "reading",
+          passage: "Mark 1:15"
+        })
+      ]));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("theme endpoints list Catholic themes first", async () => {
     const expectedCatholicIds = [
       "carmelite",
