@@ -5816,7 +5816,7 @@
         const sequence = getSequence();
         const manualSlides = getManualSlides();
         const id = uniqueId("imageSlideshow");
-        const label = `${folderName || "Image Folder"} Slideshow`;
+        const label = folderName || "Image Folder";
         sequence.splice(phaseInsertIndex(sequence, phase), 0, {
           id,
           type: "imageSlideshow",
