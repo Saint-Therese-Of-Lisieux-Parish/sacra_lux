@@ -1817,29 +1817,37 @@ function startServer(port = 17841, options = {}) {
     return next();
   });
 
-  const publicDir = path.join(__dirname, "..", "public");
+  // Express cannot stream files from an Electron ASAR archive. Packaged builds
+  // keep the public pages beside the archive so these routes work natively.
+  const unpackedPublicDir = process.resourcesPath
+    ? path.join(process.resourcesPath, "app.asar.unpacked", "public")
+    : null;
+  const publicDir = unpackedPublicDir && fs.existsSync(unpackedPublicDir)
+    ? unpackedPublicDir
+    : path.join(__dirname, "..", "public");
   app.use("/static", express.static(publicDir));
 
-  app.get("/", (_, res) => {
-    res.sendFile(path.join(publicDir, "app.html"));
-  });
+  function sendPublicPage(res, next, filename) {
+    try {
+      // Reading through Node's fs works both from source and inside an ASAR.
+      res.type("html").send(fs.readFileSync(path.join(publicDir, filename), "utf8"));
+    } catch (error) {
+      next(error);
+    }
+  }
 
-  app.get("/app", (_, res) => {
-    res.sendFile(path.join(publicDir, "app.html"));
-  });
+  app.get("/", (_, res, next) => sendPublicPage(res, next, "app.html"));
 
-  app.get("/screen", (_, res) => {
-    res.sendFile(path.join(publicDir, "screen.html"));
-  });
+  app.get("/app", (_, res, next) => sendPublicPage(res, next, "app.html"));
 
-  app.get("/remote", (_, res) => {
-    res.sendFile(path.join(publicDir, "remote.html"));
-  });
+  app.get("/screen", (_, res, next) => sendPublicPage(res, next, "screen.html"));
 
-  app.get("/start", (_, res) => {
+  app.get("/remote", (_, res, next) => sendPublicPage(res, next, "remote.html"));
+
+  app.get("/start", (_, res, next) => {
     // Skip straight to start-redirect when no PIN is configured.
     if (!hasPinConfigured()) return res.redirect("/api/start-redirect");
-    res.sendFile(path.join(publicDir, "start.html"));
+    return sendPublicPage(res, next, "start.html");
   });
 
   app.get("/api/state", (_, res) => {

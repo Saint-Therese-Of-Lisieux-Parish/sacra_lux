@@ -99,6 +99,9 @@
       }
     ],
     "asar": true,
+    "asarUnpack": [
+      "public/**/*"
+    ],
     "directories": {
       "output": "${env.HOME}/Documents/sacra-lux-dist"
     }

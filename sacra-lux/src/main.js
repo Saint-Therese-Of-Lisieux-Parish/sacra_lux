@@ -9,7 +9,11 @@ const { saveSession } = require("./persistence");
 const { listThemes, getTheme } = require("./themes");
 const logger = require("./logger");
 
-const PORT = 17841;
+const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
+const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
+  ? configuredPort
+  : 17841;
+let PORT = DEFAULT_PORT;
 const PRELOAD_PATH = path.join(__dirname, "preload.js");
 
 const pkg = require("../package.json");
@@ -39,6 +43,40 @@ function getLocalIpv4Address() {
   }
 
   return "localhost";
+}
+
+/**
+ * Start the Electron-owned server, falling back to an ephemeral local port
+ * when the preferred port is already used by a separately running web server.
+ */
+function startDesktopServer() {
+  return new Promise((resolve, reject) => {
+    const { io, server } = startServer(PORT);
+
+    const onListening = () => {
+      const address = server.address();
+      if (address && typeof address === "object") {
+        PORT = address.port;
+      }
+      resolve(io);
+    };
+
+    const onInitialError = (error) => {
+      if (error?.code !== "EADDRINUSE") {
+        reject(error);
+        return;
+      }
+
+      server.removeListener("listening", onListening);
+      logger.info(`[desktop] Port ${PORT} is already in use; selecting an available local port.`);
+      server.once("listening", onListening);
+      server.once("error", reject);
+      server.listen(0, "0.0.0.0");
+    };
+
+    server.once("listening", onListening);
+    server.once("error", onInitialError);
+  });
 }
 
 function isRemotePopupUrl(rawUrl) {
@@ -830,8 +868,8 @@ function buildAppMenu(ioRef) {
 
 function createSplash() {
   splashWindow = new BrowserWindow({
-    width: 500,
-    height: 420,
+    width: 430,
+    height: 330,
     frame: false,
     transparent: true,
     resizable: false,
@@ -861,17 +899,16 @@ function createSplash() {
     -webkit-app-region: drag; user-select: none;
   }
   .card {
-    background: rgba(30,30,30,0.95); border-radius: 18px; padding: 32px 48px;
-    text-align: center;
+    background: rgba(255, 252, 245, 0.98); border: 1px solid rgba(183, 132, 33, 0.45);
+    border-radius: 18px; box-shadow: 0 14px 36px rgba(5, 31, 73, 0.32);
+    padding: 18px 28px 20px; text-align: center;
   }
-  .icon { width: 320px; margin-bottom: 14px; border-radius: 10px; }
-  h1 { color: #f0e8d8; font-size: 32px; margin: 0 0 8px; font-weight: 600; }
-  .version { color: #a89878; font-size: 20px; margin: 0 0 4px; }
-  .build-date { color: #807060; font-size: 17px; margin: 0; }
+  .icon { display: block; width: 290px; max-width: 100%; margin: 0 auto 8px; }
+  .version { color: #546b89; font-size: 15px; margin: 0 0 3px; }
+  .build-date { color: #78684d; font-size: 13px; margin: 0; }
 </style></head><body>
 <div class="card">
   ${iconDataUrl ? `<img class="icon" src="${iconDataUrl}">` : ""}
-  <h1>Sacra Lux</h1>
   <p class="version">Version ${pkg.version}</p>
   <p class="build-date">${buildDate}</p>
 </div></body></html>`;
@@ -891,10 +928,10 @@ function createSplash() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createSplash();
   const splashCreatedAt = Date.now();
-  const { io } = startServer(PORT);
+  const io = await startDesktopServer();
   buildAppMenu(io);
 
   // Create windows immediately — close splash once the app page loads
@@ -957,6 +994,10 @@ app.whenReady().then(() => {
       createWindows();
     }
   });
+}).catch((error) => {
+  logger.error(`[desktop] Failed to start: ${error.message}`);
+  dialog.showErrorBox("Sacra Lux could not start", error.message);
+  app.quit();
 });
 
 app.on("window-all-closed", () => {
