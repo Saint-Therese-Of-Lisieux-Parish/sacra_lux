@@ -1,0 +1,55 @@
+name: Smoke
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+jobs:
+  packaged-smoke:
+    name: packaged smoke (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-intel
+            os: macos-15-intel
+            build: --mac --x64
+            appPath: dist/mac/Sacra Lux.app/Contents/MacOS/Sacra Lux
+          - name: macos-arm
+            os: macos-15
+            build: --mac --arm64
+            appPath: dist/mac-arm64/Sacra Lux.app/Contents/MacOS/Sacra Lux
+          - name: windows
+            os: windows-latest
+            build: --win --x64
+            appPath: dist/win-unpacked/Sacra Lux.exe
+    defaults:
+      run:
+        working-directory: sacra-lux
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sacra-lux/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build unpacked app
+        run: npx electron-builder --dir ${{ matrix.build }} "--config.directories.output=dist"
+
+      - name: Smoke test packaged app
+        env:
+          SMOKE_APP_PATH: ${{ matrix.appPath }}
+          SACRA_LUX_PORT: "17841"
+        run: node ./scripts/smoke-packaged.js
