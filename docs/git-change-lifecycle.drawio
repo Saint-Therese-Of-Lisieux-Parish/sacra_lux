@@ -1,601 +1,562 @@
 <mxfile host="app.diagrams.net" agent="opencode" type="device">
-  <diagram id="git-change-lifecycle" name="Git Change Lifecycle">
-    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="910" math="0" shadow="0">
+  <diagram id="Git Change Lifecycle" name="Git Change Lifecycle">
+    <mxGraphModel dx="1400" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="980" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="1600" height="910" as="geometry"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="980" as="geometry"/>
         </mxCell>
-        <mxCell id="header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1F6FEB;gradientColor=#7C3AED;gradientDirection=east;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="1600" height="120" as="geometry"/>
+        <mxCell id="frame1" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#A8862B;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="22" y="22" width="1556" height="936" as="geometry"/>
         </mxCell>
-        <mxCell id="eyebrow" value="PLATFORM ENGINEERING &#160;&#183;&#160; CHANGE DELIVERY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#C9DEFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="12" width="900" height="20" as="geometry"/>
+        <mxCell id="frame2" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#D9C48A;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="30" width="1540" height="920" as="geometry"/>
         </mxCell>
-        <mxCell id="title" value="The Git Change Lifecycle" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=34;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="30" width="1000" height="48" as="geometry"/>
+        <mxCell id="emblem" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="780" y="48" width="40" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="subtitle" value="From issue to protected trunk &#8212; a governed, evidence-driven change pipeline." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#E2ECFF;fontSize=14;" vertex="1" parent="1">
-          <mxGeometry x="40" y="80" width="1000" height="26" as="geometry"/>
+        <mxCell id="emblem_d" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="791.6" y="59.6" width="16.8" height="16.8" as="geometry"/>
         </mxCell>
-        <mxCell id="badge1" value="ISSUE-DRIVEN" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0B1220;fillOpacity=32;strokeColor=#FFFFFF;strokeOpacity=70;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1084" y="43" width="148" height="34" as="geometry"/>
+        <mxCell id="eyebrow" value="PLATFORM ENGINEERING" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#A8862B;fontSize=12;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="400" y="96" width="800" height="20" as="geometry"/>
         </mxCell>
-        <mxCell id="badge2" value="POLICY-GATED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0B1220;fillOpacity=32;strokeColor=#FFFFFF;strokeOpacity=70;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1248" y="43" width="148" height="34" as="geometry"/>
+        <mxCell id="title" value="The Git Change Lifecycle" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=38;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="200" y="118" width="1200" height="52" as="geometry"/>
         </mxCell>
-        <mxCell id="badge3" value="ZERO DRIFT" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0B1220;fillOpacity=32;strokeColor=#FFFFFF;strokeOpacity=70;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1412" y="43" width="148" height="34" as="geometry"/>
+        <mxCell id="subtitle" value="From issue to protected trunk &#8212; a governed, evidence-driven change pipeline." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=14;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="300" y="174" width="1000" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="deck" value="" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#1E2A45;" vertex="1" parent="1">
-          <mxGeometry x="20" y="140" width="1560" height="510" as="geometry"/>
+        <mxCell id="rule_l" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="560" y="214" width="200" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="decklabel" value="CHANGE PIPELINE &#160;&#8212;&#160; ISSUE TO TRUNK" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="36" y="148" width="700" height="20" as="geometry"/>
+        <mxCell id="rule_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="840" y="214" width="200" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p1" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="32" y="210" width="236" height="410" as="geometry"/>
+        <mxCell id="rule_d" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="794" y="208" width="12" height="12" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_num" value="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#4C8DFF;strokeColor=none;fontColor=#0B1220;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="50" y="228" width="38" height="38" as="geometry"/>
+        <mxCell id="badges" value="ISSUE-DRIVEN &#160;&#9670;&#160; POLICY-GATED &#160;&#9670;&#160; PROTECTED TRUNK" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=12;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="400" y="232" width="800" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_icon" value="📋" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;" vertex="1" parent="1">
-          <mxGeometry x="206" y="226" width="44" height="40" as="geometry"/>
+        <mxCell id="c0" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="89.0" y="300" width="212" height="395" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_title" value="INTAKE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="48" y="280" width="204" height="26" as="geometry"/>
+        <mxCell id="c0_m" value="I" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;fontColor=#1F3B73;fontSize=15;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="174.0" y="279" width="42" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_thesis" value="Turn a request into a testable contract." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#8B949E;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="48" y="310" width="204" height="46" as="geometry"/>
+        <mxCell id="c0_t" value="INTAKE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=17;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="99.0" y="326" width="192" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_div" value="" style="rounded=0;html=1;fillColor=#2A3550;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="48" y="364" width="204" height="1" as="geometry"/>
+        <mxCell id="c0_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="145.0" y="358" width="100" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_body" value="&#8226; &lt;b&gt;Issue-defined scope&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; EARS requirements&lt;br&gt;&lt;br&gt;&#8226; Owner-confirmed criteria&lt;br&gt;&lt;br&gt;&#8226; No work without a contract" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=13;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="48" y="378" width="204" height="180" as="geometry"/>
+        <mxCell id="c0_th" value="A request becomes a contract." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#6E6555;fontSize=11.5;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="101.0" y="370" width="188" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="p1_gate" value="GATE &#183; CRITERIA CONFIRMED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#4C8DFF;fontColor=#4C8DFF;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="48" y="566" width="204" height="34" as="geometry"/>
+        <mxCell id="c0_d" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="103.0" y="422" width="184" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p2" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#A371F7;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="292" y="210" width="236" height="410" as="geometry"/>
+        <mxCell id="c0_b" value="&#8226;&#160; Issue-defined scope&lt;br&gt;&lt;br&gt;&#8226;&#160; EARS requirements&lt;br&gt;&lt;br&gt;&#8226;&#160; Owner-confirmed criteria&lt;br&gt;&lt;br&gt;&#8226;&#160; No work without a contract" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="107.0" y="438" width="176" height="250" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_num" value="2" style="ellipse;whiteSpace=wrap;html=1;fillColor=#A371F7;strokeColor=none;fontColor=#0B1220;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="310" y="228" width="38" height="38" as="geometry"/>
+        <mxCell id="c0_g" value="GATE &#183; CRITERIA CONFIRMED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;fontColor=#7A5F14;fontSize=9.5;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="107.0" y="622" width="176" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_icon" value="🌳" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;" vertex="1" parent="1">
-          <mxGeometry x="466" y="226" width="44" height="40" as="geometry"/>
+        <mxCell id="ln0" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="305.0" y="497.5" width="22" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_title" value="ISOLATE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="308" y="280" width="204" height="26" as="geometry"/>
+        <mxCell id="cd0" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="311.0" y="492.5" width="10" height="10" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_thesis" value="One change, one clean, reproducible base." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#8B949E;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="308" y="310" width="204" height="46" as="geometry"/>
+        <mxCell id="c1" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="331.0" y="300" width="212" height="395" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_div" value="" style="rounded=0;html=1;fillColor=#2A3550;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="308" y="364" width="204" height="1" as="geometry"/>
+        <mxCell id="c1_m" value="II" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;fontColor=#1F3B73;fontSize=15;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="416.0" y="279" width="42" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_body" value="&#8226; &lt;b&gt;Ephemeral worktree&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; One branch, one change&lt;br&gt;&lt;br&gt;&#8226; Pinned to origin/master&lt;br&gt;&lt;br&gt;&#8226; No shared working tree" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=13;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="308" y="378" width="204" height="180" as="geometry"/>
+        <mxCell id="c1_t" value="ISOLATE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=17;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="341.0" y="326" width="192" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_gate" value="GATE &#183; CLEAN BASE" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#A371F7;fontColor=#A371F7;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="308" y="566" width="204" height="34" as="geometry"/>
+        <mxCell id="c1_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="387.0" y="358" width="100" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p3" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#F0883E;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="552" y="210" width="236" height="410" as="geometry"/>
+        <mxCell id="c1_th" value="One change, one clean base." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#6E6555;fontSize=11.5;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="343.0" y="370" width="188" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_num" value="3" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F0883E;strokeColor=none;fontColor=#0B1220;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="570" y="228" width="38" height="38" as="geometry"/>
+        <mxCell id="c1_d" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="345.0" y="422" width="184" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_icon" value="⚙️" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;" vertex="1" parent="1">
-          <mxGeometry x="726" y="226" width="44" height="40" as="geometry"/>
+        <mxCell id="c1_b" value="&#8226;&#160; Ephemeral worktree&lt;br&gt;&lt;br&gt;&#8226;&#160; One branch, one change&lt;br&gt;&lt;br&gt;&#8226;&#160; Pinned to origin/master&lt;br&gt;&lt;br&gt;&#8226;&#160; No shared working tree" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="349.0" y="438" width="176" height="250" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_title" value="BUILD" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="568" y="280" width="204" height="26" as="geometry"/>
+        <mxCell id="c1_g" value="GATE &#183; CLEAN BASE" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;fontColor=#7A5F14;fontSize=9.5;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="349.0" y="622" width="176" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_thesis" value="Commit small, logical, traceable units." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#8B949E;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="568" y="310" width="204" height="46" as="geometry"/>
+        <mxCell id="ln1" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="547.0" y="497.5" width="22" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_div" value="" style="rounded=0;html=1;fillColor=#2A3550;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="568" y="364" width="204" height="1" as="geometry"/>
+        <mxCell id="cd1" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="553.0" y="492.5" width="10" height="10" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_body" value="&#8226; &lt;b&gt;Atomic commits&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; Traced to the issue&lt;br&gt;&lt;br&gt;&#8226; Deliberate staging&lt;br&gt;&lt;br&gt;&#8226; Small, reviewable diffs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=13;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="568" y="378" width="204" height="180" as="geometry"/>
+        <mxCell id="c2" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="573.0" y="300" width="212" height="395" as="geometry"/>
         </mxCell>
-        <mxCell id="p3_gate" value="GATE &#183; COMMITS READY" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#F0883E;fontColor=#F0883E;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="568" y="566" width="204" height="34" as="geometry"/>
+        <mxCell id="c2_m" value="III" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;fontColor=#1F3B73;fontSize=15;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="658.0" y="279" width="42" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="p4" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#3FB950;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="812" y="210" width="236" height="410" as="geometry"/>
+        <mxCell id="c2_t" value="BUILD" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=17;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="583.0" y="326" width="192" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_num" value="4" style="ellipse;whiteSpace=wrap;html=1;fillColor=#3FB950;strokeColor=none;fontColor=#0B1220;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="830" y="228" width="38" height="38" as="geometry"/>
+        <mxCell id="c2_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="629.0" y="358" width="100" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_icon" value="✅" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;" vertex="1" parent="1">
-          <mxGeometry x="986" y="226" width="44" height="40" as="geometry"/>
+        <mxCell id="c2_th" value="Small, traceable units." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#6E6555;fontSize=11.5;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="585.0" y="370" width="188" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_title" value="VERIFY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="828" y="280" width="204" height="26" as="geometry"/>
+        <mxCell id="c2_d" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="587.0" y="422" width="184" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_thesis" value="Prove correctness automatically, per criterion." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#8B949E;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="828" y="310" width="204" height="46" as="geometry"/>
+        <mxCell id="c2_b" value="&#8226;&#160; Atomic commits&lt;br&gt;&lt;br&gt;&#8226;&#160; Traced to the issue&lt;br&gt;&lt;br&gt;&#8226;&#160; Deliberate staging&lt;br&gt;&lt;br&gt;&#8226;&#160; Small, reviewable diffs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="591.0" y="438" width="176" height="250" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_div" value="" style="rounded=0;html=1;fillColor=#2A3550;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="828" y="364" width="204" height="1" as="geometry"/>
+        <mxCell id="c2_g" value="GATE &#183; COMMITS READY" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;fontColor=#7A5F14;fontSize=9.5;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="591.0" y="622" width="176" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_body" value="&#8226; &lt;b&gt;Unit &#183; integration &#183; e2e&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; Lint &#183; format &#183; policy&lt;br&gt;&lt;br&gt;&#8226; Fail-closed gates&lt;br&gt;&lt;br&gt;&#8226; Evidence per criterion" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=13;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="828" y="378" width="204" height="180" as="geometry"/>
+        <mxCell id="ln2" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="789.0" y="497.5" width="22" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p4_gate" value="GATE &#183; ALL CHECKS GREEN" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#3FB950;fontColor=#3FB950;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="828" y="566" width="204" height="34" as="geometry"/>
+        <mxCell id="cd2" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="795.0" y="492.5" width="10" height="10" as="geometry"/>
         </mxCell>
-        <mxCell id="p5" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#E3B341;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1072" y="210" width="236" height="410" as="geometry"/>
+        <mxCell id="c3" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="815.0" y="300" width="212" height="395" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_num" value="5" style="ellipse;whiteSpace=wrap;html=1;fillColor=#E3B341;strokeColor=none;fontColor=#0B1220;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1090" y="228" width="38" height="38" as="geometry"/>
+        <mxCell id="c3_m" value="IV" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;fontColor=#1F3B73;fontSize=15;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="900.0" y="279" width="42" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_icon" value="🔐" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;" vertex="1" parent="1">
-          <mxGeometry x="1246" y="226" width="44" height="40" as="geometry"/>
+        <mxCell id="c3_t" value="VERIFY" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=17;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="825.0" y="326" width="192" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_title" value="GOVERN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1088" y="280" width="204" height="26" as="geometry"/>
+        <mxCell id="c3_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="871.0" y="358" width="100" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_thesis" value="Enforce policy before anything reaches trunk." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#8B949E;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="1088" y="310" width="204" height="46" as="geometry"/>
+        <mxCell id="c3_th" value="Proof, per criterion." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#6E6555;fontSize=11.5;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="827.0" y="370" width="188" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_div" value="" style="rounded=0;html=1;fillColor=#2A3550;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1088" y="364" width="204" height="1" as="geometry"/>
+        <mxCell id="c3_d" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="829.0" y="422" width="184" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_body" value="&#8226; &lt;b&gt;Required CI checks&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; Human sign-off, high-risk&lt;br&gt;&lt;br&gt;&#8226; Protected trunk&lt;br&gt;&lt;br&gt;&#8226; No admin bypass" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=13;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="1088" y="378" width="204" height="180" as="geometry"/>
+        <mxCell id="c3_b" value="&#8226;&#160; Unit &#183; integration &#183; e2e&lt;br&gt;&lt;br&gt;&#8226;&#160; Lint &#183; format &#183; policy&lt;br&gt;&lt;br&gt;&#8226;&#160; Fail-closed gates&lt;br&gt;&lt;br&gt;&#8226;&#160; Evidence per criterion" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="833.0" y="438" width="176" height="250" as="geometry"/>
         </mxCell>
-        <mxCell id="p5_gate" value="GATE &#183; APPROVED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#E3B341;fontColor=#E3B341;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1088" y="566" width="204" height="34" as="geometry"/>
+        <mxCell id="c3_g" value="GATE &#183; ALL CHECKS GREEN" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;fontColor=#7A5F14;fontSize=9.5;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="833.0" y="622" width="176" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="p6" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#39C5CF;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1332" y="210" width="236" height="410" as="geometry"/>
+        <mxCell id="ln3" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1031.0" y="497.5" width="22" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_num" value="6" style="ellipse;whiteSpace=wrap;html=1;fillColor=#39C5CF;strokeColor=none;fontColor=#0B1220;fontSize=18;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1350" y="228" width="38" height="38" as="geometry"/>
+        <mxCell id="cd3" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1037.0" y="492.5" width="10" height="10" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_icon" value="🚀" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=26;" vertex="1" parent="1">
-          <mxGeometry x="1506" y="226" width="44" height="40" as="geometry"/>
+        <mxCell id="c4" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1057.0" y="300" width="212" height="395" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_title" value="RELEASE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=17;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1348" y="280" width="204" height="26" as="geometry"/>
+        <mxCell id="c4_m" value="V" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;fontColor=#1F3B73;fontSize=15;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1142.0" y="279" width="42" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_thesis" value="Land one change safely, leave no residue." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#8B949E;fontSize=11;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="1348" y="310" width="204" height="46" as="geometry"/>
+        <mxCell id="c4_t" value="GOVERN" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=17;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1067.0" y="326" width="192" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_div" value="" style="rounded=0;html=1;fillColor=#2A3550;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="1348" y="364" width="204" height="1" as="geometry"/>
+        <mxCell id="c4_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1113.0" y="358" width="100" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_body" value="&#8226; &lt;b&gt;Merge commit, history kept&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; Confirm &amp; reconcile&lt;br&gt;&lt;br&gt;&#8226; Prune, fast-forward&lt;br&gt;&lt;br&gt;&#8226; Issue closed" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=13;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="1348" y="378" width="204" height="180" as="geometry"/>
+        <mxCell id="c4_th" value="Policy before trunk." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#6E6555;fontSize=11.5;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1069.0" y="370" width="188" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="p6_gate" value="GATE &#183; MERGED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0E1526;strokeColor=#39C5CF;fontColor=#39C5CF;fontSize=10;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1348" y="566" width="204" height="34" as="geometry"/>
+        <mxCell id="c4_d" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1071.0" y="422" width="184" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="arrow1" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#4C7BD9;strokeWidth=2.5;exitX=1;exitY=0.45;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" edge="1" parent="1" source="p1" target="p2">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="c4_b" value="&#8226;&#160; Required CI checks&lt;br&gt;&lt;br&gt;&#8226;&#160; Human sign-off, high-risk&lt;br&gt;&lt;br&gt;&#8226;&#160; Protected trunk&lt;br&gt;&lt;br&gt;&#8226;&#160; No admin bypass" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1075.0" y="438" width="176" height="250" as="geometry"/>
         </mxCell>
-        <mxCell id="arrow2" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#4C7BD9;strokeWidth=2.5;exitX=1;exitY=0.45;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" edge="1" parent="1" source="p2" target="p3">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="c4_g" value="GATE &#183; APPROVED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;fontColor=#7A5F14;fontSize=9.5;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1075.0" y="622" width="176" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="arrow3" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#4C7BD9;strokeWidth=2.5;exitX=1;exitY=0.45;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" edge="1" parent="1" source="p3" target="p4">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="ln4" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1273.0" y="497.5" width="22" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="arrow4" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#4C7BD9;strokeWidth=2.5;exitX=1;exitY=0.45;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" edge="1" parent="1" source="p4" target="p5">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="cd4" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1279.0" y="492.5" width="10" height="10" as="geometry"/>
         </mxCell>
-        <mxCell id="arrow5" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#4C7BD9;strokeWidth=2.5;exitX=1;exitY=0.45;exitDx=0;exitDy=0;entryX=0;entryY=0.45;entryDx=0;entryDy=0;" edge="1" parent="1" source="p5" target="p6">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="c5" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="1299.0" y="300" width="212" height="395" as="geometry"/>
         </mxCell>
-        <mxCell id="rework" value="FAIL-CLOSED &#8212; rework, never weaken checks" style="edgeStyle=none;curved=1;html=1;dashed=1;strokeColor=#F85149;strokeWidth=2;endArrow=block;endFill=1;fontColor=#F85149;fontSize=11;fontStyle=2;labelBackgroundColor=#0B1220;verticalLabelPosition=top;verticalAlign=bottom;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="p4" target="p3">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="c5_m" value="VI" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;fontColor=#1F3B73;fontSize=15;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1384.0" y="279" width="42" height="42" as="geometry"/>
         </mxCell>
-        <mxCell id="outcomes" value="" style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#0F1729;strokeColor=#1E2A45;" vertex="1" parent="1">
-          <mxGeometry x="20" y="680" width="1560" height="150" as="geometry"/>
+        <mxCell id="c5_t" value="RELEASE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=17;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1309.0" y="326" width="192" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="outcomes_title" value="WHAT YOU GET" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="686" width="400" height="20" as="geometry"/>
+        <mxCell id="c5_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1355.0" y="358" width="100" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="pill1" value="🛡 &lt;b&gt;Protected trunk&lt;/b&gt;&lt;br&gt;&lt;font color='#8B949E'&gt;No direct pushes to master&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#131C2E;strokeColor=#24304C;fontColor=#E6EDF3;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="50" y="715" width="360" height="95" as="geometry"/>
+        <mxCell id="c5_th" value="Land, then reconcile." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#6E6555;fontSize=11.5;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1311.0" y="370" width="188" height="44" as="geometry"/>
         </mxCell>
-        <mxCell id="pill2" value="🔗 &lt;b&gt;Full traceability&lt;/b&gt;&lt;br&gt;&lt;font color='#8B949E'&gt;Issue &#8594; commit &#8594; PR &#8594; merge&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#131C2E;strokeColor=#24304C;fontColor=#E6EDF3;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="430" y="715" width="360" height="95" as="geometry"/>
+        <mxCell id="c5_d" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1313.0" y="422" width="184" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="pill3" value="🎯 &lt;b&gt;Zero drift&lt;/b&gt;&lt;br&gt;&lt;font color='#8B949E'&gt;Worktrees and branches pruned&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#131C2E;strokeColor=#24304C;fontColor=#E6EDF3;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="810" y="715" width="360" height="95" as="geometry"/>
+        <mxCell id="c5_b" value="&#8226;&#160; Merge commit, history kept&lt;br&gt;&lt;br&gt;&#8226;&#160; Confirm &amp; reconcile&lt;br&gt;&lt;br&gt;&#8226;&#160; Prune, fast-forward&lt;br&gt;&lt;br&gt;&#8226;&#160; Issue closed" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1317.0" y="438" width="176" height="250" as="geometry"/>
         </mxCell>
-        <mxCell id="pill4" value="↻ &lt;b&gt;Deterministic rollback&lt;/b&gt;&lt;br&gt;&lt;font color='#8B949E'&gt;Per-change commit history&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#131C2E;strokeColor=#24304C;fontColor=#E6EDF3;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="1190" y="715" width="360" height="95" as="geometry"/>
+        <mxCell id="c5_g" value="GATE &#183; MERGED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;fontColor=#7A5F14;fontSize=9.5;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1317.0" y="622" width="176" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="footer_left" value="SAFETY RAILS &#160;&#8226;&#160; Unrelated problem &#8594; open its own issue &#160;&#8226;&#160; Blocked push &#8594; stop and escalate to a human" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#8B949E;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="40" y="852" width="1100" height="40" as="geometry"/>
+        <mxCell id="outpanel" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="89.0" y="735" width="1422" height="150" as="geometry"/>
         </mxCell>
-        <mxCell id="footer_right" value="Issue-driven &#183; Review-gated &#183; Merge-commit history" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontColor=#5B9BFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1160" y="852" width="400" height="40" as="geometry"/>
+        <mxCell id="outtitle" value="OUTCOMES" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#A8862B;fontSize=13;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="89.0" y="747" width="1422" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="o0" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="261.75" y="781" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="o0_a" value="Protected trunk" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=14;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="89.0" y="799" width="355.5" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="o0_b" value="No direct pushes to master" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="89.0" y="823" width="355.5" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="o1" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="617.25" y="781" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="o1_a" value="Full traceability" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=14;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="444.5" y="799" width="355.5" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="o1_b" value="Issue &#8594; commit &#8594; PR &#8594; merge" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="444.5" y="823" width="355.5" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="o2" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="972.75" y="781" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="o2_a" value="Zero drift" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=14;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="800.0" y="799" width="355.5" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="o2_b" value="Worktrees and branches pruned" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="800.0" y="823" width="355.5" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="o3" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1328.25" y="781" width="10" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="o3_a" value="Deterministic rollback" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=14;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1155.5" y="799" width="355.5" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="o3_b" value="Per-change commit history" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1155.5" y="823" width="355.5" height="22" as="geometry"/>
+        </mxCell>
+        <mxCell id="footer" value="Order &#160;&#183;&#160; Evidence &#160;&#183;&#160; Stewardship" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#A8862B;fontSize=12;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="400" y="916" width="800" height="22" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram id="change-decision-tree" name="Change Decision Tree">
-    <mxGraphModel dx="1800" dy="1200" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="4410" math="0" shadow="0">
+  <diagram id="Change Decision Tree" name="Change Decision Tree">
+    <mxGraphModel dx="1400" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="3720" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
-        <mxCell id="p2_bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="1600" height="4410" as="geometry"/>
+        <mxCell id="bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1600" height="3720" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1F6FEB;gradientColor=#7C3AED;gradientDirection=east;strokeColor=none;" vertex="1" parent="1">
-          <mxGeometry x="0" y="0" width="1600" height="120" as="geometry"/>
+        <mxCell id="frame1" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#A8862B;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="22" y="22" width="1556" height="3676" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_eyebrow" value="PLATFORM ENGINEERING &#160;&#183;&#160; CHANGE DELIVERY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#C9DEFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="12" width="800" height="20" as="geometry"/>
+        <mxCell id="frame2" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#D9C48A;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="30" width="1540" height="3660" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_title" value="Change Decision Tree" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#FFFFFF;fontSize=30;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="30" width="900" height="44" as="geometry"/>
+        <mxCell id="emblem" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=#A8862B;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="780" y="48" width="40" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_subtitle" value="Every gate a change must clear &#8212; from intake to protected master." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#E2ECFF;fontSize=13.5;" vertex="1" parent="1">
-          <mxGeometry x="40" y="76" width="900" height="24" as="geometry"/>
+        <mxCell id="emblem_d" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="791.6" y="59.6" width="16.8" height="16.8" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_badge1" value="INTAKE &#8594; MERGE" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0B1220;fillOpacity=32;strokeColor=#FFFFFF;strokeOpacity=70;fontColor=#FFFFFF;fontSize=10.5;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="962" y="44" width="140" height="32" as="geometry"/>
+        <mxCell id="eyebrow" value="PLATFORM ENGINEERING" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#A8862B;fontSize=12;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="400" y="96" width="800" height="20" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_badge2" value="FAIL-CLOSED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0B1220;fillOpacity=32;strokeColor=#FFFFFF;strokeOpacity=70;fontColor=#FFFFFF;fontSize=10.5;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1114" y="44" width="140" height="32" as="geometry"/>
+        <mxCell id="title" value="The Change Decision Tree" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#1F3B73;fontSize=38;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="200" y="118" width="1200" height="52" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_badge3" value="HUMAN-GATED" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#0B1220;fillOpacity=32;strokeColor=#FFFFFF;strokeOpacity=70;fontColor=#FFFFFF;fontSize=10.5;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1266" y="44" width="140" height="32" as="geometry"/>
+        <mxCell id="subtitle" value="Every gate a change must clear &#8212; from intake to protected master." style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=14;fontStyle=2;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="300" y="174" width="1000" height="24" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_legend" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#0F1729;strokeColor=#1E2A45;" vertex="1" parent="1">
-          <mxGeometry x="1024" y="150" width="440" height="120" as="geometry"/>
+        <mxCell id="rule_l" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="560" y="214" width="200" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_legend_t" value="LEGEND" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1040" y="154" width="200" height="16" as="geometry"/>
+        <mxCell id="rule_r" value="" style="rounded=0;html=1;fillColor=#D9C48A;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="840" y="214" width="200" height="1" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg1" value="" style="rounded=1;arcSize=20;html=1;fillColor=#1A2230;strokeColor=#4C8DFF;" vertex="1" parent="1">
-          <mxGeometry x="1040" y="182" width="28" height="16" as="geometry"/>
+        <mxCell id="rule_d" value="" style="rhombus;html=1;fillColor=#A8862B;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="794" y="208" width="12" height="12" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg1t" value="Process step" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#C9D1D9;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1076" y="178" width="160" height="24" as="geometry"/>
+        <mxCell id="badges" value="ISSUE-DRIVEN &#160;&#9670;&#160; POLICY-GATED &#160;&#9670;&#160; HUMAN-GATED" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontColor=#6E6555;fontSize=12;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="400" y="232" width="800" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg2" value="" style="rhombus;html=1;fillColor=#1E2A45;strokeColor=#E3B341;" vertex="1" parent="1">
-          <mxGeometry x="1250" y="176" width="24" height="26" as="geometry"/>
+        <mxCell id="N1" value="Change request &#8212; GitHub Issue with EARS requirements and acceptance criteria" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#1F3B73;strokeColor=none;fontColor=#F5EFE2;fontSize=14;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="256" width="560" height="72" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg2t" value="Decision gate" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#C9D1D9;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1282" y="178" width="170" height="24" as="geometry"/>
+        <mxCell id="D1" value="Are the acceptance criteria confirmed by a human (or an owner-requested EARS rewrite)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#2A2823;fontSize=12;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="480" y="376" width="520" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg3" value="" style="rounded=1;arcSize=20;html=1;fillColor=#2A1518;strokeColor=#F85149;" vertex="1" parent="1">
-          <mxGeometry x="1040" y="216" width="28" height="16" as="geometry"/>
+        <mxCell id="N1b" value="Comment with proposed criteria; ask the author to confirm. Do not start work." style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;strokeWidth=1.5;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="376" width="440" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg3t" value="Human gate / stop" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#C9D1D9;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1076" y="212" width="170" height="24" as="geometry"/>
+        <mxCell id="N2" value="git fetch origin &#8212; sync refs before you branch" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="596" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg4" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#E3B341;dashed=1;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1250" y="223" width="24" height="0" as="geometry"/>
+        <mxCell id="N3" value="Move the conversation into a new worktree; confirm the base is current origin/master" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="688" width="560" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_lg4t" value="Loop-back (No) / off-ramp" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#C9D1D9;fontSize=11;" vertex="1" parent="1">
-          <mxGeometry x="1282" y="212" width="180" height="24" as="geometry"/>
+        <mxCell id="N4" value="Work only inside the worktree. Verify the path and branch before each change." style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="800" width="560" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band1" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#0C1424;strokeColor=#182238;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="410" y="160" width="600" height="760" as="geometry"/>
+        <mxCell id="B1" value="Commit each logical change as you go" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="916" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band1l" value="PHASE 1 &#183; INTAKE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="422" y="168" width="340" height="18" as="geometry"/>
+        <mxCell id="B2" value="Reference the issue in every commit (Refs #n)" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1012" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band2" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#0C1424;strokeColor=#182238;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="410" y="920" width="600" height="320" as="geometry"/>
+        <mxCell id="B3" value="Stage files deliberately by name &#8212; no git add ." style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1108" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band2l" value="PHASE 2 &#183; BUILD" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="422" y="928" width="340" height="18" as="geometry"/>
+        <mxCell id="C1" value="Run tests, linters, and formatters from inside the worktree" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1208" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band3" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#0C1424;strokeColor=#182238;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="410" y="1240" width="600" height="600" as="geometry"/>
+        <mxCell id="C2" value="Verify the change against every acceptance criterion" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1304" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band3l" value="PHASE 3 &#183; VERIFY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="422" y="1248" width="340" height="18" as="geometry"/>
+        <mxCell id="C3" value="Never skip, disable, or weaken a check" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1400" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band4" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#0C1424;strokeColor=#182238;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="410" y="1840" width="600" height="620" as="geometry"/>
+        <mxCell id="D2" value="Do all tests, linters, and acceptance criteria pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#2A2823;fontSize=12;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="480" y="1526" width="520" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band4l" value="PHASE 4 &#183; DELIVER" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="422" y="1848" width="340" height="18" as="geometry"/>
+        <mxCell id="N7" value="git push -u origin &amp;lt;branch&amp;gt;" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1756" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band5" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#0C1424;strokeColor=#182238;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="410" y="2460" width="600" height="560" as="geometry"/>
+        <mxCell id="N8" value="Open a small, focused PR into master with gh" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1848" width="560" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band5l" value="PHASE 5 &#183; GOVERN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="422" y="2468" width="340" height="18" as="geometry"/>
+        <mxCell id="N9" value="CI runs &#8212; wait with gh pr checks --watch" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1964" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band6" value="" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;fillColor=#0C1424;strokeColor=#182238;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="410" y="3020" width="600" height="960" as="geometry"/>
+        <mxCell id="D3" value="Do all required status checks pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#2A2823;fontSize=12;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="480" y="2086" width="520" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="p2_band6l" value="PHASE 6 &#183; RECONCILE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="422" y="3028" width="340" height="18" as="geometry"/>
+        <mxCell id="D4" value="Did a human initiate the request?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#2A2823;fontSize=12;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="480" y="2326" width="520" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="N1" value="Change request &#8212; GitHub Issue with EARS requirements and acceptance criteria" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#1F6FEB;gradientColor=#7C3AED;gradientDirection=east;strokeColor=none;fontColor=#FFFFFF;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="200" width="560" height="72" as="geometry"/>
+        <mxCell id="N10" value="Stop at the open PR; wait for a human to approve" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#A8862B;strokeWidth=1.5;fontColor=#2A2823;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="2326" width="440" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="D1" value="Are the acceptance criteria confirmed by a human (or an owner-requested EARS rewrite)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1E2A45;strokeColor=#E3B341;strokeWidth=2;fontColor=#E9EEF7;fontSize=12.5;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="310" width="520" height="240" as="geometry"/>
+        <mxCell id="D5" value="Does the change touch migrations, IaC, auth/billing, or production config?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#2A2823;fontSize=12;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="480" y="2566" width="520" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="N1b" value="Comment with proposed criteria; ask the author to confirm. Do not start work." style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#241E10;strokeColor=#E3B341;strokeWidth=2;fontColor=#F4E3B0;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="310" width="460" height="88" as="geometry"/>
+        <mxCell id="N11" value="Open the PR, add needs-human-approval, and stop" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#F7E9EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#5E1A26;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="2566" width="440" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="N2" value="git fetch origin &#8212; sync refs before you branch" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="590" width="560" height="68" as="geometry"/>
+        <mxCell id="N12" value="Re-sync with master; renumber the version if master moved; re-run checks" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="2796" width="560" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="N3" value="Move the conversation into a new worktree; confirm the base is current origin/master" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="686" width="560" height="88" as="geometry"/>
+        <mxCell id="N13" value="Merge with a merge commit &#8212; gh pr merge &amp;lt;pr&amp;gt; --merge" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="2912" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="N4" value="Work only inside the worktree. Verify the path and branch before each change." style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="802" width="560" height="88" as="geometry"/>
+        <mxCell id="N14" value="Confirm the PR state is MERGED" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="3008" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="B1" value="Commit each logical change as you go" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="980" width="560" height="68" as="geometry"/>
+        <mxCell id="D6" value="Is the worktree clean with nothing unpushed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FBF6EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#2A2823;fontSize=12;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="480" y="3136" width="520" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="B2" value="Reference the issue in every commit (Refs #n)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1076" width="560" height="68" as="geometry"/>
+        <mxCell id="N15" value="Stop and ask a human" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#F7E9EA;strokeColor=#7A2230;strokeWidth=1.5;fontColor=#5E1A26;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="3136" width="440" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="B3" value="Stage files deliberately by name &#8212; no git add ." style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1172" width="560" height="68" as="geometry"/>
+        <mxCell id="N16" value="Move back to the main folder; git worktree remove; git branch -d; delete the remote branch" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="3366" width="560" height="84" as="geometry"/>
         </mxCell>
-        <mxCell id="C1" value="Run tests, linters, and formatters from inside the worktree" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1280" width="560" height="68" as="geometry"/>
+        <mxCell id="N17" value="git worktree prune; git fetch --prune; git pull --ff-only" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#FFFDF8;strokeColor=#D9C48A;strokeWidth=1.5;fontColor=#2A2823;fontSize=13;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="3482" width="560" height="64" as="geometry"/>
         </mxCell>
-        <mxCell id="C2" value="Verify the change against every acceptance criterion" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1376" width="560" height="68" as="geometry"/>
+        <mxCell id="N18" value="Done &#8212; master updated, issue closed, no leftover worktree or branch" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#2E6B4F;strokeColor=none;fontColor=#F5EFE2;fontSize=14;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="460" y="3578" width="560" height="72" as="geometry"/>
         </mxCell>
-        <mxCell id="C3" value="Never skip, disable, or weaken a check" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1472" width="560" height="68" as="geometry"/>
+        <mxCell id="O1" value="Unrelated problem found: open a GitHub Issue; do not fix it in this branch" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#F7E9EA;strokeColor=#7A2230;strokeWidth=1.5;dashed=1;fontColor=#5E1A26;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="44" y="794" width="360" height="96" as="geometry"/>
         </mxCell>
-        <mxCell id="D2" value="Do all tests, linters, and acceptance criteria pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1E2A45;strokeColor=#E3B341;strokeWidth=2;fontColor=#E9EEF7;fontSize=12.5;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="1580" width="520" height="240" as="geometry"/>
+        <mxCell id="O2" value="Push rejected or blocked: stop; open or update an issue; tell a human" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#F7E9EA;strokeColor=#7A2230;strokeWidth=1.5;dashed=1;fontColor=#5E1A26;fontSize=12.5;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="44" y="1740" width="360" height="96" as="geometry"/>
         </mxCell>
-        <mxCell id="N7" value="git push -u origin &amp;lt;branch&amp;gt;" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1860" width="560" height="68" as="geometry"/>
+        <mxCell id="Nt3" value="Do not create the worktree with a raw git worktree add. Enjoy must track it for its Merge and Delete controls." style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#F1EADB;strokeColor=#D9C48A;strokeWidth=1;dashed=1;fontColor=#6E6555;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="688" width="440" height="96" as="geometry"/>
         </mxCell>
-        <mxCell id="N8" value="Open a small, focused PR into master with gh" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="1956" width="560" height="88" as="geometry"/>
+        <mxCell id="Nt8" value="PR body: Summary &#183; Why (Closes #n) &#183; testing per criterion &#183; Risks &#183; Rollback plan." style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#F1EADB;strokeColor=#D9C48A;strokeWidth=1;dashed=1;fontColor=#6E6555;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="1848" width="440" height="104" as="geometry"/>
         </mxCell>
-        <mxCell id="N9" value="CI runs &#8212; wait with gh pr checks --watch" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="2072" width="560" height="68" as="geometry"/>
+        <mxCell id="Nt12" value="If another PR bumped the version on master, renumber yours to the next unused number before you merge." style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#F1EADB;strokeColor=#D9C48A;strokeWidth=1;dashed=1;fontColor=#6E6555;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="2796" width="440" height="88" as="geometry"/>
         </mxCell>
-        <mxCell id="D3" value="Do all required status checks pass?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1E2A45;strokeColor=#E3B341;strokeWidth=2;fontColor=#E9EEF7;fontSize=12.5;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="2190" width="520" height="240" as="geometry"/>
+        <mxCell id="Nt16" value="Do not use git worktree remove --force or git branch -D without explicit human approval." style="rounded=1;arcSize=4;whiteSpace=wrap;html=1;fillColor=#F1EADB;strokeColor=#D9C48A;strokeWidth=1;dashed=1;fontColor=#6E6555;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;fontFamily=Georgia;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="3366" width="440" height="96" as="geometry"/>
         </mxCell>
-        <mxCell id="D4" value="Did a human initiate the request?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1E2A45;strokeColor=#E3B341;strokeWidth=2;fontColor=#E9EEF7;fontSize=12.5;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="2470" width="520" height="240" as="geometry"/>
-        </mxCell>
-        <mxCell id="N10" value="Stop at the open PR; wait for a human to approve" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#241E10;strokeColor=#E3B341;strokeWidth=2;fontColor=#F4E3B0;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="2470" width="460" height="88" as="geometry"/>
-        </mxCell>
-        <mxCell id="D5" value="Does the change touch migrations, IaC, auth/billing, or production config?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1E2A45;strokeColor=#E3B341;strokeWidth=2;fontColor=#E9EEF7;fontSize=12.5;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="2750" width="520" height="240" as="geometry"/>
-        </mxCell>
-        <mxCell id="N11" value="Open the PR, add needs-human-approval, and stop" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#2A1518;strokeColor=#F85149;strokeWidth=2;fontColor=#FFD6D6;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="2750" width="460" height="88" as="geometry"/>
-        </mxCell>
-        <mxCell id="N12" value="Re-sync with master; renumber the version if master moved; re-run checks" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="3030" width="560" height="88" as="geometry"/>
-        </mxCell>
-        <mxCell id="N13" value="Merge with a merge commit &#8212; gh pr merge &amp;lt;pr&amp;gt; --merge" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="3146" width="560" height="68" as="geometry"/>
-        </mxCell>
-        <mxCell id="N14" value="Confirm the PR state is MERGED" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="3242" width="560" height="68" as="geometry"/>
-        </mxCell>
-        <mxCell id="D6" value="Is the worktree clean with nothing unpushed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1E2A45;strokeColor=#E3B341;strokeWidth=2;fontColor=#E9EEF7;fontSize=12.5;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="460" y="3370" width="520" height="240" as="geometry"/>
-        </mxCell>
-        <mxCell id="N15" value="Stop and ask a human" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#2A1518;strokeColor=#F85149;strokeWidth=2;fontColor=#FFD6D6;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="3370" width="460" height="88" as="geometry"/>
-        </mxCell>
-        <mxCell id="N16" value="Move back to the main folder; git worktree remove; git branch -d; delete the remote branch" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="3650" width="560" height="88" as="geometry"/>
-        </mxCell>
-        <mxCell id="N17" value="git worktree prune; git fetch --prune; git pull --ff-only" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#1A2230;gradientColor=#121A29;gradientDirection=north;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#E6EDF3;fontSize=13.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="3766" width="560" height="68" as="geometry"/>
-        </mxCell>
-        <mxCell id="N18" value="Done &#8212; master updated, issue closed, no leftover worktree or branch" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#238636;gradientColor=#2EA043;gradientDirection=east;strokeColor=none;fontColor=#FFFFFF;fontSize=15;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="440" y="3862" width="560" height="72" as="geometry"/>
-        </mxCell>
-        <mxCell id="O1" value="Unrelated problem found: open a GitHub Issue; do not fix it in this branch" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#2A1518;strokeColor=#F85149;strokeWidth=2;dashed=1;fontColor=#FFD6D6;fontSize=12.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="20" y="786" width="380" height="120" as="geometry"/>
-        </mxCell>
-        <mxCell id="O2" value="Push rejected or blocked: stop; open or update an issue; tell a human; never work around it" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#2A1518;strokeColor=#F85149;strokeWidth=2;dashed=1;fontColor=#FFD6D6;fontSize=12.5;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="20" y="1834" width="380" height="120" as="geometry"/>
-        </mxCell>
-        <mxCell id="Nt3" value="Do not create the worktree with a raw git worktree add. Enjoy must track it for its Merge and Delete controls." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#101A2E;strokeColor=#3A4A6E;strokeWidth=1.5;dashed=1;fontColor=#A9B6CC;fontSize=11.5;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="686" width="460" height="100" as="geometry"/>
-        </mxCell>
-        <mxCell id="Nt8" value="PR body: Summary &#183; Why (Closes #n) &#183; testing per criterion &#183; Risks &#183; Rollback plan." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#101A2E;strokeColor=#3A4A6E;strokeWidth=1.5;dashed=1;fontColor=#A9B6CC;fontSize=11.5;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="1956" width="460" height="110" as="geometry"/>
-        </mxCell>
-        <mxCell id="Nt12" value="If another PR bumped the version on master, renumber yours to the next unused number before you merge." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#101A2E;strokeColor=#3A4A6E;strokeWidth=1.5;dashed=1;fontColor=#A9B6CC;fontSize=11.5;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="3030" width="460" height="92" as="geometry"/>
-        </mxCell>
-        <mxCell id="Nt16" value="Do not use git worktree remove --force or git branch -D without explicit human approval." style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#101A2E;strokeColor=#3A4A6E;strokeWidth=1.5;dashed=1;fontColor=#A9B6CC;fontSize=11.5;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=6;" vertex="1" parent="1">
-          <mxGeometry x="1100" y="3650" width="460" height="100" as="geometry"/>
-        </mxCell>
-        <mxCell id="e_N1_D1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N1" target="D1">
+        <mxCell id="e_N1_D1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N1" target="D1">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N2_N3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N2" target="N3">
+        <mxCell id="e_N2_N3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N2" target="N3">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N3_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N3" target="N4">
+        <mxCell id="e_N3_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N3" target="N4">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_B1_B2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="B1" target="B2">
+        <mxCell id="e_B1_B2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="B1" target="B2">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_B2_B3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="B2" target="B3">
+        <mxCell id="e_B2_B3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="B2" target="B3">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_C1_C2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C1" target="C2">
+        <mxCell id="e_C1_C2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C1" target="C2">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_C2_C3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C2" target="C3">
+        <mxCell id="e_C2_C3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C2" target="C3">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N7_N8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N7" target="N8">
+        <mxCell id="e_N7_N8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N7" target="N8">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N8_N9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N8" target="N9">
+        <mxCell id="e_N8_N9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N8" target="N9">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N12_N13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N12" target="N13">
+        <mxCell id="e_N12_N13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N12" target="N13">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N13_N14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N13" target="N14">
+        <mxCell id="e_N13_N14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N13" target="N14">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N16_N17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N16" target="N17">
+        <mxCell id="e_N16_N17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N16" target="N17">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N17_N18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N17" target="N18">
+        <mxCell id="e_N17_N18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N17" target="N18">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D1_N2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D1" target="N2">
+        <mxCell id="e_D1_N2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D1" target="N2">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N4_B1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N4" target="B1">
+        <mxCell id="e_N4_B1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N4" target="B1">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_C3_D2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C3" target="D2">
+        <mxCell id="e_C3_D2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C3" target="D2">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D2_N7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D2" target="N7">
+        <mxCell id="e_D2_N7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D2" target="N7">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N9_D3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N9" target="D3">
+        <mxCell id="e_N9_D3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N9" target="D3">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D3_D4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D3" target="D4">
+        <mxCell id="e_D3_D4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D3" target="D4">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D4_D5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D4" target="D5">
+        <mxCell id="e_D4_D5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D4" target="D5">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D5_N12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D5" target="N12">
+        <mxCell id="e_D5_N12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D5" target="N12">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N14_D6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N14" target="D6">
+        <mxCell id="e_N14_D6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N14" target="D6">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D6_N16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D6" target="N16">
+        <mxCell id="e_D6_N16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="D6" target="N16">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D1_N1b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#E3B341;strokeWidth=2;fontColor=#E3B341;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D1" target="N1b">
+        <mxCell id="e_D1_N1b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#A8862B;strokeWidth=1.6;fontColor=#7A5F14;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D1" target="N1b">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N1b_D1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#E3B341;strokeWidth=2;fontColor=#E3B341;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N1b" target="D1">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1330" y="290"/><mxPoint x="720" y="290"/></Array></mxGeometry>
+        <mxCell id="e_N1b_D1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#A8862B;strokeWidth=1.6;fontColor=#7A5F14;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="N1b" target="D1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1340" y="352"/><mxPoint x="740" y="352"/></Array></mxGeometry>
         </mxCell>
-        <mxCell id="e_D2_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#E3B341;strokeWidth=2;fontColor=#E3B341;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D2" target="N4">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1030" y="1700"/><mxPoint x="1030" y="846"/></Array></mxGeometry>
+        <mxCell id="e_D2_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#A8862B;strokeWidth=1.6;fontColor=#7A5F14;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D2" target="N4">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1050" y="1611"/><mxPoint x="1050" y="842"/></Array></mxGeometry>
         </mxCell>
-        <mxCell id="e_D3_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#E3B341;strokeWidth=2;fontColor=#E3B341;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="D3" target="N4">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1056" y="2310"/><mxPoint x="1056" y="868"/></Array></mxGeometry>
+        <mxCell id="e_D3_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#A8862B;strokeWidth=1.6;fontColor=#7A5F14;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="D3" target="N4">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1085" y="2171"/><mxPoint x="1085" y="863"/></Array></mxGeometry>
         </mxCell>
-        <mxCell id="e_D4_N10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#E3B341;strokeWidth=2;fontColor=#E3B341;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D4" target="N10">
+        <mxCell id="e_D4_N10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#A8862B;strokeWidth=1.6;fontColor=#7A5F14;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D4" target="N10">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_D6_N15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#F85149;strokeWidth=2;fontColor=#F85149;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D6" target="N15">
+        <mxCell id="e_D6_N15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#7A2230;strokeWidth=1.6;fontColor=#7A2230;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D6" target="N15">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N10_D5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#4C8DFF;strokeWidth=2;fontColor=#B7C4DD;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="N10" target="D5">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1330" y="2725"/><mxPoint x="824" y="2725"/></Array></mxGeometry>
+        <mxCell id="e_N10_D5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#1F3B73;strokeWidth=1.6;fontColor=#6E6555;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryX=0.72;entryY=0;" edge="1" parent="1" source="N10" target="D5">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1340" y="2531"/><mxPoint x="854" y="2531"/></Array></mxGeometry>
         </mxCell>
-        <mxCell id="e_D5_N11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#F85149;strokeWidth=2;fontColor=#F85149;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D5" target="N11">
+        <mxCell id="e_D5_N11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#7A2230;strokeWidth=1.6;fontColor=#7A2230;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="D5" target="N11">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N4_O1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#F85149;strokeWidth=2;fontColor=#F85149;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N4" target="O1">
+        <mxCell id="e_N4_O1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#7A2230;strokeWidth=1.6;fontColor=#7A2230;fontSize=11;fontFamily=Georgia;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N4" target="O1">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N7_O2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#F85149;strokeWidth=2;fontColor=#F85149;fontSize=11;fontStyle=1;labelBackgroundColor=#0B1220;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N7" target="O2">
+        <mxCell id="e_N7_O2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;dashed=1;strokeColor=#7A2230;strokeWidth=1.6;fontColor=#7A2230;fontSize=11;fontFamily=Georgia;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N7" target="O2">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_nt3" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#44526E;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N3" target="Nt3">
+        <mxCell id="e_nt3" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#D9C48A;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N3" target="Nt3">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_nt8" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#44526E;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N8" target="Nt8">
+        <mxCell id="e_nt8" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#D9C48A;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N8" target="Nt8">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_nt12" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#44526E;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N12" target="Nt12">
+        <mxCell id="e_nt12" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#D9C48A;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N12" target="Nt12">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_nt16" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#44526E;strokeWidth=1.5;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N16" target="Nt16">
+        <mxCell id="e_nt16" value="" style="edgeStyle=none;html=1;endArrow=none;dashed=1;dashPattern=1 3;strokeColor=#D9C48A;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="N16" target="Nt16">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="lb_D1y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#9CB8E8;" vertex="1" parent="1">
-          <mxGeometry x="732" y="558" width="60" height="22" as="geometry"/>
+        <mxCell id="lb_D1y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#1F3B73;" vertex="1" parent="1">
+          <mxGeometry x="742" y="556" width="60" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D1n" value="No" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#E3B341;" vertex="1" parent="1">
-          <mxGeometry x="986" y="414" width="46" height="22" as="geometry"/>
+        <mxCell id="lb_D1n" value="No" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#A8862B;" vertex="1" parent="1">
+          <mxGeometry x="1006" y="449" width="46" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D2y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#9CB8E8;" vertex="1" parent="1">
-          <mxGeometry x="732" y="1828" width="60" height="22" as="geometry"/>
+        <mxCell id="lb_D2y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#1F3B73;" vertex="1" parent="1">
+          <mxGeometry x="742" y="1706" width="60" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D2n" value="No &#8212; rework" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#E3B341;" vertex="1" parent="1">
-          <mxGeometry x="1068" y="1680" width="160" height="22" as="geometry"/>
+        <mxCell id="lb_D2n" value="No &#8212; rework" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#A8862B;" vertex="1" parent="1">
+          <mxGeometry x="1044" y="1576" width="160" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D3y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#9CB8E8;" vertex="1" parent="1">
-          <mxGeometry x="732" y="2438" width="60" height="22" as="geometry"/>
+        <mxCell id="lb_D3y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#1F3B73;" vertex="1" parent="1">
+          <mxGeometry x="742" y="2266" width="60" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D3n" value="No &#8212; rework" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#E3B341;" vertex="1" parent="1">
-          <mxGeometry x="1068" y="2290" width="160" height="22" as="geometry"/>
+        <mxCell id="lb_D3n" value="No &#8212; rework" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#A8862B;" vertex="1" parent="1">
+          <mxGeometry x="1044" y="2146" width="160" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D4y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#9CB8E8;" vertex="1" parent="1">
-          <mxGeometry x="732" y="2718" width="60" height="22" as="geometry"/>
+        <mxCell id="lb_D4y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#1F3B73;" vertex="1" parent="1">
+          <mxGeometry x="742" y="2506" width="60" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D4n" value="No &#8212; agent-initiated" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#E3B341;" vertex="1" parent="1">
-          <mxGeometry x="1068" y="2562" width="210" height="22" as="geometry"/>
+        <mxCell id="lb_D4n" value="No &#8212; agent-initiated" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#A8862B;" vertex="1" parent="1">
+          <mxGeometry x="1044" y="2378" width="200" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D5n" value="No" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#E3B341;" vertex="1" parent="1">
-          <mxGeometry x="732" y="2998" width="46" height="22" as="geometry"/>
+        <mxCell id="lb_D5n" value="No" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#A8862B;" vertex="1" parent="1">
+          <mxGeometry x="742" y="2746" width="46" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D5y" value="Yes &#8212; sensitive" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#F85149;" vertex="1" parent="1">
-          <mxGeometry x="1004" y="2848" width="170" height="22" as="geometry"/>
+        <mxCell id="lb_D5y" value="Yes &#8212; sensitive" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#7A2230;" vertex="1" parent="1">
+          <mxGeometry x="1006" y="2622" width="170" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D6y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#9CB8E8;" vertex="1" parent="1">
-          <mxGeometry x="732" y="3618" width="60" height="22" as="geometry"/>
+        <mxCell id="lb_D6y" value="Yes" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#1F3B73;" vertex="1" parent="1">
+          <mxGeometry x="742" y="3316" width="60" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_D6n" value="No" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#F85149;" vertex="1" parent="1">
-          <mxGeometry x="1004" y="3466" width="46" height="22" as="geometry"/>
+        <mxCell id="lb_D6n" value="No" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#7A2230;" vertex="1" parent="1">
+          <mxGeometry x="1006" y="3188" width="46" height="22" as="geometry"/>
         </mxCell>
-        <mxCell id="lb_ap" value="approved" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#0B1220;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontColor=#9CB8E8;" vertex="1" parent="1">
-          <mxGeometry x="1200" y="2562" width="120" height="22" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_panelA" value="" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#0F1729;strokeColor=#1E2A45;" vertex="1" parent="1">
-          <mxGeometry x="20" y="3990" width="900" height="340" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_panelA_t" value="DECISION RULES" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="40" y="3996" width="400" height="20" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_panelA_b" value="&lt;b&gt;D1&lt;/b&gt; &#183; Acceptance criteria confirmed before any code.&lt;br&gt;&lt;br&gt;&lt;b&gt;D2&lt;/b&gt; &#183; All tests, linters, and acceptance criteria pass.&lt;br&gt;&lt;br&gt;&lt;b&gt;D3&lt;/b&gt; &#183; All required status checks are green.&lt;br&gt;&lt;br&gt;&lt;b&gt;D4&lt;/b&gt; &#183; Agent-initiated changes wait for a human to approve.&lt;br&gt;&lt;br&gt;&lt;b&gt;D5&lt;/b&gt; &#183; Migrations, IaC, auth/billing, and production config need explicit approval.&lt;br&gt;&lt;br&gt;&lt;b&gt;D6&lt;/b&gt; &#183; Worktree clean and nothing unpushed before cleanup." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=12.5;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="40" y="4026" width="860" height="290" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_panelB" value="" style="rounded=1;arcSize=5;whiteSpace=wrap;html=1;fillColor=#0F1729;strokeColor=#1E2A45;" vertex="1" parent="1">
-          <mxGeometry x="940" y="3990" width="640" height="340" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_panelB_t" value="DEFINITION OF DONE" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5B9BFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="960" y="3996" width="400" height="20" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_panelB_b" value="&#9744;&#160; Master updated by a merge commit&lt;br&gt;&lt;br&gt;&#9744;&#160; Issue closed by the PR (Closes #n)&lt;br&gt;&lt;br&gt;&#9744;&#160; Every acceptance criterion verified&lt;br&gt;&lt;br&gt;&#9744;&#160; Rollback plan documented&lt;br&gt;&lt;br&gt;&#9744;&#160; No leftover worktree&lt;br&gt;&lt;br&gt;&#9744;&#160; No leftover branch, local or remote" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;fontColor=#C9D1D9;fontSize=12.5;spacingTop=2;" vertex="1" parent="1">
-          <mxGeometry x="960" y="4026" width="600" height="290" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_footer_l" value="Decision tree mirrors the repository Git workflow in AGENTS.md." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#8B949E;fontSize=12;" vertex="1" parent="1">
-          <mxGeometry x="40" y="4350" width="900" height="40" as="geometry"/>
-        </mxCell>
-        <mxCell id="p2_footer_r" value="Intake &#8594; Merge &#8594; Cleanup" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;fontColor=#5B9BFF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="900" y="4350" width="660" height="40" as="geometry"/>
+        <mxCell id="lb_ap" value="approved" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F5EFE2;strokeColor=none;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;fontFamily=Georgia;fontColor=#1F3B73;" vertex="1" parent="1">
+          <mxGeometry x="1224" y="2438" width="120" height="22" as="geometry"/>
         </mxCell>
       </root>
     </mxGraphModel>
