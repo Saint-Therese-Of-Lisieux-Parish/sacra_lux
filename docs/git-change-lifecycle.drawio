@@ -303,34 +303,34 @@
           <mxGeometry x="400" y="204" width="800" height="22" as="geometry"/>
         </mxCell>
         <mxCell id="lgbox" value="" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;fillColor=#FFFEFB;strokeColor=#D8CCB7;strokeWidth=1.5;shadow=1;" vertex="1" parent="legend">
-          <mxGeometry x="1148" y="240" width="404" height="122" as="geometry"/>
+          <mxGeometry x="44" y="240" width="404" height="122" as="geometry"/>
         </mxCell>
         <mxCell id="lgt" value="KEY" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#5C708F;fontSize=11;fontStyle=1;fontFamily=Georgia;" vertex="1" parent="legend">
-          <mxGeometry x="1162" y="244" width="120" height="18" as="geometry"/>
+          <mxGeometry x="58" y="244" width="120" height="18" as="geometry"/>
         </mxCell>
         <mxCell id="lgs1" value="" style="rounded=1;arcSize=22;html=1;fillColor=#FFFEFB;strokeColor=#D8CCB7;strokeWidth=1.5;" vertex="1" parent="legend">
-          <mxGeometry x="1162" y="270" width="34" height="18" as="geometry"/>
+          <mxGeometry x="58" y="270" width="34" height="18" as="geometry"/>
         </mxCell>
         <mxCell id="lgs1t" value="Step" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#63604F;fontSize=11.5;fontFamily=Georgia;" vertex="1" parent="legend">
-          <mxGeometry x="1204" y="268" width="110" height="22" as="geometry"/>
+          <mxGeometry x="100" y="268" width="110" height="22" as="geometry"/>
         </mxCell>
         <mxCell id="lgs2" value="" style="shape=hexagon;perimeter=hexagonPerimeter2;fixedSize=1;size=36;whiteSpace=wrap;html=1;fillColor=#EDF1F7;strokeColor=#9FB0C7;strokeWidth=1.5;" vertex="1" parent="legend">
-          <mxGeometry x="1326" y="268" width="46" height="22" as="geometry"/>
+          <mxGeometry x="222" y="268" width="46" height="22" as="geometry"/>
         </mxCell>
         <mxCell id="lgs2t" value="Decision" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#63604F;fontSize=11.5;fontFamily=Georgia;" vertex="1" parent="legend">
-          <mxGeometry x="1380" y="268" width="150" height="22" as="geometry"/>
+          <mxGeometry x="276" y="268" width="150" height="22" as="geometry"/>
         </mxCell>
         <mxCell id="lgs3" value="" style="rounded=1;arcSize=22;html=1;fillColor=#F6EDE8;strokeColor=#D3B7AA;strokeWidth=1.5;" vertex="1" parent="legend">
-          <mxGeometry x="1162" y="304" width="34" height="18" as="geometry"/>
+          <mxGeometry x="58" y="304" width="34" height="18" as="geometry"/>
         </mxCell>
         <mxCell id="lgs3t" value="Human gate" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#63604F;fontSize=11.5;fontFamily=Georgia;" vertex="1" parent="legend">
-          <mxGeometry x="1204" y="302" width="140" height="22" as="geometry"/>
+          <mxGeometry x="100" y="302" width="140" height="22" as="geometry"/>
         </mxCell>
         <mxCell id="lgs4" value="" style="rounded=0;html=1;fillColor=none;strokeColor=#B79A5B;dashed=1;strokeWidth=1.5;" vertex="1" parent="legend">
-          <mxGeometry x="1326" y="313" width="46" height="0" as="geometry"/>
+          <mxGeometry x="222" y="313" width="46" height="0" as="geometry"/>
         </mxCell>
         <mxCell id="lgs4t" value="Rework / off-ramp" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#63604F;fontSize=11.5;fontFamily=Georgia;" vertex="1" parent="legend">
-          <mxGeometry x="1380" y="302" width="170" height="22" as="geometry"/>
+          <mxGeometry x="276" y="302" width="170" height="22" as="geometry"/>
         </mxCell>
         <mxCell id="N1" value="Change request &#8212; GitHub Issue with EARS requirements and acceptance criteria" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fillColor=#5C708F;strokeColor=none;fontColor=#FFFEFB;fontSize=14;fontStyle=1;fontFamily=Georgia;shadow=1;" vertex="1" parent="flow">
           <mxGeometry x="460" y="256" width="560" height="72" as="geometry"/>
@@ -509,8 +509,8 @@
         <mxCell id="e_D1_N1b" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=4 3;strokeColor=#B79A5B;strokeWidth=1.4;fontColor=#63604F;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="rework" source="D1" target="N1b">
           <mxGeometry relative="1" as="geometry"></mxGeometry>
         </mxCell>
-        <mxCell id="e_N1b_D1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=4 3;strokeColor=#B79A5B;strokeWidth=1.4;fontColor=#63604F;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="rework" source="N1b" target="D1">
-          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1340" y="352"/><mxPoint x="740" y="352"/></Array></mxGeometry>
+        <mxCell id="e_N1b_D1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=4 3;strokeColor=#B79A5B;strokeWidth=1.4;fontColor=#63604F;fontSize=11;fontFamily=Georgia;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryX=0.72;entryY=0;" edge="1" parent="rework" source="N1b" target="D1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1340" y="352"/><mxPoint x="854" y="352"/></Array></mxGeometry>
         </mxCell>
         <mxCell id="e_D2_N4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=open;endFill=0;dashed=1;dashPattern=4 3;strokeColor=#B79A5B;strokeWidth=1.4;fontColor=#63604F;fontSize=11;fontFamily=Georgia;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="rework" source="D2" target="N4">
           <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1050" y="1601"/><mxPoint x="1050" y="842"/></Array></mxGeometry>
