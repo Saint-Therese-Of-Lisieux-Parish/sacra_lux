@@ -24,3 +24,6 @@ sacra-lux/**/.DS_Store
 *.cer
 *.certSigningRequest
 .DS_Store
+
+# Obsidian workspace folder
+.obsidian/
