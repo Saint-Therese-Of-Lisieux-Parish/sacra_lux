@@ -3,6 +3,14 @@ describe("logger", () => {
     jest.resetModules();
   });
 
+  test("reports quiet mode", () => {
+    const logger = require("../../src/logger");
+
+    expect(logger.isQuietLogs()).toBe(false);
+    logger.setQuietLogs(true);
+    expect(logger.isQuietLogs()).toBe(true);
+  });
+
   test("suppresses info logs when quiet mode is enabled", () => {
     const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     const logger = require("../../src/logger");
