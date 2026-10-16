@@ -71,6 +71,7 @@ above the `master` version. Bump the version in `sacra-lux/package.json`.
 - docs index: [docs/index.md](./docs/index.md)
 - operator guide: [docs/user-guide.md](./docs/user-guide.md)
 - troubleshooting: [docs/troubleshooting.md](./docs/troubleshooting.md)
+- Mass ZIP import structure: [docs/zip-import.md](./docs/zip-import.md)
 - agent guidance: [AGENTS.md](./AGENTS.md)
 
 ## Current Version
