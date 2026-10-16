@@ -2011,7 +2011,7 @@
 
     .editor-style-strip {
       display: grid;
-      grid-template-columns: minmax(220px, 2.2fr) minmax(110px, 0.7fr) repeat(4, minmax(96px, 0.8fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 0.55rem;
       margin-top: 0.75rem;
       align-items: end;
@@ -2057,6 +2057,7 @@
 
     .editor-style-field-wide {
       min-width: 0;
+      grid-column: span 2;
     }
 
     .editor-style-field-size input {
@@ -2080,8 +2081,9 @@
     }
 
     .editor-style-choice-control {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
       gap: 0.24rem;
       min-height: 2.65rem;
       padding: 0.24rem;
@@ -2092,6 +2094,7 @@
     }
 
     .editor-style-choice-btn {
+      flex: 1 1 auto;
       min-height: 2.1rem;
       padding: 0.28rem 0.32rem;
       border: 0;
@@ -2101,6 +2104,7 @@
       font-size: 0.77rem;
       font-weight: 800;
       letter-spacing: 0.02em;
+      white-space: nowrap;
       cursor: pointer;
       transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
     }
@@ -2156,6 +2160,10 @@
 
       .editor-style-strip {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .editor-style-strip .editor-style-field-wide {
+        grid-column: auto;
       }
 
       .modal-span-3,
