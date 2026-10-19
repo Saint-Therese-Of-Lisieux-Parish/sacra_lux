@@ -38,6 +38,11 @@ Organizer items, style overrides, manual slide records, presentation slides,
 The `sacra-lux.mass` version 3 document stored as `current_mass/mass.json`:
 envelope, items, per-kind content, and runtime conversion.
 
+### [zip-import.md](./zip-import.md)
+
+The exact ZIP structure for Mass imports: accepted paths, limits, failure
+conditions, and minimal examples.
+
 ### [interfaces.md](./interfaces.md)
 
 HTTP pages, control authentication, HTTP APIs, Socket.IO events, Electron IPC,
