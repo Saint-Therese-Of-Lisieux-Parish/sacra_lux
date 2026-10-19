@@ -65,13 +65,16 @@ const {
   createSocketRateLimitGuard,
   getActiveLock,
   getClientIp,
+  getValidControlSessionToken,
   clearControlAccess,
+  clientHasControlSession,
   clientMayControl,
   hasPinConfigured,
   isStartTokenValid,
   issueStartToken,
   noteControlUnlock,
   registerPinFailure,
+  socketHasControlSession,
   socketMayControl,
   verifyPin
 } = require("./security");
@@ -2634,7 +2637,10 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── Mass package ZIP export ────────────────────────────────────────────────
-  app.get("/api/export-mass-zip", heavyRateLimit, async (_, res) => {
+  app.get("/api/export-mass-zip", heavyRateLimit, async (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
     try {
       saveCurrentMass();
       if (!fs.existsSync(path.join(CURRENT_MASS_DIR, "mass.json"))) {
@@ -2658,10 +2664,17 @@ function startServer(port = 17841, options = {}) {
   const avifDownloadTokens = new Map(); // token → { zipBuffer, filename }
 
   app.get("/api/export-mass-zip-avif", heavyRateLimit, (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
     const token = req.query.token;
     const entry = token && avifDownloadTokens.get(token);
     if (!entry) return res.status(404).json({ error: "Invalid or expired download token." });
+    if (entry.controlToken && getValidControlSessionToken(req) !== entry.controlToken) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
     avifDownloadTokens.delete(token);
+    clearTimeout(entry.expiryTimer);
     setAttachmentFilename(res, entry.filename);
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Length", entry.zipBuffer.length);
@@ -3560,7 +3573,7 @@ function startServer(port = 17841, options = {}) {
     }));
 
     socket.on("export:avif:start", async () => {
-      if (!socketMayControl(socket)) {
+      if (!socketHasControlSession(socket)) {
         socket.emit("control:required", { error: "Unlock required." });
         return;
       }
@@ -3669,8 +3682,14 @@ function startServer(port = 17841, options = {}) {
         const filename = buildExportFilename(state.presentation?.title, state.massStartTime, "-avif.zip");
 
         const token = crypto.randomBytes(16).toString("hex");
-        avifDownloadTokens.set(token, { zipBuffer, filename });
-        setTimeout(() => avifDownloadTokens.delete(token), 5 * 60 * 1000);
+        const expiryTimer = setTimeout(() => avifDownloadTokens.delete(token), 5 * 60 * 1000);
+        expiryTimer.unref?.();
+        avifDownloadTokens.set(token, {
+          zipBuffer,
+          filename,
+          controlToken: getValidControlSessionToken(socket) || null,
+          expiryTimer
+        });
 
         socket.emit("export:avif:done", { token });
       } catch (error) {

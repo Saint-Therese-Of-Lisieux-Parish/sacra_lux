@@ -181,6 +181,12 @@ function isControlSessionValid(token) {
   return true;
 }
 
+function getValidControlSessionToken(source) {
+  const explicit = source?.data?.controlToken || source?.handshake?.auth?.token || "";
+  const token = String(explicit || "") || readControlToken(source?.handshake || source);
+  return isControlSessionValid(token) ? token : "";
+}
+
 function clearControlAccess() {
   controlSessions.clear();
   loopbackUnlocked = false;
@@ -200,6 +206,11 @@ function clientMayControl(req) {
   return loopbackUnlocked && isLoopbackAddress(requestConnectionAddress(req));
 }
 
+function clientHasControlSession(req) {
+  if (!hasPinConfigured()) return true;
+  return Boolean(getValidControlSessionToken(req));
+}
+
 function socketMayControl(socket) {
   if (!hasPinConfigured()) return true;
   const explicit = socket?.data?.controlToken || socket?.handshake?.auth?.token || "";
@@ -207,6 +218,11 @@ function socketMayControl(socket) {
   if (token) return isControlSessionValid(token);
   const address = socket?.handshake?.address || socket?.conn?.remoteAddress || "";
   return loopbackUnlocked && isLoopbackAddress(address);
+}
+
+function socketHasControlSession(socket) {
+  if (!hasPinConfigured()) return true;
+  return Boolean(getValidControlSessionToken(socket));
 }
 
 function evaluateRateLimit({ bucket, key, windowMs, max, now = Date.now() }) {
@@ -400,6 +416,7 @@ module.exports = {
   clearPinFailures,
   clearRateLimitState,
   clearStartToken,
+  clientHasControlSession,
   clientMayControl,
   createConcurrentLimitMiddleware,
   createPinHashRecord,
@@ -407,6 +424,7 @@ module.exports = {
   createSocketRateLimitGuard,
   getActiveLock,
   getClientIp,
+  getValidControlSessionToken,
   hasPinConfigured,
   isStartTokenValid,
   issueStartToken,
@@ -414,5 +432,6 @@ module.exports = {
   registerPinFailure,
   resetSecurityState,
   socketMayControl,
+  socketHasControlSession,
   verifyPin
 };
