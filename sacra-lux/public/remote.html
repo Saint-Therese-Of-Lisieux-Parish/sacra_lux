@@ -603,6 +603,7 @@
     });
 
     let interstitialHoldActive = false;
+    let interstitialReturnChoice = null;
     let currentSlides = [];
     let currentActive = 0;
     let carouselFocusIndex = 0;
@@ -940,7 +941,11 @@
       const hadSlides = currentSlides.length > 0;
       latestState = state;
       applyRemoteTheme(state.appSettings?.theme || "carmelite");
+      const holdWasActive = interstitialHoldActive;
       interstitialHoldActive = Boolean(state.interstitialHoldActive);
+      if (holdWasActive && !interstitialHoldActive) {
+        interstitialReturnChoice = null;
+      }
       currentSlides = state.presentation?.slides || [];
       currentActive = Number(state.currentSlideIndex) || 0;
       ensureCarouselWindow(currentActive);
@@ -1150,21 +1155,29 @@
       return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
     }
 
-    function getCarouselCenterSlideIndex() {
-      if (!currentSlides.length) {
-        return null;
+    // Store a cue the operator picks during a hold.
+    // Release then uses that cue. Next and previous do not store a cue.
+    function setInterstitialReturnChoice(index) {
+      if (!interstitialHoldActive) {
+        return;
       }
-      const centeredSlide = currentSlides[clampCarouselFocus(carouselFocusIndex)];
-      return Number.isFinite(Number(centeredSlide?.index)) ? Number(centeredSlide.index) : null;
+      interstitialReturnChoice = Number.isFinite(Number(index)) ? Number(index) : null;
     }
 
     els.interstitialBtn.addEventListener("click", () => {
       if (interstitialHoldActive) {
-        socket.emit("screen:interstitial-hold", {
-          returnSlideIndex: getCarouselCenterSlideIndex()
-        });
+        if (interstitialReturnChoice === null) {
+          socket.emit("screen:interstitial-hold");
+        } else {
+          socket.emit("screen:interstitial-hold", {
+            returnSlideIndex: interstitialReturnChoice,
+            explicitReturn: true
+          });
+        }
+        interstitialReturnChoice = null;
         return;
       }
+      interstitialReturnChoice = null;
       socket.emit("screen:interstitial-hold");
     });
     els.nextSectionBtn.addEventListener("click", () => {
@@ -1200,7 +1213,9 @@
       if (!btn) {
         return;
       }
-      goToRemoteSlide(Number(btn.dataset.index));
+      const index = Number(btn.dataset.index);
+      setInterstitialReturnChoice(index);
+      goToRemoteSlide(index);
       scrollToPreview();
     });
 
@@ -1215,6 +1230,7 @@
       if (!Number.isFinite(index)) return;
       const now = Date.now();
       if (lastCarouselTap.index === index && now - lastCarouselTap.at < 350) {
+        setInterstitialReturnChoice(index);
         goToRemoteSlide(index);
         scrollToPreview();
         carouselSelectedIndex = index;

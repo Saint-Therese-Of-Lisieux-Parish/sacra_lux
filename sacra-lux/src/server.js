@@ -3388,10 +3388,13 @@ function startServer(port = 17841, options = {}) {
     scheduleSave();
   }
 
-  function releaseInterstitialHold(returnSlideIndexOverride = null) {
+  function releaseInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
     if (!state.interstitialHoldActive) return false;
 
-    const hasExplicitReturnIndex = Number.isFinite(Number(returnSlideIndexOverride));
+    // Use a new slide only when the operator chooses that slide.
+    // Next and previous leave the stored return slide unchanged.
+    const hasExplicitReturnIndex =
+      explicitReturn === true && Number.isFinite(Number(returnSlideIndexOverride));
     const returnIndex = getSafeSlideIndex(
       hasExplicitReturnIndex
         ? Number(returnSlideIndexOverride)
@@ -3409,9 +3412,9 @@ function startServer(port = 17841, options = {}) {
     return true;
   }
 
-  function toggleInterstitialHold(returnSlideIndexOverride = null) {
+  function toggleInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
     if (state.interstitialHoldActive) {
-      return releaseInterstitialHold(returnSlideIndexOverride);
+      return releaseInterstitialHold(returnSlideIndexOverride, explicitReturn);
     }
     const activated = activateInterstitialHold();
     if (activated) {
@@ -3564,7 +3567,7 @@ function startServer(port = 17841, options = {}) {
       io.emit("state:update", getStateSnapshot());
     }));
     socket.on("screen:interstitial-hold", withControl(socket, (payload) => {
-      if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
+      if (!toggleInterstitialHold(payload?.returnSlideIndex, payload?.explicitReturn === true)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
       }
     }));
