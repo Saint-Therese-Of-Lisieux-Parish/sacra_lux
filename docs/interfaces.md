@@ -36,7 +36,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 ### State and info
 
 - `GET /api/state` — full client-safe snapshot
-- `GET /api/session-info` — `{ lastReadingsFolderPath, sessionFile }`
+- `GET /api/session-info` — `{ lastReadingsFolderPath, sessionFile }`; both fields are `null` for clients without a control session
 - `GET /api/server-info` — `{ host, port, remoteUrl, screenUrl, appUrl }`
 
 ### Readings and organizer
@@ -78,7 +78,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Import, export, and archive
 
-- `GET /api/export-settings` — download a version 2 settings JSON payload
+- `GET /api/export-settings` — download a version 2 settings JSON payload; `lastReadingsFolderPath` is `null` for clients without a control session
 - `POST /api/import-settings` — apply a settings JSON payload
 - `GET /api/export-mass-zip` — download the current Mass package as a ZIP
 - `GET /api/export-mass-zip-avif?token=` — download a completed AVIF export via its one-time token

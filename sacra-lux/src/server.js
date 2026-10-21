@@ -2614,8 +2614,10 @@ function startServer(port = 17841, options = {}) {
     return res.json({ ok: true });
   });
 
-  app.get("/api/export-settings", (_, res) => {
+  app.get("/api/export-settings", (req, res) => {
     try {
+      // Local filesystem paths go only to clients that may control the Mass.
+      const mayControl = clientMayControl(req);
       const payload = {
         version: 2,
         exportedAt: new Date().toISOString(),
@@ -2624,7 +2626,7 @@ function startServer(port = 17841, options = {}) {
         screenSettings: state.screenSettings,
         organizerSequence: state.organizerSequence,
         manualSlides: state.manualSlides,
-        lastReadingsFolderPath: state.readingsSource?.folderPath || null
+        lastReadingsFolderPath: mayControl ? state.readingsSource?.folderPath || null : null
       };
       const filename = `mass-settings-${new Date().toISOString().slice(0, 10)}.json`;
       setAttachmentFilename(res, filename);
@@ -3419,8 +3421,12 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── Session info ───────────────────────────────────────────────────────────
-  app.get("/api/session-info", (_, res) => {
-    res.json({
+  // Local filesystem paths go only to clients that may control the Mass.
+  app.get("/api/session-info", (req, res) => {
+    if (!clientMayControl(req)) {
+      return res.json({ lastReadingsFolderPath: null, sessionFile: null });
+    }
+    return res.json({
       lastReadingsFolderPath: state.readingsSource?.folderPath || null,
       sessionFile: getSessionFilePath()
     });
