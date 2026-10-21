@@ -1943,6 +1943,8 @@
               colorLight: "#ffffff",
               correctLevel: QRCode.CorrectLevel.M
             });
+            const qrImage = idleQrCode.querySelector("img");
+            if (qrImage) qrImage.alt = `QR code for ${_startRedirectUrl}`;
             _qrGenerated = true;
             // QR is now ready — re-check idle state to show overlay
             if (_lastState) updateIdleOverlay(_lastState);

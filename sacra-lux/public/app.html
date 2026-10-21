@@ -2926,7 +2926,7 @@
           <!-- ── Slide Actions ─────────────────────────────────────────────── -->
           <div class="editor-actions">
             <div class="slide-action-group">
-              <select id="newSlideType" class="toolbar-select">
+              <select id="newSlideType" class="toolbar-select" aria-label="New slide type">
                 <option value="reading">Reading</option>
                 <option value="text">Text</option>
                 <option value="prayer">Prayer</option>
@@ -2953,7 +2953,7 @@
               </div>
             </div>
             <div class="slide-action-group">
-              <select id="jumpToSelect" class="toolbar-select">
+              <select id="jumpToSelect" class="toolbar-select" aria-label="Jump to slide">
                 <option value="">&#x2933; Jump To…</option>
               </select>
             </div>
@@ -4376,6 +4376,8 @@
               colorLight: "#ffffff",
               correctLevel: QRCode.CorrectLevel.M
             });
+            const qrImage = container.querySelector("img");
+            if (qrImage) qrImage.alt = `QR code for ${url}`;
           } else {
             container.textContent = url;
           }
