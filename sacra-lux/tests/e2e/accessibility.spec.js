@@ -43,3 +43,46 @@ for (const route of PAGES) {
     expect(summary).toEqual([]);
   });
 }
+
+// Open each operator dialog and scan only that dialog. A dialog that opens
+// from a button uses the button. A dialog that needs a loaded Mass or an
+// open slide opens with showModal(), because the scan targets its markup.
+const DIALOGS = [
+  { id: "massLibraryDialog", button: null },
+  { id: "newMassDialog", button: "#newMassBtn" },
+  { id: "settingsDialog", button: "#openSettingsBtn" },
+  { id: "appSettingsDialog", button: "#openAppSettingsBtn" },
+  { id: "screenDialog", button: null },
+  { id: "pinDialog", button: null },
+  { id: "duplicateDialog", button: null },
+  { id: "pdfExportDialog", button: null },
+  { id: "editorDialog", button: null }
+];
+
+for (const { id, button } of DIALOGS) {
+  test(`#${id} has no WCAG 2.1 A or AA axe violations when open`, async ({ page }) => {
+    await page.goto(`${baseUrl}/`);
+    await page.waitForLoadState("networkidle");
+    // The Mass library opens on load. Close any open dialog first.
+    await page.evaluate(() => document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close()));
+
+    if (button) {
+      await page.locator(button).click();
+    } else {
+      await page.evaluate((dialogId) => document.getElementById(dialogId).showModal(), id);
+    }
+    await expect(page.locator(`#${id}`)).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .include(`#${id}`)
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+
+    const summary = results.violations.map((violation) => ({
+      rule: violation.id,
+      impact: violation.impact,
+      targets: violation.nodes.map((node) => node.target.join(" "))
+    }));
+    expect(summary).toEqual([]);
+  });
+}
