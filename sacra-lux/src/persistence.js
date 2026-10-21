@@ -2,17 +2,32 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const logger = require("./logger");
+const { writeFileAtomic } = require("./atomicWrite");
 const { DEFAULT_THEME } = require("./themes");
 
 const SESSION_FILE_NAME = "session.json";
-const SESSION_DIR = path.join(os.homedir(), ".sacra-lux");
-const SESSION_FILE_PATH = path.join(SESSION_DIR, SESSION_FILE_NAME);
 
 const CURRENT_VERSION = 2;
 
+// Resolve the directory on each call. `os.homedir()` can keep a cached value
+// in some runtimes, and tests change HOME to isolate writes from the real
+// runtime data.
+function getSessionDir() {
+  return path.join(process.env.HOME || os.homedir(), ".sacra-lux");
+}
+
+function getSessionFilePath() {
+  return path.join(getSessionDir(), SESSION_FILE_NAME);
+}
+
+function getSessionBackupPath() {
+  return `${getSessionFilePath()}.bak`;
+}
+
 function ensureDir() {
-  if (!fs.existsSync(SESSION_DIR)) {
-    fs.mkdirSync(SESSION_DIR, { recursive: true });
+  const dir = getSessionDir();
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 }
 
@@ -122,44 +137,58 @@ function saveSession(state) {
       activeMassArchiveId: state.activeMassArchiveId || null,
       appSettings: state.appSettings || { theme: DEFAULT_THEME }
     };
-    fs.writeFileSync(SESSION_FILE_PATH, JSON.stringify(sessionData, null, 2), "utf8");
+    writeFileAtomic(getSessionFilePath(), JSON.stringify(sessionData, null, 2), {
+      keepBackup: true
+    });
   } catch (err) {
     logger.error(`[persistence] Failed to save session: ${err.message}`);
   }
 }
+/**
+ * Parse session text and migrate it to the current format.
+ * Throw when the text is not JSON or is not an object.
+ */
+function parseSession(raw) {
+  const parsed = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("session data is not an object");
+  }
+
+  if (!parsed.version || parsed.version < 2) {
+    logger.info("[persistence] Migrated session from v1 to v2");
+    return migrateV1toV2(parsed);
+  }
+
+  return parsed;
+}
 
 /**
  * Load a previously saved session from disk.
- * Return null when no session file exists or the file is malformed.
- * Migrate older session formats automatically.
+ * Return null when no session file exists.
+ * If the primary file is damaged, log the damage and recover from the backup.
  */
 function loadSession() {
-  try {
-    if (!fs.existsSync(SESSION_FILE_PATH)) {
-      return null;
-    }
-    const raw = fs.readFileSync(SESSION_FILE_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") {
-      return null;
-    }
-
-    // Apply migrations.
-    let session = parsed;
-    if (!session.version || session.version < 2) {
-      session = migrateV1toV2(session);
-      logger.info("[persistence] Migrated session from v1 to v2");
-    }
-
-    return session;
-  } catch {
+  if (!fs.existsSync(getSessionFilePath())) {
     return null;
   }
-}
 
-/** Return the session file path used for logging and UI display. */
-function getSessionFilePath() {
-  return SESSION_FILE_PATH;
+  try {
+    return parseSession(fs.readFileSync(getSessionFilePath(), "utf8"));
+  } catch (err) {
+    logger.warn(`[persistence] Session file is damaged (${err.message}); trying the backup.`);
+  }
+
+  if (fs.existsSync(getSessionBackupPath())) {
+    try {
+      const session = parseSession(fs.readFileSync(getSessionBackupPath(), "utf8"));
+      logger.warn("[persistence] Recovered the session from the backup file.");
+      return session;
+    } catch (err) {
+      logger.warn(`[persistence] Session backup is damaged too (${err.message}).`);
+    }
+  }
+
+  return null;
 }
 
 module.exports = { saveSession, loadSession, getSessionFilePath };

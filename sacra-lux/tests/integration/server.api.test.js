@@ -386,6 +386,47 @@ describe("server api integration", () => {
     expect(saved.startsWith("Genesis 1:1")).toBe(true);
   });
 
+  test("save-reading replaces the reading file without a temporary file", async () => {
+    const readingsDir = path.join(handle.homeDir, "save-reading-atomic");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+
+    const readingPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "Reading_I", text: "Updated by the operator." })
+      .expect(200);
+
+    expect(fs.readFileSync(readingPath, "utf8")).toContain("Updated by the operator.");
+    expect(fs.readdirSync(path.dirname(readingPath)).filter((name) => name.includes(".tmp-"))).toEqual([]);
+  });
+
+  test("save-reading keeps the prior reading when the replace fails", async () => {
+    const readingsDir = path.join(handle.homeDir, "save-reading-failure");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+
+    const readingPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
+    const prior = fs.readFileSync(readingPath, "utf8");
+    const realRename = fs.renameSync;
+    jest.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      if (path.resolve(String(to)) === path.resolve(readingPath)) {
+        throw new Error("rename failed");
+      }
+      return realRename(from, to);
+    });
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "Reading_I", text: "This text must not persist." })
+      .expect(500);
+
+    expect(fs.readFileSync(readingPath, "utf8")).toBe(prior);
+    expect(fs.readdirSync(path.dirname(readingPath)).filter((name) => name.includes(".tmp-"))).toEqual([]);
+  });
+
   function snapshotTree(rootDir) {
     const files = {};
     const walk = (dir) => {
