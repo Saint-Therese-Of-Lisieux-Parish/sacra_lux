@@ -1,144 +1,174 @@
 # Sacra Lux Code Review Report
 
-Review date: 2026-09-30
-Status refreshed: 2026-10-11
-Repository: `Saint-Therese-Of-Lisieux-Parish/sacra_lux`
-Scope: server, persistence, import/export, authentication, Electron boundary, and automated coverage.
+Date: 2026-10-21
 
-## Status update (2026-10-11)
+Commit reviewed: `d490159` (`origin/master`)
 
-Every finding below was re-checked against the current tree. All six remain
-open; none are resolved. Line references are updated and, where useful, point
-at the owning function rather than a fixed line. Regression coverage has grown
-(see the baseline), and one integration test now exercises the unauthorized
-control path, but the specific gaps in SL-006 remain.
+Scope: Review the nested Node/Electron application for bugs, missing features, and test gaps. Each finding uses EARS wording and can become a GitHub Issue.
 
-## Verification baseline
+## Verification summary
 
-- `npm run lint` — passed.
-- `npm test` — passed: 15 unit suites / 73 tests and 4 integration suites / 70 tests.
-- `npm run test:e2e` — passed: 10 scenarios.
+- `npm run lint`: passed.
+- `npm test`: passed, 19 unit suites with 178 tests and 7 integration suites with 90 tests.
+- `npm run test:e2e`: passed, 12 tests.
+- `npm run check:version-sync`: passed for version `0.0.68-alpha`.
+- Packaged Electron build validation was not run.
+- The report contains no secrets or credential values.
 
-Passing tests establish the current baseline; they do not cover the risks below.
+## Findings
 
-## Prioritized findings
+### SL-003 — No-PIN network control remains an explicit first-run risk
 
-### SL-001 — Mass ZIP exports bypass control authentication
+Priority: P1
 
-Priority: P1 / security and privacy
-Evidence: the `/api` control middleware skips every `GET`
-(`src/server.js:1849-1857`), while `GET /api/export-mass-zip`
-(`src/server.js:2478`) and `GET /api/export-mass-zip-avif`
-(`src/server.js:2501`) stream full Mass archives. These archives can contain
-readings, slide content, and uploaded media. The server binds to `0.0.0.0`
-(`src/server.js:3508`), so this is reachable by other network clients.
+Type: Security and missing feature
 
-EARS story: **While** a start PIN is configured, **when** an unauthenticated client requests any Mass export, **the system shall** reject the request with an authorization error and shall issue a download only to a valid control session.
+Status: Existing open issue [#70](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/issues/70).
 
-Acceptance criteria:
+Evidence:
 
-- Both export endpoints require a valid control token when a PIN is configured.
-- A one-time AVIF token is insufficient unless it is also bound to the authenticated session or requesting client.
-- Existing projector/screen rendering remains available without exposing package downloads.
+- `sacra-lux/src/server.js:2027-2035` binds the server to `0.0.0.0`.
+- `sacra-lux/src/security.js:191-203` allows control when no PIN exists.
+- `sacra-lux/src/server.js:2010-2021` protects mutation routes only when `clientMayControl()` returns false.
+- The current end-to-end suite proves PIN-gated control, but it does not prove a first-run choice for no-PIN LAN access.
 
-### SL-002 — Loopback unlock grants control to every local client
+Impact: Any client that reaches the LAN port can control a fresh installation without a PIN. This is acceptable only after an explicit operator choice and warning.
 
-Priority: P1 / security
-Evidence: `noteControlUnlock()` sets process-wide `loopbackUnlocked`
-(`src/security.js:189-194`), and both `clientMayControl()` and
-`socketMayControl()` accept any loopback client while that flag is set
-(`src/security.js:196-210`). A PIN verification from one local client therefore
-authorizes unrelated local processes or windows without their own control
-token. One integration test now covers the unauthorized control path
-(`tests/integration/server.api.test.js`, "a client that has not unlocked the PIN
-cannot control the Mass") but does not cover cross-client loopback isolation.
+EARS requirements:
 
-EARS story: **When** PIN protection is enabled and a local client has not presented its own valid control session, **the system shall** reject control mutations even if another loopback client previously unlocked the application.
+- R1: When Sacra Lux starts without a PIN and is reachable beyond loopback, the system shall require explicit operator confirmation before it accepts remote control mutations.
+- R2: While first-run setup offers a no-PIN mode, the setup shall warn that the mode permits network control.
+- R3: When the operator chooses a mandatory PIN or an explicitly named trusted-LAN mode, the system shall persist and display the selected mode.
 
 Acceptance criteria:
 
-- Authorization is scoped to a session token, or to an explicitly documented single local UI session.
-- A second local browser profile, webview, or process cannot issue slide or settings mutations without authorization.
-- Clearing the PIN invalidates all prior sessions.
+- [ ] (R1) Given a first-run installation on a LAN, when a remote client sends a control mutation before setup, then the server rejects the mutation.
+- [ ] (R2) Given first-run setup, when the operator views the no-PIN choice, then the UI displays a warning about network control.
+- [ ] (R3) Given a selected access mode, when the application restarts, then the selected mode remains visible and controls access.
+- [ ] Existing PIN and Socket.IO authorization tests pass.
 
-### SL-003 — No-PIN mode leaves the network control plane open
+### SL-007 — Clearing the Mass title leaves a stale title file
 
-Priority: P1 / security and operational safety
-Evidence: `clientMayControl()` and `socketMayControl()` return `true` whenever
-no PIN is configured (`src/security.js:196-205`), while the HTTP server listens
-on all interfaces (`src/server.js:3508`). A fresh installation can therefore be
-controlled by any client that can reach the host.
+Priority: P2
 
-EARS story: **When** Sacra Lux is first started without a PIN and is reachable beyond loopback, **the system shall** require explicit operator confirmation or a configured PIN before accepting remote control mutations.
+Type: Bug
 
-Acceptance criteria:
+Status: New finding. No matching open issue was found.
 
-- First-run setup clearly warns that no-PIN mode permits network control.
-- The operator can choose a mandatory PIN or an explicit trusted-LAN mode.
-- The selected mode is persisted and shown in the operator UI.
+Evidence:
 
-### SL-004 — ZIP import has no decompressed-size or entry-count budget
+- `sacra-lux/src/server.js:227-246` removes old `.txt` files but removes `mass_title.txt` only when a new title is written.
+- `sacra-lux/src/server.js:249-257` calls `syncReadingsDocumentsToCurrentMass()` during every current Mass save.
+- If a Mass changes from a titled Mass to a Mass with an empty title, the old `mass_title.txt` remains in `current_mass`.
+- A later restore can read the stale title even though the current state has no title.
 
-Priority: P1 / availability
-Evidence: JSON accepts up to 200 MB (`src/server.js:1847`), and
-`POST /api/import-mass-zip` (`src/server.js:2717`) decodes the complete base64
-payload, constructs an `AdmZip` object, and writes accepted entries into a
-staging directory before validation. There is no compressed-size, entry-count,
-total-uncompressed-size, or per-entry limit. The only size guards in the module
-are the slideshow import limits
-(`MAX_SLIDESHOW_IMPORT_IMAGES`, `MAX_SLIDESHOW_IMPORT_BYTES`), which do not apply
-to `import-mass-zip`. A highly compressed archive or many entries can consume
-excessive memory, CPU, or disk space.
+Impact: A Mass can restore with a title that the operator already cleared. The current Mass package no longer matches the persistent state.
 
-EARS story: **When** a client imports a Mass ZIP, **the system shall** reject archives whose compressed size, entry count, total uncompressed size, or individual entry size exceeds configured limits before replacing `current_mass`.
+EARS requirements:
+
+- R1: When the current Mass has no title, the persistence layer shall remove `current_mass/mass_title.txt`.
+- R2: When the current Mass has a title, the persistence layer shall store only the current title in `current_mass/mass_title.txt`.
 
 Acceptance criteria:
 
-- Limits are enforced before extraction and are reported as a 4xx error.
-- Temporary extraction is cleaned up on every rejection or failure.
-- The existing atomic replacement behavior remains intact for accepted archives.
+- [ ] (R1) Given a saved Mass with a title, when the operator clears the title and saves, then `current_mass/mass_title.txt` does not exist.
+- [ ] (R2) Given a saved Mass with a title, when the operator changes the title and saves, then the file contains only the new title.
+- [ ] A restart restores the same title shown before the restart.
+- [ ] Existing persistence, import, and archive tests pass.
 
-### SL-005 — Session and reading writes are not crash-atomic
+### SL-008 — Read-only endpoints disclose local file paths without control authorization
 
-Priority: P2 / data integrity
-Evidence: `saveSession()` writes directly to `session.json`
-(`src/persistence.js:103-128`), and `POST /api/save-reading`
-(`src/server.js:3117`) writes directly to the source file. A process or machine
-failure during either write can leave a truncated session or reading and cause
-data loss on the next startup. (Mass replacement itself is now staged and
-atomic via `replaceCurrentMassDir()`, `src/server.js:115-148`.)
+Priority: P3
 
-EARS story: **When** the system persists session state or an edited reading, **the system shall** write to a same-directory temporary file, flush/close it, and atomically replace the destination while retaining recoverable failure behavior.
+Type: Security hardening
 
-Acceptance criteria:
+Status: New finding. No matching open issue was found.
 
-- Interrupted writes do not replace a valid prior file with partial content.
-- Temporary files are removed after success and after failure.
-- Startup reports and safely recovers from a damaged primary file when a valid backup exists.
+Evidence:
 
-### SL-006 — Security and export behavior lack regression coverage
+- `sacra-lux/src/server.js:2010-2021` skips control authorization for all GET requests.
+- `sacra-lux/src/server.js:2573-2592` exposes `lastReadingsFolderPath` through `/api/export-settings`.
+- `sacra-lux/src/server.js:3378-3385` exposes both `lastReadingsFolderPath` and `sessionFile` through `/api/session-info`.
+- The server listens on all interfaces, so a LAN client can request these paths without a control session.
 
-Priority: P2 / missing feature
-Evidence: coverage has grown since the original review, including an
-unauthorized-control integration test and rate-limit tests, but there is still
-no test that exercises unauthenticated export downloads, loopback session
-isolation, no-PIN network behavior, ZIP import size limits, or crash recovery.
-The relevant implementation paths are in `src/security.js`, `src/server.js`, and
-`src/persistence.js`.
+Impact: A remote client can learn the operator's local directory layout. The paths can contain user names, parish names, or other private data.
 
-EARS story: **When** CI runs the application test suite, **the system shall** verify the security and data-integrity requirements for control sessions, exports, imports, and persistence.
+EARS requirements:
+
+- R1: If a client has no control session, then the server shall not return local filesystem paths from read-only API endpoints.
+- R2: When an authorized operator requests session metadata, the server shall return only the metadata needed by the operator UI.
 
 Acceptance criteria:
 
-- Integration tests cover both PIN-enabled and no-PIN modes.
-- Export tests prove unauthorized clients cannot download package data.
-- Import tests cover oversized and pathological archives.
-- Persistence tests simulate replacement failures and verify recovery.
+- [ ] (R1) Given a configured PIN and no control session, when a client requests session metadata or settings export, then the response omits local filesystem paths.
+- [ ] (R2) Given a valid control session, when the operator requests the endpoint, then the response contains the documented fields and no secret values.
+- [ ] Existing public screen, remote, and settings flows still pass.
 
-## Suggested GitHub issue breakdown
+### SL-009 — The JSON parser accepts a 200 MB body for every API route
 
-Create one issue per finding (`SL-001` through `SL-006`), using the finding title as the issue title and the EARS story plus acceptance criteria as the issue body. Implement SL-001 through SL-004 before treating the application as safe for broader LAN deployment; SL-005 and SL-006 should follow as reliability and regression work.
+Priority: P2
 
-## Review limitations
+Type: Reliability and denial-of-service hardening
 
-This review was performed from the checked-out source and automated tests. It did not create GitHub Issues or validate a packaged Electron build. The report is intentionally issue-ready so each finding can be copied into a GitHub Issue after triage. `ci.yml` runs the quality gates on PRs to `master`; the separate `version-check.yml` also runs on PRs to `master` and enforces the version bump.
+Status: New finding. No matching open issue was found.
+
+Evidence:
+
+- `sacra-lux/src/server.js:1999` installs `express.json({ limit: "200mb" })` for the whole application.
+- The Mass ZIP import has a 50 MB compressed limit at `sacra-lux/src/server.js:2899-2924`, but the JSON parser reads the request before route-level validation.
+- The upload routes enforce smaller decoded limits, but unrelated mutation and preview routes still accept the global limit.
+
+Impact: A reachable client can make the server allocate and parse very large JSON bodies before authentication or route validation rejects the request. This can delay Mass control or exhaust memory.
+
+EARS requirements:
+
+- R1: If a request body exceeds the limit for its API route, then the server shall reject the request before application parsing allocates the full body.
+- R2: While a client sends oversized requests, the server shall keep control and display endpoints available to other clients.
+
+Acceptance criteria:
+
+- [ ] (R1) Given an oversized request for a small mutation route, when the request arrives, then the server returns HTTP 413 before route logic runs.
+- [ ] (R1) Given a Mass ZIP import within its documented limit, when the request arrives, then the import still succeeds.
+- [ ] (R2) Given repeated oversized requests, when another client requests state or sends a control action, then the valid request completes within the documented service target.
+- [ ] Existing upload and ZIP validation tests pass.
+
+### SL-010 — Packaged Electron behavior has no automated release gate
+
+Priority: P2
+
+Type: Missing feature and test gap
+
+Status: Tracked by the open CI roadmap issue [#88](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/issues/88).
+
+Evidence:
+
+- `sacra-lux/package.json` defines build scripts, but the current verification run did not build or launch a packaged Electron application.
+- The current CI test commands cover lint, unit tests, integration tests, and headless browser tests.
+- Packaged-only paths include Electron IPC, `asarUnpack` public files, native `sharp`, and bundled prayer resources.
+
+Impact: A release can pass the current checks while the packaged application fails to start or cannot access packaged resources.
+
+EARS requirements:
+
+- R1: Where the application is packaged, the CI pipeline shall build and launch the packaged application on each supported desktop platform.
+- R2: If the packaged application cannot serve `/api/state` and `/screen`, then the CI pipeline shall fail.
+- R3: When a packaged smoke test fails, the pipeline shall retain the build log and test evidence.
+
+Acceptance criteria:
+
+- [ ] (R1) Given a pull request that changes packaged application code, when CI runs, then the pipeline builds on macOS and Windows.
+- [ ] (R2) Given a successful package build, when the smoke test launches the application, then `/api/state` and `/screen` return successfully.
+- [ ] (R3) Given a failed package or smoke test, when CI finishes, then the workflow exposes the relevant logs and artifacts.
+- [ ] Existing lint, unit, integration, and end-to-end tests pass.
+
+## Findings not carried forward
+
+The earlier review findings for export authorization, loopback authorization isolation, ZIP resource limits, and session or edited-reading atomic writes are implemented in the reviewed commit or covered by existing tests. Keep regression coverage for these controls when changing related code.
+
+## Suggested issue order
+
+1. Complete existing issue #70 before exposing a fresh installation on a LAN.
+2. Fix SL-007 because it can restore stale user data.
+3. Address SL-009 before adding more network-facing upload or import features.
+4. Address SL-008 as part of the same access-control hardening work.
+5. Complete issue #88 for packaged release confidence.
