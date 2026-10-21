@@ -1,6 +1,7 @@
 /*
 !/.gitignore
 !/.markdownlintignore
+!/.markdownlint-cli2.jsonc
 !/.nvmrc
 !/README.md
 !/AGENTS.md
