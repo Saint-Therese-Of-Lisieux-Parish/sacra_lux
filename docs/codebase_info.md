@@ -54,6 +54,7 @@ Sacra Lux writes runtime data under `~/.sacra-lux/`:
 | Path | Purpose |
 | --- | --- |
 | `session.json` | persisted session snapshot (version 2) |
+| `session.json.bak` | prior session snapshot for recovery after damage |
 | `current_mass/` | active Mass package: readings `.txt`, `mass.json`, and `assets/` |
 | `mass_history/<id>/` | archived Mass package, `metadata.json`, and optional `archive-avif.zip` |
 | `prayers/` | prayer text storage |
