@@ -390,6 +390,18 @@ function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
 const MAX_SLIDESHOW_IMPORT_IMAGES = 500;
 const MAX_SLIDESHOW_IMPORT_BYTES = 120 * 1024 * 1024;
 const MAX_MASS_ZIP_COMPRESSED_BYTES = 50 * 1024 * 1024;
+// JSON request body limits. Base64 adds one third, so each upload route allows
+// its decoded limit times 4/3 plus 1 MB for the JSON wrapper.
+const JSON_BODY_LIMIT_DEFAULT = "10mb";
+const JSON_BODY_LIMIT_SINGLE_UPLOAD = "200mb";
+const JSON_BODY_LIMIT_SLIDESHOW_IMPORT = `${Math.ceil((MAX_SLIDESHOW_IMPORT_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
+const JSON_BODY_LIMIT_MASS_ZIP = `${Math.ceil((MAX_MASS_ZIP_COMPRESSED_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
+const JSON_BODY_LIMITS_BY_PATH = new Map([
+  ["/api/upload-mass-asset", JSON_BODY_LIMIT_SINGLE_UPLOAD],
+  ["/api/upload-image", JSON_BODY_LIMIT_SINGLE_UPLOAD],
+  ["/api/import-slideshow-images", JSON_BODY_LIMIT_SLIDESHOW_IMPORT],
+  ["/api/import-mass-zip", JSON_BODY_LIMIT_MASS_ZIP]
+]);
 const MAX_MASS_ZIP_ENTRIES = 1000;
 const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
@@ -2021,7 +2033,16 @@ function startServer(port = 17841, options = {}) {
     maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent
   });
 
-  app.use(express.json({ limit: "200mb" }));
+  // Pick the JSON limit by route so small routes never buffer upload-sized bodies.
+  const jsonParsers = new Map();
+  function jsonParserFor(limit) {
+    if (!jsonParsers.has(limit)) jsonParsers.set(limit, express.json({ limit }));
+    return jsonParsers.get(limit);
+  }
+  app.use((req, res, next) => {
+    const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
+    return jsonParserFor(limit)(req, res, next);
+  });
   app.use("/api", globalApiRateLimit);
   app.use("/api", (req, res, next) => {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
