@@ -86,6 +86,26 @@ describe("security", () => {
     })).toBe(false);
   });
 
+  test("keeps each start link valid until it is used or expires", () => {
+    const now = Date.now();
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);
+    const first = security.issueStartToken({ ip: "10.0.0.1", userAgent: "phone-a" });
+    const second = security.issueStartToken({ ip: "10.0.0.2", userAgent: "phone-b" });
+
+    expect(first).not.toBe(second);
+    expect(security.isStartTokenValid({ token: first, ip: "10.0.0.1", userAgent: "phone-a" })).toBe(true);
+    expect(security.isStartTokenValid({ token: second, ip: "10.0.0.2", userAgent: "phone-b" })).toBe(true);
+
+    security.clearStartToken(first);
+
+    expect(security.isStartTokenValid({ token: first, ip: "10.0.0.1", userAgent: "phone-a" })).toBe(false);
+    expect(security.isStartTokenValid({ token: second, ip: "10.0.0.2", userAgent: "phone-b" })).toBe(true);
+    expect(security.isStartTokenValid({ token: second, ip: "10.0.0.1", userAgent: "phone-a" })).toBe(false);
+
+    nowSpy.mockReturnValue(now + (60 * 60 * 1000) + 1);
+    expect(security.isStartTokenValid({ token: second, ip: "10.0.0.2", userAgent: "phone-b" })).toBe(false);
+  });
+
   test("tracks PIN failures and lockouts by client ip", () => {
     const now = Date.now();
     jest.spyOn(Date, "now").mockReturnValue(now);
