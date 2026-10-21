@@ -71,6 +71,7 @@ const state = {
   massStartTime: null,
   startPinHash: null,
   startPin: "",
+  controlMode: "unset",
   targetScreenId: null,
   targetScreenIds: [],
   screenFullscreen: false,
@@ -99,6 +100,7 @@ function getStateSnapshot() {
   const snap = structuredClone(state);
   // Expose only whether a PIN is configured, not the PIN itself.
   snap.hasStartPin = Boolean(state.startPinHash?.hash || state.startPin);
+  snap.controlMode = state.controlMode === "trusted-lan" ? "trusted-lan" : "unset";
   delete snap.startPin;
   delete snap.startPinHash;
   delete snap.interstitialHoldReturnSlideIndex;

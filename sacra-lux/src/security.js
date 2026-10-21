@@ -205,26 +205,47 @@ function noteControlUnlock() {
   return issueControlSession();
 }
 
+const CONTROL_MODES = ["unset", "trusted-lan"];
+
+function normalizeControlMode(mode) {
+  return CONTROL_MODES.includes(mode) ? mode : "unset";
+}
+
+function isLoopbackAddress(address) {
+  const value = String(address || "").replace(/^::ffff:/i, "");
+  return value === "::1" || /^127\./.test(value);
+}
+
+// Without a PIN, only the operator computer may control until the operator
+// explicitly allows trusted-LAN control.
+function noPinMayControl(address) {
+  return state.controlMode === "trusted-lan" || isLoopbackAddress(address);
+}
+
+function getRequestAddress(req) {
+  return req?.socket?.remoteAddress || req?.connection?.remoteAddress || req?.ip || "";
+}
+
 function clientMayControl(req) {
-  if (!hasPinConfigured()) return true;
+  if (!hasPinConfigured()) return noPinMayControl(getRequestAddress(req));
   const token = readControlToken(req);
   return Boolean(token) && isControlSessionValid(token);
 }
 
 function clientHasControlSession(req) {
-  if (!hasPinConfigured()) return true;
+  if (!hasPinConfigured()) return noPinMayControl(getRequestAddress(req));
   return Boolean(getValidControlSessionToken(req));
 }
 
 function socketMayControl(socket) {
-  if (!hasPinConfigured()) return true;
+  if (!hasPinConfigured()) return noPinMayControl(getSocketClientIp(socket));
   const explicit = socket?.data?.controlToken || socket?.handshake?.auth?.token || "";
   const token = String(explicit || "") || readControlToken(socket?.handshake);
   return Boolean(token) && isControlSessionValid(token);
 }
 
 function socketHasControlSession(socket) {
-  if (!hasPinConfigured()) return true;
+  if (!hasPinConfigured()) return noPinMayControl(getSocketClientIp(socket));
   return Boolean(getValidControlSessionToken(socket));
 }
 
@@ -414,6 +435,7 @@ if (typeof securityCleanupInterval.unref === "function") {
 }
 
 module.exports = {
+  CONTROL_MODES,
   PIN_HASH_DIGEST,
   PIN_HASH_ITERATIONS,
   RATE_LIMIT_CONFIG,
@@ -431,9 +453,11 @@ module.exports = {
   getClientIp,
   getValidControlSessionToken,
   hasPinConfigured,
+  isLoopbackAddress,
   isStartTokenValid,
   issueStartToken,
   noteControlUnlock,
+  normalizeControlMode,
   registerPinFailure,
   resetSecurityState,
   socketMayControl,
