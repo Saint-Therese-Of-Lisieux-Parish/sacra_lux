@@ -337,6 +337,9 @@ A human-initiated request authorizes the whole pipeline: branch, commit, push, P
 - The authorization does not remove any other rule. All checks, all acceptance criteria, and the human-approval list below still apply.
 - If a human did not initiate the change, stop at the open PR and wait for a human to approve the merge.
 
+### Autonomy
+**Autonomy.** You own the task from start to finish. Choose your own approach, order of steps, and tools, within the rules in this document. Do not ask a human for permission to read code, run tests, edit files in your worktree, commit, push, open a PR, or fix CI failures. If something is unclear and a sensible choice exists, pick it, state your assumption in the PR, and continue. Stop and ask a human only when: a rule in this document requires it (risky areas, ambiguous or risky changes, a blocked push or merge), a secret is involved, or the acceptance criteria cannot be met as written. If you hit a problem, try at least two reasonable fixes before you report a blocker. When you finish, report what you did and what you assumed.
+
 ### Worktree lifecycle
 Each branch gets its own worktree, created when the branch is created and removed once the branch has been merged to master. The main checkout stays on master and is never used for edits or commits.
 
