@@ -141,16 +141,6 @@ function clearStartToken() {
 
 const CONTROL_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const controlSessions = new Map();
-let loopbackUnlocked = false;
-
-function isLoopbackAddress(value) {
-  const ip = String(value || "").trim().toLowerCase().replace(/^::ffff:/, "");
-  return ip === "127.0.0.1" || ip === "::1" || ip === "localhost";
-}
-
-function requestConnectionAddress(req) {
-  return req?.socket?.remoteAddress || req?.connection?.remoteAddress || "";
-}
 
 function readControlToken(source) {
   if (!source) return "";
@@ -191,21 +181,16 @@ function getValidControlSessionToken(source) {
 
 function clearControlAccess() {
   controlSessions.clear();
-  loopbackUnlocked = false;
 }
 
-function noteControlUnlock(req) {
-  if (isLoopbackAddress(requestConnectionAddress(req))) {
-    loopbackUnlocked = true;
-  }
+function noteControlUnlock() {
   return issueControlSession();
 }
 
 function clientMayControl(req) {
   if (!hasPinConfigured()) return true;
   const token = readControlToken(req);
-  if (token) return isControlSessionValid(token);
-  return loopbackUnlocked && isLoopbackAddress(requestConnectionAddress(req));
+  return Boolean(token) && isControlSessionValid(token);
 }
 
 function clientHasControlSession(req) {
@@ -217,9 +202,7 @@ function socketMayControl(socket) {
   if (!hasPinConfigured()) return true;
   const explicit = socket?.data?.controlToken || socket?.handshake?.auth?.token || "";
   const token = String(explicit || "") || readControlToken(socket?.handshake);
-  if (token) return isControlSessionValid(token);
-  const address = socket?.handshake?.address || socket?.conn?.remoteAddress || "";
-  return loopbackUnlocked && isLoopbackAddress(address);
+  return Boolean(token) && isControlSessionValid(token);
 }
 
 function socketHasControlSession(socket) {
