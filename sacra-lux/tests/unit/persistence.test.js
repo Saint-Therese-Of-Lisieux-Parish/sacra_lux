@@ -93,4 +93,45 @@ describe("persistence", () => {
 
     expect(loadSession()).toBeNull();
   });
+
+  test("saveSession leaves no temporary file behind", () => {
+    const { saveSession, getSessionFilePath } = require("../../src/persistence");
+
+    saveSession(sessionState("Atomic Save"));
+
+    const dir = path.dirname(getSessionFilePath());
+    expect(fs.readdirSync(dir).filter((name) => name.includes(".tmp-"))).toEqual([]);
+  });
+
+  test("loadSession reports damage and recovers the session from the backup", () => {
+    const { saveSession, loadSession, getSessionFilePath } = require("../../src/persistence");
+
+    saveSession(sessionState("Prior Session"));
+    saveSession(sessionState("Current Session"));
+    fs.writeFileSync(getSessionFilePath(), "{not-json", "utf8");
+
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => { });
+    const session = loadSession();
+
+    expect(session.presentationTitle).toBe("Prior Session");
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/damaged/i));
+    warnSpy.mockRestore();
+  });
 });
+
+function sessionState(title) {
+  return {
+    screenSettings: {},
+    organizerSequence: [],
+    manualSlides: {},
+    readingsSource: {},
+    presentation: { title },
+    massStartTime: null,
+    startPinHash: null,
+    targetScreenId: null,
+    targetScreenIds: [],
+    screenFullscreen: false,
+    activeMassArchiveId: null,
+    appSettings: { theme: "dark" }
+  };
+}

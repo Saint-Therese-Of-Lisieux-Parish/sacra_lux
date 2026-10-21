@@ -2658,6 +2658,13 @@
                       <span class="settings-toggle-help">Displays the section name like “Psalm” or “Gospel”.</span>
                     </span>
                   </label>
+                  <label class="settings-toggle">
+                    <input id="readingShowEnding" type="checkbox" checked>
+                    <span class="settings-toggle-copy">
+                      <span class="settings-toggle-title">Show spoken ending</span>
+                      <span class="settings-toggle-help">Shows “The Word of the Lord” or “The Gospel of the Lord” on the last page.</span>
+                    </span>
+                  </label>
                 </div>
               </div>
 
@@ -3760,6 +3767,7 @@
       readingSectionOutlineWidthPx: document.getElementById("readingSectionOutlineWidthPx"),
       readingShowPageNumber: document.getElementById("readingShowPageNumber"),
       readingShowLabel: document.getElementById("readingShowLabel"),
+      readingShowEnding: document.getElementById("readingShowEnding"),
       readingTextMarginXPx: document.getElementById("readingTextMarginXPx"),
       readingTextMarginYPx: document.getElementById("readingTextMarginYPx"),
       readingTextHeightPx: document.getElementById("readingTextHeightPx"),
@@ -4445,6 +4453,7 @@
         readingSectionOutlineWidthPx: Number(els.readingSectionOutlineWidthPx.value) || 1,
         readingShowPageNumber: Boolean(els.readingShowPageNumber.checked),
         readingShowLabel: Boolean(els.readingShowLabel.checked),
+        readingShowEnding: Boolean(els.readingShowEnding.checked),
         readingTextMarginXPx: Number(els.readingTextMarginXPx.value || 80),
         readingTextMarginYPx: Number(els.readingTextMarginYPx.value || 130),
         readingTextHeightPx: Number(els.readingTextHeightPx.value || 840),
@@ -4620,6 +4629,10 @@
         const showPage = ds.readingShowPageNumber !== false;
         const pageNum = slide?.pageNumber || 1;
         const totalPages = slide?.totalPages || 1;
+        const showEnding = ds.readingShowEnding !== false;
+        const previewText = showEnding && pageNum === totalPages && slide?.ending
+          ? `${text}\n\n${slide.ending}`
+          : text;
         const hasReadingContent = passage.trim().length > 0 || text.trim().length > 0;
 
         const labelHtml = showLabel
@@ -4640,7 +4653,7 @@
           ${labelHtml}${pageHtml}
           <div style="position:absolute;${passageTop}width:${pw}px;font-size:${pSize}px;color:${pColor};${pBold}font-family:'${pFont}',sans-serif;text-align:${pAlign}">${escThumb(passage)}</div>
           <div style="position:absolute;top:${my}px;left:${mx}px;right:${mx}px;height:${th}px;display:flex;align-items:${alignItems};overflow:hidden">
-            <div style="font-size:${rSize}px;line-height:${lh};color:${rColor};${rBold}${rItalic}${rOutline}${rShadow}font-family:'${rFont}',serif;text-align:${tAlign};white-space:pre-wrap;overflow:hidden;max-height:100%;width:100%">${escThumb(text)}</div>
+            <div style="font-size:${rSize}px;line-height:${lh};color:${rColor};${rBold}${rItalic}${rOutline}${rShadow}font-family:'${rFont}',serif;text-align:${tAlign};white-space:pre-wrap;overflow:hidden;max-height:100%;width:100%">${escThumb(previewText)}</div>
           </div>
           ${fallbackHtml}
         </div>`;
@@ -5429,6 +5442,7 @@
         }
         els.readingShowPageNumber.checked = screen.readingShowPageNumber !== false;
         els.readingShowLabel.checked = screen.readingShowLabel !== false;
+        els.readingShowEnding.checked = screen.readingShowEnding !== false;
         if (screen.readingTextMarginXPx !== undefined) {
           els.readingTextMarginXPx.value = String(screen.readingTextMarginXPx);
         }
@@ -6868,6 +6882,7 @@
     els.readingSectionOutlineWidthPx.addEventListener("change", scheduleAutoApply);
     els.readingShowPageNumber.addEventListener("change", scheduleAutoApply);
     els.readingShowLabel.addEventListener("change", scheduleAutoApply);
+    els.readingShowEnding.addEventListener("change", scheduleAutoApply);
     els.readingTextMarginXPx.addEventListener("input", scheduleAutoApply);
     els.readingTextMarginXPx.addEventListener("change", scheduleAutoApply);
     els.readingTextMarginYPx.addEventListener("input", scheduleAutoApply);

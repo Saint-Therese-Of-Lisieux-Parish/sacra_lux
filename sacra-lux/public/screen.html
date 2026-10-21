@@ -900,7 +900,8 @@
         ? `<div class="reading-page-indicator">${slide.pageNumber} / ${slide.totalPages}</div>`
         : "";
 
-      const bodyBlock = `<div class="reading-body">${readingBodyHtml(slide.text || "", slide.ending || null)}</div>`;
+      const showEnding = settings.readingShowEnding !== false;
+      const bodyBlock = `<div class="reading-body">${readingBodyHtml(slide.text || "", showEnding ? (slide.ending || null) : null)}</div>`;
       wrap.innerHTML = `
         ${pageIndicatorHtml}
         ${passageBlock}
@@ -1558,7 +1559,8 @@
         let minSize = baseFontSize;
 
         for (const slide of groupSlides) {
-          const html = readingBodyHtml(slide.text || "", slide.ending || null);
+          const ending = groupSettings.readingShowEnding !== false ? (slide.ending || null) : null;
+          const html = readingBodyHtml(slide.text || "", ending);
           const testDiv = document.createElement("div");
           testDiv.style.cssText = `
             white-space: pre-wrap;

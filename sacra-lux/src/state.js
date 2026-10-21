@@ -43,6 +43,7 @@ const state = {
     readingTextOutlineColor: "#000000",
     readingTextOutlineWidthPx: 1,
     readingTextShadow: true,
+    readingShowEnding: true,
     textSlideTextAlign: "center",
     textSlideTextVAlign: "middle",
     textSlideTextFont: "",

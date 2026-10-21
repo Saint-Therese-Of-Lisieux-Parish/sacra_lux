@@ -37,4 +37,13 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("function getVisibleFocusableElements(container)");
     expect(appHtml).toContain("const focusable = getVisibleFocusableElements(els.editorDialog);");
   });
+
+  test("reading ending setting is wired in the operator and screen clients", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    expect(appHtml).toContain('id="readingShowEnding"');
+    expect(appHtml).toContain("readingShowEnding: Boolean(els.readingShowEnding.checked)");
+    expect(screenHtml).toContain("settings.readingShowEnding !== false");
+    expect(screenHtml).toContain("groupSettings.readingShowEnding !== false");
+  });
 });

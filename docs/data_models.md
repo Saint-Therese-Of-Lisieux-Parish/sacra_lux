@@ -194,6 +194,7 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 - `readingSectionOutlineWidthPx` — clamped 0.5–20
 - `readingShowPageNumber`
 - `readingShowLabel`
+- `readingShowEnding` — show the spoken ending on the last page
 
 ### Text, prayer, and hymn fields
 
@@ -282,6 +283,13 @@ Parsed reading documents are omitted because they are reloaded from
 `current_mass/`. Session version `1` is migrated automatically by
 `migrateV1toV2()` in `src/persistence.js` (renames `manualCues`, `displaySettings`,
 legacy background keys, and `warmup` phases).
+
+Session writes and edited reading writes use `writeFileAtomic()` in
+`src/atomicWrite.js`. The writer makes a same-directory temporary file,
+flushes and closes it, then replaces the destination with one atomic rename.
+The previous session is copied to `session.json.bak` before the replace. If
+`session.json` is damaged at startup, `loadSession()` logs the damage and
+recovers the session from the backup.
 
 ## Archive Metadata
 

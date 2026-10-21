@@ -41,6 +41,7 @@ const {
 const { saveSession, loadSession, getSessionFilePath } = require("./persistence");
 const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./themes");
 const logger = require("./logger");
+const { writeFileAtomic } = require("./atomicWrite");
 const { createMovieEndGuard } = require("./movieAdvance");
 const {
   CURRENT_MASS_DIR,
@@ -786,6 +787,7 @@ function normalizeScreenSettings(input = {}) {
     readingSectionOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.readingSectionOutlineWidthPx ?? current.readingSectionOutlineWidthPx ?? 1))) * 10) / 10,
     readingShowPageNumber: Boolean(input.readingShowPageNumber ?? current.readingShowPageNumber ?? true),
     readingShowLabel: Boolean(input.readingShowLabel ?? current.readingShowLabel ?? true),
+    readingShowEnding: Boolean(input.readingShowEnding ?? current.readingShowEnding ?? true),
     readingTextMarginXPx: Math.min(260, Math.max(0, Number(input.readingTextMarginXPx) || current.readingTextMarginXPx || 80)),
     readingTextMarginYPx: Math.min(360, Math.max(0, Number(input.readingTextMarginYPx) || current.readingTextMarginYPx || 130)),
     readingTextHeightPx: Math.min(980, Math.max(120, Number(input.readingTextHeightPx) || current.readingTextHeightPx || 840)),
@@ -3326,7 +3328,7 @@ function startServer(port = 17841, options = {}) {
       const headerLines = lines.slice(0, textStart);
       const newContent = headerLines.join("\n") + "\n" + text;
 
-      fs.writeFileSync(filePath, newContent);
+      writeFileAtomic(filePath, newContent);
 
       const imported = importReadings(folderPath, {
         fontSizePx: state.screenSettings.fontSizePx,
@@ -3386,10 +3388,13 @@ function startServer(port = 17841, options = {}) {
     scheduleSave();
   }
 
-  function releaseInterstitialHold(returnSlideIndexOverride = null) {
+  function releaseInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
     if (!state.interstitialHoldActive) return false;
 
-    const hasExplicitReturnIndex = Number.isFinite(Number(returnSlideIndexOverride));
+    // Use a new slide only when the operator chooses that slide.
+    // Next and previous leave the stored return slide unchanged.
+    const hasExplicitReturnIndex =
+      explicitReturn === true && Number.isFinite(Number(returnSlideIndexOverride));
     const returnIndex = getSafeSlideIndex(
       hasExplicitReturnIndex
         ? Number(returnSlideIndexOverride)
@@ -3407,9 +3412,9 @@ function startServer(port = 17841, options = {}) {
     return true;
   }
 
-  function toggleInterstitialHold(returnSlideIndexOverride = null) {
+  function toggleInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
     if (state.interstitialHoldActive) {
-      return releaseInterstitialHold(returnSlideIndexOverride);
+      return releaseInterstitialHold(returnSlideIndexOverride, explicitReturn);
     }
     const activated = activateInterstitialHold();
     if (activated) {
@@ -3562,7 +3567,7 @@ function startServer(port = 17841, options = {}) {
       io.emit("state:update", getStateSnapshot());
     }));
     socket.on("screen:interstitial-hold", withControl(socket, (payload) => {
-      if (!toggleInterstitialHold(payload?.returnSlideIndex)) {
+      if (!toggleInterstitialHold(payload?.returnSlideIndex, payload?.explicitReturn === true)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
       }
     }));
