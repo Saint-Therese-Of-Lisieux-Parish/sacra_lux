@@ -459,6 +459,26 @@ describe("server api integration", () => {
     return files;
   }
 
+  test("clearing the Mass title removes the stale mass_title.txt file", async () => {
+    const readingsDir = path.join(handle.homeDir, "title-clear-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
+    fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Old Title\n");
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const titleFile = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass_title.txt");
+    expect(fs.readFileSync(titleFile, "utf8")).toBe("Old Title\n");
+
+    await request(app).post("/api/update-title").send({ title: "New Title" }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(fs.readFileSync(titleFile, "utf8")).toBe("New Title\n");
+
+    await request(app).post("/api/update-title").send({ title: "" }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(fs.existsSync(titleFile)).toBe(false);
+  });
+
   test("a failed Mass replacement leaves the current Mass byte-for-byte", async () => {
     const readingsDir = path.join(handle.homeDir, "keep-current-readings");
     fs.mkdirSync(readingsDir, { recursive: true });
