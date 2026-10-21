@@ -281,7 +281,7 @@
         } else {
           window.location.href = data.redirect || "/api/start-redirect";
         }
-      } catch (err) {
+      } catch {
         errorMsg.textContent = "Connection error. Please try again.";
       } finally {
         startBtn.disabled = false;

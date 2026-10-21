@@ -1,4 +1,5 @@
 const globals = require('globals');
+const html = require('eslint-plugin-html');
 
 const commonRules = {
   'no-constant-condition': ['error', { checkLoops: false }],
@@ -43,8 +44,9 @@ module.exports = [
     rules: commonRules
   },
   {
-    files: ['public/**/*.js'],
+    files: ['public/**/*.js', 'public/*.html'],
     ignores: ['public/vendor/**'],
+    plugins: { html },
     linterOptions: {
       reportUnusedDisableDirectives: false
     },

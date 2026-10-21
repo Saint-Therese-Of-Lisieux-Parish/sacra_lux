@@ -4978,7 +4978,7 @@
       }
     }
 
-    function renderSequence(sequence, slides, activeSlide) {
+    function renderSequence(sequence, slides) {
       const counts = slideCountsByOrganizer(slides);
       const screenSettings = uiState.data?.screenSettings || {};
       const manualSlides = uiState.data?.manualSlides || {};
@@ -5628,7 +5628,7 @@
 
       els.blackBtn.textContent = uiState.black ? "Unblack Screen" : "Black Screen";
 
-      renderSequence(sequence, slides, activeSlide);
+      renderSequence(sequence, slides);
       renderEditor(sequence, data.manualSlides || {}, getDocuments());
     }
 
@@ -6040,19 +6040,6 @@
     }
 
     // ── Section presets ───────────────────────────────────────────────────────
-    function makeManualSlide(type) {
-      return {
-        text: "",
-        notes: "",
-        imageUrl: null,
-        videoUrl: null,
-        videoLoop: false,
-        videoAutoAdvance: true,
-        textVAlign: (type === "image" || type === "interstitial" || type === "movie") ? null : "middle",
-        styleOverrides: {}
-      };
-    }
-
     // ── Image preview helper ──────────────────────────────────────────────────
     function updateImagePreview(url) {
       const preview = document.getElementById("imagePreview");
@@ -8265,7 +8252,7 @@
           } else {
             els.status.textContent = data.error || "Failed to load prayer text";
           }
-        } catch (e) {
+        } catch {
           els.status.textContent = "Error loading prayer text";
         }
       });

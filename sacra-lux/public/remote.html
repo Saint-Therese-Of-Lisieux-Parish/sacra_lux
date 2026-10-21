@@ -627,7 +627,6 @@
     let previewSwipeStartY = null;
     let _preMassRunning = false;
     let _currentPhase = null;
-    let lastRenderedActive = null;
     let carouselSlots = [];
     let previewPinFrame = null;
     let suppressNextCarouselAnimation = false;
@@ -989,7 +988,6 @@
         carouselDragOffset = 0;
         renderCarousel();
       }
-      lastRenderedActive = currentActive;
       els.cueList.innerHTML = buildCueListHtml(cues, active);
       syncRemoteViewportMetrics();
 
@@ -1282,20 +1280,6 @@
       }
     });
     els.remoteSplash.tabIndex = 0;
-
-    function moveCarouselBy(delta) {
-      if (!currentSlides.length) return;
-      const nextFocus = clampCarouselFocus(carouselFocusIndex + delta);
-      if (nextFocus === carouselFocusIndex) {
-        return;
-      }
-      stopCarouselMomentum();
-      carouselDragOffset = 0;
-      carouselFocusIndex = nextFocus;
-      carouselSelectedIndex = nextFocus;
-      renderCarousel();
-      scrollToPreview();
-    }
 
     function beginCarouselGesture(x, y) {
       stopCarouselMomentum();
