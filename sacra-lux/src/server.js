@@ -41,6 +41,7 @@ const {
 const { saveSession, loadSession, getSessionFilePath } = require("./persistence");
 const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./themes");
 const logger = require("./logger");
+const { writeFileAtomic } = require("./atomicWrite");
 const { createMovieEndGuard } = require("./movieAdvance");
 const {
   CURRENT_MASS_DIR,
@@ -3326,7 +3327,7 @@ function startServer(port = 17841, options = {}) {
       const headerLines = lines.slice(0, textStart);
       const newContent = headerLines.join("\n") + "\n" + text;
 
-      fs.writeFileSync(filePath, newContent);
+      writeFileAtomic(filePath, newContent);
 
       const imported = importReadings(folderPath, {
         fontSizePx: state.screenSettings.fontSizePx,
