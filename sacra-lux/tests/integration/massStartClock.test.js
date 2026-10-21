@@ -122,6 +122,36 @@ describe("mass start from the wall clock", () => {
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "mass"));
   });
 
+  // Wall-clock strings without an offset are local time. Across a clock change
+  // the real wait is not the difference of the two clock readings. Compute the
+  // wait from Date, so the test holds in every TZ, with or without DST.
+  test.each([
+    ["US spring forward", "2026-03-08T01:59:50", "2026-03-08T03:00:00"],
+    ["US fall back", "2026-11-01T00:59:50", "2026-11-01T02:00:00"],
+    ["EU spring forward", "2026-03-29T00:59:50", "2026-03-29T02:00:00"],
+    ["EU fall back", "2026-10-25T00:59:50", "2026-10-25T02:00:00"]
+  ])("%s: cuts over to Mass when the local start time arrives", async (_label, nowLocal, startLocal) => {
+    const now = new Date(nowLocal);
+    const waitMs = new Date(startLocal).getTime() - now.getTime();
+    // The wait must be long enough to observe both sides of the cutover.
+    expect(waitMs).toBeGreaterThan(2000);
+
+    jest.setSystemTime(now);
+    await seedGatheringAndMass();
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: startLocal })
+      .expect(200);
+
+    jest.advanceTimersByTime(waitMs - 1000);
+    let res = await request(app).get("/api/state").expect(200);
+    expect(currentPhase(res.body)).not.toBe("mass");
+
+    jest.advanceTimersByTime(1000);
+    res = await request(app).get("/api/state").expect(200);
+    expect(currentPhase(res.body)).toBe("mass");
+  });
+
   test("cutover keeps the Mass slide an operator already reached", async () => {
     // One minute before Mass. Gathering is 30s, so its lead-in is 9:59:30.
     jest.setSystemTime(new Date("2026-05-03T09:59:00"));
