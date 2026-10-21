@@ -747,6 +747,24 @@ describe("server api integration", () => {
     expect(stateRes.body.screenSettings.textSlideTextOutlineWidthPx).toBe(20);
   });
 
+  test("screen settings toggle the spoken reading ending", async () => {
+    await request(app)
+      .post("/api/screen-settings")
+      .send({ readingShowEnding: false })
+      .expect(200);
+
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.screenSettings.readingShowEnding).toBe(false);
+
+    await request(app)
+      .post("/api/screen-settings")
+      .send({ readingShowEnding: true })
+      .expect(200);
+
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.screenSettings.readingShowEnding).toBe(true);
+  });
+
   test("mass asset upload preserves the original filename safely", async () => {
     const res = await request(app)
       .post("/api/upload-mass-asset")

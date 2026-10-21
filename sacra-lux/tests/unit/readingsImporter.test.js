@@ -218,6 +218,52 @@ describe("readingsImporter", () => {
   });
 });
 
+describe("spoken reading endings", () => {
+  function importEndingFolder() {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "mass-endings-"));
+    fs.writeFileSync(path.join(root, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning God created the heavens and the earth.", "utf8");
+    fs.writeFileSync(path.join(root, "Reading_II.txt"), "Romans 5:1-5\n\nHope does not disappoint.", "utf8");
+    fs.writeFileSync(path.join(root, "Responsorial_Psalm.txt"), "Psalm 23\n\nR. The Lord is my shepherd.", "utf8");
+    fs.writeFileSync(path.join(root, "Gospel.txt"), "John 1:1-5\n\nIn the beginning was the Word.", "utf8");
+    return importReadings(root, {
+      fontSizePx: 60,
+      fontFamily: "Merriweather",
+      readingTextHeightPx: 840
+    });
+  }
+
+  test("assigns the spoken ending by section", () => {
+    const result = importEndingFolder();
+    const endings = Object.fromEntries(result.documents.map((doc) => [doc.section, doc.ending]));
+
+    expect(endings["Reading I"]).toBe("The Word of the Lord.");
+    expect(endings["Reading II"]).toBe("The Word of the Lord.");
+    expect(endings["Responsorial Psalm"]).toBe("The Word of the Lord.");
+    expect(endings.Gospel).toBe("The Gospel of the Lord.");
+  });
+
+  test("shows the spoken ending only on the last page", () => {
+    const longText = Array.from({ length: 24 }, (_, index) => `Line ${index + 1} of the reading.`);
+    const slides = paginateDocuments([
+      {
+        stem: "Reading_I",
+        section: "Reading I",
+        passage: "Genesis 1:1",
+        textLines: longText,
+        ending: "The Word of the Lord."
+      }
+    ], {
+      fontSizePx: 60,
+      readingTextHeightPx: 840,
+      readingTextMarginXPx: 80
+    });
+
+    expect(slides.length).toBeGreaterThan(1);
+    expect(slides.slice(0, -1).every((slide) => slide.ending === null)).toBe(true);
+    expect(slides[slides.length - 1].ending).toBe("The Word of the Lord.");
+  });
+});
+
 describe("pagination cache key", () => {
   const { paginateDocuments, clearPaginationCache } = require("../../src/readingsImporter");
   const docs = [{ stem: "R", section: "Reading I", passage: "P", textLines: ["a b c"], ending: null }];
