@@ -208,4 +208,55 @@ describe("security", () => {
 
     third.release();
   });
+
+  test("socket rate limit uses the connection address for every socket", () => {
+    const guard = security.createSocketRateLimitGuard({
+      bucket: "heavy",
+      windowMs: 60000,
+      max: 3,
+      maxConcurrent: 1,
+      label: "socket-heavy"
+    });
+    const socketFrom = (address, forwardedFor) => ({
+      handshake: {
+        address,
+        headers: { "x-forwarded-for": forwardedFor }
+      },
+      request: {
+        socket: { remoteAddress: address }
+      }
+    });
+
+    const first = guard(socketFrom("192.0.2.10", "203.0.113.1"));
+    expect(first.allowed).toBe(true);
+
+    const sameHost = guard(socketFrom("192.0.2.10", "203.0.113.2"));
+    expect(sameHost.allowed).toBe(false);
+    expect(sameHost.retryAfterSec).toBe(1);
+
+    first.release();
+
+    const secondRequest = guard(socketFrom("192.0.2.10", "198.51.100.8"));
+    expect(secondRequest.allowed).toBe(true);
+    secondRequest.release();
+
+    const overCap = guard(socketFrom("192.0.2.10", "198.51.100.9"));
+    expect(overCap.allowed).toBe(false);
+    expect(overCap.retryAfterSec).toBeGreaterThan(1);
+
+    const spoofedHandshake = guard({
+      handshake: {
+        address: "192.0.2.99",
+        headers: { "x-forwarded-for": "203.0.113.50" }
+      },
+      request: {
+        socket: { remoteAddress: "192.0.2.10" }
+      }
+    });
+    expect(spoofedHandshake.allowed).toBe(false);
+
+    const otherHost = guard(socketFrom("192.0.2.11", "203.0.113.1"));
+    expect(otherHost.allowed).toBe(true);
+    otherHost.release();
+  });
 });
