@@ -194,6 +194,7 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 - `readingSectionOutlineWidthPx` — clamped 0.5–20
 - `readingShowPageNumber`
 - `readingShowLabel`
+- `readingShowEnding` — show the spoken ending on the last page
 
 ### Text, prayer, and hymn fields
 
