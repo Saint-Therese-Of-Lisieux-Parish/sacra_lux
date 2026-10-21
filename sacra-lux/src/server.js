@@ -31,6 +31,9 @@ const {
   normalizeCountdownSizePercent,
   normalizeCountdownFont,
   normalizeCountdownStyle,
+  normalizeCountdownSec,
+  countdownSecError,
+  COUNTDOWN_MAX_SEC,
   normalizeSlideshowDurationSec,
   normalizeSlideshowImages,
   normalizeSlideshowLoopCount,
@@ -1678,7 +1681,7 @@ function startCountdownForSlide(ioRef) {
   const slide = slides[state.currentSlideIndex];
   if (!slide || slide.type !== "countdown") return;
 
-  const durationMs = Math.max(1000, Math.min(300000, (Number(slide.countdownSec) || 60) * 1000));
+  const durationMs = Math.max(1000, Math.min(COUNTDOWN_MAX_SEC * 1000, (Number(slide.countdownSec) || 60) * 1000));
   state.countdownEndsAt = Date.now() + durationMs;
   // Broadcast immediately so clients can start rendering the countdown.
   touch();
@@ -3056,6 +3059,13 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "sequence array is required." });
       }
 
+      for (const manual of Object.values(manualSlides && typeof manualSlides === "object" ? manualSlides : {})) {
+        const countdownError = countdownSecError(manual?.countdownSec);
+        if (countdownError) {
+          return res.status(400).json({ error: countdownError });
+        }
+      }
+
       _manualNavigationDirection = 1;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const wasSlideshow = previousSlide?.type === "imageSlideshow";
@@ -3286,7 +3296,11 @@ function startServer(port = 17841, options = {}) {
         manual.textVAlign = String(incomingManual.textVAlign);
       }
       if (type === "countdown") {
-        manual.countdownSec = Math.max(1, Math.min(300, Number(incomingManual.countdownSec) || 60));
+        const countdownError = countdownSecError(incomingManual.countdownSec);
+        if (countdownError) {
+          return res.status(400).json({ error: countdownError });
+        }
+        manual.countdownSec = normalizeCountdownSec(incomingManual.countdownSec);
         manual.countdownFont = normalizeCountdownFont(incomingManual.countdownFont);
         manual.countdownStyle = normalizeCountdownStyle(String(incomingManual.countdownStyle || ""));
         manual.countdownSizePercent = normalizeCountdownSizePercent(incomingManual.countdownSizePercent);

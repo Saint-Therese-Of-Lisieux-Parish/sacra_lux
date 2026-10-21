@@ -84,7 +84,7 @@ Per-type extensions:
 
 | Type | Extra fields |
 | --- | --- |
-| `countdown` | `countdownSec` (1–300), `countdownFont`, `countdownStyle` (`ring` \| `digits` \| `bar` \| `minimal` \| `hourglass` \| `stopwatch`), `countdownSizePercent` (50–200) |
+| `countdown` | `countdownSec` (1–3600), `countdownFont`, `countdownStyle` (`ring` \| `digits` \| `bar` \| `minimal` \| `hourglass` \| `stopwatch`), `countdownSizePercent` (50–200) |
 | `movie` | `videoUrl`, `videoLoop`, `videoAutoAdvance` |
 | `imageSlideshow` | `images` (array of `{ url, name }`, max 500), `slideshowDurationSec` (1–3600), `slideshowLoopCount` (1–1000) |
 

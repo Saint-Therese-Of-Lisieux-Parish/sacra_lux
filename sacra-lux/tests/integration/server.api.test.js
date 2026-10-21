@@ -1206,6 +1206,26 @@ describe("server api integration", () => {
     expect(stateRes.body.countdownEndsAt).toBeNull();
   });
 
+  test("the organizer keeps a ten minute countdown and rejects lengths out of range", async () => {
+    const send = (countdownSec) => request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "countdown:long", type: "countdown", label: "Timer", phase: "pre", backgroundTheme: "dark", durationSec: 10 }],
+        manualSlides: { "countdown:long": { text: "", countdownSec } }
+      });
+
+    await send(600).expect(200);
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.presentation.slides[0].countdownSec).toBe(600);
+
+    for (const bad of [0, 3601]) {
+      const res = await send(bad).expect(400);
+      expect(res.body.error).toMatch(/between 1 second and 60 minutes/);
+    }
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.presentation.slides[0].countdownSec).toBe(600);
+  });
+
   test("the organizer drops countdown font markup before it reaches the state", async () => {
     await request(app)
       .post("/api/organizer")

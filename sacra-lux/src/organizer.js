@@ -52,6 +52,8 @@ const SECTION_LABELS = {
 const VALID_TYPES = ["reading", "image", "imageSlideshow", "movie", "text", "prayer", "hymn", "countdown", "interstitial"];
 const VALID_PHASES = ["pre", "gathering", "mass", "post"];
 const VALID_BACKGROUND_THEMES = ["dark", "light"];
+const COUNTDOWN_MIN_SEC = 1;
+const COUNTDOWN_MAX_SEC = 3600;
 const VALID_COUNTDOWN_STYLES = ["ring", "digits", "bar", "minimal", "hourglass", "stopwatch"];
 const VALID_COUNTDOWN_FONTS = new Set([
   "Merriweather", "Lora", "Playfair Display", "Cormorant Garamond", "EB Garamond",
@@ -81,6 +83,21 @@ function normalizeType(value) {
   if (value === "reading-group") return "reading";
   if (value === "graphic") return "image";
   return VALID_TYPES.includes(value) ? value : "text";
+}
+
+function normalizeCountdownSec(value) {
+  return Math.max(COUNTDOWN_MIN_SEC, Math.min(COUNTDOWN_MAX_SEC, Number(value) || 60));
+}
+
+// Returns an error message for a countdown length outside the allowed range.
+// An absent value is allowed and falls back to the default length.
+function countdownSecError(value) {
+  if (value === undefined || value === null || value === "") return "";
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < COUNTDOWN_MIN_SEC || seconds > COUNTDOWN_MAX_SEC) {
+    return `Countdown must be between ${COUNTDOWN_MIN_SEC} second and ${COUNTDOWN_MAX_SEC / 60} minutes.`;
+  }
+  return "";
 }
 
 function normalizeCountdownStyle(value) {
@@ -346,7 +363,7 @@ function buildManualSlide(item, manualSlide, index) {
       id: `${item.id}:1`,
       title: item.label || "Countdown",
       text: "",
-      countdownSec: Math.max(1, Math.min(300, Number(manualSlide?.countdownSec) || 60)),
+      countdownSec: normalizeCountdownSec(manualSlide?.countdownSec),
       countdownFont: normalizeCountdownFont(manualSlide?.countdownFont),
       countdownStyle: normalizeCountdownStyle(manualSlide?.countdownStyle),
       countdownSizePercent: normalizeCountdownSizePercent(manualSlide?.countdownSizePercent),
@@ -471,6 +488,9 @@ module.exports = {
   normalizeType,
   normalizeStyleOverrides,
   normalizeCountdownStyle,
+  normalizeCountdownSec,
+  countdownSecError,
+  COUNTDOWN_MAX_SEC,
   normalizeCountdownSizePercent,
   normalizeSlideshowImages,
   normalizeSlideshowDurationSec,
