@@ -66,6 +66,7 @@ jobs:
           path: |
             sacra-lux/playwright-report/
             sacra-lux/test-results/
+            sacra-lux/tests/e2e/*-snapshots/
           if-no-files-found: ignore
           retention-days: 7
 
