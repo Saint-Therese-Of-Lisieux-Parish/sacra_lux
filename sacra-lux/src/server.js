@@ -787,6 +787,7 @@ function normalizeScreenSettings(input = {}) {
     readingSectionOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.readingSectionOutlineWidthPx ?? current.readingSectionOutlineWidthPx ?? 1))) * 10) / 10,
     readingShowPageNumber: Boolean(input.readingShowPageNumber ?? current.readingShowPageNumber ?? true),
     readingShowLabel: Boolean(input.readingShowLabel ?? current.readingShowLabel ?? true),
+    readingShowEnding: Boolean(input.readingShowEnding ?? current.readingShowEnding ?? true),
     readingTextMarginXPx: Math.min(260, Math.max(0, Number(input.readingTextMarginXPx) || current.readingTextMarginXPx || 80)),
     readingTextMarginYPx: Math.min(360, Math.max(0, Number(input.readingTextMarginYPx) || current.readingTextMarginYPx || 130)),
     readingTextHeightPx: Math.min(980, Math.max(120, Number(input.readingTextHeightPx) || current.readingTextHeightPx || 840)),
