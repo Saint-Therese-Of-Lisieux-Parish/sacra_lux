@@ -510,6 +510,7 @@
     </section>
 
     <section id="blackSection" class="controls-row">
+      <button id="blackoutBtn" class="danger" style="font-size:0.82rem" aria-pressed="false">Blackout</button>
       <button id="interstitialBtn" class="danger" style="font-size:0.82rem">Interstitial Slide</button>
       <button id="nextSectionBtn" class="primary" style="font-size:0.82rem">Next Slide Group</button>
     </section>
@@ -531,6 +532,7 @@
       splashMassStart: document.getElementById("splashMassStart"),
       splashSlideCount: document.getElementById("splashSlideCount"),
       cueList: document.getElementById("cueList"),
+      blackoutBtn: document.getElementById("blackoutBtn"),
       interstitialBtn: document.getElementById("interstitialBtn"),
       nextSectionBtn: document.getElementById("nextSectionBtn"),
       remoteStatus: document.getElementById("remoteStatus"),
@@ -959,6 +961,9 @@
       els.remoteStatus.textContent = "";
       els.interstitialBtn.textContent = interstitialHoldActive ? "Return to Slide" : "Interstitial Slide";
       els.interstitialBtn.disabled = !hasInterstitial;
+      const isBlack = Boolean(state.isBlack);
+      els.blackoutBtn.textContent = isBlack ? "Show Slide" : "Blackout";
+      els.blackoutBtn.setAttribute("aria-pressed", String(isBlack));
 
       // Update the primary button. It becomes "Start Mass" only before Mass.
       // After Mass the button stays "Next Slide Group" so it moves within post-Mass.
@@ -1164,6 +1169,9 @@
       interstitialReturnChoice = Number.isFinite(Number(index)) ? Number(index) : null;
     }
 
+    els.blackoutBtn.addEventListener("click", () => {
+      socket.emit("screen:black", !(latestState && latestState.isBlack));
+    });
     els.interstitialBtn.addEventListener("click", () => {
       if (interstitialHoldActive) {
         if (interstitialReturnChoice === null) {

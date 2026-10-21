@@ -73,6 +73,13 @@ describe("public html integration", () => {
     expect(res.text).toContain("Tap anywhere to open the remote.");
   });
 
+  test("remote markup includes a blackout control", async () => {
+    const res = await request(app).get("/remote").expect(200);
+
+    expect(res.text).toContain('id="blackoutBtn"');
+    expect(res.text).toContain('socket.emit("screen:black"');
+  });
+
   test("remote markup returns a hold to a chosen cue", async () => {
     const res = await request(app).get("/remote").expect(200);
 
