@@ -280,4 +280,42 @@ describe("pagination cache key", () => {
     expect(paginateDocuments(docs, base)).toBe(first);
     expect(paginateDocuments(docs, { ...base, [key]: value })).not.toBe(first);
   });
+
+  describe("document fields that change paging", () => {
+    const verse = "Verse: the word of the Lord came to the prophet in the days of the king, and he spoke to the people.";
+    const lines = Array.from({ length: 24 }, () => verse);
+    const layout = { fontSizePx: 60, readingTextHeightPx: 840, readingTextMarginXPx: 80, canvasWidth: 2560 };
+    const reading = { stem: "R", section: "Reading I", passage: "P", textLines: lines, ending: null };
+
+    function coldPageCount(doc) {
+      clearPaginationCache();
+      return paginateDocuments([doc], layout).length;
+    }
+
+    test("returns separate slides when only the ending differs", () => {
+      const withEnding = { ...reading, ending: "The word of the Lord." };
+      const expectedPlain = coldPageCount(reading);
+      const expectedEnded = coldPageCount(withEnding);
+      expect(expectedEnded).not.toBe(expectedPlain);
+
+      clearPaginationCache();
+      expect(paginateDocuments([reading], layout)).toHaveLength(expectedPlain);
+      expect(paginateDocuments([withEnding], layout)).toHaveLength(expectedEnded);
+    });
+
+    test("returns separate slides when only the section differs", () => {
+      const psalm = { ...reading, section: "Responsorial Psalm", textLines: ["R. Refrain", ...lines, "R. Refrain"] };
+      const asReading = { ...psalm, section: "Reading I" };
+      const expectedPsalm = paginateDocuments([psalm], { ...layout, canvasWidth: 1920 });
+      clearPaginationCache();
+      const expectedReading = paginateDocuments([asReading], { ...layout, canvasWidth: 1920 });
+      expect(expectedPsalm.map((slide) => slide.text)).not.toEqual(expectedReading.map((slide) => slide.text));
+
+      clearPaginationCache();
+      const first = paginateDocuments([asReading], { ...layout, canvasWidth: 1920 });
+      const second = paginateDocuments([psalm], { ...layout, canvasWidth: 1920 });
+      expect(first.map((slide) => slide.text)).toEqual(expectedReading.map((slide) => slide.text));
+      expect(second.map((slide) => slide.text)).toEqual(expectedPsalm.map((slide) => slide.text));
+    });
+  });
 });

@@ -34,6 +34,8 @@ function _createPaginationCacheKey(documents, options) {
   for (const doc of documents) {
     hash.update(doc.stem);
     hash.update(String(doc.passage));
+    hash.update(String(doc.section));
+    hash.update(String(doc.ending));
     hash.update(doc.textLines.join("\n"));
   }
   hash.update(JSON.stringify({
