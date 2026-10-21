@@ -4,6 +4,10 @@ function setQuietLogs(enabled) {
   quietLogs = Boolean(enabled);
 }
 
+function isQuietLogs() {
+  return quietLogs;
+}
+
 function info(message) {
   if (quietLogs) {
     return;
@@ -26,6 +30,7 @@ function error(message) {
 module.exports = {
   error,
   info,
+  isQuietLogs,
   setQuietLogs,
   warn
 };

@@ -66,6 +66,7 @@ The server broadcasts full state snapshots over Socket.IO after changes.
 - `src/organizer.js`: pure organizer normalization and slide generation
 - `src/readingsImporter.js`: reading import, pagination, and pagination cache
 - `src/massDocument.js`: `mass.json` version 3 validation and serialization
+- `docs/zip-import.md`: update it in the same PR when you change ZIP import code in `src/server.js`
 - `src/lectionaryRss.js`: USCCB Daily Readings RSS import
 - `src/persistence.js`: session save/load and migration
 - `src/massHistory.js`: archive ID allocation, metadata, and archive lifecycle
