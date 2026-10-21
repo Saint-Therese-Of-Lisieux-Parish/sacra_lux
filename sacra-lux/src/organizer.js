@@ -253,7 +253,43 @@ function createManualSlideRecord(type = "image") {
   };
 }
 
-function createDefaultOrganizer(documents) {
+const ALTERNATE_STEM = /^(.+?)[-_]alternate(?:[-_]\d+)?$/i;
+
+// Group each base reading with its alternates, for example Gospel and Gospel-alternate_1.
+// Only groups that hold at least one alternate are returned.
+function findAlternateGroups(documents) {
+  const groups = new Map();
+  for (const doc of documents || []) {
+    const match = ALTERNATE_STEM.exec(doc.stem);
+    const key = match ? match[1] : doc.stem;
+    if (!groups.has(key)) groups.set(key, { key, base: null, alternates: [] });
+    const group = groups.get(key);
+    if (match) group.alternates.push(doc.stem);
+    else group.base = doc.stem;
+  }
+  return [...groups.values()]
+    .filter((group) => group.alternates.length > 0)
+    .map((group) => ({
+      key: group.key,
+      options: [group.base, ...group.alternates].filter(Boolean)
+    }));
+}
+
+// Remove the documents that the operator did not select from each alternate group.
+// A group with no selection keeps its base reading. Unselected files stay on disk.
+function selectAlternateDocuments(documents, selections = {}) {
+  const dropped = new Set();
+  for (const group of findAlternateGroups(documents)) {
+    const chosen = group.options.includes(selections[group.key]) ? selections[group.key] : group.options[0];
+    group.options.filter((stem) => stem !== chosen).forEach((stem) => dropped.add(stem));
+  }
+  return (documents || []).filter((doc) => !dropped.has(doc.stem));
+}
+
+function createDefaultOrganizer(allDocuments, { alternateSelections } = {}) {
+  const documents = alternateSelections
+    ? selectAlternateDocuments(allDocuments, alternateSelections)
+    : allDocuments;
   const sequence = [];
   const manualSlides = {};
 
@@ -481,6 +517,8 @@ function buildPresentationFromOrganizer({
 
 module.exports = {
   createDefaultOrganizer,
+  findAlternateGroups,
+  selectAlternateDocuments,
   buildPresentationFromOrganizer,
   displayLabelForDocument,
   normalizeBackgroundTheme,

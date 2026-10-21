@@ -392,6 +392,33 @@ describe("server api integration", () => {
     expect(res.body.slides[0].groupLabel).toBe("First Reading");
   });
 
+  test("load-readings asks which alternate to keep and leaves the unused file on disk", async () => {
+    const readingsDir = path.join(handle.homeDir, "alternate-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Gospel.txt"), "John 1:1-5\n\nIn the beginning was the Word.", "utf8");
+    fs.writeFileSync(
+      path.join(readingsDir, "Gospel-alternate_1.txt"),
+      "John 20:1-9\n\nOn the first day of the week.",
+      "utf8"
+    );
+
+    const ask = await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(409);
+    expect(ask.body.code).toBe("alternate-choice-required");
+    expect(ask.body.alternateGroups).toEqual([
+      { key: "Gospel", options: ["Gospel", "Gospel-alternate_1"] }
+    ]);
+
+    await request(app)
+      .post("/api/load-readings")
+      .send({ folderPath: readingsDir, alternateSelections: { Gospel: "Gospel-alternate_1" } })
+      .expect(200);
+
+    const state = (await request(app).get("/api/state").expect(200)).body;
+    const gospels = state.organizerSequence.filter((item) => item.type === "reading");
+    expect(gospels.map((item) => item.sourceStem)).toEqual(["Gospel-alternate_1"]);
+    expect(state.readingsSource.documents.map((doc) => doc.stem).sort()).toEqual(["Gospel", "Gospel-alternate_1"]);
+  });
+
   test("save-reading rejects a stem that escapes the current Mass", async () => {
     const readingsDir = path.join(handle.homeDir, "save-reading-guard");
     fs.mkdirSync(readingsDir, { recursive: true });
