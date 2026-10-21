@@ -3,6 +3,7 @@ const http = require("http");
 const path = require("path");
 const AdmZip = require("adm-zip");
 const request = require("supertest");
+const { io: createSocket } = require("socket.io-client");
 
 const {
   createTempHome,
@@ -22,6 +23,28 @@ describe("server api integration", () => {
   function extractTokenFromRedirect(redirectPath) {
     const match = String(redirectPath || "").match(/token=([A-Za-z0-9]+)/);
     return match ? match[1] : null;
+  }
+
+  async function createAvifExport(controlToken) {
+    const client = createSocket(handle.baseUrl, {
+      transports: ["websocket"],
+      auth: { token: controlToken }
+    });
+    try {
+      await new Promise((resolve, reject) => {
+        client.once("connect", resolve);
+        client.once("connect_error", reject);
+      });
+      const exported = new Promise((resolve, reject) => {
+        client.once("export:avif:done", resolve);
+        client.once("export:avif:error", ({ error }) => reject(new Error(error)));
+        client.once("control:required", ({ error }) => reject(new Error(error)));
+      });
+      client.emit("export:avif:start");
+      return await exported;
+    } finally {
+      client.disconnect();
+    }
   }
 
   beforeAll(async () => {
@@ -1228,13 +1251,14 @@ describe("server api integration", () => {
   });
 
   test("export-mass-zip writes a v3 mass.json document without PIN data", async () => {
-    await request(app)
+    const pinResponse = await request(app)
       .post("/api/start-pin")
       .send({ pin: "2468" })
       .expect(200);
 
     await request(app)
       .post("/api/new-mass")
+      .set("x-sacra-control", pinResponse.body.controlToken)
       .send({ title: "Document Export", startTime: "2026-04-20T09:00" })
       .expect(200);
 
@@ -1270,6 +1294,7 @@ describe("server api integration", () => {
 
     const zipRes = await request(app)
       .get("/api/export-mass-zip")
+      .set("x-sacra-control", pinResponse.body.controlToken)
       .buffer(true)
       .parse((res, callback) => {
         const chunks = [];
@@ -1289,6 +1314,47 @@ describe("server api integration", () => {
     expect(massDocument.metadata.scheduledStart).toBe("2026-04-20T09:00");
     expect(massDocument.startPinHash).toBeUndefined();
     expect(massDocument.items.map((item) => item.id)).toEqual(["reading-1", "text-1"]);
+  });
+
+  test("Mass exports require and bind a control session when a PIN exists", async () => {
+    const pinResponse = await request(app)
+      .post("/api/start-pin")
+      .send({ pin: "2468" })
+      .expect(200);
+    const controlToken = pinResponse.body.controlToken;
+
+    await request(app)
+      .post("/api/new-mass")
+      .set("x-sacra-control", controlToken)
+      .send({ title: "Protected Export", startTime: "" })
+      .expect(200);
+
+    await request(app).get("/api/export-mass-zip").expect(401);
+    await request(app)
+      .get("/api/export-mass-zip")
+      .set("x-sacra-control", controlToken)
+      .expect(200);
+
+    const { token: avifToken } = await createAvifExport(controlToken);
+    const secondSession = await request(app)
+      .post("/api/verify-pin")
+      .send({ pin: "2468" })
+      .expect(200);
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${avifToken}`)
+      .expect(401);
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${avifToken}`)
+      .set("x-sacra-control", secondSession.body.controlToken)
+      .expect(401);
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${avifToken}`)
+      .set("x-sacra-control", controlToken)
+      .expect(200);
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${avifToken}`)
+      .set("x-sacra-control", controlToken)
+      .expect(404);
   });
 
   test("image slideshow assets and settings round-trip through a Mass ZIP", async () => {
