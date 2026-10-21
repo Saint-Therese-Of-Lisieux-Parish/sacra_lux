@@ -15,7 +15,8 @@ const RATE_LIMIT_CONFIG = {
   heavy: { bucket: "heavy", windowMs: 10 * 60 * 1000, max: 10, label: "heavy-api", maxConcurrent: 1 }
 };
 
-let startToken = null;
+const MAX_START_TOKENS = 100;
+const startTokens = new Map();
 const pinLockouts = new Map();
 
 const rateLimitBuckets = {
@@ -113,30 +114,47 @@ function clearPinFailures(ip) {
   pinLockouts.delete(ip);
 }
 
+function pruneStartTokens(now = Date.now()) {
+  for (const [token, record] of startTokens) {
+    if ((record.expiresAt || 0) <= now) {
+      startTokens.delete(token);
+    }
+  }
+}
+
 function issueStartToken({ ip, userAgent }) {
-  startToken = {
-    token: crypto.randomBytes(16).toString("hex"),
-    expiresAt: Date.now() + START_TOKEN_TTL_MS,
+  const now = Date.now();
+  pruneStartTokens(now);
+  // Map keeps insertion order, so the first key is the oldest link.
+  while (startTokens.size >= MAX_START_TOKENS) {
+    startTokens.delete(startTokens.keys().next().value);
+  }
+  const token = crypto.randomBytes(16).toString("hex");
+  startTokens.set(token, {
+    expiresAt: now + START_TOKEN_TTL_MS,
     ip,
     uaHash: hashUserAgent(userAgent)
-  };
-  return startToken.token;
+  });
+  return token;
 }
 
 function isStartTokenValid({ token, ip, userAgent }) {
+  const record = token ? startTokens.get(String(token)) : null;
   return Boolean(
-    startToken
-    && startToken.token
-    && token
-    && token === startToken.token
-    && Number(startToken.expiresAt || 0) > Date.now()
-    && startToken.ip === ip
-    && startToken.uaHash === hashUserAgent(userAgent)
+    record
+    && Number(record.expiresAt || 0) > Date.now()
+    && record.ip === ip
+    && record.uaHash === hashUserAgent(userAgent)
   );
 }
 
-function clearStartToken() {
-  startToken = null;
+// Clear one start link, or every start link when no token is given.
+function clearStartToken(token) {
+  if (token === undefined) {
+    startTokens.clear();
+    return;
+  }
+  startTokens.delete(String(token));
 }
 
 const CONTROL_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -354,6 +372,8 @@ function createSocketRateLimitGuard({ bucket, windowMs, max, maxConcurrent = 0, 
 }
 
 function cleanupSecurityState(now = Date.now()) {
+  pruneStartTokens(now);
+
   for (const store of Object.values(rateLimitBuckets)) {
     for (const [key, entry] of store) {
       if ((entry.resetAt || 0) <= now) {
