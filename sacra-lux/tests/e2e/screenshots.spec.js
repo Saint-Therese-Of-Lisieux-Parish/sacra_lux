@@ -1,5 +1,8 @@
+const fs = require("fs");
 const { test, expect } = require("@playwright/test");
 
+const { CURRENT_MASS_DIR, MASS_HISTORY_DIR } = require("../../src/massHistory");
+const { getSessionFilePath } = require("../../src/persistence");
 const { clearRateLimitState } = require("../../src/security");
 const { createTempHome, startIsolatedServer } = require("../helpers/testHarness");
 
@@ -35,10 +38,16 @@ test.beforeEach(() => {
   clearRateLimitState();
 });
 
+// The server module keeps the data paths from the first spec that loads it.
+// Later specs start from those paths, so remove the Mass these tests saved.
+// Otherwise the next spec restores it and skips its empty-start prompts.
 test.afterAll(async () => {
   clearRateLimitState();
   if (handle) {
     await handle.stop();
+  }
+  for (const target of [CURRENT_MASS_DIR, MASS_HISTORY_DIR, getSessionFilePath()]) {
+    fs.rmSync(target, { recursive: true, force: true });
   }
 });
 
