@@ -73,11 +73,13 @@ describe("public html integration", () => {
     expect(res.text).toContain("Tap anywhere to open the remote.");
   });
 
-  test("remote markup returns interstitial hold to the centered carousel slide", async () => {
+  test("remote markup returns a hold to a chosen cue", async () => {
     const res = await request(app).get("/remote").expect(200);
 
-    expect(res.text).toContain('returnSlideIndex: getCarouselCenterSlideIndex()');
-    expect(res.text).toContain('function getCarouselCenterSlideIndex()');
+    expect(res.text).toContain("function setInterstitialReturnChoice(index)");
+    expect(res.text).toContain("explicitReturn: true");
+    expect(res.text).toContain("setInterstitialReturnChoice(index);");
+    expect(res.text).not.toContain("getCarouselCenterSlideIndex");
   });
 
   test("remote markup dismisses the splash and keeps preview-pinning helpers", async () => {
