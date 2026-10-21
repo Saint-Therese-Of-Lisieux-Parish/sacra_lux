@@ -239,7 +239,7 @@ flowchart TD
     I -.->|"Push rejected or blocked"| Y["Stop, open or update an issue<br/>tell a human, do not work around"]
 ```
 
-**GitHub best practices this strategy relies on**
+#### GitHub best practices this strategy relies on
 
 - **Issue-driven work:** every change traces back to an issue with testable acceptance criteria, and the PR closes it.
 - **Short-lived, single-purpose branches:** one logical change per branch, branched from current master, merged and deleted promptly.
@@ -266,7 +266,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Code comments and documentation that you write or change
 - Replies, summaries, and status messages to humans
 
-**Rules to apply**
+#### Rules to apply
 
 - Use approved STE words only, in their approved meaning and part of speech. Use simple words. For example, write "use" and not "utilize". Write "do" and not "perform".
 - Use the same word for the same thing every time. Do not use synonyms for variety.
@@ -282,7 +282,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Use American English spelling.
 - Do not use idioms, slang, humor, or figurative language.
 
-**Exceptions (keep exactly as is)**
+#### Exceptions (keep exactly as is)
 
 - Code, command lines, file paths, branch names, identifiers, URLs, and configuration keys.
 - Quoted output from tools, logs, and error messages. Put the quoted text in a code block. Write your own explanation of it in STE.
@@ -291,7 +291,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Fixed text that a tool or template requires, for example required section headings.
 - Text that a human wrote. Do not rewrite it.
 
-**Limits**
+#### Limits
 
 - **EARS has priority over STE.** If an EARS rule and an STE rule conflict, follow EARS. This includes the EARS patterns, the EARS keywords, and the rule of one requirement in each statement. Apply STE to the rest of the text.
 - Clarity and accuracy come first. If STE would make a sentence unclear or wrong, keep the meaning correct and make the sentence as simple as you can.
@@ -356,31 +356,31 @@ A human-initiated request authorizes the whole pipeline: branch, commit, push, P
 
 Each branch gets its own worktree, created when the branch is created and removed once the branch has been merged to master. The main checkout stays on master and is never used for edits or commits.
 
-**Conventions**
+#### Conventions
 
 - **One branch, one worktree.** Never put two branches in one worktree, never check the same branch out in two worktrees, and never reuse a worktree for a different branch.
 - **Location:** inside the project, at `<project>/.worktrees/<branch-slug>`. This is where Enjoy creates worktrees. Enjoy keeps the `.worktrees` folder out of the main folder's Git changes, so it needs no `.gitignore` entry. Do not create worktrees in a sibling directory outside the project, because agents must then ask for approval to read and write there.
 
-**1. Create**
+#### 1. Create
 
 - `git fetch origin`, then move the conversation into a new worktree with Enjoy's own worktree step (see Workflow, step 1).
 - If the branch or worktree already exists, don't create a second one. Use `git worktree list` to find the existing worktree and resume it.
 
-**2. Work**
+#### 2. Work
 
 - Before every edit, commit, or push, confirm you are in the right place: `git rev-parse --show-toplevel` must be the branch's worktree path and `git branch --show-current` must be the branch.
 - Install dependencies and run tests, linters, and formatters from inside the worktree.
 - Untracked local files (e.g., `.env`) stay untracked and uncopied into commits. Never copy secrets between worktrees; if the worktree needs configuration, ask a human.
 - Review feedback, CI fixes, and master re-syncs happen in the same worktree, on the same branch.
 
-**3. Maintain**
+#### 3. Maintain
 
 - Run `git worktree list` at the start of each session to see what exists. Resume the worktree for your branch instead of recreating it.
 - Only manage worktrees you created for your own branches. Don't modify or remove worktrees belonging to humans or other agents. If you find stale or orphaned ones, open a GitHub Issue (see Reporting problems) instead of removing them.
 - Run `git worktree prune` only to clear records whose directories are confirmed gone.
 - A worktree stays in place for as long as its branch is unmerged, including while a PR waits for human approval.
 
-**4. Remove (only after the branch is merged to master)**
+#### 4. Remove (only after the branch is merged to master)
 
 1. Confirm the merge: `gh pr view <pr> --json state,mergedAt` shows `MERGED`. Don't infer it.
 2. Confirm nothing would be lost: `git -C <worktree-path> status --porcelain` is empty and there are no unpushed commits. If either check fails, stop and ask a human.
@@ -391,7 +391,7 @@ Each branch gets its own worktree, created when the branch is created and remove
 7. Update master in the main checkout: `git pull --ff-only`.
 8. Verify: the worktree no longer appears in `git worktree list`, the branch is gone locally and remotely, and master includes the merge.
 
-**5. Unmerged branches**
+#### 5. Unmerged branches
 
 - If a PR is closed without merging, or work is abandoned, do not remove the worktree or delete the branch on your own. Unmerged work may be lost. Ask a human what to do.
 - If a PR is waiting on a human, leave the worktree in place and note it in your summary.
