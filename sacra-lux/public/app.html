@@ -3540,6 +3540,15 @@
             </div>
           </div>
         </div>
+        <div class="modal-panel" id="controlModePanel">
+          <p class="modal-note" id="controlModeWarning">Warning: without a PIN, only this computer can control Sacra Lux. Trusted-LAN mode lets every device on this network control it.</p>
+          <div class="modal-action-row">
+            <span id="controlModeStatus" class="modal-note"></span>
+            <div class="modal-action-group">
+              <button id="controlModeBtn" type="button">Allow trusted-LAN control</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </dialog>
@@ -3816,6 +3825,9 @@
       unlockStartPinBtn: document.getElementById("unlockStartPinBtn"),
       clearStartPinBtn: document.getElementById("clearStartPinBtn"),
       startPinStatus: document.getElementById("startPinStatus"),
+      controlModePanel: document.getElementById("controlModePanel"),
+      controlModeStatus: document.getElementById("controlModeStatus"),
+      controlModeBtn: document.getElementById("controlModeBtn"),
       startPreMassBtn: document.getElementById("startPreMassBtn"),
       startGatheringBtn: document.getElementById("startGatheringBtn"),
       goToMassStartBtn: document.getElementById("goToMassStartBtn"),
@@ -5565,6 +5577,16 @@
         els.startPinStatus.textContent = "No PIN set";
         els.startPinStatus.style.color = "var(--ink-soft)";
         els.startPinBtnIcon.innerHTML = "&#128275;";
+      }
+
+      // Show the network control mode. A PIN replaces the no-PIN modes.
+      if (els.controlModePanel) {
+        const trustedLan = data.controlMode === "trusted-lan";
+        els.controlModePanel.hidden = Boolean(data.hasStartPin);
+        els.controlModeStatus.textContent = trustedLan
+          ? "Mode: trusted LAN (any device on this network can control)"
+          : "Mode: this computer only";
+        els.controlModeBtn.textContent = trustedLan ? "Restrict to this computer" : "Allow trusted-LAN control";
       }
 
       // Update auto-advance running status
@@ -7688,6 +7710,19 @@
         els.currentPinInput.value = "";
       } else {
         els.startPinStatus.textContent = data.error || "Failed to set PIN";
+      }
+    });
+
+    els.controlModeBtn.addEventListener("click", async () => {
+      const mode = uiState.data?.controlMode === "trusted-lan" ? "unset" : "trusted-lan";
+      const res = await fetch("/api/control-mode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        els.controlModeStatus.textContent = data.error || "Failed to change mode";
       }
     });
 

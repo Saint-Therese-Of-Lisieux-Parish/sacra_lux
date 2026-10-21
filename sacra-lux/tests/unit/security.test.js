@@ -14,6 +14,39 @@ describe("security", () => {
     security.resetSecurityState();
     state.startPin = "";
     state.startPinHash = null;
+    state.controlMode = "unset";
+  });
+
+  test("without a PIN, only loopback clients control until trusted-LAN is chosen", () => {
+    const makeReq = (address) => ({ headers: {}, socket: { remoteAddress: address }, get: () => "" });
+    const makeSocket = (address) => ({ request: { socket: { remoteAddress: address } }, handshake: { headers: {} }, data: {} });
+
+    expect(security.clientMayControl(makeReq("127.0.0.1"))).toBe(true);
+    expect(security.clientMayControl(makeReq("::ffff:127.0.0.1"))).toBe(true);
+    expect(security.clientMayControl(makeReq("::1"))).toBe(true);
+    expect(security.clientMayControl(makeReq("192.168.1.50"))).toBe(false);
+    expect(security.clientHasControlSession(makeReq("192.168.1.50"))).toBe(false);
+    expect(security.socketMayControl(makeSocket("192.168.1.50"))).toBe(false);
+    expect(security.socketHasControlSession(makeSocket("192.168.1.50"))).toBe(false);
+    expect(security.socketMayControl(makeSocket("::ffff:127.0.0.1"))).toBe(true);
+
+    state.controlMode = "trusted-lan";
+    expect(security.clientMayControl(makeReq("192.168.1.50"))).toBe(true);
+    expect(security.socketMayControl(makeSocket("192.168.1.50"))).toBe(true);
+  });
+
+  test("trusted-LAN mode does not bypass a configured PIN", () => {
+    state.controlMode = "trusted-lan";
+    state.startPinHash = security.createPinHashRecord("1234");
+    const remoteReq = { headers: {}, socket: { remoteAddress: "192.168.1.50" }, get: () => "" };
+
+    expect(security.clientMayControl(remoteReq)).toBe(false);
+  });
+
+  test("normalizes unknown control modes to unset", () => {
+    expect(security.normalizeControlMode("trusted-lan")).toBe("trusted-lan");
+    expect(security.normalizeControlMode("anything")).toBe("unset");
+    expect(security.normalizeControlMode(undefined)).toBe("unset");
   });
 
   test("hashes and verifies configured PINs", () => {

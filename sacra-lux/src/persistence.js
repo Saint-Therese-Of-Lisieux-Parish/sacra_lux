@@ -131,6 +131,7 @@ function saveSession(state) {
       presentationTitle: state.presentation?.title || null,
       massStartTime: state.massStartTime || null,
       startPinHash: state.startPinHash || null,
+      controlMode: state.controlMode || "unset",
       targetScreenId: targetScreenIds[0] ?? state.targetScreenId ?? null,
       targetScreenIds,
       screenFullscreen: Boolean(state.screenFullscreen),

@@ -62,6 +62,7 @@ describe("server api integration", () => {
     resetSecurityState();
     state.startPin = "";
     state.startPinHash = null;
+    state.controlMode = "unset";
     warnSpy = jest.spyOn(console, "warn").mockImplementation(() => { });
   });
 
@@ -81,6 +82,14 @@ describe("server api integration", () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.hasStartPin).toBe(true);
     expect(stateRes.body.startPin).toBeUndefined();
+  });
+
+  test("control mode endpoint persists the mode and shows it in state", async () => {
+    await request(app).post("/api/control-mode").send({ mode: "bogus" }).expect(400);
+    expect((await request(app).get("/api/state").expect(200)).body.controlMode).toBe("unset");
+
+    await request(app).post("/api/control-mode").send({ mode: "trusted-lan" }).expect(200);
+    expect((await request(app).get("/api/state").expect(200)).body.controlMode).toBe("trusted-lan");
   });
 
   test("new Mass can import the latest USCCB RSS readings", async () => {

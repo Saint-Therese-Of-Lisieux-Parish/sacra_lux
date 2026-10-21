@@ -58,6 +58,7 @@ const {
   deleteMassArchive
 } = require("./massHistory");
 const {
+  CONTROL_MODES,
   PIN_HASH_DIGEST,
   PIN_HASH_ITERATIONS,
   RATE_LIMIT_CONFIG,
@@ -77,6 +78,7 @@ const {
   isStartTokenValid,
   issueStartToken,
   noteControlUnlock,
+  normalizeControlMode,
   registerPinFailure,
   socketHasControlSession,
   socketMayControl,
@@ -293,6 +295,12 @@ function setAttachmentFilename(res, filename) {
     "Content-Disposition",
     `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`
   );
+}
+
+function getUnlockMessage() {
+  return hasPinConfigured()
+    ? "Unlock required."
+    : "Network control is off. Set a PIN or allow trusted-LAN control on the operator computer.";
 }
 
 function setControlCookie(res, token) {
@@ -1931,6 +1939,8 @@ function restoreSession(ioRef) {
       }
     }
 
+    state.controlMode = normalizeControlMode(session.controlMode);
+
     const targetScreenIds = Array.isArray(session.targetScreenIds)
       ? [...new Set(session.targetScreenIds.map((id) => Number(id)).filter(Number.isFinite))]
       : [];
@@ -2018,7 +2028,7 @@ function startServer(port = 17841, options = {}) {
     if (req.path === "/verify-pin" || req.path === "/start-pin") return next();
     if (req.path === "/preview-reading" || req.path === "/preview-manual-slide") return next();
     if (!clientMayControl(req)) {
-      return res.status(401).json({ error: "Unlock required." });
+      return res.status(401).json({ error: getUnlockMessage() });
     }
     return next();
   });
@@ -2399,6 +2409,19 @@ function startServer(port = 17841, options = {}) {
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to set PIN." });
     }
+  });
+
+  // ── Network control mode (used when no PIN is set) ─────────────────────────
+  app.post("/api/control-mode", authRateLimit, (req, res) => {
+    const mode = String(req.body?.mode || "");
+    if (!CONTROL_MODES.includes(mode)) {
+      return res.status(400).json({ error: "Mode must be unset or trusted-lan." });
+    }
+    state.controlMode = mode;
+    touch();
+    io.emit("state:update", getStateSnapshot());
+    scheduleSave(true);
+    return res.json({ ok: true, controlMode: state.controlMode });
   });
 
   // ── PIN verification ───────────────────────────────────────────────────────
@@ -3514,7 +3537,7 @@ function startServer(port = 17841, options = {}) {
   function withControl(socket, handler) {
     return (...args) => {
       if (!socketMayControl(socket)) {
-        socket.emit("control:required", { error: "Unlock required." });
+        socket.emit("control:required", { error: getUnlockMessage() });
         return undefined;
       }
       return handler(...args);
