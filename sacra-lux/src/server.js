@@ -25,6 +25,7 @@ const {
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
   createDefaultOrganizer,
+  findAlternateGroups,
   buildPresentationFromOrganizer,
   createManualSlideRecord,
   normalizeBackgroundTheme,
@@ -3159,7 +3160,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/load-readings", (req, res) => {
     try {
-      const { folderPath, insertAtIndex, screenSettings } = req.body || {};
+      const { folderPath, insertAtIndex, screenSettings, alternateSelections } = req.body || {};
       if (!folderPath) {
         return res.status(400).json({ error: "folderPath is required." });
       }
@@ -3176,6 +3177,16 @@ function startServer(port = 17841, options = {}) {
         readingTextHeightPx: nextScreenSettings.readingTextHeightPx
       });
 
+      // Ask which text to keep before any file or state changes.
+      const alternateGroups = findAlternateGroups(imported.documents);
+      if (alternateGroups.length > 0 && (!alternateSelections || typeof alternateSelections !== "object")) {
+        return res.status(409).json({
+          error: "Choose which reading to project.",
+          code: "alternate-choice-required",
+          alternateGroups
+        });
+      }
+
       // Copy readings into the standard current_mass directory only after the source can be read.
       const currentMassPath = copyReadingsToCurrentMass(folderPath);
       state.screenSettings = nextScreenSettings;
@@ -3186,7 +3197,7 @@ function startServer(port = 17841, options = {}) {
       };
       state.startupPrompt = null;
 
-      const defaults = createDefaultOrganizer(state.readingsSource.documents);
+      const defaults = createDefaultOrganizer(state.readingsSource.documents, { alternateSelections });
 
       if (state.organizerSequence.length === 0 || insertAtIndex === undefined) {
         state.organizerSequence = defaults.sequence;

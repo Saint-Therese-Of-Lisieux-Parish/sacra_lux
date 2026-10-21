@@ -1,5 +1,6 @@
 const {
   createDefaultOrganizer,
+  findAlternateGroups,
   buildPresentationFromOrganizer,
   normalizeBackgroundTheme,
   normalizePhase,
@@ -105,6 +106,25 @@ describe("organizer", () => {
       "Third Reading",
       "Second Reading (Alternate 1)"
     ]);
+  });
+
+  test("keeps only the selected text from a group of alternate readings", () => {
+    const docs = [
+      { stem: "Gospel", section: "Gospel" },
+      { stem: "Gospel-alternate_1", section: "Gospel (Alternate 1)" }
+    ];
+
+    expect(findAlternateGroups(docs)).toEqual([
+      { key: "Gospel", options: ["Gospel", "Gospel-alternate_1"] }
+    ]);
+
+    const stems = (options) => createDefaultOrganizer(docs, options).sequence
+      .filter((item) => item.type === "reading")
+      .map((item) => item.sourceStem);
+
+    expect(stems({ alternateSelections: { Gospel: "Gospel-alternate_1" } })).toEqual(["Gospel-alternate_1"]);
+    expect(stems({ alternateSelections: {} })).toEqual(["Gospel"]);
+    expect(stems()).toEqual(["Gospel", "Gospel-alternate_1"]);
   });
 
   test("switching the selected psalm refrain rebuilds the slide list", () => {
