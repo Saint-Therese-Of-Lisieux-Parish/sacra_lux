@@ -89,7 +89,11 @@ jobs:
         shell: bash
         run: |
           version=$(node -p "require('./package.json').version")
-          source=$(ls dist/*.zip | head -n 1)
+          source=$(find dist -maxdepth 1 -name '*.zip' -print -quit)
+          if [ -z "${source}" ]; then
+            echo "::error::No ZIP file found in dist"
+            exit 1
+          fi
           target="dist/Sacra-Lux-${version}-${{ matrix.artifact }}.zip"
           mv "${source}" "${target}"
 
@@ -131,7 +135,7 @@ jobs:
 
       - name: Write checksums
         working-directory: release
-        run: sha256sum *.zip > SHA256SUMS.txt
+        run: sha256sum ./*.zip > SHA256SUMS.txt
 
       - name: Create or update GitHub Release
         env:
