@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+jobs:
+  validate:
+    name: Validate version tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Read package version
+        id: version
+        run: echo "version=$(node -p "require('./sacra-lux/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Compare tag with package version
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          expected="v${VERSION}"
+          echo "Tag:      ${TAG}"
+          echo "Expected: ${expected}"
+          if [ "${TAG}" != "${expected}" ]; then
+            echo "::error::Tag ${TAG} does not match package version ${expected}"
+            exit 1
+          fi
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: macOS ARM64
+            os: macos-15
+            build: --mac zip --arm64
+            artifact: mac-arm64
+          - name: macOS x64
+            os: macos-15-intel
+            build: --mac zip --x64
+            artifact: mac-x64
+          - name: Windows x64
+            os: windows-latest
+            build: --win zip --x64
+            artifact: win-x64
+    defaults:
+      run:
+        working-directory: sacra-lux
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: sacra-lux/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build ZIP
+        run: npx electron-builder ${{ matrix.build }} "--config.directories.output=dist"
+
+      - name: Normalize ZIP name
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          source=$(ls dist/*.zip | head -n 1)
+          target="dist/Sacra-Lux-${version}-${{ matrix.artifact }}.zip"
+          mv "${source}" "${target}"
+
+      - name: Normalize ZIP name
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          $source = Get-ChildItem -Path dist -Filter *.zip | Select-Object -First 1
+          if (-not $source) {
+            throw "No ZIP file found in dist"
+          }
+          $target = Join-Path dist "Sacra-Lux-$version-${{ matrix.artifact }}.zip"
+          Move-Item -Path $source.FullName -Destination $target
+
+      - name: Upload ZIP
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: release-${{ matrix.artifact }}
+          path: sacra-lux/dist/Sacra-Lux-*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs:
+      - validate
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download ZIP files
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+
+      - name: Write checksums
+        working-directory: release
+        run: sha256sum *.zip > SHA256SUMS.txt
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" release/* --clobber
+            if [[ "${VERSION}" == *-* ]]; then
+              gh release edit "${TAG}" --prerelease
+            fi
+            exit 0
+          fi
+
+          args=(--title "${TAG}" --generate-notes --verify-tag)
+          if [[ "${VERSION}" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh release create "${TAG}" release/* "${args[@]}"
