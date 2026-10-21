@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "savedAt": "2026-04-12T09:00:00.000Z",
+  "screenSettings": {
+    "fontFamily": "Merriweather",
+    "darkBackgroundUrl": "/api/mass-asset/dark-bg.jpg",
+    "lightBackgroundUrl": "/api/mass-asset/light-bg.jpg"
+  },
+  "organizerSequence": [
+    {
+      "id": "opening-hymn",
+      "type": "hymn",
+      "label": "Opening Hymn",
+      "phase": "mass",
+      "backgroundTheme": "dark",
+      "durationSec": 10
+    }
+  ],
+  "manualSlides": {
+    "opening-hymn": { "text": "Holy God", "notes": "music", "textVAlign": "top" }
+  },
+  "lastReadingsFolderPath": "/tmp/readings",
+  "presentationTitle": "Fixture Sunday",
+  "massStartTime": "2026-04-12T10:30:00-04:00",
+  "startPinHash": null,
+  "controlMode": "unset",
+  "targetScreenId": 2,
+  "targetScreenIds": [2, 3],
+  "screenFullscreen": true,
+  "activeMassArchiveId": null,
+  "appSettings": { "theme": "dark" }
+}
