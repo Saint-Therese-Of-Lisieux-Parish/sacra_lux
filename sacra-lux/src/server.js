@@ -2475,9 +2475,10 @@ function startServer(port = 17841, options = {}) {
   // Use /start for PIN auth before redirecting from QR-code entry when required.
   app.get("/api/start-redirect", authRateLimit, (req, res) => {
     try {
+      const providedToken = String(req.query.token || "");
+
       // Send the request to the PIN page when no valid token is present.
       if (hasPinConfigured()) {
-        const providedToken = String(req.query.token || "");
         const ip = getClientIp(req);
         const tokenValid = isStartTokenValid({
           token: providedToken,
@@ -2492,8 +2493,8 @@ function startServer(port = 17841, options = {}) {
         setControlCookie(res, controlToken);
       }
 
-      // Clear the token after use.
-      clearStartToken();
+      // Clear only this link so links for other phones stay valid.
+      clearStartToken(providedToken);
 
       const slides = state.presentation?.slides || [];
       const now = Date.now();
