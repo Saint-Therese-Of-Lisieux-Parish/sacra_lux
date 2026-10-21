@@ -35,11 +35,13 @@ function getClientIp(req) {
 }
 
 function getSocketClientIp(socket) {
-  const forwardedFor = socket?.handshake?.headers?.["x-forwarded-for"];
-  if (forwardedFor) {
-    return String(forwardedFor).split(",")[0].trim() || "unknown";
-  }
-  return String(socket?.handshake?.address || socket?.request?.socket?.remoteAddress || "unknown");
+  // Use the TCP address. Trust proxy is off, so ignore X-Forwarded-For.
+  return String(
+    socket?.request?.socket?.remoteAddress
+    || socket?.conn?.remoteAddress
+    || socket?.handshake?.address
+    || "unknown"
+  );
 }
 
 function hashUserAgent(userAgent) {
