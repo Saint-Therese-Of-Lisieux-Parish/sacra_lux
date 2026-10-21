@@ -219,6 +219,35 @@ describe("server api integration", () => {
       .expect(200);
   });
 
+  test("local filesystem paths are hidden from clients without a control session", async () => {
+    const readingsDir = path.join(handle.homeDir, "path-disclosure-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+
+    const pinResponse = await request(app).post("/api/start-pin").send({ pin: "1357" }).expect(200);
+    const controlToken = pinResponse.body.controlToken;
+
+    const anonymousInfo = await request(app).get("/api/session-info").expect(200);
+    expect(anonymousInfo.body).toEqual({ lastReadingsFolderPath: null, sessionFile: null });
+    const anonymousExport = await request(app).get("/api/export-settings").expect(200);
+    expect(anonymousExport.body.lastReadingsFolderPath).toBeNull();
+    expect(JSON.stringify(anonymousExport.body)).not.toContain(handle.homeDir);
+
+    const operatorInfo = await request(app)
+      .get("/api/session-info")
+      .set("x-sacra-control", controlToken)
+      .expect(200);
+    expect(Object.keys(operatorInfo.body).sort()).toEqual(["lastReadingsFolderPath", "sessionFile"]);
+    expect(operatorInfo.body.sessionFile).toContain(".sacra-lux");
+    const operatorExport = await request(app)
+      .get("/api/export-settings")
+      .set("x-sacra-control", controlToken)
+      .expect(200);
+    expect(operatorExport.body.lastReadingsFolderPath).toContain("current_mass");
+    expect(JSON.stringify(operatorExport.body)).not.toContain("1357");
+  });
+
   test("verify-pin rejects incorrect values and accepts correct ones", async () => {
     await request(app).post("/api/start-pin").send({ pin: "4567" }).expect(200);
 
