@@ -35,8 +35,9 @@ test.afterAll(async () => {
 });
 
 async function showSlides(request, settings, slides) {
-  await request.post(`${baseUrl}/api/screen-settings`, { data: settings });
-  await request.post(`${baseUrl}/api/organizer`, {
+  const settingsResponse = await request.post(`${baseUrl}/api/screen-settings`, { data: settings });
+  expect(settingsResponse.ok()).toBe(true);
+  const organizerResponse = await request.post(`${baseUrl}/api/organizer`, {
     data: {
       sequence: slides.map((slide) => ({
         id: slide.id,
@@ -48,6 +49,7 @@ async function showSlides(request, settings, slides) {
       manualSlides: Object.fromEntries(slides.map((slide) => [slide.id, { text: PARAGRAPH }]))
     }
   });
+  expect(organizerResponse.ok()).toBe(true);
 }
 
 async function openScreen(page, resolution) {
@@ -59,7 +61,7 @@ async function openScreen(page, resolution) {
   await expect(page.locator("#stage .frame").first()).toContainText("The Lord is my shepherd");
   await page.evaluate(() => document.fonts.ready);
   const widths = { "720p": 1280, "1080p": 1920, "1440p": 2560, "4k": 3840 };
-  await page.waitForFunction((width) => window.__frameW === width, widths[resolution]);
+  await expect.poll(() => page.evaluate(() => window.__frameW)).toBe(widths[resolution]);
   return stage;
 }
 
