@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
+const { clearRateLimitState } = require("../../src/security");
 const { createTempHome, startIsolatedServer } = require("../helpers/testHarness");
 
 // Baselines come from the Linux CI runner. Fonts are bundled in public/fonts,
@@ -28,7 +29,14 @@ test.beforeAll(async () => {
   baseUrl = handle.baseUrl;
 });
 
+// The API rate limit is shared by every spec in the worker. Clear it so these
+// tests do not trip it, and so they do not leave it full for the next spec.
+test.beforeEach(() => {
+  clearRateLimitState();
+});
+
 test.afterAll(async () => {
+  clearRateLimitState();
   if (handle) {
     await handle.stop();
   }
