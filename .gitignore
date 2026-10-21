@@ -27,3 +27,6 @@ sacra-lux/**/.DS_Store
 
 # Obsidian workspace folder
 .obsidian/
+
+# Jest coverage output
+coverage/
