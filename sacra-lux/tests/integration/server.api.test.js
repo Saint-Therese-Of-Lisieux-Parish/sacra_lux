@@ -479,6 +479,31 @@ describe("server api integration", () => {
     expect(fs.existsSync(titleFile)).toBe(false);
   });
 
+  test("oversized JSON bodies get HTTP 413 before route logic runs", async () => {
+    const big = "x".repeat(11 * 1024 * 1024);
+    const smallRoute = await request(app).post("/api/update-title").send({ title: big });
+    expect(smallRoute.status).toBe(413);
+    expect(smallRoute.body.error).toBeTruthy();
+
+    // Mass ZIP import above its 68 MB body limit is rejected the same way.
+    const zipRoute = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: "A".repeat(69 * 1024 * 1024) });
+    expect(zipRoute.status).toBe(413);
+
+    // Other clients still get state while oversized requests arrive.
+    await request(app).get("/api/state").expect(200);
+  });
+
+  test("upload routes accept bodies above the default JSON limit", async () => {
+    const padding = "A".repeat(11 * 1024 * 1024);
+    const res = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: padding });
+    // The body parser accepts it; ZIP validation rejects the content.
+    expect(res.status).not.toBe(413);
+  });
+
   test("a failed Mass replacement leaves the current Mass byte-for-byte", async () => {
     const readingsDir = path.join(handle.homeDir, "keep-current-readings");
     fs.mkdirSync(readingsDir, { recursive: true });

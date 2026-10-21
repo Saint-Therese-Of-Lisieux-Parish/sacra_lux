@@ -90,6 +90,16 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/mass-history/:archiveId/compress` — convert an archive to a compressed AVIF ZIP
 - `DELETE /api/mass-history/:archiveId`
 
+JSON request body limits (`JSON_BODY_LIMITS_BY_PATH` in `src/server.js`).
+A larger body gets HTTP 413 before route logic runs:
+
+| Route | Limit |
+| --- | --- |
+| `POST /api/upload-mass-asset`, `POST /api/upload-image` | 200 MB |
+| `POST /api/import-slideshow-images` | 161 MB (120 MB of images as base64) |
+| `POST /api/import-mass-zip` | 68 MB (50 MB ZIP as base64) |
+| all other routes | 10 MB |
+
 Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 
 | Bucket | Window | Max | Applied to |
