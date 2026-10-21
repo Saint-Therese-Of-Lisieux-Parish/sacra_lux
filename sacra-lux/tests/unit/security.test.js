@@ -48,14 +48,14 @@ describe("security", () => {
     remoteSocket.handshake.auth = { token };
     expect(security.socketMayControl(remoteSocket)).toBe(true);
 
-    const operatorReq = {
+    const secondLocalReq = {
       headers: {},
       socket: { remoteAddress: "127.0.0.1" },
       get() { return ""; }
     };
-    security.noteControlUnlock(operatorReq);
-    const operatorSocket = { handshake: { address: "::ffff:127.0.0.1", headers: {} }, data: {} };
-    expect(security.socketMayControl(operatorSocket)).toBe(true);
+    expect(security.clientMayControl(secondLocalReq)).toBe(false);
+    const secondLocalSocket = { handshake: { address: "::ffff:127.0.0.1", headers: {} }, data: {} };
+    expect(security.socketMayControl(secondLocalSocket)).toBe(false);
     remoteSocket.handshake.auth = { token: "not-a-session" };
     expect(security.socketMayControl(remoteSocket)).toBe(false);
   });

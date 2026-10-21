@@ -161,7 +161,7 @@ describe("server api integration", () => {
   });
 
   test("a client that has not unlocked the PIN cannot control the Mass", async () => {
-    await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+    const pinResponse = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
 
     const locked = await request(app)
       .post("/api/new-mass")
@@ -186,8 +186,15 @@ describe("server api integration", () => {
 
     await request(app)
       .post("/api/new-mass")
+      .set("x-sacra-control", pinResponse.body.controlToken)
       .send({ title: "Operator Mass", startTime: "" })
       .expect(200);
+
+    await request(app)
+      .post("/api/new-mass")
+      .set("X-Forwarded-For", "127.0.0.1")
+      .send({ title: "Second Local Client", startTime: "" })
+      .expect(401);
 
     const phone = "203.0.113.77";
     const unlocked = await request(app)
@@ -1323,6 +1330,7 @@ describe("server api integration", () => {
 
     await request(app)
       .post("/api/organizer")
+      .set("x-sacra-control", pinResponse.body.controlToken)
       .send({
         sequence: [
           {
