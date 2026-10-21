@@ -3384,7 +3384,7 @@
             <div class="modal-field-grid">
               <div class="modal-field modal-span-3">
                 <label>Duration (seconds)
-                  <input id="editorCountdownSec" type="number" min="1" max="300" value="60">
+                  <input id="editorCountdownSec" type="number" min="1" max="3600" value="60">
                 </label>
               </div>
               <div class="modal-field modal-span-3">
@@ -6310,7 +6310,7 @@
             ? getEditorStyleOverrides(nextType)
             : {};
           if (nextType === "countdown") {
-            manualSlides[item.id].countdownSec = Math.max(1, Math.min(300, parseInt(els.editorCountdownSec.value, 10) || 60));
+            manualSlides[item.id].countdownSec = Math.max(1, Math.min(3600, parseInt(els.editorCountdownSec.value, 10) || 60));
             manualSlides[item.id].countdownStyle = els.editorCountdownStyle.value || "ring";
             manualSlides[item.id].countdownFont = els.editorCountdownFont.value || "";
             manualSlides[item.id].countdownSizePercent = Math.max(50, Math.min(200, parseInt(els.editorCountdownSizePercent.value, 10) || 100));
@@ -7191,7 +7191,7 @@
           return;
         }
         stopEditorPreviewCountdownSimulation();
-        const durationMs = Math.max(1000, Math.min(300000, (Number(slide.countdownSec) || 60) * 1000));
+        const durationMs = Math.max(1000, Math.min(3600000, (Number(slide.countdownSec) || 60) * 1000));
         editorPreviewCountdownEndsAt = Date.now() + durationMs;
         renderEditorPreview();
         editorPreviewCountdownTimer = setInterval(() => {

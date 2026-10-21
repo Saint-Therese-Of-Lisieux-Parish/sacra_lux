@@ -167,8 +167,8 @@ function validateContentForKind(kind, content) {
 
   if (kind === "countdown") {
     const seconds = Number(content.seconds);
-    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 300) {
-      throw new ValidationError("countdown items require content.seconds between 1 and 300.");
+    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600) {
+      throw new ValidationError("countdown items require content.seconds between 1 and 3600.");
     }
     if (content.text != null) {
       throw new ValidationError("countdown items do not allow content.text.");
@@ -521,7 +521,7 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
 
   if (organizerItem.type === "countdown") {
     item.content = {
-      seconds: Math.max(1, Math.min(300, Number(manualSlide?.countdownSec) || 60)),
+      seconds: Math.max(1, Math.min(3600, Number(manualSlide?.countdownSec) || 60)),
       showLabel: false
     };
     if (manualSlide?.countdownFont) {

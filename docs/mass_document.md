@@ -66,7 +66,7 @@ Unknown item keys are rejected.
 | kind | Required / allowed |
 | --- | --- |
 | `text`, `prayer`, `hymn`, `reading` | `text: string` |
-| `countdown` | `seconds: integer` (1–300); `text` not allowed |
+| `countdown` | `seconds: integer` (1–3600); `text` not allowed |
 | `image`, `movie` | optional `text: string`; optional `autoAdvance: boolean`; `seconds` not allowed |
 | `imageSlideshow` | `secondsPerImage: integer` (1–3600), `loopCount: integer` (1–1000); `text`/`seconds`/`autoAdvance` not allowed |
 | `interstitial` | optional `text: string`; `seconds` not allowed |

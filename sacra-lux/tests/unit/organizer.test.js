@@ -299,6 +299,26 @@ describe("organizer", () => {
     expect(presentation.slides[1].text).toBe("R. The Lord is kind and merciful.");
   });
 
+  test("countdown slides keep lengths up to 60 minutes", () => {
+    const build = (countdownSec) => buildPresentationFromOrganizer({
+      title: "Countdown",
+      documents: [],
+      sequence: [{ id: "countdown:long", type: "countdown", label: "Mass starts in", phase: "pre", backgroundTheme: "light" }],
+      manualSlides: { "countdown:long": { countdownSec } },
+      screenSettings: {
+        fontFamily: "Merriweather",
+        fontSizePx: 60,
+        readingTextHeightPx: 840,
+        readingTextSizePx: 0,
+        readingLineHeight: 1.58,
+        readingTextMarginXPx: 80
+      }
+    });
+
+    expect(build(600).slides[0].countdownSec).toBe(600);
+    expect(build(3600).slides[0].countdownSec).toBe(3600);
+  });
+
   test("countdown slides are clamped and include metadata", () => {
     const screenSettings = {
       fontFamily: "Merriweather",
@@ -323,7 +343,7 @@ describe("organizer", () => {
       ],
       manualSlides: {
         "countdown:entry": {
-          countdownSec: 999,
+          countdownSec: 99999,
           countdownFont: "Lora",
           countdownStyle: "bar",
           countdownSizePercent: 140
@@ -333,7 +353,7 @@ describe("organizer", () => {
     });
 
     expect(presentation.slides).toHaveLength(1);
-    expect(presentation.slides[0].countdownSec).toBe(300);
+    expect(presentation.slides[0].countdownSec).toBe(3600);
     expect(presentation.slides[0].countdownFont).toBe("Lora");
     expect(presentation.slides[0].countdownStyle).toBe("bar");
     expect(presentation.slides[0].countdownSizePercent).toBe(140);
