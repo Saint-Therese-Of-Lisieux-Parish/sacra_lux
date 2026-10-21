@@ -1,7 +1,6 @@
 {
   // MD013: existing docs use long lines in tables and prose.
-  // MD036: AGENTS.md uses bold labels on purpose.
   // MD041: the pull request template starts at a second-level heading.
-  "config": { "MD013": false, "MD036": false, "MD041": false },
+  "config": { "MD013": false, "MD041": false },
   "ignores": ["sacra-lux/node_modules/**"]
 }
