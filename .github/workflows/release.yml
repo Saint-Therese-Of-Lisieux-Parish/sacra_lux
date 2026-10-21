@@ -82,7 +82,7 @@ jobs:
         run: npm ci
 
       - name: Build ZIP
-        run: npx electron-builder ${{ matrix.build }} "--config.directories.output=dist"
+        run: npx electron-builder ${{ matrix.build }} --publish never "--config.directories.output=dist"
 
       - name: Normalize ZIP name
         if: runner.os != 'Windows'
