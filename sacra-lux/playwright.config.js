@@ -8,8 +8,9 @@ module.exports = defineConfig({
   },
   fullyParallel: false,
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
+    trace: "retain-on-failure",
     headless: true,
     viewport: { width: 1280, height: 800 }
   }
