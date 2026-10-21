@@ -557,7 +557,14 @@ test("Sacra Lux can load readings and expose slides in state", async ({ page, re
   await page.goto(`${baseUrl}/`);
   await expect(page.locator("#status")).toBeVisible();
 
+  const unlockRes = await request.post(`${baseUrl}/api/verify-pin`, {
+    data: { pin: "1234" }
+  });
+  expect(unlockRes.ok()).toBeTruthy();
+  const { controlToken } = await unlockRes.json();
+
   const loadRes = await request.post(`${baseUrl}/api/load-readings`, {
+    headers: { "x-sacra-control": controlToken },
     data: {
       folderPath: readingsPath
     }
