@@ -200,6 +200,7 @@ Do not let multiple assistant-specific files drift into parallel instruction set
 Every change to our code follows this workflow. Never commit directly to master. Every branch lives in its own git worktree for its entire life, from creation to removal after merge (see Worktree lifecycle). Use `git` for local version control. For GitHub interactions (issues, PRs, checks, merges), use the GitHub CLI (`gh`) first, then the GitHub MCP server as a fallback.
 
 ### Branching strategy at a glance
+
 This is the complete lifecycle of a change, from issue to cleanup. The sections below define each step in detail. If the diagram and the detailed rules ever disagree, the detailed rules win and the diagram should be fixed.
 
 ```mermaid
@@ -239,6 +240,7 @@ flowchart TD
 ```
 
 **GitHub best practices this strategy relies on**
+
 - **Issue-driven work:** every change traces back to an issue with testable acceptance criteria, and the PR closes it.
 - **Short-lived, single-purpose branches:** one logical change per branch, branched from current master, merged and deleted promptly.
 - **Protected master:** changes reach master only through a reviewed-by-checks PR, never by direct push or force-push.
@@ -247,6 +249,7 @@ flowchart TD
 - **Clean repository hygiene:** merged branches and their worktrees are removed so nothing stale accumulates.
 
 **Recommended repository settings** (so the rules are enforced by GitHub, not just by instruction)
+
 - Branch protection on `master`: require a pull request, require required status checks to pass, require branches to be up to date before merging, and block force pushes and deletions. Don't allow admins or the agent's account to bypass.
 - Allow merge commits and disable squash and rebase merging, since this strategy preserves per-change commit history. Don't enable "Require linear history", which conflicts with merge commits.
 - Enable "Automatically delete head branches" so merged remote branches are removed even if cleanup is interrupted.
@@ -254,7 +257,9 @@ flowchart TD
 - Run the agent under a dedicated bot account or fine-grained token scoped to the repositories and permissions it needs.
 
 ### Language standard: ASD-STE100 Simplified Technical English
+
 All language output follows ASD-STE100 Simplified Technical English (STE) where possible. This applies to:
+
 - Commit messages
 - Issue titles, bodies, and comments
 - PR titles, descriptions, and comments
@@ -262,6 +267,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Replies, summaries, and status messages to humans
 
 **Rules to apply**
+
 - Use approved STE words only, in their approved meaning and part of speech. Use simple words. For example, write "use" and not "utilize". Write "do" and not "perform".
 - Use the same word for the same thing every time. Do not use synonyms for variety.
 - Technical names and technical verbs are allowed. This includes names of components, services, tools, and commands. Use them as they appear in the system.
@@ -277,6 +283,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Do not use idioms, slang, humor, or figurative language.
 
 **Exceptions (keep exactly as is)**
+
 - Code, command lines, file paths, branch names, identifiers, URLs, and configuration keys.
 - Quoted output from tools, logs, and error messages. Put the quoted text in a code block. Write your own explanation of it in STE.
 - Proper names and product names.
@@ -285,6 +292,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Text that a human wrote. Do not rewrite it.
 
 **Limits**
+
 - **EARS has priority over STE.** If an EARS rule and an STE rule conflict, follow EARS. This includes the EARS patterns, the EARS keywords, and the rule of one requirement in each statement. Apply STE to the rest of the text.
 - Clarity and accuracy come first. If STE would make a sentence unclear or wrong, keep the meaning correct and make the sentence as simple as you can.
 - STE never overrides a safety rule, a required format, or a rule in this document.
@@ -292,12 +300,14 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 - Before you send an output, read it against these rules. If the project has an STE checker, use it for large or recurring text.
 
 ### Tool order for GitHub
+
 1. **`gh` first.** Use `gh` for all GitHub operations whenever a `gh` command exists for the task.
 2. **GitHub MCP second.** Use the GitHub MCP tools only when `gh` is unavailable, unauthenticated, or has no command for the operation (e.g., certain review-thread or check-run details).
 3. **Nothing else.** Don't use the web UI or raw API calls (`gh api`, `curl`) as a substitute for either.
 4. The fallback changes the tool, never the rules. Every rule below applies equally whether you use `gh` or the MCP.
 
 ### Before you start
+
 - Confirm `gh` is authenticated with `gh auth status`. If it isn't, check whether the GitHub MCP is available and can do the work. If neither works, stop and tell a human. Never attempt to log in or handle tokens yourself.
 - If the change is tied to a GitHub Issue, read it first (`gh issue view <n>`). Its requirements and acceptance criteria define what "done" means for this change.
 
@@ -329,6 +339,7 @@ All language output follows ASD-STE100 Simplified Technical English (STE) where 
 9. **Clean up (end of the worktree lifecycle).** After merging, move the conversation back to the main folder, remove the branch's worktree, delete the local and remote branch, and sync master in the main checkout, following the Remove steps in Worktree lifecycle. Confirm master is in the expected state. Post a short summary with the PR link to wherever the requester asked for it.
 
 ### Human-initiated requests
+
 A human-initiated request authorizes the whole pipeline: branch, commit, push, PR, and merge to master. Do not ask for permission again at each step. This applies only when all tests pass. If a test fails, do not merge. Fix the failure on the branch.
 
 - A human-initiated request is a direct request from a human. Examples: a chat message, or an issue or comment that a human wrote or assigned to you.
@@ -338,32 +349,39 @@ A human-initiated request authorizes the whole pipeline: branch, commit, push, P
 - If a human did not initiate the change, stop at the open PR and wait for a human to approve the merge.
 
 ### Autonomy
+
 **Autonomy.** You own the task from start to finish. Choose your own approach, order of steps, and tools, within the rules in this document. Do not ask a human for permission to read code, run tests, edit files in your worktree, commit, push, open a PR, or fix CI failures. If something is unclear and a sensible choice exists, pick it, state your assumption in the PR, and continue. Stop and ask a human only when: a rule in this document requires it (risky areas, ambiguous or risky changes, a blocked push or merge), a secret is involved, or the acceptance criteria cannot be met as written. If you hit a problem, try at least two reasonable fixes before you report a blocker. When you finish, report what you did and what you assumed.
 
 ### Worktree lifecycle
+
 Each branch gets its own worktree, created when the branch is created and removed once the branch has been merged to master. The main checkout stays on master and is never used for edits or commits.
 
 **Conventions**
+
 - **One branch, one worktree.** Never put two branches in one worktree, never check the same branch out in two worktrees, and never reuse a worktree for a different branch.
 - **Location:** inside the project, at `<project>/.worktrees/<branch-slug>`. This is where Enjoy creates worktrees. Enjoy keeps the `.worktrees` folder out of the main folder's Git changes, so it needs no `.gitignore` entry. Do not create worktrees in a sibling directory outside the project, because agents must then ask for approval to read and write there.
 
 **1. Create**
+
 - `git fetch origin`, then move the conversation into a new worktree with Enjoy's own worktree step (see Workflow, step 1).
 - If the branch or worktree already exists, don't create a second one. Use `git worktree list` to find the existing worktree and resume it.
 
 **2. Work**
+
 - Before every edit, commit, or push, confirm you are in the right place: `git rev-parse --show-toplevel` must be the branch's worktree path and `git branch --show-current` must be the branch.
 - Install dependencies and run tests, linters, and formatters from inside the worktree.
 - Untracked local files (e.g., `.env`) stay untracked and uncopied into commits. Never copy secrets between worktrees; if the worktree needs configuration, ask a human.
 - Review feedback, CI fixes, and master re-syncs happen in the same worktree, on the same branch.
 
 **3. Maintain**
+
 - Run `git worktree list` at the start of each session to see what exists. Resume the worktree for your branch instead of recreating it.
 - Only manage worktrees you created for your own branches. Don't modify or remove worktrees belonging to humans or other agents. If you find stale or orphaned ones, open a GitHub Issue (see Reporting problems) instead of removing them.
 - Run `git worktree prune` only to clear records whose directories are confirmed gone.
 - A worktree stays in place for as long as its branch is unmerged, including while a PR waits for human approval.
 
 **4. Remove (only after the branch is merged to master)**
+
 1. Confirm the merge: `gh pr view <pr> --json state,mergedAt` shows `MERGED`. Don't infer it.
 2. Confirm nothing would be lost: `git -C <worktree-path> status --porcelain` is empty and there are no unpushed commits. If either check fails, stop and ask a human.
 3. Move the conversation back to the main folder (ask: "Move back to the main folder"), and run subsequent commands from the main checkout. Then `git worktree remove <worktree-path>`.
@@ -374,11 +392,14 @@ Each branch gets its own worktree, created when the branch is created and remove
 8. Verify: the worktree no longer appears in `git worktree list`, the branch is gone locally and remotely, and master includes the merge.
 
 **5. Unmerged branches**
+
 - If a PR is closed without merging, or work is abandoned, do not remove the worktree or delete the branch on your own. Unmerged work may be lost. Ask a human what to do.
 - If a PR is waiting on a human, leave the worktree in place and note it in your summary.
 
 ### Changes that always require human approval
+
 Even when a human initiated the request, do not merge without explicit human approval for:
+
 - Database migrations
 - Infrastructure or IaC changes (e.g., Terraform, CloudFormation)
 - Anything touching authentication, authorization, billing, or production configuration
@@ -386,17 +407,20 @@ Even when a human initiated the request, do not merge without explicit human app
 Open the PR, flag it as requiring approval (e.g., `gh pr edit <pr> --add-label needs-human-approval`, or a comment with `gh pr comment`), and stop.
 
 ### Reporting problems
+
 - **Use GitHub Issues for all problems** (via `gh issue`, or the MCP if `gh` can't). If you notice a bug, risk, tech debt, flaky test, or any problem unrelated to your current change, open an issue with `gh issue create` instead of fixing it in the current branch.
 - **Search first.** Run `gh issue list --search "<keywords>" --state all` before opening a new issue; if one exists, add to it with `gh issue comment` instead of creating a duplicate.
 - **No drive-by changes.** Don't fold unrelated fixes into the current change. If a fix is warranted, it gets its own issue, branch, and PR.
 - **Blockers go in an issue too.** If a push is rejected, a merge is blocked by branch protection, you lack permissions, or CI is failing for reasons outside your change, stop, open or update an issue, and tell a human. Don't work around it, and don't switch from `gh` to the MCP just to get past a block.
 
 ### Writing issues: EARS requirements and acceptance criteria
+
 Every issue you write uses the structure below. Write the body to a file and create the issue with `gh issue create --title "<title>" --body-file <file>`.
 
 **Title:** a short, specific statement of the problem or capability. No vague titles like "Fix bug" or "Improve performance".
 
 **Body sections:**
+
 1. **Summary:** one or two sentences on the problem or need and who it affects.
 2. **Context:** what you observed and where (file and line, logs, environment, links). For bugs, include steps to reproduce, observed behavior, and expected behavior. Don't mix these into the requirements.
 3. **Requirements (EARS):** numbered requirements (R1, R2, ...), one behavior each, written in EARS syntax (below).
@@ -404,6 +428,7 @@ Every issue you write uses the structure below. Write the body to a file and cre
 5. **Out of scope:** what this issue deliberately does not cover.
 
 **EARS patterns** (use the one that fits; the system name is the specific component, not "the system" in general):
+
 - **Ubiquitous:** The `<system>` shall `<response>`.
 - **State-driven:** While `<precondition>`, the `<system>` shall `<response>`.
 - **Event-driven:** When `<trigger>`, the `<system>` shall `<response>`.
@@ -412,6 +437,7 @@ Every issue you write uses the structure below. Write the body to a file and cre
 - **Complex:** combine While/When/Where/If as needed, e.g., While `<state>`, when `<trigger>`, the `<system>` shall `<response>`.
 
 **Quality rules:**
+
 - One requirement per statement, using "shall". No "and/or" chains hiding multiple behaviors.
 - Requirements say what, not how. Don't prescribe implementation unless it's a real constraint.
 - Avoid vague terms ("fast", "robust", "user-friendly", "appropriate"). Use measurable values (e.g., "within 500 ms at p95").
@@ -421,7 +447,8 @@ Every issue you write uses the structure below. Write the body to a file and cre
 - If you lack the information to write a testable requirement, say so in the issue under an "Open questions" heading instead of guessing.
 
 **Example (bug):**
-```
+
+```text
 Title: Report export fails on empty result set
 
 Summary: Exporting a report with no rows returns a 500 error instead of an empty file.
@@ -441,11 +468,13 @@ Out of scope: Changing the CSV format for non-empty exports.
 ```
 
 **Existing issues:**
+
 - Don't rewrite a human's issue on your own. If it lacks EARS requirements or testable acceptance criteria, post a comment with proposed ones (`gh issue comment`) and ask the author to confirm before treating them as the definition of done.
 - Exception: when the repository owner explicitly asks for a bulk EARS rewrite of existing issues, you may edit the issues. First back up every original title and body outside the repository. Keep each issue's meaning, labels, and acceptance criteria. Do not close, label, or comment on issues. The owner's rewrite request counts as confirmation of the rewritten criteria.
 - If you are asked to do work on an issue with no acceptance criteria and no human has confirmed any, stop and ask rather than inventing your own.
 
 ### Rules
+
 - The only permitted route to master is: branch, commit, push, PR, merge. Never push commits directly to master, even when a human initiated the request.
 - Never use `gh pr merge --admin` or any MCP equivalent (bypass, override, or force-merge options) to get around branch protection or required checks. Never use `gh api` or raw API calls to circumvent protections, approvals, or merge rules.
 - Never edit or commit in the main checkout. Every change is made in its own branch's worktree.
