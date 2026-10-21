@@ -421,3 +421,27 @@ describe("massDocument", () => {
     })).toThrow(/scheduledStart/i);
   });
 });
+
+describe("massDocument fixtures", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "fixtures", "mass-v3.json"), "utf8"));
+
+  test("a frozen mass.json v3 file passes validation", () => {
+    expect(() => validateMassDocument(fixture)).not.toThrow();
+  });
+
+  test("a frozen mass.json v3 file survives a runtime round trip", () => {
+    const runtime = buildRuntimeStateFromMassDocument(fixture);
+    const rebuilt = buildMassDocumentFromState({
+      presentation: { title: runtime.presentationTitle },
+      massStartTime: runtime.massStartTime,
+      screenSettings: runtime.screenSettings,
+      organizerSequence: runtime.organizerSequence,
+      manualSlides: runtime.manualSlides,
+      readingsSource: { documents: runtime.documents }
+    });
+
+    expect(rebuilt).toEqual(fixture);
+  });
+});

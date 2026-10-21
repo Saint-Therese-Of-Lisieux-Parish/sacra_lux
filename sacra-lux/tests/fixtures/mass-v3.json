@@ -1,0 +1,106 @@
+{
+  "format": "sacra-lux.mass",
+  "version": 3,
+  "metadata": {
+    "title": "Fixture Sunday",
+    "scheduledStart": "2026-04-12T10:30:00-04:00"
+  },
+  "presentationDefaults": {
+    "fontFamily": "Merriweather",
+    "darkBackgroundUrl": "assets/dark-bg.jpg",
+    "lightBackgroundUrl": "assets/light-bg.jpg"
+  },
+  "items": [
+    {
+      "id": "countdown",
+      "kind": "countdown",
+      "label": "Countdown",
+      "section": "gathering",
+      "durationSec": 10,
+      "content": {
+        "seconds": 300,
+        "showLabel": false
+      },
+      "presentation": {
+        "background": "dark",
+        "countdownStyle": "ring",
+        "countdownSizePercent": 100
+      }
+    },
+    {
+      "id": "announcements",
+      "kind": "imageSlideshow",
+      "label": "Announcements",
+      "section": "gathering",
+      "durationSec": 10,
+      "content": {
+        "secondsPerImage": 6,
+        "loopCount": 2
+      },
+      "assets": [
+        {
+          "ref": "assets/001-picnic.jpg",
+          "name": "Parish Picnic.jpg"
+        }
+      ],
+      "presentation": {
+        "background": "light"
+      }
+    },
+    {
+      "id": "first-reading",
+      "kind": "reading",
+      "label": "First Reading",
+      "section": "mass",
+      "durationSec": 10,
+      "content": {
+        "text": "In the beginning..."
+      },
+      "source": {
+        "stem": "Reading_I",
+        "citation": "Genesis 1:1-3"
+      },
+      "presentation": {
+        "background": "dark"
+      }
+    },
+    {
+      "id": "opening-hymn",
+      "kind": "hymn",
+      "label": "Opening Hymn",
+      "section": "mass",
+      "durationSec": 10,
+      "notes": "music",
+      "content": {
+        "text": "Holy God\n---\nWe Praise Thy Name"
+      },
+      "presentation": {
+        "background": "dark",
+        "textVAlign": "top"
+      }
+    },
+    {
+      "id": "welcome-video",
+      "kind": "movie",
+      "label": "Welcome Video",
+      "section": "mass",
+      "durationSec": 10,
+      "content": {
+        "text": "Welcome video"
+      },
+      "asset": {
+        "ref": "assets/welcome.mp4"
+      },
+      "presentation": {
+        "background": "light",
+        "loop": false
+      }
+    }
+  ],
+  "assets": {
+    "assets/001-picnic.jpg": {},
+    "assets/welcome.mp4": {},
+    "assets/dark-bg.jpg": {},
+    "assets/light-bg.jpg": {}
+  }
+}

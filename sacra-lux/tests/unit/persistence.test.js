@@ -135,3 +135,39 @@ function sessionState(title) {
     appSettings: { theme: "dark" }
   };
 }
+
+describe("persistence fixtures", () => {
+  const sessionFixture = path.join(__dirname, "..", "fixtures", "session-v2.json");
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env.HOME = createTempHome("sacra-lux-persistence-fixture-");
+  });
+
+  test("loadSession reads a frozen session.json v2 file without changes", () => {
+    const { getSessionFilePath, loadSession } = require("../../src/persistence");
+    fs.mkdirSync(path.dirname(getSessionFilePath()), { recursive: true });
+    fs.copyFileSync(sessionFixture, getSessionFilePath());
+
+    expect(loadSession()).toEqual(JSON.parse(fs.readFileSync(sessionFixture, "utf8")));
+  });
+
+  test("a frozen session.json v2 file survives a save and load round trip", () => {
+    const { getSessionFilePath, loadSession, saveSession } = require("../../src/persistence");
+    fs.mkdirSync(path.dirname(getSessionFilePath()), { recursive: true });
+    fs.copyFileSync(sessionFixture, getSessionFilePath());
+
+    const loaded = loadSession();
+    saveSession({
+      ...loaded,
+      readingsSource: { folderPath: loaded.lastReadingsFolderPath },
+      presentation: { title: loaded.presentationTitle }
+    });
+
+    const { savedAt: loadedSavedAt, ...loadedRest } = loaded;
+    const { savedAt: reloadedSavedAt, ...reloadedRest } = loadSession();
+    expect(loadedSavedAt).toBeDefined();
+    expect(reloadedSavedAt).toBeDefined();
+    expect(reloadedRest).toEqual(loadedRest);
+  });
+});
