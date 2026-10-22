@@ -4,14 +4,23 @@ module.exports = {
   clearMocks: true,
   restoreMocks: true,
   testTimeout: 30000,
-  collectCoverageFrom: ["src/**/*.js"],
+  // src/main.js is the Electron entry point. The packaged-app smoke test covers it, not Jest.
+  collectCoverageFrom: ["src/**/*.js", "!src/main.js"],
   coverageReporters: ["text-summary", "lcov"],
   coverageThreshold: {
     global: {
-      statements: 70,
-      branches: 59,
-      functions: 73,
-      lines: 71
+      statements: 80,
+      branches: 65,
+      functions: 89,
+      lines: 81
+    },
+    "./src/security.js": {
+      lines: 89,
+      branches: 69
+    },
+    "./src/atomicWrite.js": {
+      lines: 90,
+      branches: 80
     }
   }
 };
