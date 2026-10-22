@@ -117,6 +117,66 @@ describe("persistence", () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringMatching(/damaged/i));
     warnSpy.mockRestore();
   });
+
+  test("migrates legacy color and image background fields", () => {
+    const { getSessionFilePath, loadSession } = require("../../src/persistence");
+    fs.mkdirSync(path.dirname(getSessionFilePath()), { recursive: true });
+    fs.writeFileSync(getSessionFilePath(), JSON.stringify({
+      displaySettings: {
+        colorBackgroundUrl: "/dark.jpg",
+        imageBackgroundUrl: "/light.jpg"
+      }
+    }), "utf8");
+
+    expect(loadSession().screenSettings).toEqual({
+      darkBackgroundUrl: "/dark.jpg",
+      lightBackgroundUrl: "/light.jpg"
+    });
+  });
+
+  test("migrates legacy organizer background values", () => {
+    const { getSessionFilePath, loadSession } = require("../../src/persistence");
+    fs.mkdirSync(path.dirname(getSessionFilePath()), { recursive: true });
+    fs.writeFileSync(getSessionFilePath(), JSON.stringify({
+      organizerSequence: [
+        { id: "word", backgroundType: "word" },
+        { id: "color", backgroundType: "color" },
+        { id: "graphic", backgroundType: "graphic" },
+        { id: "image", backgroundType: "image" },
+        { id: "custom", backgroundType: "custom" }
+      ]
+    }), "utf8");
+
+    expect(loadSession().organizerSequence.map((item) => item.backgroundTheme)).toEqual([
+      "dark", "dark", "light", "light", "custom"
+    ]);
+  });
+
+  test("returns null when the primary and backup sessions are damaged", () => {
+    const { getSessionFilePath, loadSession } = require("../../src/persistence");
+    fs.mkdirSync(path.dirname(getSessionFilePath()), { recursive: true });
+    fs.writeFileSync(getSessionFilePath(), "null", "utf8");
+    fs.writeFileSync(`${getSessionFilePath()}.bak`, "null", "utf8");
+
+    expect(loadSession()).toBeNull();
+  });
+
+  test("logs a save error without throwing", () => {
+    jest.resetModules();
+    jest.doMock("../../src/atomicWrite", () => ({
+      writeFileAtomic: () => {
+        throw new Error("disk full");
+      }
+    }));
+    const logger = require("../../src/logger");
+    const errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {});
+    const { saveSession } = require("../../src/persistence");
+
+    expect(() => saveSession(sessionState("Save Error"))).not.toThrow();
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("disk full"));
+    errorSpy.mockRestore();
+    jest.dontMock("../../src/atomicWrite");
+  });
 });
 
 function sessionState(title) {

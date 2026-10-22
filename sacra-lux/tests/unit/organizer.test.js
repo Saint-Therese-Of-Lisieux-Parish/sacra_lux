@@ -57,6 +57,12 @@ describe("organizer", () => {
     expect(normalizeBackgroundTheme(null, "text")).toBe("dark");
   });
 
+  test("uses the source filename when the image name is not valid URI text", () => {
+    expect(normalizeSlideshowImages([{ url: "/images/%E0%A4%A" }])).toEqual([
+      { url: "/images/%E0%A4%A", name: "%E0%A4%A" }
+    ]);
+  });
+
   test("creates expected default organizer sequence", () => {
     const docs = [
       { stem: "Reading_I", section: "Reading I" },

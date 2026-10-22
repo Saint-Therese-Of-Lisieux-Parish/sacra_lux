@@ -32,4 +32,11 @@ describe("movie end guard", () => {
 
     expect(guard.alreadyHandled(4, "movie:intro:1")).toBe(false);
   });
+
+  test("normalizes an empty slide ID", () => {
+    const guard = createMovieEndGuard();
+    guard.markHandled(4, null);
+
+    expect(guard.alreadyHandled(4, "")).toBe(true);
+  });
 });

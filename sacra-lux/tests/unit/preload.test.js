@@ -22,6 +22,7 @@ describe("preload", () => {
 
     await api.pickFolder();
     await api.pickImageFile();
+    await api.pickVideoFile();
     await api.getMonitors();
     await api.setTargetMonitor(3);
     await api.setTargetMonitors([1, 2]);
@@ -33,6 +34,7 @@ describe("preload", () => {
     expect(invoke.mock.calls).toEqual([
       ["dialog:pickFolder"],
       ["dialog:pickImageFile"],
+      ["dialog:pickVideoFile"],
       ["screen:getMonitors"],
       ["screen:setTargetMonitor", 3],
       ["screen:setTargetMonitors", [1, 2]],

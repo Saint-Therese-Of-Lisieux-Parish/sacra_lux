@@ -53,6 +53,17 @@ describe("atomic file writes", () => {
     expect(realRename).toBeDefined();
   });
 
+  test("removes the temporary file when writing fails", () => {
+    const dir = tempDir();
+    const target = path.join(dir, "reading.txt");
+    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
+      throw new Error("write failed");
+    });
+
+    expect(() => writeFileAtomic(target, "next")).toThrow("write failed");
+    expect(tempFiles(dir)).toEqual([]);
+  });
+
   test("copies the prior file to a backup before replacing it", () => {
     const dir = tempDir();
     const target = path.join(dir, "session.json");
