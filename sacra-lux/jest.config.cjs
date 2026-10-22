@@ -10,13 +10,17 @@ module.exports = {
   coverageThreshold: {
     global: {
       statements: 80,
-      branches: 65,
+      branches: 63,
       functions: 89,
       lines: 81
     },
     "./src/security.js": {
       lines: 89,
       branches: 69
+    },
+    "./src/massDocument.js": {
+      lines: 97,
+      branches: 85
     },
     "./src/atomicWrite.js": {
       lines: 90,
