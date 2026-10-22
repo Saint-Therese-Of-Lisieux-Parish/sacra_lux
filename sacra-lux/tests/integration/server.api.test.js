@@ -905,12 +905,14 @@ describe("server api integration", () => {
   });
 
   test("organizer endpoint validates sequence payload", async () => {
+    const before = JSON.stringify(state.organizerSequence);
     const res = await request(app)
       .post("/api/organizer")
       .send({ sequence: "not-an-array" })
       .expect(400);
 
     expect(res.body.error).toMatch(/sequence array is required/i);
+    expect(JSON.stringify(state.organizerSequence)).toBe(before);
   });
 
   test("screen settings update persists normalized values", async () => {
@@ -1331,6 +1333,72 @@ describe("server api integration", () => {
     historyRes = await request(app).get("/api/mass-history").expect(200);
     const firstArchive = historyRes.body.archives.find((entry) => entry.id === "History-One");
     expect(firstArchive.storage).toBe("compressed");
+
+    const emitSpy = jest.spyOn(handle.io, "emit");
+    emitSpy.mockClear();
+    await request(app)
+      .post("/api/mass-history/History-One/load")
+      .expect(200);
+    expect(emitSpy).toHaveBeenCalledWith("state:update", expect.any(Object));
+
+    await request(app)
+      .post("/api/mass-history/History-Two/load")
+      .expect(200);
+
+    await request(app)
+      .delete("/api/mass-history/History-One")
+      .expect(200);
+    historyRes = await request(app).get("/api/mass-history").expect(200);
+    expect(historyRes.body.archives.map((entry) => entry.id)).not.toContain("History-One");
+    emitSpy.mockRestore();
+  });
+
+  test("mass history routes reject an unknown archive", async () => {
+    await request(app)
+      .post("/api/mass-history/Unknown-Archive/load")
+      .expect(404);
+    await request(app)
+      .post("/api/mass-history/Unknown-Archive/compress")
+      .expect(404);
+    await request(app)
+      .delete("/api/mass-history/Unknown-Archive")
+      .expect(404);
+  });
+
+  test("load-readings failure keeps the current slides", async () => {
+    const readingsDir = path.join(handle.homeDir, "load-readings-failure");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
+
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    const before = (await request(app).get("/api/state").expect(200)).body;
+
+    await request(app)
+      .post("/api/load-readings")
+      .send({ folderPath: path.join(handle.homeDir, "does-not-exist") })
+      .expect(400);
+
+    const after = (await request(app).get("/api/state").expect(200)).body;
+    expect(after.presentation.slides).toEqual(before.presentation.slides);
+    expect(after.readingsSource.documents).toEqual(before.readingsSource.documents);
+  });
+
+  test("save-reading rebuilds the reading slides", async () => {
+    const readingsDir = path.join(handle.homeDir, "save-reading-slides");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nShort text.", "utf8");
+
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    const before = (await request(app).get("/api/state").expect(200)).body.presentation.slides.length;
+    const longText = Array.from({ length: 80 }, (_, index) => `Line ${index + 1}`).join("\n");
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "Reading_I", text: longText })
+      .expect(200);
+
+    const after = (await request(app).get("/api/state").expect(200)).body.presentation.slides.length;
+    expect(after).toBeGreaterThan(before);
   });
 
   test("duplicate-mass archives the current Mass and resets playback state", async () => {
