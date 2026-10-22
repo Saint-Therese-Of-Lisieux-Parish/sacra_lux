@@ -60,4 +60,74 @@ describe("lectionaryRss", () => {
       passage: "John 1:1"
     }));
   });
+
+  describe("error paths and parsing branches", () => {
+    const wrap = (description, title = "Sample Mass") => `
+      <rss><channel><item><title>${title}</title><description>${description}</description></item></channel></rss>`;
+    const section = (heading, passage, body) =>
+      `&lt;h4&gt;${heading} &lt;a href="https://example.test"&gt;${passage}&lt;/a&gt;&lt;/h4&gt;&lt;div&gt;&lt;p&gt;${body}&lt;/p&gt;&lt;/div&gt;`;
+
+    test("rejects an item with no usable sections", () => {
+      expect(() => parseDailyReadingsRss(wrap("No headings here")))
+        .toThrow("did not contain usable readings");
+    });
+
+    test("rejects an item with no title", () => {
+      expect(() => parseDailyReadingsRss(wrap(section("Gospel", "John 1:1", "Text"), "")))
+        .toThrow("did not contain usable readings");
+    });
+
+    test("skips unknown headings, missing passages, empty bodies, and out-of-range reading numbers", () => {
+      const result = parseDailyReadingsRss(wrap([
+        section("Commentary", "Note 1", "Ignored"),
+        "&lt;h4&gt;Gospel&lt;/h4&gt;&lt;div&gt;&lt;p&gt;No passage link&lt;/p&gt;&lt;/div&gt;",
+        section("Reading 9", "Acts 9:1", "Out of range"),
+        section("Reading 1", "Acts 1:1", "&amp;nbsp;"),
+        section("Gospel", "John 3:16", "Kept")
+      ].join("")));
+      expect(result.documents).toHaveLength(1);
+      expect(result.documents[0]).toMatchObject({ stem: "Gospel", passage: "John 3:16", textLines: ["Kept"] });
+    });
+
+    test("numbers the stems of repeated sections", () => {
+      const result = parseDailyReadingsRss(wrap([
+        section("Gospel", "Mark 1:1", "One"),
+        section("Gospel", "Mark 2:1", "Two")
+      ].join("")));
+      expect(result.documents.map((doc) => doc.stem)).toEqual(["Gospel", "Gospel_2"]);
+    });
+
+    test("maps Reading 2 and a Verse Before the Gospel heading", () => {
+      const result = parseDailyReadingsRss(wrap([
+        section("Reading 2", "Romans 8:1", "Second"),
+        section("Verse Before the Gospel", "Psalm 1:1", "Verse")
+      ].join("")));
+      expect(result.documents.map((doc) => doc.section)).toEqual(["Reading II", "Verse Before the Gospel"]);
+    });
+
+    test("decodes numeric and hexadecimal character references", () => {
+      const result = parseDailyReadingsRss(wrap(section("Gospel", "John 1:1", "A&amp;#233; B&amp;#xE9; &amp;lt;ok&amp;gt;")));
+      expect(result.documents[0].textLines).toEqual(["A\u00e9 B\u00e9 <ok>"]);
+    });
+
+    test("fails when no fetch implementation exists", async () => {
+      await expect(fetchUsccbDailyReadings(null)).rejects.toThrow("cannot retrieve USCCB readings");
+    });
+
+    test("fails on a non-OK response", async () => {
+      const fetchImpl = jest.fn().mockResolvedValue({ ok: false, status: 503 });
+      await expect(fetchUsccbDailyReadings(fetchImpl)).rejects.toThrow("returned 503");
+    });
+
+    test("reports a timeout when the request aborts", async () => {
+      const abort = Object.assign(new Error("aborted"), { name: "AbortError" });
+      const fetchImpl = jest.fn().mockRejectedValue(abort);
+      await expect(fetchUsccbDailyReadings(fetchImpl)).rejects.toThrow("did not respond in time");
+    });
+
+    test("passes other network errors through", async () => {
+      const fetchImpl = jest.fn().mockRejectedValue(new Error("network down"));
+      await expect(fetchUsccbDailyReadings(fetchImpl)).rejects.toThrow("network down");
+    });
+  });
 });
