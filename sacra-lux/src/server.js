@@ -3106,7 +3106,7 @@ function startServer(port = 17841, options = {}) {
       }
       const archivePaths = getArchivePaths(archiveId);
       if (!fs.existsSync(archivePaths.packageDir)) {
-        return res.status(400).json({ error: "Mass archive is already compressed or missing its package." });
+        return res.status(404).json({ error: "Mass archive package not found." });
       }
       const zipBuffer = await buildMassZipFromPackage(archivePaths.packageDir, { avif: true });
       fs.writeFileSync(archivePaths.compressedZipPath, zipBuffer);
