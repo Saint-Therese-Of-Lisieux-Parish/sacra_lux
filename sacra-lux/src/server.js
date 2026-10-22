@@ -2063,6 +2063,13 @@ function startServer(port = 17841, options = {}) {
   const publicDir = unpackedPublicDir && fs.existsSync(unpackedPublicDir)
     ? unpackedPublicDir
     : path.join(__dirname, "..", "public");
+  const packagedBackgroundsDir = process.resourcesPath
+    ? path.join(process.resourcesPath, "backgrounds")
+    : null;
+  const backgroundsDir = packagedBackgroundsDir && fs.existsSync(packagedBackgroundsDir)
+    ? packagedBackgroundsDir
+    : path.join(__dirname, "..", "backgrounds");
+  app.use("/static/backgrounds", express.static(backgroundsDir, { index: false }));
   app.use("/static", express.static(publicDir));
 
   function sendPublicPage(res, next, filename) {
@@ -2169,6 +2176,30 @@ function startServer(port = 17841, options = {}) {
       return res.json({ assets });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list assets." });
+    }
+  });
+
+  app.get("/api/builtin-backgrounds", (_, res) => {
+    try {
+      if (!fs.existsSync(backgroundsDir)) return res.json({ assets: [] });
+      const assets = fs.readdirSync(backgroundsDir)
+        .filter((file) => IMAGE_ASSET_EXT.has(path.extname(file).toLowerCase()))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }))
+        .map((file) => {
+          const dimensions = file.match(/-(\d{3,4}x\d{3,4})(?=\.[^.]+$)/)?.[1] || "";
+          const title = path.basename(file, path.extname(file))
+            .replace(/^sacra_lux_/, "")
+            .replace(/-\d{3,4}x\d{3,4}$/, "")
+            .replace(/[_-]+/g, " ")
+            .replace(/\b\w/g, (letter) => letter.toUpperCase());
+          return {
+            name: `${title}${dimensions ? ` (${dimensions})` : ""}`,
+            url: `/static/backgrounds/${encodeURIComponent(file)}`
+          };
+        });
+      return res.json({ assets });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || "Failed to list built-in backgrounds." });
     }
   });
 

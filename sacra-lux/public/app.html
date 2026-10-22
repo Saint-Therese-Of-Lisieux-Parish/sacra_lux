@@ -6388,6 +6388,16 @@
       }
     }
 
+    async function fetchBuiltinBackgrounds() {
+      try {
+        const data = await fetch(`/api/builtin-backgrounds?t=${Date.now()}`, { cache: "no-store" })
+          .then((r) => r.json());
+        return data.assets || [];
+      } catch {
+        return [];
+      }
+    }
+
     /**
      * Populate all Mass-asset selectors from a fresh /api/mass-assets fetch.
      * This keeps uploads immediately selectable across the editor and display settings.
@@ -6398,10 +6408,17 @@
       darkBgUrl = els.darkBgPreset?.value || "",
       lightBgUrl = els.lightBgPreset?.value || ""
     } = {}) {
-      const assets = await fetchMassAssets();
+      const [assets, builtinBackgrounds] = await Promise.all([
+        fetchMassAssets(),
+        fetchBuiltinBackgrounds()
+      ]);
       const imageAssets = assets.filter((a) => a.mediaType !== "video");
       const videoAssets = assets.filter((a) => a.mediaType === "video");
       const assetOptions = imageAssets.map((a) => ({ value: a.url, label: a.name }));
+      const backgroundOptions = [
+        ...builtinBackgrounds.map((a) => ({ value: a.url, label: `Built-in: ${a.name}` })),
+        ...assetOptions
+      ];
       const videoAssetOptions = videoAssets.map((a) => ({ value: a.url, label: a.name }));
 
       if (els.editorAssetPicker) {
@@ -6434,7 +6451,7 @@
         [els.lightBgPreset, lightBgUrl]
       ]) {
         if (!sel) continue;
-        replaceSelectOptions(sel, assetOptions, {
+        replaceSelectOptions(sel, backgroundOptions, {
           placeholderLabel: "\u2014 select from assets \u2014"
         });
         if (currentUrl) choosePresetForUrl(sel, currentUrl);
