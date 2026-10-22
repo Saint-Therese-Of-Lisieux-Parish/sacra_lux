@@ -15,8 +15,8 @@ module.exports = {
       lines: 81
     },
     "./src/security.js": {
-      lines: 89,
-      branches: 69
+      lines: 90,
+      branches: 80
     },
     "./src/massDocument.js": {
       lines: 97,
