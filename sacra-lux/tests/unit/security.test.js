@@ -58,6 +58,20 @@ describe("security", () => {
     expect(security.verifyPin("9999")).toBe(false);
   });
 
+  test("rejects malformed and legacy PIN values without throwing", () => {
+    state.startPin = "1234";
+    expect(security.verifyPin(null)).toBe(false);
+    expect(security.verifyPin(1234)).toBe(true);
+    expect(security.verifyPin({})).toBe(false);
+
+    state.startPinHash = {
+      hash: "00",
+      salt: "salt",
+      iterations: 1
+    };
+    expect(security.verifyPin("1234")).toBe(false);
+  });
+
   test("remote control stays locked until a session token is issued", () => {
     state.startPinHash = security.createPinHashRecord("1234");
     const remoteReq = {
@@ -139,6 +153,29 @@ describe("security", () => {
     expect(security.isStartTokenValid({ token: second, ip: "10.0.0.2", userAgent: "phone-b" })).toBe(false);
   });
 
+  test("prunes expired links and evicts the oldest link at the limit", () => {
+    const now = Date.now();
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);
+    const expired = security.issueStartToken({ ip: "10.0.0.1", userAgent: "expired" });
+
+    nowSpy.mockReturnValue(now + (60 * 60 * 1000) + 1);
+    const current = security.issueStartToken({ ip: "10.0.0.2", userAgent: "current" });
+    expect(security.isStartTokenValid({ token: expired, ip: "10.0.0.1", userAgent: "expired" })).toBe(false);
+
+    nowSpy.mockReturnValue(now);
+    const tokens = Array.from({ length: 100 }, (_, index) => security.issueStartToken({
+      ip: `10.0.0.${index + 10}`,
+      userAgent: `phone-${index}`
+    }));
+    const newest = security.issueStartToken({ ip: "10.0.0.250", userAgent: "newest" });
+
+    expect(security.isStartTokenValid({ token: current, ip: "10.0.0.2", userAgent: "current" })).toBe(false);
+    expect(security.isStartTokenValid({ token: tokens[99], ip: "10.0.0.109", userAgent: "phone-99" })).toBe(true);
+    expect(security.isStartTokenValid({ token: newest, ip: "10.0.0.250", userAgent: "newest" })).toBe(true);
+    expect(security.isStartTokenValid({ token: null, ip: "10.0.0.250", userAgent: "newest" })).toBe(false);
+    expect(security.issueStartToken({ ip: "10.0.0.251" })).toEqual(expect.any(String));
+  });
+
   test("tracks PIN failures and lockouts by client ip", () => {
     const now = Date.now();
     jest.spyOn(Date, "now").mockReturnValue(now);
@@ -153,6 +190,45 @@ describe("security", () => {
 
     security.clearPinFailures("1.2.3.4");
     expect(security.getActiveLock("1.2.3.4")).toBeNull();
+  });
+
+  test("applies the longer lockout periods and allows a PIN after lockout ends", () => {
+    const now = Date.now();
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);
+    for (let index = 0; index < 6; index += 1) {
+      security.registerPinFailure("1.2.3.5");
+    }
+    expect(security.getActiveLock("1.2.3.5").lockUntil).toBe(now + (5 * 60 * 1000));
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    security.registerPinFailure("1.2.3.6");
+    expect(security.getActiveLock("1.2.3.6").lockUntil).toBe(now + (15 * 60 * 1000));
+
+    nowSpy.mockReturnValue(now + (16 * 60 * 1000));
+    expect(security.getActiveLock("1.2.3.6")).toBeNull();
+    state.startPin = "1234";
+    expect(security.verifyPin("1234")).toBe(true);
+  });
+
+  test("expires control sessions and reads header and cookie forms", () => {
+    const now = Date.now();
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);
+    const token = security.noteControlUnlock();
+    const headerSource = { headers: { "x-sacra-control": [token] } };
+    expect(security.getValidControlSessionToken(headerSource)).toBe(token);
+    const cookieSource = { headers: { cookie: `sacra_lux_control=${encodeURIComponent(token)}` } };
+    expect(security.getValidControlSessionToken(cookieSource)).toBe(token);
+    expect(security.getValidControlSessionToken(null)).toBe("");
+
+    nowSpy.mockReturnValue(now + (12 * 60 * 60 * 1000) + 1);
+    expect(security.getValidControlSessionToken(headerSource)).toBe("");
+    expect(security.clientHasControlSession({ headers: {}, socket: { remoteAddress: "192.168.1.50" } })).toBe(false);
   });
 
   test("rate limit middleware blocks excess requests and sets retry headers", () => {
@@ -188,6 +264,26 @@ describe("security", () => {
     expect(limitedRes.status).toHaveBeenCalledWith(429);
     expect(limitedRes.json).toHaveBeenCalledWith({ error: "Too many requests. Please try again later." });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] auth-test throttled for client-a."));
+  });
+
+  test("uses request fallbacks and resets a rate limit after its window", () => {
+    const now = Date.now();
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);
+    const middleware = security.createRateLimitMiddleware({
+      bucket: "global",
+      windowMs: 60000,
+      max: 1,
+      label: "global-test"
+    });
+    const next = jest.fn();
+    const response = () => ({ set: jest.fn(), status: jest.fn().mockReturnThis(), json: jest.fn() });
+
+    middleware({ ip: "" , connection: { remoteAddress: "client-c" } }, response(), next);
+    middleware({ ip: "", connection: {} }, response(), next);
+    nowSpy.mockReturnValue(now + 60001);
+    middleware({ ip: "", connection: { remoteAddress: "client-c" } }, response(), next);
+    expect(next).toHaveBeenCalledTimes(3);
+    expect(() => security.createRateLimitMiddleware({ bucket: "missing", windowMs: 1, max: 1, label: "bad" })({}, response(), next)).toThrow("Unknown rate limit bucket");
   });
 
   test("concurrent middleware releases the bucket after the response finishes", () => {
@@ -228,6 +324,30 @@ describe("security", () => {
     expect(releasedRes.status).not.toHaveBeenCalled();
   });
 
+  test("releases concurrent slots one at a time and rejects an unknown bucket", () => {
+    const middleware = security.createConcurrentLimitMiddleware({
+      bucket: "upload",
+      maxConcurrent: 2,
+      label: "upload-test",
+      keyFn: () => "client-d"
+    });
+    const makeResponse = () => {
+      const response = new EventEmitter();
+      response.set = jest.fn();
+      response.status = jest.fn().mockReturnThis();
+      response.json = jest.fn();
+      return response;
+    };
+    const next = jest.fn();
+    const first = makeResponse();
+    const second = makeResponse();
+    middleware({}, first, next);
+    middleware({}, second, next);
+    first.emit("finish");
+    second.emit("close");
+    expect(() => security.createConcurrentLimitMiddleware({ bucket: "missing", maxConcurrent: 1, label: "bad" })({}, makeResponse(), next)).toThrow("Unknown concurrent limit bucket");
+  });
+
   test("socket rate limit guard enforces request and concurrency limits", () => {
     const guard = security.createSocketRateLimitGuard({
       bucket: "heavy",
@@ -260,6 +380,23 @@ describe("security", () => {
     expect(fourth.retryAfterSec).toBe(1);
 
     third.release();
+  });
+
+  test("allows socket requests without a concurrency limit and ignores repeated release", () => {
+    const guard = security.createSocketRateLimitGuard({
+      bucket: "global",
+      windowMs: 60000,
+      max: 2,
+      label: "socket-global"
+    });
+    const socket = { conn: { remoteAddress: "10.0.0.8" }, handshake: { headers: {} } };
+    const result = guard(socket);
+    expect(result.allowed).toBe(true);
+    result.release();
+    result.release();
+    expect(guard({ handshake: { address: "10.0.0.9", headers: {} } }).allowed).toBe(true);
+    expect(guard({ handshake: { headers: {} } }).allowed).toBe(true);
+    expect(() => security.createSocketRateLimitGuard({ bucket: "missing", windowMs: 1, max: 1, label: "bad" })(socket)).toThrow("Unknown rate limit bucket");
   });
 
   test("socket rate limit uses the connection address for every socket", () => {
