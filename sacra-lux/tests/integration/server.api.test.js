@@ -92,6 +92,40 @@ describe("server api integration", () => {
     expect((await request(app).get("/api/state").expect(200)).body.controlMode).toBe("trusted-lan");
   });
 
+  test("built-in backgrounds are listed with image dimensions and served", async () => {
+    const response = await request(app).get("/api/builtin-backgrounds").expect(200);
+
+    expect(response.body.assets).toHaveLength(6);
+    expect(response.body.assets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: expect.stringContaining("1920x1080") }),
+      expect.objectContaining({ name: expect.stringContaining("3840x2160") })
+    ]));
+
+    const imageResponse = await request(app)
+      .get(response.body.assets[0].url)
+      .expect(200);
+    expect(imageResponse.headers["content-type"]).toMatch(/image\/avif/);
+  });
+
+  test("built-in background listing limits requests per IP", async () => {
+    const ip = "198.51.100.21";
+
+    for (let i = 0; i < 60; i += 1) {
+      await request(app)
+        .get("/api/builtin-backgrounds")
+        .set("X-Forwarded-For", ip)
+        .expect(200);
+    }
+
+    const limited = await request(app)
+      .get("/api/builtin-backgrounds")
+      .set("X-Forwarded-For", ip)
+      .expect(429);
+
+    expect(limited.headers["retry-after"]).toBeDefined();
+    expect(String(limited.body.error || "")).toMatch(/too many background list requests/i);
+  });
+
   test("new Mass can import the latest USCCB RSS readings", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
