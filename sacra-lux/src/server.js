@@ -5,6 +5,7 @@ const os = require("os");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const { rateLimit } = require("express-rate-limit");
 // Load adm-zip lazily.
 let _AdmZip;
 function getAdmZip() {
@@ -2029,6 +2030,13 @@ function startServer(port = 17841, options = {}) {
     ...RATE_LIMIT_CONFIG.heavy,
     keyFn: getClientIp
   });
+  const builtinBackgroundRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many background list requests. Retry after the Retry-After header." }
+  });
   const heavySocketRateLimit = createSocketRateLimitGuard({
     ...RATE_LIMIT_CONFIG.heavy,
     maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent
@@ -2179,7 +2187,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.get("/api/builtin-backgrounds", (_, res) => {
+  app.get("/api/builtin-backgrounds", builtinBackgroundRateLimit, (_, res) => {
     try {
       if (!fs.existsSync(backgroundsDir)) return res.json({ assets: [] });
       const assets = fs.readdirSync(backgroundsDir)
