@@ -2439,6 +2439,9 @@ function startServer(port = 17841, options = {}) {
     try {
       const { pin, currentPin } = req.body || {};
       const clearing = pin === null || pin === undefined || pin === "";
+      if (!hasPinConfigured() && !clientMayControl(req)) {
+        return res.status(401).json({ error: getUnlockMessage() });
+      }
       if (hasPinConfigured() && !verifyPin(currentPin)) {
         registerPinFailure(getClientIp(req));
         return res.status(403).json({ error: "Current PIN is required." });

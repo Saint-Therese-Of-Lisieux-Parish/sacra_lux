@@ -84,6 +84,55 @@ describe("server api integration", () => {
     expect(stateRes.body.startPin).toBeUndefined();
   });
 
+  describe("first PIN setup from a non-loopback client", () => {
+    let lanLayer;
+
+    // Fake a LAN peer: the server reads the socket address, not a header.
+    beforeEach(() => {
+      app.use((req, res, next) => {
+        Object.defineProperty(req.socket, "remoteAddress", { value: "192.168.1.50", configurable: true });
+        next();
+      });
+      const stack = app.router.stack;
+      lanLayer = stack.pop();
+      stack.unshift(lanLayer);
+    });
+
+    afterEach(() => {
+      app.router.stack.splice(app.router.stack.indexOf(lanLayer), 1);
+    });
+
+    test("is rejected while no PIN exists and the control mode is unset", async () => {
+      const response = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(401);
+
+      expect(response.body.controlToken).toBeUndefined();
+      expect(response.headers["set-cookie"]).toBeUndefined();
+      expect(state.startPinHash).toBeNull();
+    });
+
+    test("is accepted in trusted-lan mode", async () => {
+      state.controlMode = "trusted-lan";
+      const response = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+      expect(response.body.controlToken).toEqual(expect.any(String));
+      expect(state.startPinHash).not.toBeNull();
+    });
+
+    test("still requires currentPin once a PIN exists", async () => {
+      state.controlMode = "trusted-lan";
+      await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+      await request(app).post("/api/start-pin").send({ pin: "5678", currentPin: "0000" }).expect(403);
+    });
+  });
+
+  test("first PIN from loopback sets the PIN and issues a control token", async () => {
+    const response = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+    expect(response.body.controlToken).toEqual(expect.any(String));
+    expect(state.startPinHash).not.toBeNull();
+  });
+
   test("control mode endpoint persists the mode and shows it in state", async () => {
     await request(app).post("/api/control-mode").send({ mode: "bogus" }).expect(400);
     expect((await request(app).get("/api/state").expect(200)).body.controlMode).toBe("unset");
