@@ -1,5 +1,10 @@
 # Sacra Lux
 
+[![CI](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/codeql.yml)
+[![Smoke](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/smoke.yml/badge.svg?branch=master)](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/smoke.yml)
+[![Version](https://img.shields.io/github/package-json/v/Saint-Therese-Of-Lisieux-Parish/sacra_lux?filename=sacra-lux%2Fpackage.json&label=version)](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/sacra-lux/package.json)
+
 Sacra Lux is a Catholic liturgy presentation system for live parish use.
 This repository contains the Electron and web application package, the
 maintained architecture docs, CI/workflow config, and tracked git hooks.
