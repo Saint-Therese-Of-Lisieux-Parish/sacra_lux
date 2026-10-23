@@ -15,16 +15,16 @@ module.exports = {
       lines: 84
     },
     "./src/security.js": {
-      lines: 90,
-      branches: 80
+      lines: 93,
+      branches: 81
     },
     "./src/massDocument.js": {
       lines: 97,
-      branches: 85
+      branches: 89
     },
     "./src/atomicWrite.js": {
-      lines: 90,
-      branches: 80
+      lines: 99,
+      branches: 99
     }
   }
 };
