@@ -1078,6 +1078,58 @@ describe("server api integration", () => {
     expect(first.body.url).not.toBe(second.body.url);
   });
 
+  test("mass asset upload never overwrites a file created after the name check", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const racedPath = path.join(assetsDir, "Raced.png");
+    fs.writeFileSync(racedPath, "earlier upload bytes");
+
+    // Hide the existing file from the first name check to simulate the race.
+    const realExists = fs.existsSync;
+    let hidden = false;
+    const existsSpy = jest.spyOn(fs, "existsSync").mockImplementation((target) => {
+      if (!hidden && target === racedPath) {
+        hidden = true;
+        return false;
+      }
+      return realExists(target);
+    });
+    let res;
+    try {
+      res = await request(app)
+        .post("/api/upload-mass-asset")
+        .send({ filename: "Raced.png", dataUrl: tinyPngDataUrl })
+        .expect(200);
+    } finally {
+      existsSpy.mockRestore();
+    }
+
+    expect(hidden).toBe(true);
+    expect(fs.readFileSync(racedPath, "utf8")).toBe("earlier upload bytes");
+    expect(res.body.url).toBe("/api/mass-asset/Raced (1).png");
+    expect(fs.existsSync(path.join(assetsDir, "Raced (1).png"))).toBe(true);
+  });
+
+  test("concurrent uploads with one filename save under unique names", async () => {
+    const dataUrls = [
+      tinyPngDataUrl,
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+    ];
+    const responses = await Promise.all(
+      dataUrls.map((dataUrl) =>
+        request(app).post("/api/upload-mass-asset").send({ filename: "Same.png", dataUrl }).expect(200)
+      )
+    );
+
+    const urls = responses.map((res) => res.body.url);
+    expect(new Set(urls).size).toBe(2);
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    responses.forEach((res, index) => {
+      const stored = fs.readFileSync(path.join(assetsDir, res.body.url.split("/").pop()));
+      expect(stored.equals(Buffer.from(dataUrls[index].split(",")[1], "base64"))).toBe(true);
+    });
+  });
+
   test("folder slideshow import saves a bounded batch of image assets", async () => {
     const res = await request(app)
       .post("/api/import-slideshow-images")

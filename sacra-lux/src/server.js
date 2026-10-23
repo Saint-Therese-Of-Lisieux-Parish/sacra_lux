@@ -469,11 +469,23 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
   };
 }
 
+const MAX_ASSET_NAME_ATTEMPTS = 20;
+
 function saveMassAssetUpload(upload) {
   const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
   fs.mkdirSync(assetsDir, { recursive: true });
-  const safeName = buildUploadedAssetFilename(upload.filename, upload.mediaExtension, assetsDir);
-  fs.writeFileSync(path.join(assetsDir, safeName), upload.bytes);
+  // Create the file exclusively so a name taken after the existence check is
+  // never overwritten. On EEXIST, pick the next free name and try again.
+  let safeName;
+  for (let attempt = 0; ; attempt += 1) {
+    safeName = buildUploadedAssetFilename(upload.filename, upload.mediaExtension, assetsDir);
+    try {
+      fs.writeFileSync(path.join(assetsDir, safeName), upload.bytes, { flag: "wx" });
+      break;
+    } catch (err) {
+      if (err.code !== "EEXIST" || attempt >= MAX_ASSET_NAME_ATTEMPTS) throw err;
+    }
+  }
   return {
     url: `/api/mass-asset/${safeName}`,
     name: path.basename(String(upload.filename || safeName)).slice(0, 200),
