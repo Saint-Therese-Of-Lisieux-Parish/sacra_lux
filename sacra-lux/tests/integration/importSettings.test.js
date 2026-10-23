@@ -1,0 +1,94 @@
+const request = require("supertest");
+
+const {
+  createTempHome,
+  startIsolatedServer
+} = require("../helpers/testHarness");
+
+describe("settings import and export", () => {
+  let handle;
+  let app;
+  let state;
+
+  const sequence = [
+    { id: "one", type: "text", label: "One", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+    { id: "two", type: "text", label: "Two", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
+  ];
+  const manualSlides = { one: { text: "One" }, two: { text: "Two" } };
+
+  beforeAll(async () => {
+    jest.resetModules();
+    handle = await startIsolatedServer({ port: 0, homeDir: createTempHome("sacra-lux-import-") });
+    app = handle.app;
+    ({ state } = require("../../src/state"));
+  });
+
+  beforeEach(async () => {
+    state.startPin = "";
+    state.startPinHash = null;
+    await request(app).post("/api/new-mass").send({ title: "Import Mass", startTime: "" }).expect(200);
+  });
+
+  afterAll(async () => {
+    if (handle) await handle.stop();
+  });
+
+  test("an empty payload changes nothing and succeeds", async () => {
+    const before = JSON.stringify(state.screenSettings);
+    await request(app).post("/api/import-settings").send({}).expect(200);
+    expect(JSON.stringify(state.screenSettings)).toBe(before);
+  });
+
+  test("a full payload replaces settings, organizer, title, and start time", async () => {
+    const start = "2030-01-01T09:00";
+    await request(app).post("/api/import-settings").send({
+      screenSettings: { fontSizePx: 80 },
+      organizerSequence: sequence,
+      manualSlides,
+      presentationTitle: "Imported Title",
+      massStartTime: start
+    }).expect(200);
+
+    expect(state.screenSettings.fontSizePx).toBe(80);
+    expect(state.organizerSequence.map((item) => item.id)).toEqual(["one", "two"]);
+    expect(state.presentation.title).toBe("Imported Title");
+    expect(state.massStartTime).toBe(start);
+    expect(state.presentation.slides.length).toBeGreaterThan(0);
+  });
+
+  test("a null start time clears the start time", async () => {
+    await request(app).post("/api/import-settings").send({ massStartTime: "2030-01-01T09:00" }).expect(200);
+    await request(app).post("/api/import-settings").send({ massStartTime: null }).expect(200);
+    expect(state.massStartTime).toBeNull();
+  });
+
+  test("manual slides alone rebuild the presentation from the stored sequence", async () => {
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    await request(app).post("/api/import-settings").send({
+      manualSlides: { one: { text: "Changed" }, two: { text: "Two" } }
+    }).expect(200);
+    expect(state.manualSlides.one.text).toBe("Changed");
+  });
+
+  test("ignores settings, sequence, and slides of the wrong type", async () => {
+    const before = JSON.stringify(state.organizerSequence);
+    await request(app).post("/api/import-settings").send({
+      screenSettings: "nope",
+      organizerSequence: "nope",
+      manualSlides: "nope",
+      presentationTitle: "",
+      massStartTime: 12
+    }).expect(200);
+    expect(JSON.stringify(state.organizerSequence)).toBe(before);
+  });
+
+  test("an export round-trips through an import", async () => {
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    const exported = await request(app).get("/api/export-settings").expect(200);
+    expect(exported.headers["content-disposition"]).toMatch(/mass-settings-\d{4}-\d{2}-\d{2}\.json/);
+    expect(exported.body.version).toBe(2);
+
+    await request(app).post("/api/import-settings").send(exported.body).expect(200);
+    expect(state.organizerSequence.map((item) => item.id)).toEqual(["one", "two"]);
+  });
+});

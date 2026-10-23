@@ -9,10 +9,10 @@ module.exports = {
   coverageReporters: ["text-summary", "lcov", "json-summary"],
   coverageThreshold: {
     global: {
-      statements: 84,
-      branches: 70,
-      functions: 92,
-      lines: 85
+      statements: 87,
+      branches: 75,
+      functions: 94,
+      lines: 89
     },
     "./src/security.js": {
       lines: 93,
