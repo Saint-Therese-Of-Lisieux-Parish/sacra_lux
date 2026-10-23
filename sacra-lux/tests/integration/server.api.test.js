@@ -668,6 +668,54 @@ describe("server api integration", () => {
     await request(app).get("/api/state").expect(200);
   });
 
+  test("unauthorized upload requests get HTTP 401 before the body arrives", async () => {
+    await request(app).post("/api/start-pin").send({ pin: "2468" }).expect(200);
+
+    // Declare a 200 MB body but send only the headers and one chunk.
+    // A 401 can arrive only if the server answers without reading the body.
+    const status = await new Promise((resolve, reject) => {
+      const req = http.request(
+        `${handle.baseUrl}/api/upload-mass-asset`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "content-length": String(200 * 1024 * 1024)
+          }
+        },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode);
+          req.destroy();
+        }
+      );
+      req.on("error", (err) => {
+        if (err.code !== "ECONNRESET") reject(err);
+      });
+      req.write("{\"filename\":\"a.png\",");
+    });
+    expect(status).toBe(401);
+
+    await request(app).get("/api/state").expect(200);
+  });
+
+  test("authorized uploads keep their route limits after the authorization check", async () => {
+    const pinResponse = await request(app).post("/api/start-pin").send({ pin: "2468" }).expect(200);
+    const controlToken = pinResponse.body.controlToken;
+
+    await request(app)
+      .post("/api/upload-mass-asset")
+      .set("x-sacra-control", controlToken)
+      .send({ filename: "Limit.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    const tooBig = await request(app)
+      .post("/api/update-title")
+      .set("x-sacra-control", controlToken)
+      .send({ title: "x".repeat(11 * 1024 * 1024) });
+    expect(tooBig.status).toBe(413);
+  });
+
   test("upload routes accept bodies above the default JSON limit", async () => {
     const padding = "A".repeat(11 * 1024 * 1024);
     const res = await request(app)

@@ -2058,16 +2058,6 @@ function startServer(port = 17841, options = {}) {
     maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent
   });
 
-  // Pick the JSON limit by route so small routes never buffer upload-sized bodies.
-  const jsonParsers = new Map();
-  function jsonParserFor(limit) {
-    if (!jsonParsers.has(limit)) jsonParsers.set(limit, express.json({ limit }));
-    return jsonParsers.get(limit);
-  }
-  app.use((req, res, next) => {
-    const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
-    return jsonParserFor(limit)(req, res, next);
-  });
   app.use("/api", globalApiRateLimit);
   app.use("/api", (req, res, next) => {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
@@ -2077,6 +2067,18 @@ function startServer(port = 17841, options = {}) {
       return res.status(401).json({ error: getUnlockMessage() });
     }
     return next();
+  });
+
+  // Pick the JSON limit by route so small routes never buffer upload-sized bodies.
+  // This runs after the authorization check so unauthorized clients never cause buffering.
+  const jsonParsers = new Map();
+  function jsonParserFor(limit) {
+    if (!jsonParsers.has(limit)) jsonParsers.set(limit, express.json({ limit }));
+    return jsonParsers.get(limit);
+  }
+  app.use((req, res, next) => {
+    const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
+    return jsonParserFor(limit)(req, res, next);
   });
 
   // Express cannot stream files from an Electron ASAR archive. Packaged builds
