@@ -1935,6 +1935,69 @@ describe("server api integration", () => {
       .expect(404);
   });
 
+  test("AVIF export keeps assets with the same stem as distinct files", async () => {
+    const sharp = require("sharp");
+    const toDataUrl = async (format, color) => {
+      const buffer = await sharp({ create: { width: 8, height: 8, channels: 3, background: color } })
+        [format]()
+        .toBuffer();
+      return `data:image/${format === "jpeg" ? "jpeg" : "png"};base64,${buffer.toString("base64")}`;
+    };
+    const jpgUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "banner.jpg", dataUrl: await toDataUrl("jpeg", "#ff0000") })
+      .expect(200);
+    const pngUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "banner.png", dataUrl: await toDataUrl("png", "#0000ff") })
+      .expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "banners", type: "imageSlideshow", label: "Banners", phase: "mass", backgroundTheme: "light" }],
+        manualSlides: {
+          banners: {
+            images: [
+              { url: jpgUpload.body.url, name: "banner.jpg" },
+              { url: pngUpload.body.url, name: "banner.png" }
+            ],
+            slideshowDurationSec: 5,
+            slideshowLoopCount: 1
+          }
+        }
+      })
+      .expect(200);
+
+    const { token } = await createAvifExport(undefined);
+    const zipRes = await request(app)
+      .get(`/api/export-mass-zip-avif?token=${token}`)
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    const exportedZip = new AdmZip(zipRes.body);
+    const massDocument = JSON.parse(exportedZip.getEntry("mass.json").getData().toString("utf8"));
+    const item = massDocument.items.find((entry) => entry.id === "banners");
+    const refs = item.assets.map((asset) => asset.ref);
+    expect(new Set(refs).size).toBe(2);
+    const pixels = [];
+    for (const ref of refs) {
+      expect(ref).toMatch(/\.avif$/);
+      const entry = exportedZip.getEntry(ref);
+      expect(entry).toBeTruthy();
+      const { data } = await sharp(entry.getData()).raw().toBuffer({ resolveWithObject: true });
+      pixels.push([data[0], data[1], data[2]]);
+    }
+    // Red JPEG first, blue PNG second; each reference keeps its own pixels.
+    expect(pixels[0][0]).toBeGreaterThan(pixels[0][2]);
+    expect(pixels[1][2]).toBeGreaterThan(pixels[1][0]);
+  });
+
   test("image slideshow assets and settings round-trip through a Mass ZIP", async () => {
     const alphaUpload = await request(app)
       .post("/api/upload-mass-asset")

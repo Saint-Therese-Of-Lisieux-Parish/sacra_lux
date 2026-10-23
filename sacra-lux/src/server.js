@@ -548,6 +548,31 @@ function readMassPackageDefinition(packageDir, screenSettings = DEFAULT_SCREEN_S
   };
 }
 
+// Assign each converted source file a unique AVIF name. Names already used by
+// files in the assets directory stay reserved, so sources that share a stem
+// (banner.jpg and banner.png) never share one ZIP entry.
+function createAvifNameAllocator(assetsDir) {
+  const reservedNames = new Set();
+  if (fs.existsSync(assetsDir)) {
+    for (const file of fs.readdirSync(assetsDir)) reservedNames.add(file.toLowerCase());
+  }
+  const nameBySource = new Map();
+  const assign = (sourcePath, originalName, ext) => {
+    if (nameBySource.has(sourcePath)) return nameBySource.get(sourcePath);
+    const stem = path.basename(originalName, ext);
+    const extLabel = ext.slice(1);
+    let candidate = `${stem}.avif`;
+    for (let counter = 2; reservedNames.has(candidate.toLowerCase()); counter += 1) {
+      candidate = counter === 2 ? `${stem}-${extLabel}.avif` : `${stem}-${extLabel}-${counter}.avif`;
+    }
+    reservedNames.add(candidate.toLowerCase());
+    nameBySource.set(sourcePath, candidate);
+    return candidate;
+  };
+  assign.has = (sourcePath) => nameBySource.has(sourcePath);
+  return assign;
+}
+
 async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   const zip = new (getAdmZip())();
   const packageInfo = readMassPackageDefinition(packageDir);
@@ -583,6 +608,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   }
 
   const CONVERTIBLE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif"]);
+  const assignAvifName = createAvifNameAllocator(path.join(packageDir, "assets"));
   for (const ref of refs) {
     let filePath = null;
     let originalName = null;
@@ -606,8 +632,11 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
     const ext = path.extname(originalName).toLowerCase();
 
     if (avif && CONVERTIBLE_EXT.has(ext)) {
-      const avifName = `${path.basename(originalName, ext)}.avif`;
-      zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
+      const isNewSource = !assignAvifName.has(filePath);
+      const avifName = assignAvifName(filePath, originalName, ext);
+      if (isNewSource) {
+        zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
+      }
       urlRemap.set(ref, `assets/${avifName}`);
     } else {
       zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
@@ -3812,6 +3841,7 @@ function startServer(port = 17841, options = {}) {
 
         const total = resolved.length;
         const urlRemap = new Map();
+        const assignAvifName = createAvifNameAllocator(assetsDir);
 
         for (let i = 0; i < resolved.length; i++) {
           const { url, filePath, originalName } = resolved[i];
@@ -3824,10 +3854,11 @@ function startServer(port = 17841, options = {}) {
           });
 
           if (CONVERTIBLE_EXT.has(ext)) {
-            const baseName = path.basename(originalName, ext);
-            const avifName = `${baseName}.avif`;
-            const avifBuffer = await sharp(filePath).avif({ quality: 50 }).toBuffer();
-            zip.addFile(`assets/${avifName}`, avifBuffer);
+            const isNewSource = !assignAvifName.has(filePath);
+            const avifName = assignAvifName(filePath, originalName, ext);
+            if (isNewSource) {
+              zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
+            }
             urlRemap.set(url, `assets/${avifName}`);
           } else {
             zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
