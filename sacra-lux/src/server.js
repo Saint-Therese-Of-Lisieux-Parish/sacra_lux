@@ -86,6 +86,7 @@ const {
   socketMayControl,
   verifyPin
 } = require("./security");
+const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 
 const GOOGLE_FONTS = new Set([
   "Merriweather",
@@ -395,7 +396,7 @@ const MAX_MASS_ZIP_COMPRESSED_BYTES = 50 * 1024 * 1024;
 // JSON request body limits. Base64 adds one third, so each upload route allows
 // its decoded limit times 4/3 plus 1 MB for the JSON wrapper.
 const JSON_BODY_LIMIT_DEFAULT = "10mb";
-const JSON_BODY_LIMIT_SINGLE_UPLOAD = "200mb";
+const JSON_BODY_LIMIT_SINGLE_UPLOAD = `${Math.ceil((MAX_SINGLE_UPLOAD_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_SLIDESHOW_IMPORT = `${Math.ceil((MAX_SLIDESHOW_IMPORT_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_MASS_ZIP = `${Math.ceil((MAX_MASS_ZIP_COMPRESSED_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMITS_BY_PATH = new Map([
@@ -462,11 +463,14 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
     throw new ValidationError("Unsupported media type.");
   }
 
-  return {
-    filename,
-    mediaExtension,
-    bytes: Buffer.from(match[2], "base64")
-  };
+  const bytes = Buffer.from(match[2], "base64");
+  if (bytes.length > MAX_SINGLE_UPLOAD_BYTES) {
+    throw new ValidationError(
+      `Media file exceeds the ${Math.floor(MAX_SINGLE_UPLOAD_BYTES / (1024 * 1024))} MB limit.`
+    );
+  }
+
+  return { filename, mediaExtension, bytes };
 }
 
 const MAX_ASSET_NAME_ATTEMPTS = 20;

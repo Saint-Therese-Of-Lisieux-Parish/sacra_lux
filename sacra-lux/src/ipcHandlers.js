@@ -1,4 +1,5 @@
 const path = require("path");
+const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 
 const IPC_CHANNELS = Object.freeze([
   "dialog:pickFolder",
@@ -23,7 +24,7 @@ const IMAGE_MIME_BY_EXTENSION = Object.freeze({
   svg: "image/svg+xml"
 });
 
-const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
+const VIDEO_MAX_BYTES = MAX_SINGLE_UPLOAD_BYTES;
 const PDF_QUALITY_PRESETS = new Set(["high", "medium", "small"]);
 
 function inputError(message) {
@@ -127,7 +128,9 @@ function createIpcHandlers(dependencies = {}) {
       return inputError("The selected video could not be read.");
     }
     if (stats.size > VIDEO_MAX_BYTES) {
-      return inputError("Video file exceeds the 500 MB limit. Please use a smaller file.");
+      return inputError(
+        `Video file exceeds the ${Math.floor(VIDEO_MAX_BYTES / (1024 * 1024))} MB limit. Please use a smaller file.`
+      );
     }
 
     const buffer = fs.readFileSync(filePath);

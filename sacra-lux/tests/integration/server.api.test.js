@@ -716,6 +716,26 @@ describe("server api integration", () => {
     expect(tooBig.status).toBe(413);
   });
 
+  test("upload route accepts a maximum-size MP4 and rejects one byte more", async () => {
+    const { MAX_SINGLE_UPLOAD_BYTES } = require("../../src/uploadLimits");
+    const toDataUrl = (size) => `data:video/mp4;base64,${Buffer.alloc(size).toString("base64")}`;
+
+    const accepted = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Maximum.mp4", dataUrl: toDataUrl(MAX_SINGLE_UPLOAD_BYTES) })
+      .expect(200);
+    expect(accepted.body.url).toBe("/api/mass-asset/Maximum.mp4");
+    const storedPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets", "Maximum.mp4");
+    expect(fs.statSync(storedPath).size).toBe(MAX_SINGLE_UPLOAD_BYTES);
+
+    const rejected = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Over.mp4", dataUrl: toDataUrl(MAX_SINGLE_UPLOAD_BYTES + 1) });
+    expect(rejected.status).toBe(400);
+    expect(rejected.body.error).toContain("140 MB limit");
+    expect(fs.existsSync(path.join(path.dirname(storedPath), "Over.mp4"))).toBe(false);
+  });
+
   test("upload routes accept bodies above the default JSON limit", async () => {
     const padding = "A".repeat(11 * 1024 * 1024);
     const res = await request(app)
