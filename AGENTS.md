@@ -186,7 +186,7 @@ markdownlint rules anyway.
 
 For PR work, bump the package version in
 [sacra-lux/package.json](./sacra-lux/package.json) above `master` and run
-`npm run check:version-sync`. `ci.yml` runs the quality checks on PRs to
+`npm run check:version-sync`. The check also compares the version in `README.md` and `docs/codebase_info.md`. `ci.yml` runs the quality checks on PRs to
 `master`. The separate `version-check.yml` workflow also runs on PRs to
 `master` and fails the PR when the version is not above `master`.
 
