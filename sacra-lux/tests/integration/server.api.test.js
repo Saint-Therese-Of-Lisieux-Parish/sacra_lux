@@ -803,7 +803,7 @@ describe("server api integration", () => {
     await request(app)
       .post("/api/import-mass-zip")
       .send({ zipData: badZip.toBuffer().toString("base64") })
-      .expect(500);
+      .expect(400);
 
     const nullZip = new AdmZip();
     nullZip.addFile("mass.json", Buffer.from("null"));

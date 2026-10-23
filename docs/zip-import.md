@@ -168,7 +168,7 @@ the data is ignored.
 | Total size too large | 400 | `Mass ZIP uncompressed size exceeds the 262144000 byte limit.` |
 | Invalid entry size | 400 | `Mass ZIP entry "<name>" has an invalid size.` |
 | No definition file | 400 | `ZIP does not contain mass.json or settings.json.` |
-| Definition is not valid JSON | 500 | the JSON parser message |
+| Definition is not valid JSON | 400 | the JSON parser message |
 | v3 validation fails | 400 | the `massDocument.js` message |
 | Legacy `massStartTime` invalid | 400 | `massStartTime must be a valid datetime string.` |
 | Rate limit exceeded | 429 | `Too many requests. Please try again later.` |
