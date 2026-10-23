@@ -3,6 +3,7 @@ const {
   createIpcHandlers,
   registerIpcHandlers
 } = require("../../src/ipcHandlers");
+const { MAX_SINGLE_UPLOAD_BYTES } = require("../../src/uploadLimits");
 
 function createTestHandlers(overrides = {}) {
   const state = {
@@ -157,13 +158,13 @@ describe("ipcHandlers", () => {
       },
       fs: {
         readFileSync: jest.fn(),
-        statSync: jest.fn(() => ({ size: (500 * 1024 * 1024) + 1 })),
+        statSync: jest.fn(() => ({ size: MAX_SINGLE_UPLOAD_BYTES + 1 })),
         promises: { mkdir: jest.fn() }
       }
     });
 
     await expect(videoHandlers.handlers["dialog:pickVideoFile"]()).resolves.toMatchObject({
-      error: expect.stringContaining("500 MB limit")
+      error: expect.stringContaining("140 MB limit")
     });
     expect(videoHandlers.dependencies.fs.readFileSync).not.toHaveBeenCalled();
   });
