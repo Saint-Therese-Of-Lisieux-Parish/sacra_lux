@@ -104,3 +104,37 @@ jobs:
 
       - name: Run clock and timer tests in this time zone
         run: npx jest --config ./jest.config.cjs tests/integration/massStartClock.test.js tests/integration/mediaTiming.test.js tests/integration/movieAdvance.test.js tests/integration/phaseTimers.test.js tests/unit/state.test.js --runInBand
+
+  # Publish the coverage percentage as a shields.io endpoint file on the badges branch.
+  # The job uses only GITHUB_TOKEN; no external service token is needed.
+  coverage-badge:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download coverage report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-report
+          path: coverage
+
+      - name: Publish coverage badge data
+        run: |
+          pct=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
+          color=$(node -p "const p=$pct; p>=85?'brightgreen':p>=70?'yellow':'red'")
+          mkdir -p /tmp/badges
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s%%","color":"%s"}\n' "$pct" "$color" > /tmp/badges/coverage.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch origin badges:badges; then git checkout badges; else git checkout --orphan badges; fi
+          git rm -rf . > /dev/null 2>&1 || true
+          cp /tmp/badges/coverage.json coverage.json
+          git add coverage.json
+          git commit -m "Update coverage badge to ${pct}%" || exit 0
+          git push origin HEAD:badges
