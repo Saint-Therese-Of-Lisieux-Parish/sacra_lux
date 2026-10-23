@@ -16,15 +16,6 @@ const _PAGINATION_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const _visualLineCache = new Map();
 const _VISUAL_LINE_CACHE_MAX = 500;
 
-function _hashLines(lines) {
-  const hash = crypto.createHash("sha256");
-  for (const line of lines) {
-    hash.update(line);
-    hash.update("\n");
-  }
-  return hash.digest("hex").slice(0, 16);
-}
-
 function _hashString(str) {
   return crypto.createHash("sha256").update(str).digest("hex").slice(0, 16);
 }
