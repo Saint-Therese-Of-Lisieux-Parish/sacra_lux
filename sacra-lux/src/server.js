@@ -2186,7 +2186,20 @@ function startServer(port = 17841, options = {}) {
       }
 
       fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-      const imported = uploads.map(saveMassAssetUpload);
+      // Remove every file this request created if a later write fails, so a
+      // retry does not leave orphaned copies of the failed batch.
+      const imported = [];
+      try {
+        for (const upload of uploads) {
+          imported.push(saveMassAssetUpload(upload));
+        }
+      } catch (error) {
+        const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+        for (const asset of imported) {
+          fs.rmSync(path.join(assetsDir, path.basename(asset.url)), { force: true });
+        }
+        throw error;
+      }
       return res.json({ ok: true, images: imported });
     } catch (error) {
       const status = error instanceof ValidationError ? 400 : 500;
