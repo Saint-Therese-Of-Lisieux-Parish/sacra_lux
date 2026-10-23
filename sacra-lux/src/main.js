@@ -9,6 +9,7 @@ const { saveSession } = require("./persistence");
 const { listThemes, getTheme } = require("./themes");
 const logger = require("./logger");
 const { writeStartupBanner } = require("./cliBanner");
+const { createIpcHandlers, registerIpcHandlers } = require("./ipcHandlers");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -284,109 +285,7 @@ function fullscreenScreen() {
 }
 
 
-// ── IPC handlers ──────────────────────────────────────────────────────────────
-
-/**
- * Open the native folder picker from the app window.
- * Return the chosen absolute path, or null if the user cancels.
- */
-ipcMain.handle("dialog:pickFolder", async () => {
-  const result = await dialog.showOpenDialog(appWindow, {
-    title: "Select Readings Folder",
-    properties: ["openDirectory"]
-  });
-  if (result.canceled || result.filePaths.length === 0) {
-    return null;
-  }
-  return result.filePaths[0];
-});
-
-/**
- * Open the native image picker from the app window.
- * Return { name, dataUrl } so the renderer can reuse the normal upload flow.
- * Return null if the user cancels.
- */
-ipcMain.handle("dialog:pickImageFile", async () => {
-  const result = await dialog.showOpenDialog(appWindow, {
-    title: "Select Image",
-    properties: ["openFile"],
-    filters: [
-      { name: "Images", extensions: ["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp"] }
-    ]
-  });
-  if (result.canceled || result.filePaths.length === 0) {
-    return null;
-  }
-  const filePath = result.filePaths[0];
-  const name = path.basename(filePath);
-  const ext = path.extname(filePath).slice(1).toLowerCase();
-  const MIME = {
-    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
-    gif: "image/gif",  webp: "image/webp",  bmp: "image/bmp",
-    svg: "image/svg+xml"
-  };
-  const mime = MIME[ext] || "image/jpeg";
-  const buffer = fs.readFileSync(filePath);
-  const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
-  return { name, dataUrl };
-});
-
-ipcMain.handle("dialog:pickVideoFile", async () => {
-  const result = await dialog.showOpenDialog(appWindow, {
-    title: "Select Video",
-    properties: ["openFile"],
-    filters: [
-      { name: "MP4 Video", extensions: ["mp4"] }
-    ]
-  });
-  if (result.canceled || result.filePaths.length === 0) {
-    return null;
-  }
-  const filePath = result.filePaths[0];
-  const name = path.basename(filePath);
-  const { size } = fs.statSync(filePath);
-  if (size > 500 * 1024 * 1024) {
-    return { error: "Video file exceeds the 500 MB limit. Please use a smaller file." };
-  }
-  const buffer = fs.readFileSync(filePath);
-  const dataUrl = `data:video/mp4;base64,${buffer.toString("base64")}`;
-  return { name, dataUrl };
-});
-
-// ── Screen monitor IPC ──────────────────────────────────────────────────────
-
-ipcMain.handle("screen:getMonitors", () => {
-  const displays = screen.getAllDisplays();
-  const primary = screen.getPrimaryDisplay();
-  return displays.map((d) => ({
-    id: d.id,
-    label: `${d.bounds.width}x${d.bounds.height}` +
-      (d.id === primary.id ? " (Primary)" : "") +
-      ` @ ${d.bounds.x},${d.bounds.y}`,
-    isPrimary: d.id === primary.id,
-    bounds: d.bounds
-  }));
-});
-
-ipcMain.handle("screen:setTargetMonitor", (_, screenId) => {
-  syncTargetScreenState(screenId == null ? [] : [screenId]);
-  saveSession(state);
-  ensureConfiguredScreenWindows();
-  return { ok: true, targetScreenId: state.targetScreenId, targetScreenIds: state.targetScreenIds };
-});
-
-ipcMain.handle("screen:setTargetMonitors", (_, screenIds) => {
-  syncTargetScreenState(screenIds);
-  saveSession(state);
-  ensureConfiguredScreenWindows();
-  return { ok: true, targetScreenId: state.targetScreenId, targetScreenIds: state.targetScreenIds };
-});
-
-ipcMain.handle("folder:openMassFolder", async () => {
-  const massFolderPath = path.join(os.homedir(), ".sacra-lux", "current_mass");
-  await fs.promises.mkdir(massFolderPath, { recursive: true });
-  return shell.openPath(massFolderPath);
-});
+// ── IPC wiring ────────────────────────────────────────────────────────────────
 
 // ── PDF export ───────────────────────────────────────────────────────────────
 
@@ -451,7 +350,7 @@ async function createCaptureWindow() {
   return win;
 }
 
-ipcMain.handle("export:pdf", async (_, phases, quality) => {
+async function exportCurrentMassPdf(phases, quality) {
   const preset = PDF_QUALITY_PRESETS[quality] || PDF_QUALITY_PRESETS.high;
   const { PDFDocument } = require("pdf-lib");
 
@@ -567,11 +466,11 @@ ipcMain.handle("export:pdf", async (_, phases, quality) => {
   shell.showItemInFolder(saveResult.filePath);
 
   return { ok: true, path: saveResult.filePath, slideCount: slides.length };
-});
+}
 
 // ── Single-slide PDF export (Reading / Prayer / Hymn editor button) ──────────
 
-ipcMain.handle("export:slide-pdf", async (_, slides, screenSettings, suggestedName, quality) => {
+async function exportSlidePdf(slides, screenSettings, suggestedName, quality) {
   const { PDFDocument } = require("pdf-lib");
   const preset = PDF_QUALITY_PRESETS[quality] || PDF_QUALITY_PRESETS.high;
 
@@ -641,9 +540,9 @@ ipcMain.handle("export:slide-pdf", async (_, slides, screenSettings, suggestedNa
   await fs.promises.writeFile(saveResult.filePath, Buffer.from(pdfBytes));
   shell.showItemInFolder(saveResult.filePath);
   return { ok: true, path: saveResult.filePath, slideCount: results.length };
-});
+}
 
-ipcMain.handle("screen:fullscreen", (_, on) => {
+function setScreenFullscreen(on) {
   state.screenFullscreen = Boolean(on);
   saveSession(state);
   const windows = ensureConfiguredScreenWindows();
@@ -657,7 +556,7 @@ ipcMain.handle("screen:fullscreen", (_, on) => {
   }
   updateFullscreenMenuLabel();
   return { ok: true };
-});
+}
 
 // ── Application menu ──────────────────────────────────────────────────────────
 
@@ -671,6 +570,23 @@ function updateFullscreenMenuLabel() {
   if (!item) return;
   item.label = getFullscreenMenuLabel();
 }
+
+const ipcHandlers = createIpcHandlers({
+  dialog,
+  screen,
+  shell,
+  fs,
+  os,
+  state,
+  saveSession,
+  syncTargetScreenState,
+  ensureConfiguredScreenWindows,
+  setScreenFullscreen,
+  exportPdf: exportCurrentMassPdf,
+  exportSlidePdf,
+  getOwnerWindow: () => appWindow
+});
+registerIpcHandlers({ ipcMain, handlers: ipcHandlers });
 
 function buildAppMenu(ioRef) {
   const isMac = process.platform === "darwin";
