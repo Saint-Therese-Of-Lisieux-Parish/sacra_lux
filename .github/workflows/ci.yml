@@ -103,4 +103,4 @@ jobs:
         run: npm ci
 
       - name: Run clock and timer tests in this time zone
-        run: npx jest --config ./jest.config.cjs tests/integration/massStartClock.test.js tests/integration/mediaTiming.test.js tests/integration/movieAdvance.test.js tests/unit/state.test.js --runInBand
+        run: npx jest --config ./jest.config.cjs tests/integration/massStartClock.test.js tests/integration/mediaTiming.test.js tests/integration/movieAdvance.test.js tests/integration/phaseTimers.test.js tests/unit/state.test.js --runInBand

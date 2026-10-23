@@ -1612,13 +1612,17 @@ function resetDisplayOverrides() {
   clearInterstitialHoldState();
 }
 
+function stopPhaseOwnedTimers() {
+  stopCountdownTimer();
+  stopImageSlideshowTimer({ resetProgress: true });
+  stopMovieAutoAdvanceTimer();
+}
+
 function stopActiveSlideTimers() {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
-  stopCountdownTimer();
-  stopImageSlideshowTimer({ resetProgress: true });
-  stopMovieAutoAdvanceTimer();
+  stopPhaseOwnedTimers();
 }
 
 function findPreferredInterstitialSlideIndex(startIndex = state.currentSlideIndex) {
@@ -1707,7 +1711,15 @@ function startCountdownForSlide(ioRef) {
   const slide = slides[state.currentSlideIndex];
   if (!slide || slide.type !== "countdown") return;
 
-  const durationMs = Math.max(1000, Math.min(COUNTDOWN_MAX_SEC * 1000, (Number(slide.countdownSec) || 60) * 1000));
+  const seconds = Number(slide.countdownSec);
+  // A missing or unusable length is not a countdown. Do not invent a timer.
+  if (!Number.isFinite(seconds) || seconds < 1) {
+    touch();
+    ioRef.emit("state:update", getStateSnapshot());
+    return;
+  }
+
+  const durationMs = Math.min(COUNTDOWN_MAX_SEC * 1000, seconds * 1000);
   state.countdownEndsAt = Date.now() + durationMs;
   // Broadcast immediately so clients can start rendering the countdown.
   touch();
@@ -2557,6 +2569,7 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/pre-mass/stop", (req, res) => {
     try {
       stopPreMassTimer();
+      stopPhaseOwnedTimers();
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
@@ -2633,6 +2646,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/gathering/stop", (_, res) => {
     stopGatheringTimer();
+    stopPhaseOwnedTimers();
     touch();
     io.emit("state:update", getStateSnapshot());
     scheduleSave();
@@ -2655,6 +2669,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/post-mass/stop", (_, res) => {
     stopPostMassTimer();
+    stopPhaseOwnedTimers();
     touch();
     io.emit("state:update", getStateSnapshot());
     scheduleSave();
