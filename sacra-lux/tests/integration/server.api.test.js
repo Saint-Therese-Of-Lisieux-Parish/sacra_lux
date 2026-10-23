@@ -1170,6 +1170,34 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(assetsDir, "Photo 10.png"))).toBe(true);
   });
 
+  test("folder slideshow import removes saved files when a later write fails", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    const before = fs.existsSync(assetsDir) ? fs.readdirSync(assetsDir).sort() : [];
+    const realWrite = fs.writeFileSync;
+    let writes = 0;
+    const writeSpy = jest.spyOn(fs, "writeFileSync").mockImplementation((...args) => {
+      writes += 1;
+      if (writes === 2) throw new Error("disk full");
+      return realWrite(...args);
+    });
+    try {
+      const res = await request(app)
+        .post("/api/import-slideshow-images")
+        .send({
+          images: [
+            { filename: "Rollback One.png", dataUrl: tinyPngDataUrl },
+            { filename: "Rollback Two.png", dataUrl: tinyPngDataUrl }
+          ]
+        })
+        .expect(500);
+      expect(res.body.error).toMatch(/disk full/);
+    } finally {
+      writeSpy.mockRestore();
+    }
+
+    expect(fs.readdirSync(assetsDir).sort()).toEqual(before);
+  });
+
   test("folder slideshow import rejects non-image assets", async () => {
     const res = await request(app)
       .post("/api/import-slideshow-images")
