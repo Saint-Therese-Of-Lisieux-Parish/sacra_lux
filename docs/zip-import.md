@@ -102,7 +102,9 @@ reads the `format` and `version` keys to choose how to read the file.
 | Format | Condition | Source of reading text |
 | --- | --- | --- |
 | v3 | `format` is `"sacra-lux.mass"` and `version` is `3` | `content.text` of each item |
-| Legacy | any other JSON object | `readings/*.txt` files |
+| Legacy | a JSON object where `format` is not `"sacra-lux.mass"` | `readings/*.txt` files |
+| Rejected | `format` is `"sacra-lux.mass"` and `version` is not `3` | none, 400 |
+| Rejected | the JSON value is not an object (array, string, number, boolean, `null`) | none, 400 |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -169,6 +171,8 @@ the data is ignored.
 | Invalid entry size | 400 | `Mass ZIP entry "<name>" has an invalid size.` |
 | No definition file | 400 | `ZIP does not contain mass.json or settings.json.` |
 | Definition is not valid JSON | 400 | the JSON parser message |
+| JSON value is not an object | 400 | `Mass definition must be a JSON object.` |
+| `format` is `"sacra-lux.mass"`, `version` is not `3` | 400 | `Unsupported mass version.` |
 | v3 validation fails | 400 | the `massDocument.js` message |
 | Legacy `massStartTime` invalid | 400 | `massStartTime must be a valid datetime string.` |
 | Rate limit exceeded | 429 | `Too many requests. Please try again later.` |
