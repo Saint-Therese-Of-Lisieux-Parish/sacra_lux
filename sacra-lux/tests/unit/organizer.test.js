@@ -1,5 +1,6 @@
 const {
   createDefaultOrganizer,
+  dedupeOrganizerIds,
   findAlternateGroups,
   buildPresentationFromOrganizer,
   normalizeBackgroundTheme,
@@ -561,5 +562,27 @@ describe("organizer", () => {
     expect(imageSlideshowRuntimeMs(manual, "none")).toBe(50000);
     expect(imageSlideshowRuntimeMs({ ...manual, slideshowLoopCount: 3 }, "fade")).toBe(150000);
     expect(imageSlideshowRuntimeMs({ images: [] }, "fade")).toBe(0);
+  });
+});
+
+describe("dedupeOrganizerIds", () => {
+  const docs = [{ stem: "Reading_I", sections: [] }, { stem: "Reading_II", sections: [] }];
+
+  test("keeps IDs that do not collide", () => {
+    const { sequence, manualSlides } = createDefaultOrganizer(docs);
+    const result = dedupeOrganizerIds(sequence, manualSlides, []);
+    expect(result.sequence).toEqual(sequence);
+    expect(Object.keys(result.manualSlides)).toEqual(Object.keys(manualSlides));
+  });
+
+  test("renames colliding items and their manual slide keys", () => {
+    const { sequence, manualSlides } = createDefaultOrganizer(docs);
+    const taken = sequence.map((item) => item.id);
+    const result = dedupeOrganizerIds(sequence, manualSlides, taken);
+    const ids = result.sequence.map((item) => item.id);
+    expect(ids.some((id) => taken.includes(id))).toBe(false);
+    expect(new Set(ids).size).toBe(ids.length);
+    const imageItem = result.sequence.find((item) => item.type === "image");
+    expect(result.manualSlides[imageItem.id]).toBeDefined();
   });
 });

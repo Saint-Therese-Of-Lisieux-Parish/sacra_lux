@@ -26,6 +26,7 @@ const {
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
   createDefaultOrganizer,
+  dedupeOrganizerIds,
   findAlternateGroups,
   buildPresentationFromOrganizer,
   createManualSlideRecord,
@@ -3340,10 +3341,15 @@ function startServer(port = 17841, options = {}) {
           (item) => item.id === targetSlide?.organizerItemId
         );
         const insertOrganizerAt = organizerIndex >= 0 ? organizerIndex + 1 : state.organizerSequence.length;
-        state.organizerSequence.splice(insertOrganizerAt, 0, ...defaults.sequence);
+        const inserted = dedupeOrganizerIds(
+          defaults.sequence,
+          defaults.manualSlides,
+          state.organizerSequence.map((item) => item.id)
+        );
+        state.organizerSequence.splice(insertOrganizerAt, 0, ...inserted.sequence);
         state.manualSlides = {
           ...state.manualSlides,
-          ...defaults.manualSlides
+          ...inserted.manualSlides
         };
       }
 

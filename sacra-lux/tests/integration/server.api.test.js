@@ -536,6 +536,30 @@ describe("server api integration", () => {
     expect(state.readingsSource.documents.map((doc) => doc.stem).sort()).toEqual(["Gospel", "Gospel-alternate_1"]);
   });
 
+  test("load-readings insert keeps organizer item IDs unique", async () => {
+    const readingsDir = path.join(handle.homeDir, "insert-duplicate-stem");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
+
+    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await request(app)
+      .post("/api/load-readings")
+      .send({ folderPath: readingsDir, insertAtIndex: 0 })
+      .expect(200);
+
+    const state = (await request(app).get("/api/state").expect(200)).body;
+    const ids = state.organizerSequence.map((item) => item.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(ids.length);
+    const slideItemIds = [...new Set(state.presentation.slides.map((slide) => slide.organizerItemId))];
+    expect(slideItemIds.sort()).toEqual([...ids].sort());
+
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence: state.organizerSequence, manualSlides: state.manualSlides })
+      .expect(200);
+  });
+
   test("save-reading rejects a stem that escapes the current Mass", async () => {
     const readingsDir = path.join(handle.homeDir, "save-reading-guard");
     fs.mkdirSync(readingsDir, { recursive: true });
