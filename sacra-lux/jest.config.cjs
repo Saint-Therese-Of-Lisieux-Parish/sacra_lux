@@ -6,7 +6,7 @@ module.exports = {
   testTimeout: 30000,
   // src/main.js is the Electron entry point. The packaged-app smoke test covers it, not Jest.
   collectCoverageFrom: ["src/**/*.js", "!src/main.js"],
-  coverageReporters: ["text-summary", "lcov"],
+  coverageReporters: ["text-summary", "lcov", "json-summary"],
   coverageThreshold: {
     global: {
       statements: 83,
