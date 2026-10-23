@@ -10,9 +10,9 @@ module.exports = {
   coverageThreshold: {
     global: {
       statements: 83,
-      branches: 68,
+      branches: 69,
       functions: 92,
-      lines: 84
+      lines: 85
     },
     "./src/security.js": {
       lines: 93,
