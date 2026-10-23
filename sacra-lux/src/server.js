@@ -410,6 +410,14 @@ const MAX_MASS_ZIP_ENTRIES = 1000;
 const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
 
+function parseMassZipDefinition(definitionEntry) {
+  try {
+    return JSON.parse(definitionEntry.getData().toString("utf8"));
+  } catch (error) {
+    throw new ValidationError(error.message || "Mass definition is not valid JSON.");
+  }
+}
+
 function validateMassZipArchive(zip, compressedBytes) {
   if (compressedBytes > MAX_MASS_ZIP_COMPRESSED_BYTES) {
     throw new ValidationError(
@@ -3109,7 +3117,7 @@ function startServer(port = 17841, options = {}) {
       if (!definitionEntry) {
         return res.status(400).json({ error: "ZIP does not contain mass.json or settings.json." });
       }
-      const packageDefinition = JSON.parse(definitionEntry.getData().toString("utf8"));
+      const packageDefinition = parseMassZipDefinition(definitionEntry);
 
       replaceCurrentMassDir((stagingDir) => {
         writeZipMassPackage(zip, stagingDir, packageDefinition);
