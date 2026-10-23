@@ -320,6 +320,26 @@ function createDefaultOrganizer(allDocuments, { alternateSelections } = {}) {
   return { sequence, manualSlides };
 }
 
+// Rename generated items whose IDs collide with existing IDs, so inserts keep every ID unique.
+function dedupeOrganizerIds(sequence, manualSlides, takenIds) {
+  const used = new Set(takenIds);
+  const renamed = new Map();
+  const nextSequence = sequence.map((item) => {
+    let id = item.id;
+    for (let n = 2; used.has(id); n += 1) {
+      id = `${item.id}~${n}`;
+    }
+    used.add(id);
+    renamed.set(item.id, id);
+    return id === item.id ? item : { ...item, id };
+  });
+  const nextManualSlides = {};
+  for (const [id, record] of Object.entries(manualSlides)) {
+    nextManualSlides[renamed.get(id) || id] = record;
+  }
+  return { sequence: nextSequence, manualSlides: nextManualSlides };
+}
+
 function buildManualSlide(item, manualSlide, index) {
   const rawText = manualSlide?.text || "";
   const baseProps = {
@@ -517,6 +537,7 @@ function buildPresentationFromOrganizer({
 
 module.exports = {
   createDefaultOrganizer,
+  dedupeOrganizerIds,
   findAlternateGroups,
   selectAlternateDocuments,
   buildPresentationFromOrganizer,
