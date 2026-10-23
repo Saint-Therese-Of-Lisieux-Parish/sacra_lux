@@ -424,6 +424,10 @@ function validateMassZipArchive(zip, compressedBytes) {
 
   let totalUncompressedBytes = 0;
   for (const entry of entries) {
+    const entryParts = String(entry.entryName).split(/[\\/]/);
+    if (entry.entryName.startsWith("/") || entryParts.includes("..")) {
+      throw new ValidationError(`Mass ZIP entry "${entry.entryName}" leaves the package folder.`);
+    }
     const entryBytes = Number(entry.header?.size);
     if (!Number.isSafeInteger(entryBytes) || entryBytes < 0) {
       throw new ValidationError(`Mass ZIP entry "${entry.entryName}" has an invalid size.`);
@@ -2683,14 +2687,28 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/import-settings", (req, res) => {
     try {
       const payload = req.body || {};
+      const nextScreenSettings = payload.screenSettings && typeof payload.screenSettings === "object"
+        ? normalizeScreenSettings(payload.screenSettings)
+        : state.screenSettings;
+      const nextOrganizerSequence = Array.isArray(payload.organizerSequence)
+        ? normalizeOrganizerSequence(payload.organizerSequence)
+        : state.organizerSequence;
+      const nextManualSlides = payload.manualSlides && typeof payload.manualSlides === "object"
+        ? mergeManualSlideState(nextOrganizerSequence, payload.manualSlides)
+        : state.manualSlides;
+      if (payload.massStartTime && typeof payload.massStartTime === "string" &&
+        Number.isNaN(new Date(payload.massStartTime).getTime())) {
+        throw new ValidationError("massStartTime must be a valid datetime string.");
+      }
+
       if (payload.screenSettings && typeof payload.screenSettings === "object") {
-        state.screenSettings = normalizeScreenSettings(payload.screenSettings);
+        state.screenSettings = nextScreenSettings;
       }
       if (Array.isArray(payload.organizerSequence)) {
-        state.organizerSequence = normalizeOrganizerSequence(payload.organizerSequence);
+        state.organizerSequence = nextOrganizerSequence;
       }
       if (payload.manualSlides && typeof payload.manualSlides === "object") {
-        state.manualSlides = mergeManualSlideState(state.organizerSequence, payload.manualSlides);
+        state.manualSlides = nextManualSlides;
         propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       }
       repaginateReadingSlidesIfNeeded();
@@ -2713,9 +2731,6 @@ function startServer(port = 17841, options = {}) {
         state.presentation.title = String(payload.presentationTitle);
       }
       if (payload.massStartTime && typeof payload.massStartTime === "string") {
-        if (Number.isNaN(new Date(payload.massStartTime).getTime())) {
-          throw new ValidationError("massStartTime must be a valid datetime string.");
-        }
         state.massStartTime = payload.massStartTime;
         scheduleStartTimer(io);
       } else if (payload.massStartTime === null) {

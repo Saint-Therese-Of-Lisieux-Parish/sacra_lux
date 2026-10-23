@@ -11,7 +11,7 @@ module.exports = {
     global: {
       statements: 81,
       branches: 66,
-      functions: 90,
+      functions: 91,
       lines: 83
     },
     "./src/security.js": {

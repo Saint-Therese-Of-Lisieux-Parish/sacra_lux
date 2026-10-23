@@ -1567,7 +1567,11 @@ describe("server api integration", () => {
     expect(fs.readFileSync(canary, "utf8")).toBe("keep");
   });
 
-  test("import-mass-zip ignores nested and traversal entry paths", async () => {
+  test("import-mass-zip rejects traversal entries and accepts safe entries", async () => {
+    expect(() => validateMassZipArchive({
+      getEntries: () => [{ entryName: "readings/../../evil.txt", header: { size: 0 } }]
+    }, 0)).toThrow("leaves the package folder");
+
     const zip = new AdmZip();
     zip.addFile("settings.json", Buffer.from(JSON.stringify({
       version: 2,
@@ -1577,24 +1581,60 @@ describe("server api integration", () => {
       manualSlides: {}
     })));
     zip.addFile("readings/Reading_I.txt", Buffer.from("Genesis 1:1-3\n\nIn the beginning."));
-    zip.addFile("readings/../../evil.txt", Buffer.from("blocked"));
     zip.addFile("readings/assets/safe.png", Buffer.from("safe-image"));
-    zip.addFile("readings/assets/../../unsafe.png", Buffer.from("blocked-image"));
     zip.addFile("uploads/uploaded.png", Buffer.from("uploaded-image"));
-    zip.addFile("uploads/../../skip.png", Buffer.from("blocked-upload"));
 
+    const before = await request(app).get("/api/state").expect(200);
     await request(app)
       .post("/api/import-mass-zip")
       .send({ zipData: zip.toBuffer().toString("base64") })
       .expect(200);
 
     const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body).not.toEqual(before.body);
     expect(fs.existsSync(path.join(currentMassDir, "Reading_I.txt"))).toBe(true);
-    expect(fs.existsSync(path.join(currentMassDir, "evil.txt"))).toBe(false);
     expect(fs.existsSync(path.join(currentMassDir, "assets", "safe.png"))).toBe(true);
     expect(fs.existsSync(path.join(currentMassDir, "assets", "uploaded.png"))).toBe(true);
-    expect(fs.existsSync(path.join(currentMassDir, "assets", "unsafe.png"))).toBe(false);
-    expect(fs.existsSync(path.join(currentMassDir, "assets", "skip.png"))).toBe(false);
+  });
+
+  test("import-settings keeps state unchanged when the start time is invalid", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "text-1", type: "text", label: "Welcome", phase: "mass" }],
+        manualSlides: { "text-1": { text: "Before" } }
+      })
+      .expect(200);
+    const before = await request(app).get("/api/state").expect(200);
+
+    await request(app)
+      .post("/api/import-settings")
+      .send({
+        organizerSequence: [],
+        manualSlides: {},
+        massStartTime: "not-a-date"
+      })
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body).toEqual(before.body);
+  });
+
+  test("import-mass-zip keeps the current package when the ZIP is corrupt", async () => {
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "keep.txt"), "keep", "utf8");
+    const before = await request(app).get("/api/state").expect(200);
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: Buffer.from("not a zip").toString("base64") })
+      .expect((response) => expect(response.status).toBeGreaterThanOrEqual(400));
+
+    expect(fs.readFileSync(path.join(currentMassDir, "keep.txt"), "utf8")).toBe("keep");
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body).toEqual(before.body);
   });
 
   test("export-mass-zip writes a v3 mass.json document without PIN data", async () => {
