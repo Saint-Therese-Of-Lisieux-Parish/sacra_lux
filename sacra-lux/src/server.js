@@ -2382,11 +2382,11 @@ function startServer(port = 17841, options = {}) {
     try {
       const { theme } = req.body || {};
       if (theme) {
-        const t = getTheme(theme);
-        if (t) {
-          if (!state.appSettings) state.appSettings = {};
-          state.appSettings.theme = theme;
+        if (!listThemes().some((entry) => entry.id === theme)) {
+          return res.status(400).json({ error: "Unknown theme." });
         }
+        if (!state.appSettings) state.appSettings = {};
+        state.appSettings.theme = theme;
       }
       touch();
       io.emit("state:update", getStateSnapshot());

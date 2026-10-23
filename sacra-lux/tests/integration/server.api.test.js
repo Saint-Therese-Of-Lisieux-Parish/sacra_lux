@@ -141,6 +141,18 @@ describe("server api integration", () => {
     expect((await request(app).get("/api/state").expect(200)).body.controlMode).toBe("trusted-lan");
   });
 
+  test("app settings reject an unknown theme without changing the current theme", async () => {
+    const before = (await request(app).get("/api/state").expect(200)).body.appSettings.theme;
+
+    const response = await request(app)
+      .post("/api/app-settings")
+      .send({ theme: "unknown-theme" })
+      .expect(400);
+
+    expect(response.body.error).toMatch(/unknown theme/i);
+    expect((await request(app).get("/api/state").expect(200)).body.appSettings.theme).toBe(before);
+  });
+
   test("built-in backgrounds are listed with image dimensions and served", async () => {
     const response = await request(app).get("/api/builtin-backgrounds").expect(200);
 
@@ -384,6 +396,28 @@ describe("server api integration", () => {
       .expect("Location", "/start");
 
     nowSpy.mockRestore();
+  });
+
+  test("start-redirect rejects an invalid token and consumes a valid token once", async () => {
+    await request(app).post("/api/start-pin").send({ pin: "2468" }).expect(200);
+
+    await request(app)
+      .get("/api/start-redirect?token=not-a-real-token")
+      .expect(302)
+      .expect("Location", "/start");
+
+    const verify = await request(app).post("/api/verify-pin").send({ pin: "2468" }).expect(200);
+    const token = extractTokenFromRedirect(verify.body.redirect);
+    expect(token).toBeTruthy();
+
+    await request(app)
+      .get(`/api/start-redirect?token=${token}`)
+      .expect(302)
+      .expect("Location", "/remote");
+    await request(app)
+      .get(`/api/start-redirect?token=${token}`)
+      .expect(302)
+      .expect("Location", "/start");
   });
 
   test("a phone joining after Mass has begun does not rewind the projector", async () => {
@@ -1031,6 +1065,14 @@ describe("server api integration", () => {
       .expect(400);
 
     expect(String(res.body.error || "")).toMatch(/invalid filename/i);
+  });
+
+  test("mass asset route returns not found for a missing file", async () => {
+    const res = await request(app)
+      .get("/api/mass-asset/missing.png")
+      .expect(404);
+
+    expect(String(res.body.error || "")).toMatch(/not found|no mass folder/i);
   });
 
   test("image slideshow organizer state preserves order, timing, and loops", async () => {
