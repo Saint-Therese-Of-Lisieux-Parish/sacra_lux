@@ -282,8 +282,22 @@ jobs:
           rm -f "${apple_key_file}"
 
           xcrun stapler staple "${dmg}"
-          xcrun stapler validate "${dmg}"
-          spctl -a -t open --context context:primary-signature -vv "${dmg}"
+          retry() {
+            for attempt in 1 2 3; do
+              if "$@"; then
+                return 0
+              fi
+              if [ "${attempt}" -eq 3 ]; then
+                echo "::error::The command failed after three attempts: $*"
+                return 1
+              fi
+              delay=$((attempt * 15))
+              echo "::warning::The command failed. Retrying in ${delay} seconds."
+              sleep "${delay}"
+            done
+          }
+          retry xcrun stapler validate "${dmg}"
+          retry spctl -a -t open --context context:primary-signature -vv "${dmg}"
 
       - name: Normalize ZIP name
         if: runner.os == 'Windows'
