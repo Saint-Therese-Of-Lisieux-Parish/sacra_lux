@@ -2201,6 +2201,70 @@
       padding-left: 0.15rem;
     }
 
+    .editor-format-toolbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      width: fit-content;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+    }
+
+    .editor-format-btn {
+      width: 2rem;
+      height: 1.8rem;
+      padding: 0;
+      border: 0;
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      box-shadow: none;
+      color: var(--ink);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .editor-format-btn:hover {
+      background: var(--control-bg-hover);
+    }
+
+    .editor-format-btn.is-on {
+      background: var(--accent);
+      color: var(--ink-on-accent);
+    }
+
+    .editor-format-btn.is-off {
+      color: var(--ink);
+      background: var(--pressed-bg);
+      text-decoration: line-through;
+    }
+
+    .editor-format-btn .fmt-outline {
+      -webkit-text-stroke: 1px currentColor;
+      color: transparent;
+    }
+
+    .editor-format-btn.is-on .fmt-outline {
+      -webkit-text-stroke-color: var(--ink-on-accent);
+    }
+
+    .editor-format-btn .fmt-shadow {
+      text-shadow: 1px 1px 0 color-mix(in srgb, currentColor, transparent 55%);
+    }
+
+    .editor-format-reset {
+      margin-left: 0.25rem;
+      padding: 0.15rem 0.5rem;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      color: var(--accent);
+      font-size: 0.8rem;
+      text-decoration: underline;
+    }
+
     .editor-style-choice-control {
       display: flex;
       flex-wrap: wrap;
@@ -3247,42 +3311,17 @@
                 <label class="editor-style-field editor-style-field-size"> <span>Size</span>
                   <input id="editorReadingStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
                 </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Bold</span>
+                <div class="editor-format-toolbar" role="toolbar" aria-label="Reading text formatting">
                   <input id="editorReadingStyleBold" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Reading bold override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleBold">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleBold">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleBold">Off</button>
-                  </span>
-                </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Italic</span>
                   <input id="editorReadingStyleItalic" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Reading italic override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleItalic">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleItalic">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleItalic">Off</button>
-                  </span>
-                </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Outline</span>
                   <input id="editorReadingStyleOutline" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Reading outline override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleOutline">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleOutline">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleOutline">Off</button>
-                  </span>
-                </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Shadow</span>
                   <input id="editorReadingStyleShadow" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Reading shadow override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorReadingStyleShadow">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorReadingStyleShadow">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorReadingStyleShadow">Off</button>
-                  </span>
-                </label>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleBold" aria-label="Bold" title="Bold: default"><b>B</b></button>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleItalic" aria-label="Italic" title="Italic: default"><i>I</i></button>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleOutline" aria-label="Outline" title="Outline: default"><span class="fmt-outline">O</span></button>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleShadow" aria-label="Shadow" title="Shadow: default"><span class="fmt-shadow">S</span></button>
+                  <button type="button" class="editor-format-reset" data-tristate-reset="editorReadingStyleBold editorReadingStyleItalic editorReadingStyleOutline editorReadingStyleShadow">Reset to default</button>
+                </div>
               </div>
               <div id="editorPreviewTextStyleStrip" class="editor-style-strip" hidden>
                 <label class="editor-style-field editor-style-field-wide"> <span>Family</span>
@@ -3312,42 +3351,17 @@
                 <label class="editor-style-field editor-style-field-size"> <span>Size</span>
                   <input id="editorTextStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
                 </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Bold</span>
+                <div class="editor-format-toolbar" role="toolbar" aria-label="Slide text formatting">
                   <input id="editorTextStyleBold" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Slide bold override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleBold">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleBold">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleBold">Off</button>
-                  </span>
-                </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Italic</span>
                   <input id="editorTextStyleItalic" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Slide italic override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleItalic">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleItalic">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleItalic">Off</button>
-                  </span>
-                </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Outline</span>
                   <input id="editorTextStyleOutline" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Slide outline override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleOutline">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleOutline">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleOutline">Off</button>
-                  </span>
-                </label>
-                <label class="editor-style-choice">
-                  <span class="editor-style-choice-label">Shadow</span>
                   <input id="editorTextStyleShadow" type="hidden" data-editor-style-input data-tristate-select>
-                  <span class="editor-style-choice-control" role="group" aria-label="Slide shadow override">
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="default" data-target-input="editorTextStyleShadow">Default</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="true" data-target-input="editorTextStyleShadow">On</button>
-                    <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleShadow">Off</button>
-                  </span>
-                </label>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleBold" aria-label="Bold" title="Bold: default"><b>B</b></button>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleItalic" aria-label="Italic" title="Italic: default"><i>I</i></button>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleOutline" aria-label="Outline" title="Outline: default"><span class="fmt-outline">O</span></button>
+                  <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleShadow" aria-label="Shadow" title="Shadow: default"><span class="fmt-shadow">S</span></button>
+                  <button type="button" class="editor-format-reset" data-tristate-reset="editorTextStyleBold editorTextStyleItalic editorTextStyleOutline editorTextStyleShadow">Reset to default</button>
+                </div>
               </div>
               <div id="editorBoundsPanel" hidden style="margin-top:0.9rem">
                 <div class="text-bounds-toolbar">
@@ -4644,6 +4658,14 @@
     }
 
     function refreshTriStateButtons(inputEl) {
+      const state0 = inputEl?.dataset.tristateValue || "";
+      document.querySelectorAll(`[data-tristate-cycle][data-target-input="${inputEl?.id}"]`).forEach((button) => {
+        const name = button.getAttribute("aria-label") || "";
+        button.classList.toggle("is-on", state0 === "true");
+        button.classList.toggle("is-off", state0 === "false");
+        button.setAttribute("aria-pressed", state0 === "true" ? "true" : state0 === "false" ? "false" : "mixed");
+        button.title = `${name}: ${state0 === "true" ? "on" : state0 === "false" ? "off" : "default"}`;
+      });
       const control = inputEl?.closest(".editor-style-choice")?.querySelector(".editor-style-choice-control");
       if (!control) return;
       const state = inputEl.dataset.tristateValue || "";
@@ -7994,6 +8016,26 @@
         const next = raw === "true" ? true : raw === "false" ? false : undefined;
         writeTriStateSelect(input, next);
         input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+
+    document.querySelectorAll("[data-tristate-cycle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.targetInput || "");
+        if (!input) return;
+        writeTriStateSelect(input, input.dataset.tristateValue !== "true");
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+
+    document.querySelectorAll("[data-tristate-reset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        for (const id of button.dataset.tristateReset.split(" ")) {
+          const input = document.getElementById(id);
+          if (!input) continue;
+          writeTriStateSelect(input, undefined);
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }
       });
     });
 
