@@ -1289,6 +1289,127 @@
       display: none !important;
     }
 
+    /* Word-processor style formatting bars in Screen Settings. */
+    .format-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem 1rem;
+      width: fit-content;
+      max-width: 100%;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+    }
+
+    .format-bar + .format-bar {
+      width: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .format-bar .settings-field {
+      height: auto;
+      padding: 0;
+      min-width: 0;
+    }
+
+    .format-bar .settings-field label {
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .format-bar .settings-field label :is(input, select) {
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--ink);
+    }
+
+    .format-bar .settings-field:has(select) {
+      width: 13rem;
+    }
+
+    .format-bar .settings-field:has(input[type="number"]) input {
+      width: 5.5rem;
+    }
+
+    .format-bar .settings-field:has(select) select {
+      width: 100%;
+    }
+
+    .format-bar .settings-field:has([id$="Align"]),
+    .format-bar .settings-field:has([id$="VAlign"]),
+    .format-bar .settings-field:has([id$="Position"]) {
+      width: 9rem;
+    }
+
+    .format-sep {
+      align-self: stretch;
+      border-left: 1px solid var(--surface-border);
+    }
+
+    .fmt-toggle {
+      position: relative;
+      width: 2.25rem;
+      height: 2rem;
+      padding: 0;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .fmt-toggle input[type="checkbox"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .fmt-toggle:hover {
+      background: var(--control-bg-hover);
+    }
+
+    .fmt-toggle:has(input:checked) {
+      background: var(--accent);
+      color: var(--ink-on-accent);
+    }
+
+    .fmt-toggle:has(input:focus-visible) {
+      outline: var(--focus-ring);
+      outline-offset: 1px;
+    }
+
+    .fmt-glyph {
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+
+    .fmt-glyph .fmt-outline {
+      -webkit-text-stroke: 1.2px var(--ink);
+      color: var(--control-bg);
+    }
+
+    .fmt-toggle:has(input:checked) .fmt-outline {
+      -webkit-text-stroke-color: var(--ink-on-accent);
+      color: var(--accent);
+    }
+
+    .fmt-glyph .fmt-shadow {
+      text-shadow: 1px 1px 0 color-mix(in srgb, currentColor, transparent 55%);
+    }
+
     .settings-field.is-disabled {
       opacity: 0.58;
     }
@@ -2810,32 +2931,7 @@
                   <div class="settings-subsection-label">Reading Body Text</div>
                   <p class="settings-subsection-copy">Use these controls for the main reading itself.</p>
                 </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Layout</div>
-                  <div class="settings-field-grid">
-                  <div class="settings-field settings-span-3">
-                    <label>Horizontal alignment
-                      <select id="readingTextAlign">
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Vertical position
-                      <select id="readingTextVAlign">
-                        <option value="top">Top</option>
-                        <option value="middle" selected>Middle</option>
-                        <option value="bottom">Bottom</option>
-                      </select>
-                    </label>
-                  </div>
-                  </div>
-                </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Type</div>
-                  <div class="settings-field-grid">
+                <div class="format-bar" role="toolbar" aria-label="Reading text formatting">
                   <div class="settings-field settings-span-4">
                     <label>Font override
                       <select id="readingTextFont">
@@ -2872,6 +2968,43 @@
                       <input id="readingTextColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#f8f8f8">
                     </label>
                   </div>
+                  <span class="format-sep"></span>
+                <label class="settings-toggle fmt-toggle" title="Bold: Adds weight for difficult rooms.">
+                  <input id="readingTextBold" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Bold"><b>B</b></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Italic: Use sparingly for emphasis.">
+                  <input id="readingTextItalic" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Italic"><i>I</i></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Drop shadow: Improves legibility on textured backgrounds.">
+                  <input id="readingTextShadow" type="checkbox" checked>
+                  <span class="fmt-glyph" aria-label="Drop shadow"><span class="fmt-shadow">S</span></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Text outline: Best for busy photography, not plain fields of color.">
+                  <input id="readingTextOutline" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Text outline"><span class="fmt-outline">O</span></span>
+                </label>
+                </div>
+                <div class="format-bar" role="toolbar" aria-label="Reading text layout">
+                  <div class="settings-field settings-span-3">
+                    <label>Horizontal alignment
+                      <select id="readingTextAlign">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-3">
+                    <label>Vertical position
+                      <select id="readingTextVAlign">
+                        <option value="top">Top</option>
+                        <option value="middle" selected>Middle</option>
+                        <option value="bottom">Bottom</option>
+                      </select>
+                    </label>
+                  </div>
                   <div class="settings-field settings-span-2">
                     <label>Line spacing
                       <input id="readingLineHeight" type="number" min="1.0" max="3.0" step="0.05" value="1.58"
@@ -2884,27 +3017,6 @@
                         title="Extra space between each letter">
                     </label>
                   </div>
-                  </div>
-                  <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="readingTextBold" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Bold</span>
-                      <span class="settings-toggle-help">Adds weight for difficult rooms.</span>
-                    </span>
-                  </label>
-                  <label class="settings-toggle">
-                    <input id="readingTextItalic" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Italic</span>
-                      <span class="settings-toggle-help">Use sparingly for emphasis.</span>
-                    </span>
-                  </label>
-                  </div>
-                </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Outline &amp; shadow</div>
-                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-2">
                     <label>Outline color
                       <input id="readingTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
@@ -2915,23 +3027,6 @@
                       <input id="readingTextOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
                     </label>
                   </div>
-                  </div>
-                  <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="readingTextShadow" type="checkbox" checked>
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Drop shadow</span>
-                      <span class="settings-toggle-help">Improves legibility on textured backgrounds.</span>
-                    </span>
-                  </label>
-                  <label class="settings-toggle">
-                    <input id="readingTextOutline" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Text outline</span>
-                      <span class="settings-toggle-help">Best for busy photography, not plain fields of color.</span>
-                    </span>
-                  </label>
-                  </div>
                 </div>
               </div>
 
@@ -2940,31 +3035,7 @@
                   <div class="settings-subsection-label">Scripture Reference &amp; Title</div>
                   <p class="settings-subsection-copy">Style the smaller metadata separately so it supports the reading without competing with it.</p>
                 </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Layout</div>
-                  <div class="settings-field-grid">
-                  <div class="settings-field settings-span-3">
-                    <label>Horizontal alignment
-                      <select id="readingPassageAlign">
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Placement
-                      <select id="readingPassagePosition">
-                        <option value="top">Top</option>
-                        <option value="bottom">Bottom</option>
-                      </select>
-                    </label>
-                  </div>
-                  </div>
-                </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Type</div>
-                  <div class="settings-field-grid">
+                <div class="format-bar" role="toolbar" aria-label="Reference formatting">
                   <div class="settings-field settings-span-4">
                     <label>Font
                       <select id="readingPassageFont">
@@ -3000,20 +3071,34 @@
                       <input id="readingPassageColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#e8d5a0">
                     </label>
                   </div>
-                  </div>
-                  <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="readingPassageBold" type="checkbox" checked>
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Bold reference</span>
-                      <span class="settings-toggle-help">Keeps the citation visible without enlarging it too much.</span>
-                    </span>
-                  </label>
-                  </div>
+                  <span class="format-sep"></span>
+                <label class="settings-toggle fmt-toggle" title="Bold reference: Keeps the citation visible without enlarging it too much.">
+                  <input id="readingPassageBold" type="checkbox" checked>
+                  <span class="fmt-glyph" aria-label="Bold reference"><b>B</b></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Reference outline: Useful when the reference sits on a photo or stained-glass image.">
+                  <input id="readingPassageOutline" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Reference outline"><span class="fmt-outline">O</span></span>
+                </label>
                 </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Outline</div>
-                  <div class="settings-field-grid">
+                <div class="format-bar" role="toolbar" aria-label="Reference layout">
+                  <div class="settings-field settings-span-3">
+                    <label>Horizontal alignment
+                      <select id="readingPassageAlign">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-3">
+                    <label>Placement
+                      <select id="readingPassagePosition">
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                      </select>
+                    </label>
+                  </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
                       <input id="readingPassageOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
@@ -3034,15 +3119,8 @@
                       <input id="readingSectionOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
                     </label>
                   </div>
-                  </div>
-                  <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="readingPassageOutline" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Reference outline</span>
-                      <span class="settings-toggle-help">Useful when the reference sits on a photo or stained-glass image.</span>
-                    </span>
-                  </label>
+                </div>
+                <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingSectionOutline" type="checkbox">
                     <span class="settings-toggle-copy">
@@ -3050,11 +3128,6 @@
                       <span class="settings-toggle-help">Adds separation for section titles like “First Reading”.</span>
                     </span>
                   </label>
-                  </div>
-                </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Show on slide</div>
-                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingShowPageNumber" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -3076,7 +3149,6 @@
                       <span class="settings-toggle-help">Shows “The Word of the Lord” or “The Gospel of the Lord” on the last page.</span>
                     </span>
                   </label>
-                  </div>
                 </div>
               </div>
 
@@ -3122,32 +3194,7 @@
                   <div class="settings-subsection-label">Slide Text</div>
                   <p class="settings-subsection-copy">These settings control the main text on text, prayer, and hymn slides.</p>
                 </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Layout</div>
-                  <div class="settings-field-grid">
-                  <div class="settings-field settings-span-3">
-                    <label>Horizontal alignment
-                      <select id="textSlideTextAlign">
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                        <option value="right">Right</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Vertical position
-                      <select id="textSlideTextVAlign">
-                        <option value="top">Top</option>
-                        <option value="middle" selected>Middle</option>
-                        <option value="bottom">Bottom</option>
-                      </select>
-                    </label>
-                  </div>
-                  </div>
-                </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Type</div>
-                  <div class="settings-field-grid">
+                <div class="format-bar" role="toolbar" aria-label="Slide text formatting">
                   <div class="settings-field settings-span-4">
                     <label>Font override
                       <select id="textSlideTextFont">
@@ -3184,6 +3231,43 @@
                       <input id="textSlideTextColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#f8f8f8">
                     </label>
                   </div>
+                  <span class="format-sep"></span>
+                <label class="settings-toggle fmt-toggle" title="Bold: Use when contrast is low or congregational text needs extra emphasis.">
+                  <input id="textSlideTextBold" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Bold"><b>B</b></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Italic: Best for occasional emphasis, not for whole hymns.">
+                  <input id="textSlideTextItalic" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Italic"><i>I</i></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Drop shadow: Adds separation from textured backgrounds.">
+                  <input id="textSlideTextShadow" type="checkbox" checked>
+                  <span class="fmt-glyph" aria-label="Drop shadow"><span class="fmt-shadow">S</span></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Text outline: Reserve for photos or ornate artwork.">
+                  <input id="textSlideTextOutline" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Text outline"><span class="fmt-outline">O</span></span>
+                </label>
+                </div>
+                <div class="format-bar" role="toolbar" aria-label="Slide text layout">
+                  <div class="settings-field settings-span-3">
+                    <label>Horizontal alignment
+                      <select id="textSlideTextAlign">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-3">
+                    <label>Vertical position
+                      <select id="textSlideTextVAlign">
+                        <option value="top">Top</option>
+                        <option value="middle" selected>Middle</option>
+                        <option value="bottom">Bottom</option>
+                      </select>
+                    </label>
+                  </div>
                   <div class="settings-field settings-span-2">
                     <label>Line spacing
                       <input id="textSlideLineHeight" type="number" min="1.0" max="3.0" step="0.05" value="1.55"
@@ -3196,27 +3280,6 @@
                         title="Extra space between each letter">
                     </label>
                   </div>
-                  </div>
-                  <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="textSlideTextBold" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Bold</span>
-                      <span class="settings-toggle-help">Use when contrast is low or congregational text needs extra emphasis.</span>
-                    </span>
-                  </label>
-                  <label class="settings-toggle">
-                    <input id="textSlideTextItalic" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Italic</span>
-                      <span class="settings-toggle-help">Best for occasional emphasis, not for whole hymns.</span>
-                    </span>
-                  </label>
-                  </div>
-                </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Outline &amp; shadow</div>
-                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-2">
                     <label>Outline color
                       <input id="textSlideTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
@@ -3227,27 +3290,8 @@
                       <input id="textSlideTextOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
                     </label>
                   </div>
-                  </div>
-                  <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="textSlideTextShadow" type="checkbox" checked>
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Drop shadow</span>
-                      <span class="settings-toggle-help">Adds separation from textured backgrounds.</span>
-                    </span>
-                  </label>
-                  <label class="settings-toggle">
-                    <input id="textSlideTextOutline" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Text outline</span>
-                      <span class="settings-toggle-help">Reserve for photos or ornate artwork.</span>
-                    </span>
-                  </label>
-                  </div>
                 </div>
-                <div class="settings-group">
-                  <div class="settings-group-label">Show on slide</div>
-                  <div class="settings-toggle-grid">
+                <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="textSlideShowPageNumber" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -3255,7 +3299,6 @@
                       <span class="settings-toggle-help">Displays page count on hymns, prayers, and text slides when they span multiple slides.</span>
                     </span>
                   </label>
-                  </div>
                 </div>
               </div>
 
