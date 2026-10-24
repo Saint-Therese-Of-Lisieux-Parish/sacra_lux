@@ -1954,6 +1954,30 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(currentMassDir, "assets", "uploaded.png"))).toBe(true);
   });
 
+  test("import-mass-zip rewrites legacy /static/uploads/ references to served assets", async () => {
+    const zip = new AdmZip();
+    zip.addFile("settings.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Legacy Uploads",
+      screenSettings: {},
+      organizerSequence: [{ id: "image-1", type: "image", label: "Picture", phase: "mass" }],
+      manualSlides: { "image-1": { imageUrl: "/static/uploads/a.png" } }
+    })));
+    zip.addFile("uploads/a.png", Buffer.from("legacy-image"));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(200);
+
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    const savedDefinition = fs.readFileSync(path.join(currentMassDir, "mass.json"), "utf8");
+    expect(savedDefinition).toContain("/api/mass-asset/a.png");
+    expect(savedDefinition).not.toContain("/static/uploads/");
+    const asset = await request(app).get("/api/mass-asset/a.png").expect(200);
+    expect(asset.body.toString()).toBe("legacy-image");
+  });
+
   test("import-settings keeps state unchanged when the start time is invalid", async () => {
     await request(app)
       .post("/api/organizer")

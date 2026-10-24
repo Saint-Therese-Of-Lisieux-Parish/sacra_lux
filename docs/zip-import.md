@@ -138,11 +138,11 @@ reads the `format` and `version` keys to choose how to read the file.
   (or `displaySettings`), `organizerSequence`, and `manualSlides` (or
   `manualCues`).
 - Media references can use `/api/mass-asset/<file>` or
-  `/static/uploads/<file>`. The importer does not rewrite the references in
-  `mass.json`. It copies the files from `assets/`, `readings/assets/`, and
-  `uploads/` into the `assets/` folder of the Mass folder, so the app finds
-  a file by the `/api/mass-asset/<file>` form. The app does not serve
-  `/static/uploads/`.
+  `/static/uploads/<file>`. The importer rewrites each `/static/uploads/<file>`
+  reference in `mass.json` to `/api/mass-asset/<file>`. It copies the files
+  from `assets/`, `readings/assets/`, and `uploads/` into the `assets/` folder
+  of the Mass folder, so the app finds each file by the
+  `/api/mass-asset/<file>` form. The app does not serve `/static/uploads/`.
 
 ## Limits
 
