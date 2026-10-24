@@ -1738,6 +1738,12 @@
     }
 
     /* ── Identity meta row (slide count + date/time inline) ────────── */
+    #startTimeInput {
+      min-height: 2.1rem;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.875rem;
+    }
+
     .start-time-inline {
       display: flex;
       align-items: center;
@@ -2492,7 +2498,7 @@
               <div class="command-schedule">
                 <div class="start-time-inline">
                   <label for="startTimeInput" class="field-label" style="margin-right:0.15rem">Start Time</label>
-                  <input id="startTimeInput" type="datetime-local" style="font-size:1.15rem;padding:0.35rem 0.6rem">
+                  <input id="startTimeInput" type="datetime-local">
                   <button id="setStartTimeBtn" class="save-btn">Set</button>
                   <button id="clearStartTimeBtn" class="save-btn">Clear</button>
                 </div>
