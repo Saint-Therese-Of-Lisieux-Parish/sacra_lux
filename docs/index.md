@@ -64,6 +64,10 @@ export, archive operations, USCCB import, and session restore.
 Operator and parish-volunteer guide: preparing a Mass, running one live, screen
 settings, phases, PIN and remote, the Mass library, and export/import.
 
+### [release-verification.md](./release-verification.md)
+
+How to verify a release ZIP against its build provenance attestation.
+
 ### [troubleshooting.md](./troubleshooting.md)
 
 Symptom-driven troubleshooting for common runtime and operational problems.
