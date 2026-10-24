@@ -27,9 +27,9 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
   emits `control:required` when the client is not authorized.
 - `POST /api/start-pin`, `POST /api/verify-pin`, and a validated
   `GET /api/start-redirect` all issue a control session and set the cookie.
-- With no PIN configured, control checks pass for every client (loopback
-  unlock and no-PIN mode are documented as open in
-  [code_review_ears_report.md](./code_review_ears_report.md)).
+- With no PIN configured, control checks pass for loopback clients. The
+  operator can also select `trusted-lan` through `POST /api/control-mode` to
+  allow control from non-loopback clients.
 
 ## HTTP API
 
@@ -54,6 +54,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `GET /api/themes` — theme `{ id, label }` list plus the current theme
 - `GET /api/theme-vars` — full CSS variable map per theme
 - `POST /api/app-settings` — set the app UI theme
+- `POST /api/control-mode` — set `unset` or `trusted-lan` when no PIN is configured
 - `POST /api/update-title` — set the presentation title
 
 ### Automation and PIN flow
