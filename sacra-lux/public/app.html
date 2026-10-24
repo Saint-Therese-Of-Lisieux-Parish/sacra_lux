@@ -1394,8 +1394,31 @@
 
     .settings-color-input {
       min-height: 44px;
+      padding: 0.2rem 0.5rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .color-control {
+      display: flex;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    .color-control .settings-color-input {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .color-control .color-picker {
+      flex: 0 0 3rem;
+      width: 3rem;
+      min-height: 44px;
       padding: 0.2rem;
       cursor: pointer;
+    }
+
+    .color-control .settings-color-input[aria-invalid="true"] {
+      border-color: #c0392b;
     }
 
     /* ── Theme picker ────────────────────────────────────────────────────── */
@@ -2569,7 +2592,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Color
-                      <input id="readingTextColor" class="settings-color-input" type="dark" value="#f8f8f8">
+                      <input id="readingTextColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#f8f8f8">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2586,7 +2609,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
-                      <input id="readingTextOutlineColor" class="settings-color-input" type="dark" value="#000000">
+                      <input id="readingTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2682,12 +2705,12 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Color
-                      <input id="readingPassageColor" class="settings-color-input" type="dark" value="#e8d5a0">
+                      <input id="readingPassageColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#e8d5a0">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
-                      <input id="readingPassageOutlineColor" class="settings-color-input" type="dark" value="#000000">
+                      <input id="readingPassageOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2697,7 +2720,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Title outline color
-                      <input id="readingSectionOutlineColor" class="settings-color-input" type="dark" value="#000000">
+                      <input id="readingSectionOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2856,7 +2879,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Color
-                      <input id="textSlideTextColor" class="settings-color-input" type="dark" value="#f8f8f8">
+                      <input id="textSlideTextColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#f8f8f8">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -2873,7 +2896,7 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Outline color
-                      <input id="textSlideTextOutlineColor" class="settings-color-input" type="dark" value="#000000">
+                      <input id="textSlideTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -4833,7 +4856,7 @@
         readingTextFont: els.readingTextFont.value,
         readingTextSizePx: Number(els.readingTextSizePx.value) || 0,
         readingTextBold: Boolean(els.readingTextBold.checked),
-        readingTextColor: els.readingTextColor.value,
+        readingTextColor: colorCodeValue(els.readingTextColor),
         readingLineHeight: Number(els.readingLineHeight.value) || 1.58,
         readingLetterSpacingPx: Number(els.readingLetterSpacingPx.value) || 0,
         readingPassagePosition: els.readingPassagePosition.value,
@@ -4841,12 +4864,12 @@
         readingPassageFont: els.readingPassageFont.value,
         readingPassageSizePx: Number(els.readingPassageSizePx.value || 44),
         readingPassageBold: Boolean(els.readingPassageBold.checked),
-        readingPassageColor: els.readingPassageColor.value,
+        readingPassageColor: colorCodeValue(els.readingPassageColor),
         readingPassageOutline: Boolean(els.readingPassageOutline.checked),
-        readingPassageOutlineColor: els.readingPassageOutlineColor.value,
+        readingPassageOutlineColor: colorCodeValue(els.readingPassageOutlineColor),
         readingPassageOutlineWidthPx: Number(els.readingPassageOutlineWidthPx.value) || 1,
         readingSectionOutline: Boolean(els.readingSectionOutline.checked),
-        readingSectionOutlineColor: els.readingSectionOutlineColor.value,
+        readingSectionOutlineColor: colorCodeValue(els.readingSectionOutlineColor),
         readingSectionOutlineWidthPx: Number(els.readingSectionOutlineWidthPx.value) || 1,
         readingShowPageNumber: Boolean(els.readingShowPageNumber.checked),
         readingShowLabel: Boolean(els.readingShowLabel.checked),
@@ -4859,14 +4882,14 @@
         readingTextItalic: Boolean(els.readingTextItalic.checked),
         readingTextShadow: Boolean(els.readingTextShadow.checked),
         readingTextOutline: Boolean(els.readingTextOutline.checked),
-        readingTextOutlineColor: els.readingTextOutlineColor.value,
+        readingTextOutlineColor: colorCodeValue(els.readingTextOutlineColor),
         readingTextOutlineWidthPx: Number(els.readingTextOutlineWidthPx.value) || 1,
         textSlideTextAlign: els.textSlideTextAlign.value,
         textSlideTextVAlign: els.textSlideTextVAlign.value,
         textSlideTextFont: els.textSlideTextFont.value,
         textSlideTextSizePx: Number(els.textSlideTextSizePx.value) || 0,
         textSlideTextBold: Boolean(els.textSlideTextBold.checked),
-        textSlideTextColor: els.textSlideTextColor.value,
+        textSlideTextColor: colorCodeValue(els.textSlideTextColor),
         textSlideLineHeight: Number(els.textSlideLineHeight.value) || 1.55,
         textSlideLetterSpacingPx: Number(els.textSlideLetterSpacingPx.value) || 0,
         textSlideShowPageNumber: Boolean(els.textSlideShowPageNumber.checked),
@@ -4876,7 +4899,7 @@
         textSlideTextItalic: Boolean(els.textSlideTextItalic.checked),
         textSlideTextShadow: Boolean(els.textSlideTextShadow.checked),
         textSlideTextOutline: Boolean(els.textSlideTextOutline.checked),
-        textSlideTextOutlineColor: els.textSlideTextOutlineColor.value,
+        textSlideTextOutlineColor: colorCodeValue(els.textSlideTextOutlineColor),
         textSlideTextOutlineWidthPx: Number(els.textSlideTextOutlineWidthPx.value) || 1,
         textBounds: normalizeAllTextBounds(globalTextBoundsDraft)
       };
@@ -6047,6 +6070,10 @@
       if (!silent) {
         els.status.textContent = `Screen updated: ${data.screenSettings.fontFamily} ${data.screenSettings.fontSizePx}px`;
       }
+    }
+
+    function colorCodeValue(codeEl) {
+      return /^#[0-9a-fA-F]{6}$/.test(codeEl.value) ? codeEl.value : (codeEl.dataset.lastValid || codeEl.value);
     }
 
     function scheduleAutoApply() {
@@ -7339,6 +7366,70 @@
     installBoundsPointerEditor("group");
     els.editorReadingText.addEventListener("input", () => renderBoundsEditor("group"));
     els.editorText.addEventListener("input", () => renderBoundsEditor("group"));
+
+    const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+    // Pair each Screen Settings color code field with a visual picker. The code
+    // field stays the source of truth, so the existing apply flow is unchanged.
+    function initColorPickers() {
+      const nativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+      document.querySelectorAll("input.settings-color-input").forEach((codeEl) => {
+        const labelText = (codeEl.closest("label")?.firstChild?.textContent || "Color").trim();
+        const picker = document.createElement("input");
+        picker.type = "color";
+        picker.className = "color-picker";
+        picker.setAttribute("aria-label", `${labelText} picker`);
+        const wrap = document.createElement("span");
+        wrap.className = "color-control";
+        codeEl.before(wrap);
+        wrap.append(codeEl, picker);
+
+        const syncPicker = () => {
+          const code = nativeValue.get.call(codeEl);
+          if (!HEX_COLOR_PATTERN.test(code)) return;
+          codeEl.dataset.lastValid = code;
+          picker.value = code.toLowerCase();
+          codeEl.removeAttribute("aria-invalid");
+        };
+        Object.defineProperty(codeEl, "value", {
+          configurable: true,
+          get() { return nativeValue.get.call(this); },
+          set(next) {
+            // Do not overwrite a code the operator is still typing.
+            if (document.activeElement === this && !HEX_COLOR_PATTERN.test(nativeValue.get.call(this))) return;
+            nativeValue.set.call(this, next);
+            syncPicker();
+          }
+        });
+        syncPicker();
+
+        picker.addEventListener("input", () => {
+          codeEl.value = picker.value;
+          codeEl.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        codeEl.addEventListener("input", (event) => {
+          if (HEX_COLOR_PATTERN.test(codeEl.value)) {
+            syncPicker();
+            return;
+          }
+          // Keep partial or invalid codes out of the auto-apply flow.
+          codeEl.setAttribute("aria-invalid", "true");
+          event.stopImmediatePropagation();
+        });
+        codeEl.addEventListener("change", (event) => {
+          if (HEX_COLOR_PATTERN.test(codeEl.value)) return;
+          nativeValue.set.call(codeEl, codeEl.dataset.lastValid || "#000000");
+          syncPicker();
+          event.stopImmediatePropagation();
+        });
+        new MutationObserver(() => {
+          picker.disabled = codeEl.disabled;
+        }).observe(codeEl, { attributes: true, attributeFilter: ["disabled"] });
+        picker.disabled = codeEl.disabled;
+      });
+    }
+
+    initColorPickers();
 
     els.screenTransition.addEventListener("change", scheduleAutoApply);
     els.screenResolution.addEventListener("change", scheduleAutoApply);

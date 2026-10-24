@@ -224,6 +224,62 @@ test("projector keeps custom text bounds proportional at each resolution", async
   }
 });
 
+const SCREEN_COLOR_FIELDS = {
+  readingTextColor: "readingTextColor",
+  readingTextOutlineColor: "readingTextOutlineColor",
+  readingPassageColor: "readingPassageColor",
+  readingPassageOutlineColor: "readingPassageOutlineColor",
+  readingSectionOutlineColor: "readingSectionOutlineColor",
+  textSlideTextColor: "textSlideTextColor",
+  textSlideTextOutlineColor: "textSlideTextOutlineColor"
+};
+
+test("Screen Settings color fields pair each code with a visual picker", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+
+  const savedColor = async (key) => (await (await request.get(`${baseUrl}/api/state`)).json()).screenSettings[key];
+
+  for (const id of Object.values(SCREEN_COLOR_FIELDS)) {
+    const code = page.locator(`#${id}`);
+    await expect(code).toHaveAttribute("type", "text");
+    await expect(code).toHaveValue(/^#[0-9a-fA-F]{6}$/);
+    const picker = page.locator(`.color-control:has(#${id}) input[type="color"]`);
+    await expect(picker).toHaveCount(1);
+    await expect(picker).toHaveValue((await code.inputValue()).toLowerCase());
+  }
+
+  // Picker -> code field -> saved state. Let the first state update settle first.
+  await page.waitForTimeout(500);
+  await page.evaluate(() => {
+    const picker = document.querySelector('.color-control:has(#readingTextColor) input[type="color"]');
+    picker.value = "#336699";
+    picker.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect(page.locator("#readingTextColor")).toHaveValue("#336699");
+  await expect.poll(() => savedColor("readingTextColor")).toBe("#336699");
+
+  // Valid code -> picker.
+  await page.locator("#textSlideTextColor").fill("#AA5500");
+  await expect(page.locator('.color-control:has(#textSlideTextColor) input[type="color"]')).toHaveValue("#aa5500");
+  await expect.poll(() => savedColor("textSlideTextColor")).toBe("#AA5500");
+
+  // Invalid code keeps the last valid color. Let earlier state updates settle first.
+  await page.waitForTimeout(500);
+  await page.locator("#readingPassageColor").fill("#12zz");
+  await page.waitForTimeout(500);
+  await expect(page.locator("#readingPassageColor")).toHaveAttribute("aria-invalid", "true");
+  const passageBefore = await savedColor("readingPassageColor");
+  await page.locator("#readingPassageColor").press("Tab");
+  await expect(page.locator("#readingPassageColor")).toHaveValue(passageBefore);
+  await expect(page.locator("#readingPassageColor")).not.toHaveAttribute("aria-invalid", "true");
+  expect(await savedColor("readingPassageColor")).toBe(passageBefore);
+});
+
 test("Image Slideshow editor sorts batches and supports persistent ordering controls", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {
