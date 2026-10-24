@@ -1041,17 +1041,30 @@
       touch-action: none;
     }
 
-    .text-bounds-preview-content {
+    .text-bounds-preview-frame {
       position: absolute;
-      inset: 10%;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      font-family: Merriweather, serif;
-      font-size: clamp(0.62rem, 1.15vw, 1rem);
-      line-height: 1.45;
-      opacity: 0.72;
+      top: 0;
+      left: 0;
+      width: 1920px;
+      height: 1080px;
+      border: none;
+      transform-origin: top left;
       pointer-events: none;
+    }
+
+    .text-bounds-preview-status {
+      margin-top: 0.45rem;
+      color: var(--ink-soft);
+      font-size: 0.8rem;
+    }
+
+    .text-bounds-preview-error {
+      margin-top: 0.45rem;
+      padding: 0.45rem 0.65rem;
+      border: 1px solid #c0392b;
+      border-radius: 8px;
+      background: color-mix(in srgb, #c0392b, transparent 88%);
+      font-size: 0.85rem;
     }
 
     .text-bounds-box {
@@ -2997,7 +3010,7 @@
                 <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
               </div>
               <div class="text-bounds-preview" id="textBoundsPreview">
-                <div class="text-bounds-preview-content" id="textBoundsPreviewContent"></div>
+                <iframe class="text-bounds-preview-frame" id="textBoundsPreviewFrame" src="/screen?preview=1" title="Text area slide preview" tabindex="-1"></iframe>
                 <div class="text-bounds-box" id="textBoundsBox" tabindex="0" role="group" aria-label="Selected text bounds">
                   <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
                   <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
@@ -3009,6 +3022,8 @@
                   <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
                 </div>
               </div>
+              <div class="text-bounds-preview-status" id="textBoundsPreviewStatus" aria-live="polite"></div>
+              <div class="text-bounds-preview-error" id="textBoundsPreviewError" role="alert" hidden></div>
               <div class="text-bounds-help">Use the arrow keys to move a focused box or handle. Hold Shift for 10-pixel steps.</div>
             </section>
           </div>
@@ -3296,7 +3311,7 @@
                   <label>Bottom<input id="editorBoundsBottom" type="number" min="0" max="1000" step="1"></label>
                 </div>
                 <div class="text-bounds-preview" id="editorBoundsPreview">
-                  <div class="text-bounds-preview-content" id="editorBoundsPreviewContent"></div>
+                  <iframe class="text-bounds-preview-frame" id="editorBoundsPreviewFrame" src="/screen?preview=1" title="Group text area slide preview" tabindex="-1"></iframe>
                   <div class="text-bounds-box" id="editorBoundsBox" tabindex="0" role="group" aria-label="Group text bounds">
                     <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
                     <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
@@ -3308,6 +3323,8 @@
                     <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
                   </div>
                 </div>
+                <div class="text-bounds-preview-status" id="editorBoundsPreviewStatus" aria-live="polite"></div>
+                <div class="text-bounds-preview-error" id="editorBoundsPreviewError" role="alert" hidden></div>
                 <div class="text-bounds-help">A saved override applies to all pages in this group.</div>
               </div>
             </div>
@@ -3980,7 +3997,9 @@
       textBoundsTop: document.getElementById("textBoundsTop"),
       textBoundsBottom: document.getElementById("textBoundsBottom"),
       textBoundsPreview: document.getElementById("textBoundsPreview"),
-      textBoundsPreviewContent: document.getElementById("textBoundsPreviewContent"),
+      textBoundsPreviewFrame: document.getElementById("textBoundsPreviewFrame"),
+      textBoundsPreviewStatus: document.getElementById("textBoundsPreviewStatus"),
+      textBoundsPreviewError: document.getElementById("textBoundsPreviewError"),
       textBoundsBox: document.getElementById("textBoundsBox"),
       textSlideTextItalic: document.getElementById("textSlideTextItalic"),
       textSlideTextShadow: document.getElementById("textSlideTextShadow"),
@@ -4181,7 +4200,9 @@
       editorBoundsTop: document.getElementById("editorBoundsTop"),
       editorBoundsBottom: document.getElementById("editorBoundsBottom"),
       editorBoundsPreview: document.getElementById("editorBoundsPreview"),
-      editorBoundsPreviewContent: document.getElementById("editorBoundsPreviewContent"),
+      editorBoundsPreviewFrame: document.getElementById("editorBoundsPreviewFrame"),
+      editorBoundsPreviewStatus: document.getElementById("editorBoundsPreviewStatus"),
+      editorBoundsPreviewError: document.getElementById("editorBoundsPreviewError"),
       editorBoundsBox: document.getElementById("editorBoundsBox"),
       editorReadingText: document.getElementById("editorReadingText"),
       editorPageCount: document.getElementById("editorPageCount"),
@@ -4258,7 +4279,9 @@
         top: group ? els.editorBoundsTop : els.textBoundsTop,
         bottom: group ? els.editorBoundsBottom : els.textBoundsBottom,
         preview: group ? els.editorBoundsPreview : els.textBoundsPreview,
-        content: group ? els.editorBoundsPreviewContent : els.textBoundsPreviewContent,
+        frame: group ? els.editorBoundsPreviewFrame : els.textBoundsPreviewFrame,
+        status: group ? els.editorBoundsPreviewStatus : els.textBoundsPreviewStatus,
+        error: group ? els.editorBoundsPreviewError : els.textBoundsPreviewError,
         box: group ? els.editorBoundsBox : els.textBoundsBox
       };
     }
@@ -4275,16 +4298,177 @@
       return normalizeTextBoxBounds(editorBoundsDraft[part], globalTextBoundsDraft[globalKey]);
     }
 
-    function currentGroupPreviewText(part) {
-      const kind = els.editorType?.value || "text";
-      if (kind === "reading") {
-        const doc = getDocuments().find((entry) => entry.stem === els.editorSourceStem?.value);
-        if (part === "passage") return doc?.passage || "Revelation 3:9";
-        const text = els.editorReadingText?.value || doc?.textLines?.join("\n") || TEXT_BOUNDS_SAMPLE;
-        return `${text}\n\n${doc?.passage || "Revelation 3:9"}`;
-      }
-      return els.editorText?.value || TEXT_BOUNDS_SAMPLE;
+    const TEXT_BOUNDS_SAMPLE_PASSAGE = "Revelation 3:9";
+    const BOUNDS_PREVIEW_READY_TIMEOUT_MS = 5000;
+    const BOUNDS_PREVIEW_ERROR_TEXT = "The slide preview is not available. The edge fields still save values.";
+    const boundsPreviewState = {
+      global: { slides: [], index: 0, ready: false, frameError: false, fetchError: false, requestKey: "", inFlight: false, pending: false },
+      group: { slides: [], index: 0, ready: false, frameError: false, fetchError: false, requestKey: "", inFlight: false, pending: false }
+    };
+
+    function boundsPreviewSettings() {
+      return {
+        ...(uiState.data?.screenSettings || {}),
+        textBounds: normalizeAllTextBounds(globalTextBoundsDraft)
+      };
     }
+
+    // Put the unsaved group bounds on the cached slides so the projector
+    // renderer shows the new layout before the server sends new pages.
+    function slidesWithGroupBoundsDraft(slides) {
+      const bounds = normalizeEditorBounds(editorBoundsDraft);
+      return slides.map((slide) => {
+        const styleOverrides = { ...(slide.styleOverrides || {}) };
+        if (Object.keys(bounds).length) styleOverrides.bounds = bounds;
+        else delete styleOverrides.bounds;
+        return { ...slide, styleOverrides };
+      });
+    }
+
+    function renderBoundsPreviewError(mode) {
+      const parts = boundsEditorElements(mode);
+      const preview = boundsPreviewState[mode];
+      if (!parts.error) return;
+      const failed = preview.frameError || preview.fetchError;
+      parts.error.hidden = !failed;
+      parts.error.textContent = failed ? BOUNDS_PREVIEW_ERROR_TEXT : "";
+    }
+
+    function postBoundsPreview(mode) {
+      const parts = boundsEditorElements(mode);
+      const preview = boundsPreviewState[mode];
+      const sourceSlides = mode === "group" ? (editorPreviewSlides || []) : preview.slides;
+      const index = mode === "group" ? editorPreviewIndex : preview.index;
+      const slides = mode === "group" ? slidesWithGroupBoundsDraft(sourceSlides) : sourceSlides;
+      const safeIndex = Math.min(Math.max(0, index), Math.max(0, slides.length - 1));
+      if (parts.status) {
+        parts.status.textContent = slides.length ? `Page ${safeIndex + 1} of ${slides.length}` : "";
+      }
+      if (!slides.length || !preview.ready || !parts.frame?.contentWindow) return;
+      parts.frame.contentWindow.postMessage({
+        type: "preview_update",
+        slides,
+        currentSlideIndex: safeIndex,
+        slide: slides[safeIndex],
+        screenSettings: boundsPreviewSettings()
+      }, window.location.origin);
+    }
+
+    async function fetchGlobalBoundsPreview() {
+      const preview = boundsPreviewState.global;
+      const key = els.textBoundsLayout.value || "readingBody";
+      const isReading = key === "readingBody" || key === "readingPassage";
+      const body = isReading
+        ? {
+          label: "Sample Reading",
+          passage: TEXT_BOUNDS_SAMPLE_PASSAGE,
+          text: TEXT_BOUNDS_SAMPLE,
+          overrideSettings: boundsPreviewSettings()
+        }
+        : {
+          type: key,
+          label: "Sample",
+          phase: "mass",
+          backgroundTheme: "dark",
+          manualSlide: { text: TEXT_BOUNDS_SAMPLE }
+        };
+      const requestKey = JSON.stringify(body);
+      if (requestKey === preview.requestKey && !preview.fetchError) return;
+      const response = await fetch(isReading ? "/api/preview-reading" : "/api/preview-manual-slide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestKey
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok || !Array.isArray(data.slides)) {
+        throw new Error(data.error || "Failed to preview slide.");
+      }
+      preview.requestKey = requestKey;
+      preview.slides = data.slides;
+      preview.index = 0;
+    }
+
+    // Run one server preview at a time. Changes that arrive during a request
+    // start one more request when it ends, so the last change always shows.
+    function scheduleBoundsPreviewRefresh(mode) {
+      const preview = boundsPreviewState[mode];
+      if (preview.inFlight) {
+        preview.pending = true;
+        return;
+      }
+      preview.inFlight = true;
+      const refresh = mode === "global" ? fetchGlobalBoundsPreview() : updateEditorPreview();
+      refresh
+        .then(() => {
+          if (mode === "global") preview.fetchError = false;
+        })
+        .catch(() => {
+          preview.fetchError = true;
+        })
+        .finally(() => {
+          preview.inFlight = false;
+          renderBoundsPreviewError(mode);
+          postBoundsPreview(mode);
+          if (preview.pending) {
+            preview.pending = false;
+            scheduleBoundsPreviewRefresh(mode);
+          }
+        });
+    }
+
+    function scaleBoundsPreviewFrame(mode) {
+      const parts = boundsEditorElements(mode);
+      if (!parts.frame || !parts.preview) return;
+      parts.frame.style.transform = `scale(${parts.preview.clientWidth / 1920})`;
+    }
+
+    function markBoundsPreviewReady(mode) {
+      const preview = boundsPreviewState[mode];
+      preview.ready = true;
+      preview.frameError = false;
+      renderBoundsPreviewError(mode);
+      postBoundsPreview(mode);
+    }
+
+    function installBoundsPreviewFrame(mode) {
+      const parts = boundsEditorElements(mode);
+      const preview = boundsPreviewState[mode];
+      if (!parts.frame || !parts.preview) return;
+      const failFrame = () => {
+        if (preview.ready) return;
+        preview.frameError = true;
+        renderBoundsPreviewError(mode);
+      };
+      // The frame is same-origin, so a loaded projector page has a #stage element.
+      const checkLoadedFrame = () => {
+        let hasStage = false;
+        try {
+          hasStage = Boolean(parts.frame.contentDocument?.getElementById("stage"));
+        } catch {
+          hasStage = false;
+        }
+        if (hasStage) markBoundsPreviewReady(mode);
+        else failFrame();
+      };
+      parts.frame.addEventListener("load", checkLoadedFrame);
+      parts.frame.addEventListener("error", failFrame);
+      if (parts.frame.contentDocument?.readyState === "complete" && parts.frame.contentDocument.getElementById("stage")) {
+        markBoundsPreviewReady(mode);
+      }
+      setTimeout(failFrame, BOUNDS_PREVIEW_READY_TIMEOUT_MS);
+      if (typeof ResizeObserver === "function") {
+        new ResizeObserver(() => scaleBoundsPreviewFrame(mode)).observe(parts.preview);
+      }
+      scaleBoundsPreviewFrame(mode);
+    }
+
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin || event.data?.type !== "preview_ready") return;
+      for (const mode of ["global", "group"]) {
+        const frame = boundsEditorElements(mode).frame;
+        if (frame && event.source === frame.contentWindow) markBoundsPreviewReady(mode);
+      }
+    });
 
     function renderBoundsEditor(mode) {
       const parts = boundsEditorElements(mode);
@@ -4298,12 +4482,8 @@
       parts.box.style.right = `${bounds.right / 19.2}%`;
       parts.box.style.top = `${bounds.top / 10.8}%`;
       parts.box.style.bottom = `${bounds.bottom / 10.8}%`;
-      const selected = parts.layout.value;
-      if (mode === "global") {
-        parts.content.textContent = selected === "readingPassage" ? "Revelation 3:9" : TEXT_BOUNDS_SAMPLE;
-      } else {
-        parts.content.textContent = currentGroupPreviewText(selected || "body");
-      }
+      postBoundsPreview(mode);
+      if (mode === "global") scheduleBoundsPreviewRefresh("global");
     }
 
     function commitBoundsEditor(mode, bounds, save = true) {
@@ -4320,6 +4500,7 @@
         if (save) scheduleEditorSave();
       }
       renderBoundsEditor(mode);
+      if (mode === "group") scheduleBoundsPreviewRefresh("group");
     }
 
     function readBoundsEditorFields(mode) {
@@ -4619,6 +4800,8 @@
         })
       });
       const data = await res.json().catch(() => ({}));
+      boundsPreviewState.group.fetchError = !(data.ok && data.slides);
+      renderBoundsPreviewError("group");
       if (data.ok && data.slides) {
         editorPreviewSlides = data.slides;
         if (editorPreviewIndex >= editorPreviewSlides.length) {
@@ -4670,6 +4853,8 @@
         })
       });
       const data = await response.json().catch(() => ({}));
+      boundsPreviewState.group.fetchError = !(data.ok && data.slides);
+      renderBoundsPreviewError("group");
       if (data.ok && data.slides) {
         editorPreviewSlides = data.slides;
         if (editorPreviewIndex >= editorPreviewSlides.length) {
@@ -4745,6 +4930,7 @@
           countdownEndsAt: slide?.type === "countdown" ? editorPreviewCountdownEndsAt : null
         }, "*");
       }
+      postBoundsPreview("group");
     }
 
     // ── Screen preview iframe scaling ───────────────────────────────────────
@@ -7360,12 +7546,13 @@
     els.editorBoundsUseGlobal.addEventListener("click", () => {
       editorBoundsDraft = {};
       renderBoundsEditor("group");
+      scheduleBoundsPreviewRefresh("group");
       scheduleEditorSave();
     });
     installBoundsPointerEditor("global");
     installBoundsPointerEditor("group");
-    els.editorReadingText.addEventListener("input", () => renderBoundsEditor("group"));
-    els.editorText.addEventListener("input", () => renderBoundsEditor("group"));
+    installBoundsPreviewFrame("global");
+    installBoundsPreviewFrame("group");
 
     const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 

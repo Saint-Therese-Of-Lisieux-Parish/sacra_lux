@@ -57,4 +57,21 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('data-handle="nw"');
     expect(appHtml).toContain('data-handle="se"');
   });
+
+  test("text bounds editors draw the handles over the projector renderer", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    for (const id of ["textBoundsPreview", "editorBoundsPreview"]) {
+      const previewStart = appHtml.indexOf(`id="${id}"`);
+      expect(previewStart).toBeGreaterThan(-1);
+      const preview = appHtml.slice(previewStart, appHtml.indexOf("</div>", appHtml.indexOf("text-bounds-box", previewStart)));
+      expect(preview).toContain(`<iframe class="text-bounds-preview-frame" id="${id}Frame" src="/screen?preview=1"`);
+      expect(preview).not.toContain("text-bounds-preview-content");
+    }
+    expect(appHtml).not.toContain('id="textBoundsPreviewContent"');
+    expect(appHtml).not.toContain('id="editorBoundsPreviewContent"');
+    expect(appHtml).toContain('id="textBoundsPreviewError" role="alert"');
+    expect(appHtml).toContain('id="editorBoundsPreviewError" role="alert"');
+    expect(screenHtml).toContain('postMessage({ type: "preview_ready" }, window.location.origin)');
+  });
 });

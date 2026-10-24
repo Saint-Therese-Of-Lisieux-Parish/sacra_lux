@@ -44,7 +44,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/organizer` — replace `organizerSequence` and merge manual slides
 - `POST /api/load-readings` — copy a readings folder into `current_mass` and rebuild. When the folder holds alternate readings, the route answers 409 with `alternateGroups` until the request sends `alternateSelections`.
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
-- `POST /api/preview-reading` — render one reading document without committing
+- `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`
 - `POST /api/preview-manual-slide` — render one manual slide without committing
 - `POST /api/save-reading` — write edited reading text back into the source `.txt`
 
