@@ -2299,6 +2299,34 @@
       background: var(--control-bg-hover);
     }
 
+    .bounds-tabs {
+      display: flex;
+      gap: 2px;
+      width: fit-content;
+      padding: 2px;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+    }
+
+    .bounds-tab {
+      padding: 0.25rem 0.9rem;
+      border: 0;
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      box-shadow: none;
+      font-size: 0.875rem;
+    }
+
+    .bounds-tab:hover {
+      background: var(--control-bg-hover);
+    }
+
+    .bounds-tab.is-active {
+      background: var(--accent);
+      color: var(--ink-on-accent);
+    }
+
     .editor-format-btn.is-inherited {
       background: color-mix(in srgb, var(--accent), transparent 85%);
     }
@@ -3447,12 +3475,14 @@
               </div>
               <div id="editorBoundsPanel" hidden style="margin-top:0.9rem">
                 <div class="text-bounds-toolbar">
-                  <label style="grid-column:span 3">Group layout
-                    <select id="editorBoundsLayout">
-                      <option value="body">Text body</option>
-                      <option value="passage">Passage reference</option>
-                    </select>
-                  </label>
+                  <div id="editorBoundsTabs" class="bounds-tabs" role="tablist" aria-label="Group layout" style="grid-column:span 3" hidden>
+                    <button type="button" role="tab" class="bounds-tab" data-bounds-tab="body">Body</button>
+                    <button type="button" role="tab" class="bounds-tab" data-bounds-tab="passage">Reference</button>
+                  </div>
+                  <select id="editorBoundsLayout" hidden aria-hidden="true" tabindex="-1">
+                    <option value="body">Text body</option>
+                    <option value="passage">Passage reference</option>
+                  </select>
                   <button id="editorBoundsUseGlobal" type="button" style="grid-column:span 2">Use Global Default</button>
                 </div>
                 <div class="text-bounds-fields">
@@ -4822,6 +4852,19 @@
       return {};
     }
 
+    // Body / Reference tabs choose the layout box; only Reading slides have two boxes.
+    function syncBoundsTabs(isReading = els.editorType?.value === "reading") {
+      const tabs = document.getElementById("editorBoundsTabs");
+      if (!tabs) return;
+      tabs.hidden = !isReading;
+      const current = els.editorBoundsLayout?.value || "body";
+      tabs.querySelectorAll("[data-bounds-tab]").forEach((tab) => {
+        const selected = tab.dataset.boundsTab === current;
+        tab.classList.toggle("is-active", selected);
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+      });
+    }
+
     // Show the Screen Settings values that apply when a slide has no override.
     function refreshEditorStyleDefaults(type) {
       const s = uiState.data?.screenSettings || {};
@@ -6051,6 +6094,7 @@
       if (!isReading && els.editorBoundsLayout?.value === "passage") {
         els.editorBoundsLayout.value = "body";
       }
+      syncBoundsTabs(isReading);
       if (els.editorPreviewStyleTitle) {
         els.editorPreviewStyleTitle.textContent = isReading ? "Reading Style Override" : "Slide Style Override";
       }
@@ -7724,7 +7768,16 @@
       renderBoundsEditor("global");
       scheduleAutoApply();
     });
-    els.editorBoundsLayout.addEventListener("change", () => renderBoundsEditor("group"));
+    els.editorBoundsLayout.addEventListener("change", () => {
+      syncBoundsTabs();
+      renderBoundsEditor("group");
+    });
+    document.querySelectorAll("[data-bounds-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        els.editorBoundsLayout.value = tab.dataset.boundsTab;
+        els.editorBoundsLayout.dispatchEvent(new Event("change"));
+      });
+    });
     [els.editorBoundsLeft, els.editorBoundsRight, els.editorBoundsTop, els.editorBoundsBottom].forEach((input) => {
       input.addEventListener("input", () => readBoundsEditorFields("group"));
       input.addEventListener("change", () => readBoundsEditorFields("group"));
