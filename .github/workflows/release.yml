@@ -163,8 +163,20 @@ jobs:
           apple_key_file="${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
           printf '%s' "${APPLE_API_KEY}" > "${apple_key_file}"
           export APPLE_API_KEY="${apple_key_file}"
-          npx electron-builder ${{ matrix.build }} --publish never \
-            "--config.directories.output=dist"
+          for attempt in 1 2 3; do
+            rm -rf dist
+            if npx electron-builder ${{ matrix.build }} --publish never \
+              "--config.directories.output=dist"; then
+              exit 0
+            fi
+            if [ "${attempt}" -eq 3 ]; then
+              echo "::error::The macOS build failed after three attempts."
+              exit 1
+            fi
+            delay=$((attempt * 30))
+            echo "::warning::The macOS build failed. Retrying in ${delay} seconds."
+            sleep "${delay}"
+          done
 
       - name: Build Windows ZIP
         if: runner.os == 'Windows'
