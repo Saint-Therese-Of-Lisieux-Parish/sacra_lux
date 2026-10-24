@@ -895,10 +895,9 @@
 
     .connection-card {
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
+      gap: 0.35rem;
       padding: 0.4rem 0.3rem;
       background: transparent;
       border: 0;
@@ -907,8 +906,6 @@
     }
 
     .connection-card-label {
-      max-width: 4.5rem;
-      text-align: right;
       font-size: 0.72rem;
       font-weight: 800;
       letter-spacing: 0.1em;
@@ -956,6 +953,8 @@
     .qr-box canvas,
     .qr-box img {
       display: block;
+      width: 100%;
+      height: 100%;
     }
 
     /* ── Display settings dialog ─────────────────────────────────────────── */
