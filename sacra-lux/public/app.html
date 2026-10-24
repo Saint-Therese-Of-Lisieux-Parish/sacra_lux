@@ -2149,11 +2149,11 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.35rem;
+      gap: 1rem;
       width: fit-content;
       max-width: 100%;
       margin-top: 0.75rem;
-      padding: 3px 6px;
+      padding: 0.5rem 0.9rem;
       border: 1px solid var(--control-border);
       border-radius: var(--radius);
       background: var(--control-bg);
@@ -2172,7 +2172,7 @@
     }
 
     .editor-style-strip .editor-style-field-wide {
-      width: 11rem;
+      width: 16rem;
     }
 
     .editor-style-strip .editor-style-field input,
@@ -2192,7 +2192,7 @@
     }
 
     .editor-style-strip .editor-size-stepper input {
-      width: 3.6rem;
+      width: 4.5rem;
       padding: 0.2rem 0.3rem;
       text-align: center;
     }
@@ -2276,15 +2276,15 @@
     .editor-format-toolbar {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 0.35rem;
       margin-left: 0.2rem;
-      padding-left: 0.45rem;
+      padding-left: 1rem;
       border-left: 1px solid var(--surface-border);
     }
 
     .editor-format-btn {
-      width: 2rem;
-      height: 1.8rem;
+      width: 2.25rem;
+      height: 2rem;
       padding: 0;
       border: 0;
       border-radius: calc(var(--radius) - 2px);
@@ -2299,6 +2299,10 @@
       background: var(--control-bg-hover);
     }
 
+    .editor-format-btn.is-inherited {
+      background: color-mix(in srgb, var(--accent), transparent 85%);
+    }
+
     .editor-format-btn.is-on {
       background: var(--accent);
       color: var(--ink-on-accent);
@@ -2311,12 +2315,13 @@
     }
 
     .editor-format-btn .fmt-outline {
-      -webkit-text-stroke: 1px currentColor;
-      color: transparent;
+      -webkit-text-stroke: 1.2px var(--ink);
+      color: var(--control-bg);
     }
 
     .editor-format-btn.is-on .fmt-outline {
       -webkit-text-stroke-color: var(--ink-on-accent);
+      color: var(--accent);
     }
 
     .editor-format-btn .fmt-shadow {
@@ -2324,7 +2329,7 @@
     }
 
     .editor-format-reset {
-      margin-left: 0.25rem;
+      margin-left: 0.5rem;
       padding: 0.15rem 0.5rem;
       border: 0;
       background: transparent;
@@ -3393,7 +3398,7 @@
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleItalic" aria-label="Italic" title="Italic: default"><i>I</i></button>
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleOutline" aria-label="Outline" title="Outline: default"><span class="fmt-outline">O</span></button>
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorReadingStyleShadow" aria-label="Shadow" title="Shadow: default"><span class="fmt-shadow">S</span></button>
-                  <button type="button" class="editor-format-reset" data-tristate-reset="editorReadingStyleBold editorReadingStyleItalic editorReadingStyleOutline editorReadingStyleShadow">Reset to default</button>
+                  <button type="button" class="editor-format-reset" data-tristate-reset="editorReadingStyleFont editorReadingStyleSizePx editorReadingStyleBold editorReadingStyleItalic editorReadingStyleOutline editorReadingStyleShadow">Reset to default</button>
                 </div>
               </div>
               <div id="editorPreviewTextStyleStrip" class="editor-style-strip" hidden>
@@ -3437,7 +3442,7 @@
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleItalic" aria-label="Italic" title="Italic: default"><i>I</i></button>
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleOutline" aria-label="Outline" title="Outline: default"><span class="fmt-outline">O</span></button>
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleShadow" aria-label="Shadow" title="Shadow: default"><span class="fmt-shadow">S</span></button>
-                  <button type="button" class="editor-format-reset" data-tristate-reset="editorTextStyleBold editorTextStyleItalic editorTextStyleOutline editorTextStyleShadow">Reset to default</button>
+                  <button type="button" class="editor-format-reset" data-tristate-reset="editorTextStyleFont editorTextStyleSizePx editorTextStyleBold editorTextStyleItalic editorTextStyleOutline editorTextStyleShadow">Reset to default</button>
                 </div>
               </div>
               <div id="editorBoundsPanel" hidden style="margin-top:0.9rem">
@@ -4738,10 +4743,13 @@
       const state0 = inputEl?.dataset.tristateValue || "";
       document.querySelectorAll(`[data-tristate-cycle][data-target-input="${inputEl?.id}"]`).forEach((button) => {
         const name = button.getAttribute("aria-label") || "";
+        const inherited = state0 === "" && inputEl.dataset.inherited === "true";
         button.classList.toggle("is-on", state0 === "true");
         button.classList.toggle("is-off", state0 === "false");
+        button.classList.toggle("is-inherited", inherited);
         button.setAttribute("aria-pressed", state0 === "true" ? "true" : state0 === "false" ? "false" : "mixed");
-        button.title = `${name}: ${state0 === "true" ? "on" : state0 === "false" ? "off" : "default"}`;
+        const defaultLabel = `default, ${inputEl.dataset.inherited === "true" ? "on" : "off"}`;
+        button.title = `${name}: ${state0 === "true" ? "on" : state0 === "false" ? "off" : defaultLabel}`;
       });
       const control = inputEl?.closest(".editor-style-choice")?.querySelector(".editor-style-choice-control");
       if (!control) return;
@@ -4814,6 +4822,28 @@
       return {};
     }
 
+    // Show the Screen Settings values that apply when a slide has no override.
+    function refreshEditorStyleDefaults(type) {
+      const s = uiState.data?.screenSettings || {};
+      const isReading = type === "reading";
+      const prefix = isReading ? "editorReadingStyle" : "editorTextStyle";
+      const font = (isReading ? s.readingTextFont : s.textSlideTextFont) || s.fontFamily || "";
+      const size = (isReading ? s.readingTextSizePx : s.textSlideTextSizePx) || s.fontSizePx || "";
+      const defaults = isReading
+        ? { Bold: s.readingTextBold || s.boldText, Italic: s.readingTextItalic, Outline: s.readingTextOutline, Shadow: s.readingTextShadow }
+        : { Bold: s.textSlideTextBold || s.boldText, Italic: s.textSlideTextItalic, Outline: s.textSlideTextOutline, Shadow: s.textSlideTextShadow };
+      const fontEl = els[`${prefix}Font`];
+      if (fontEl?.options[0]) fontEl.options[0].textContent = font ? `Default (${font})` : "Default family";
+      const sizeEl = els[`${prefix}SizePx`];
+      if (sizeEl) sizeEl.placeholder = size ? String(size) : "Default";
+      for (const [key, value] of Object.entries(defaults)) {
+        const input = els[`${prefix}${key}`];
+        if (!input) continue;
+        input.dataset.inherited = value ? "true" : "false";
+        refreshTriStateButtons(input);
+      }
+    }
+
     function populateEditorStyleOverrides(type, styleOverrides = {}) {
       const overrides = normalizeEditorStyleOverrides(styleOverrides);
       if (type === "reading") {
@@ -4824,6 +4854,7 @@
         writeTriStateSelect(els.editorReadingStyleItalic, overrides.italic);
         writeTriStateSelect(els.editorReadingStyleOutline, overrides.outline);
         writeTriStateSelect(els.editorReadingStyleShadow, overrides.shadow);
+        refreshEditorStyleDefaults("reading");
         renderBoundsEditor("group");
         return;
       }
@@ -4836,6 +4867,7 @@
         writeTriStateSelect(els.editorTextStyleItalic, overrides.italic);
         writeTriStateSelect(els.editorTextStyleOutline, overrides.outline);
         writeTriStateSelect(els.editorTextStyleShadow, overrides.shadow);
+        refreshEditorStyleDefaults("text");
         renderBoundsEditor("group");
       }
     }
@@ -8111,7 +8143,7 @@
         if (!input) return;
         const min = Number(input.min) || 1;
         const max = Number(input.max) || 999;
-        const current = Number(input.value) || 48;
+        const current = Number(input.value) || Number(input.placeholder) || 48;
         input.value = String(Math.min(max, Math.max(min, current + Number(button.dataset.sizeStep))));
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -8123,7 +8155,12 @@
         for (const id of button.dataset.tristateReset.split(" ")) {
           const input = document.getElementById(id);
           if (!input) continue;
-          writeTriStateSelect(input, undefined);
+          if (input.matches("[data-tristate-select]")) {
+            writeTriStateSelect(input, undefined);
+          } else {
+            input.value = "";
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+          }
           input.dispatchEvent(new Event("change", { bubbles: true }));
         }
       });
