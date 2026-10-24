@@ -895,10 +895,11 @@
 
     .connection-card {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 0.45rem;
-      padding: 0.9rem 0.8rem 0.8rem;
+      justify-content: center;
+      gap: 0.6rem;
+      padding: 0.4rem 0.3rem;
       background: transparent;
       border: 0;
       border-radius: 0;
@@ -906,6 +907,8 @@
     }
 
     .connection-card-label {
+      max-width: 4.5rem;
+      text-align: right;
       font-size: 0.72rem;
       font-weight: 800;
       letter-spacing: 0.1em;
@@ -939,8 +942,8 @@
     }
 
     .qr-box {
-      width: 120px;
-      height: 120px;
+      width: 96px;
+      height: 96px;
       background: var(--panel);
       border-radius: 6px;
       border: 1px solid var(--line);
@@ -5346,8 +5349,8 @@
           if (typeof QRCode !== "undefined") {
             new QRCode(container, {
               text: url,
-              width: 112,
-              height: 112,
+              width: 88,
+              height: 88,
               colorDark: "#1a1a1a",
               colorLight: "#ffffff",
               correctLevel: QRCode.CorrectLevel.M
