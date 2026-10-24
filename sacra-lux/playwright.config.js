@@ -24,8 +24,6 @@ module.exports = defineConfig({
       name: "remote-webkit",
       testMatch: /workflows\.spec\.js/,
       grep: /workflows\.spec\.js.* remote /,
-      // WebKit places the dock 3 px below the top. Tracked in a follow-up issue.
-      grepInvert: /keeps the large preview pinned at the top/,
       use: { ...devices["iPhone 13"] }
     }
   ]
