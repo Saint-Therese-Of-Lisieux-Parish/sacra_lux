@@ -16,6 +16,7 @@
     "lint:js": "eslint src tests scripts public eslint.config.js",
     "lint:html": "htmlhint \"public/*.html\"",
     "lint:css": "stylelint \"public/*.css\" \"public/*.html\"",
+    "build:default-background": "node ./scripts/build-default-background.js",
     "check:version-sync": "node ./scripts/check-version-sync.js",
     "precommit": "node ./scripts/precommit.js",
     "test": "npm run test:unit && npm run test:integration",

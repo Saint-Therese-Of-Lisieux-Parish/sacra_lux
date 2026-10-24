@@ -24,6 +24,7 @@ npm run web
 npm run build
 npm run build:win
 npm run build:all
+npm run build:default-background
 npm run lint
 npm run check:version-sync
 npm run precommit
