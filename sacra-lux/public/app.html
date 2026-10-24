@@ -1760,44 +1760,42 @@
     .editor-actions .slide-action-group > button,
     .editor-actions .slide-action-group > select,
     .editor-actions .clone-phase-wrap > button {
-      min-height: 2.7rem;
-      border-radius: 13px;
-      font-size: 0.88rem;
-      font-weight: 700;
-      box-shadow: 0 6px 16px var(--shadow);
+      min-height: 2.1rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-press);
     }
 
     .editor-actions .slide-action-group > button,
     .editor-actions .clone-phase-wrap > button {
-      padding: 0.5rem 0.82rem;
+      padding: 0.3rem 0.75rem;
     }
 
     .editor-actions .toolbar-btn,
     .editor-actions .danger-outline {
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--panel), white 8%), color-mix(in srgb, var(--panel), var(--bg-alt) 8%));
-      border: 1px solid color-mix(in srgb, var(--line), white 12%);
+      background: var(--control-bg);
+      border: 1px solid var(--control-border);
       color: var(--ink);
     }
 
     .editor-actions .toolbar-btn:hover,
     .editor-actions .danger-outline:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 12px 24px var(--shadow);
+      background: var(--control-bg-hover);
+      border-color: var(--control-border-hover);
     }
 
     .editor-actions .danger-outline {
       border-color: color-mix(in srgb, #b24b38, white 28%);
       color: color-mix(in srgb, #b24b38, black 10%);
-      background:
-        linear-gradient(180deg, color-mix(in srgb, #fff4ef, var(--panel) 45%), color-mix(in srgb, #f4ddd6, var(--panel) 38%));
+      background: var(--control-bg);
     }
 
     .toolbar-select {
       min-width: 190px;
-      padding: 0.5rem 0.82rem;
-      border: 1px solid color-mix(in srgb, var(--line), white 12%);
-      background: color-mix(in srgb, var(--panel), white 5%);
+      padding: 0.3rem 0.6rem;
+      border: 1px solid var(--control-border);
+      background: var(--control-bg);
       color: var(--ink);
       font: inherit;
       appearance: auto;

@@ -178,7 +178,7 @@ select,
 textarea {
   border: var(--border-width) solid var(--control-border);
   border-radius: var(--radius);
-  padding: var(--space-2) var(--space-3);
+  padding: 0.3rem 0.6rem;
   background: var(--control-bg);
   color: var(--ink);
   box-shadow: none;
