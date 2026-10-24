@@ -2312,6 +2312,64 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(currentMassDir, "Reading_I.txt"))).toBe(true);
   });
 
+  test("import-mass-zip canonicalizes an out-of-order legacy package by phase", async () => {
+    const zip = new AdmZip();
+    zip.addFile("settings.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Out Of Order",
+      screenSettings: {},
+      organizerSequence: [
+        { id: "post-1", type: "text", label: "Post A", phase: "post" },
+        { id: "gather-1", type: "text", label: "Gather A", phase: "gathering" },
+        { id: "mass-1", type: "text", label: "Mass A", phase: "mass" },
+        { id: "pre-1", type: "text", label: "Pre A", phase: "pre" },
+        { id: "mass-2", type: "text", label: "Mass B", phase: "mass" },
+        { id: "pre-2", type: "text", label: "Pre B", phase: "pre" }
+      ],
+      manualSlides: {}
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.organizerSequence.map((item) => item.id))
+      .toEqual(["pre-1", "pre-2", "gather-1", "mass-1", "mass-2", "post-1"]);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const saved = JSON.parse(fs.readFileSync(
+      path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json"),
+      "utf8"
+    ));
+    expect(saved.items.map((item) => item.id))
+      .toEqual(["pre-1", "pre-2", "gather-1", "mass-1", "mass-2", "post-1"]);
+  });
+
+  test("import-mass-zip canonicalizes an out-of-order v3 package by phase", async () => {
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Out Of Order V3" },
+      items: [
+        { id: "post-1", kind: "text", label: "Post", section: "post", content: { text: "p" } },
+        { id: "gather-1", kind: "text", label: "Gather", section: "gathering", content: { text: "g" } },
+        { id: "mass-1", kind: "text", label: "Mass", section: "mass", content: { text: "m" } },
+        { id: "pre-1", kind: "text", label: "Pre", section: "pre", content: { text: "r" } }
+      ]
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.organizerSequence.map((item) => item.id))
+      .toEqual(["pre-1", "gather-1", "mass-1", "post-1"]);
+  });
+
   test("organizer endpoint rejects duplicate organizer ids", async () => {
     const res = await request(app)
       .post("/api/organizer")

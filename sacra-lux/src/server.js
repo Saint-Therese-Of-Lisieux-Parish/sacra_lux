@@ -40,6 +40,7 @@ const {
   normalizeSlideshowDurationSec,
   normalizeSlideshowImages,
   normalizeSlideshowLoopCount,
+  VALID_PHASES,
   normalizePhase,
   normalizeType,
   normalizeStyleOverrides
@@ -786,7 +787,7 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
   state.startupPrompt = null;
 
   state.screenSettings = normalizeScreenSettings(runtime.screenSettings || DEFAULT_SCREEN_SETTINGS);
-  state.organizerSequence = normalizeOrganizerSequence(runtime.organizerSequence || []);
+  state.organizerSequence = sortOrganizerSequenceByPhase(normalizeOrganizerSequence(runtime.organizerSequence || []));
   state.manualSlides = mergeManualSlideState(state.organizerSequence, runtime.manualSlides || {});
   propagateInterstitialImage(state.organizerSequence, state.manualSlides);
 
@@ -1100,6 +1101,14 @@ function normalizeOrganizerSequence(sequence = []) {
   }
 
   return normalized;
+}
+
+/**
+ * Order items by phase (pre, gathering, mass, post).
+ * Array.prototype.sort is stable, so items keep their relative order within a phase.
+ */
+function sortOrganizerSequenceByPhase(sequence) {
+  return [...sequence].sort((a, b) => VALID_PHASES.indexOf(a.phase) - VALID_PHASES.indexOf(b.phase));
 }
 
 // ── State cache ──────────────────────────────────────────────────────────────
