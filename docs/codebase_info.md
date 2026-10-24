@@ -65,8 +65,13 @@ they never touch this path.
 
 ## Build Targets
 
+`npm run build` uses the targets in `sacra-lux/package.json`:
+
 - macOS DMG, arm64 and x64
 - Windows NSIS installer, x64 and arm64
+
+The Release workflow publishes ZIP files and macOS DMG files. It does not
+publish the Windows NSIS installer. See the root [README](../README.md).
 
 Build output defaults to `~/Documents/sacra-lux-dist/`. The packaged app
 unpacks `public/` (`asarUnpack`) so Express can stream the pages, and ships
