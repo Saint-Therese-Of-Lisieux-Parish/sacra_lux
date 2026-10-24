@@ -251,4 +251,22 @@ describe("screen settings normalization", () => {
       expect(settings.readingSectionColor).toBe("#112233");
     });
   });
+
+  test("derived position keys match the text bounds", async () => {
+    state.screenSettings = {};
+    const settings = await post({
+      resolution: "1080p",
+      textBounds: {
+        readingBody: { left: 100, right: 100, top: 120, bottom: 240 },
+        text: { left: 150, right: 150, top: 80, bottom: 100 }
+      }
+    });
+
+    expect(settings.readingTextMarginXPx).toBe(100);
+    expect(settings.readingTextMarginYPx).toBe(120);
+    expect(settings.readingTextHeightPx).toBe(720);
+    expect(settings.textSlideMarginXPx).toBe(150);
+    expect(settings.textSlideMarginYPx).toBe(80);
+    expect(settings.textSlideTextHeightPx).toBe(900);
+  });
 });
