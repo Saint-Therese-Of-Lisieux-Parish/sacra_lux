@@ -54,11 +54,11 @@ jobs:
         include:
           - name: macOS ARM64
             os: macos-15
-            build: --mac zip --arm64
+            build: --mac zip dmg --arm64
             artifact: mac-arm64
           - name: macOS x64
             os: macos-15-intel
-            build: --mac zip --x64
+            build: --mac zip dmg --x64
             artifact: mac-x64
           - name: Windows x64
             os: windows-latest
@@ -151,7 +151,7 @@ jobs:
           identity="${full_identity#Developer ID Application: }"
           echo "CSC_NAME=${identity}" >> "${GITHUB_ENV}"
 
-      - name: Build signed and notarized macOS ZIP
+      - name: Build signed and notarized macOS artifacts
         if: runner.os == 'macOS'
         env:
           CSC_LINK: ${{ runner.temp }}/sacra-lux-signing.p12
@@ -184,18 +184,37 @@ jobs:
           npx electron-builder ${{ matrix.build }} --publish never
           "--config.directories.output=dist"
 
-      - name: Verify macOS signature and notarization
+      - name: Verify macOS artifacts
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          app=$(find dist -type d -name '*.app' -print -quit)
+          dmg=$(find dist -maxdepth 1 -name '*.dmg' -print -quit)
+          if [ -z "${dmg}" ]; then
+            echo "::error::No macOS DMG file found in dist"
+            exit 1
+          fi
+          hdiutil verify "${dmg}"
+
+          mount_dir="${RUNNER_TEMP}/sacra-lux-dmg"
+          mkdir -p "${mount_dir}"
+          cleanup() {
+            hdiutil detach "${mount_dir}" -quiet || true
+          }
+          trap cleanup EXIT
+          hdiutil attach "${dmg}" -readonly -nobrowse -noautoopen \
+            -mountpoint "${mount_dir}"
+
+          app=$(find "${mount_dir}" -maxdepth 1 -type d -name '*.app' \
+            -print -quit)
           if [ -z "${app}" ]; then
-            echo "::error::No macOS application found in dist"
+            echo "::error::No macOS application found in the DMG"
             exit 1
           fi
           codesign --verify --deep --strict --verbose=2 "${app}"
           spctl --assess --type execute --verbose=4 "${app}"
           xcrun stapler validate "${app}"
+          cleanup
+          trap - EXIT
 
       - name: Normalize ZIP name
         if: runner.os != 'Windows'
@@ -210,6 +229,19 @@ jobs:
           target="dist/Sacra-Lux-${version}-${{ matrix.artifact }}.zip"
           mv "${source}" "${target}"
 
+      - name: Normalize DMG name
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          source=$(find dist -maxdepth 1 -name '*.dmg' -print -quit)
+          if [ -z "${source}" ]; then
+            echo "::error::No DMG file found in dist"
+            exit 1
+          fi
+          target="dist/Sacra-Lux-${version}-${{ matrix.artifact }}.dmg"
+          mv "${source}" "${target}"
+
       - name: Normalize ZIP name
         if: runner.os == 'Windows'
         shell: pwsh
@@ -222,11 +254,13 @@ jobs:
           $target = Join-Path dist "Sacra-Lux-$version-${{ matrix.artifact }}.zip"
           Move-Item -Path $source.FullName -Destination $target
 
-      - name: Upload ZIP
+      - name: Upload release artifacts
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: release-${{ matrix.artifact }}
-          path: sacra-lux/dist/Sacra-Lux-*.zip
+          path: |
+            sacra-lux/dist/Sacra-Lux-*.zip
+            sacra-lux/dist/Sacra-Lux-*.dmg
           if-no-files-found: error
 
   attest:
@@ -239,17 +273,19 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Download ZIP files
+      - name: Download release files
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: release-*
           merge-multiple: true
           path: release
 
-      - name: Attest ZIP files
+      - name: Attest release files
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: release/*.zip
+          subject-path: |
+            release/*.zip
+            release/*.dmg
 
   release:
     name: Publish release
@@ -262,7 +298,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download ZIP files
+      - name: Download release files
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           pattern: release-*
@@ -271,7 +307,7 @@ jobs:
 
       - name: Write checksums
         working-directory: release
-        run: sha256sum ./*.zip > SHA256SUMS.txt
+        run: sha256sum ./*.zip ./*.dmg > SHA256SUMS.txt
 
       - name: Create or update GitHub Release
         env:
