@@ -66,7 +66,7 @@ npm run test:e2e:install
 
 ## Releases
 
-The `Release` GitHub Actions workflow publishes zipped builds. Push a tag
+The `Release` GitHub Actions workflow publishes macOS DMG and ZIP builds and a Windows ZIP build. Push a tag
 that matches the `package.json` version:
 
 ```bash
@@ -74,11 +74,34 @@ git tag v0.0.60-alpha
 git push origin v0.0.60-alpha
 ```
 
-The workflow builds `Sacra-Lux-<version>-mac-arm64.zip`,
-`Sacra-Lux-<version>-mac-x64.zip`, and `Sacra-Lux-<version>-win-x64.zip`.
+The workflow builds these files:
+
+| File | Architecture |
+| --- | --- |
+| `Sacra-Lux-<version>-mac-arm64.dmg` | macOS Apple Silicon |
+| `Sacra-Lux-<version>-mac-arm64.zip` | macOS Apple Silicon |
+| `Sacra-Lux-<version>-mac-x64.dmg` | macOS Intel |
+| `Sacra-Lux-<version>-mac-x64.zip` | macOS Intel |
+| `Sacra-Lux-<version>-win-x64.zip` | Windows x64 |
+
 It publishes a GitHub Release with generated release notes and
-`SHA256SUMS.txt`. A version with a hyphen, such as `-alpha`, becomes a
-prerelease. The macOS builds are signed and notarized when the release workflow has the required Apple credentials. Windows signing remains out of scope until a Windows signing method is configured.
+`SHA256SUMS.txt`, which lists every ZIP and DMG file. A version with a
+hyphen, such as `-alpha`, becomes a prerelease. The macOS builds are signed
+and notarized, and the workflow fails if the Apple credentials are missing.
+Windows signing remains out of scope until a Windows signing method is
+configured.
+
+To verify a macOS download, run these commands on the app (for a DMG, mount
+it first):
+
+```bash
+codesign --verify --deep --strict --verbose=2 "Sacra Lux.app"
+spctl --assess --type execute --verbose=4 "Sacra Lux.app"
+xcrun stapler validate "Sacra Lux.app"
+shasum -a 256 -c SHA256SUMS.txt
+```
+
+The release workflow runs these checks on each macOS build before upload.
 
 ## Default URLs
 
