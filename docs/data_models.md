@@ -144,8 +144,8 @@ settings in a client.
 
 - `fontFamily` — Google Fonts allowlist, default `Merriweather`
 - `fontSizePx` — clamped 24–200, default `60`
-- `darkBackgroundUrl` — default `/static/assets/background-dark.png`
-- `lightBackgroundUrl` — default `/static/assets/background-graphic.png`
+- `darkBackgroundUrl` — default `/static/assets/default-text-background.avif`
+- `lightBackgroundUrl` — default `/static/assets/default-interstitial.png`
 - `boldText`
 - `resolution` — `720p` | `1080p` | `1440p` | `4k`, default `1080p`
 - `transition` — `none` | `fade`, default `fade`
@@ -235,6 +235,7 @@ runtime state with secrets stripped. Client-visible fields:
   interstitialHoldSlideIndex: number | null,
   massStartTime: string | null,
   hasStartPin: boolean,
+  controlMode: "unset" | "trusted-lan",
   targetScreenId: number | null,
   targetScreenIds: number[],
   screenFullscreen: boolean,
@@ -277,6 +278,7 @@ starts without a valid `current_mass` package, or `null` otherwise.
 - `targetScreenIds`
 - `screenFullscreen`
 - `activeMassArchiveId`
+- `controlMode`
 - `appSettings` — `{ theme }`
 
 Parsed reading documents are omitted because they are reloaded from

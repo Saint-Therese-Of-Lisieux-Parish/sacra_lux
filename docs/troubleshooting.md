@@ -87,8 +87,7 @@ exist only in the Electron app. In web mode they are unavailable; check
 
 ## Security and data-safety items
 
-Exports bypass control authentication, loopback unlock is process-wide, and
-no-PIN mode accepts control from any reachable client. These are tracked with
-reproduction steps in
-[code_review_ears_report.md](./code_review_ears_report.md). Do not treat a
-broader LAN deployment as safe until those items are resolved.
+Some security limits remain tracked with reproduction steps in
+[code_review_ears_report.md](./code_review_ears_report.md). With no PIN,
+loopback clients can control the app by default. Select `trusted-lan` to allow
+non-loopback control, or configure a PIN for session-based control.
