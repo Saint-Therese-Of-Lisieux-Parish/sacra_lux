@@ -940,7 +940,36 @@ function normalizeScreenSettings(input = {}) {
       : normalizeTextBounds(currentBounds);
   const legacyGeometry = textBoundsToLegacySettings(textBounds, resolution);
 
+  // Reference and section title style. A setting that is not saved yet starts at the
+  // value the screen used before it existed, so older sessions look the same.
+  const hexOr = (value, fallback) => (/^#[0-9a-fA-F]{6}$/.test(String(value || "")) ? String(value) : fallback);
+  const passageSizePx = Math.min(90, Math.max(20, Number(input.readingPassageSizePx) || current.readingPassageSizePx || 44));
+  const passageBold = Boolean(input.readingPassageBold ?? current.readingPassageBold ?? true);
+  const passageColor = hexOr(input.readingPassageColor, current.readingPassageColor || "#e8d5a0");
+  const passageItalic = Boolean(input.readingPassageItalic ?? current.readingPassageItalic ?? false);
+  const passageShadow = Boolean(
+    input.readingPassageShadow ?? current.readingPassageShadow ?? input.readingTextShadow ?? current.readingTextShadow ?? true
+  );
+  const sectionFontRaw = String(input.readingSectionFont ?? current.readingSectionFont ?? readingPassageFont);
+  const referenceTextStyle = {
+    readingPassageItalic: passageItalic,
+    readingPassageShadow: passageShadow,
+    readingPassageLineHeight: Math.round(Math.min(3, Math.max(1, Number(input.readingPassageLineHeight) || current.readingPassageLineHeight || 1.15)) * 100) / 100,
+    readingPassageLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, Number(
+      input.readingPassageLetterSpacingPx ?? current.readingPassageLetterSpacingPx ?? passageSizePx * 0.03
+    ))) * 10) / 10,
+    readingSectionFont: GOOGLE_FONTS.has(sectionFontRaw)
+      ? sectionFontRaw
+      : (GOOGLE_FONTS.has(current.readingSectionFont) ? current.readingSectionFont : readingPassageFont),
+    readingSectionSizePx: Math.round(Math.min(90, Math.max(10, Number(input.readingSectionSizePx) || current.readingSectionSizePx || passageSizePx / 2))),
+    readingSectionColor: hexOr(input.readingSectionColor, current.readingSectionColor || passageColor),
+    readingSectionBold: Boolean(input.readingSectionBold ?? current.readingSectionBold ?? passageBold),
+    readingSectionItalic: Boolean(input.readingSectionItalic ?? current.readingSectionItalic ?? passageItalic),
+    readingSectionShadow: Boolean(input.readingSectionShadow ?? current.readingSectionShadow ?? passageShadow)
+  };
+
   return {
+    ...referenceTextStyle,
     fontFamily,
     fontSizePx: Math.min(200, Math.max(24, Number(input.fontSizePx) || current.fontSizePx || 60)),
     darkBackgroundUrl: String(
