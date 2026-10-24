@@ -561,6 +561,7 @@ function buildPresentationFromOrganizer({
 }
 
 module.exports = {
+  VALID_PHASES,
   createDefaultOrganizer,
   dedupeOrganizerIds,
   findAlternateGroups,
