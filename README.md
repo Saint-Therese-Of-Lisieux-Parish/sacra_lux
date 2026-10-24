@@ -66,10 +66,11 @@ Current capabilities include:
 - `npm test`
 - `npm run test:e2e`
 
-GitHub Actions runs these quality checks on pull requests to and pushes to
-`master` (`ci.yml`). The separate `version-check.yml` workflow also runs on pull
-requests to `master`. It fails the pull request when the package version is not
-above the `master` version. Bump the version in `sacra-lux/package.json`.
+GitHub Actions runs lint, version sync, unit and integration coverage, E2E, and
+timer tests on pull requests to and pushes to `master` (`ci.yml`). The separate
+`version-check.yml` workflow also runs on pull requests to `master`. It fails
+the pull request when the package version is not above the `master` version.
+Bump the version in `sacra-lux/package.json`.
 
 ## Documentation
 

@@ -4,7 +4,7 @@
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `express` | ^5.2.1 | HTTP routes and middleware |
+| `express` | ^5.3.0 | HTTP routes and middleware |
 | `socket.io` | ^4.8.4 | synchronized client state and AVIF export progress |
 | `adm-zip` | ^0.6.1 | ZIP import and export |
 | `sharp` | ^0.35.5 | AVIF conversion, image metadata, and slideshow preflight |
@@ -14,7 +14,7 @@
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `electron` | ^44.4.5 | desktop runtime |
+| `electron` | ^44.9.1 | desktop runtime |
 | `electron-builder` | ^26.8.1 | macOS and Windows packaging |
 
 ## Test and Quality Tooling
@@ -23,8 +23,8 @@
 | --- | --- | --- |
 | `jest` | ^30.5.2 | unit and integration tests |
 | `supertest` | ^7.3.1 | API assertions |
-| `@playwright/test` | ^1.64.0 | browser E2E coverage |
-| `eslint` | ^10.12.0 | JavaScript linting |
+| `@playwright/test` | ^1.64.1 | browser E2E coverage |
+| `eslint` | ^10.13.0 | JavaScript linting |
 | `globals` | ^17.13.0 | ESLint environment globals |
 
 ## Other Development Tooling
@@ -69,7 +69,7 @@ which currently includes:
   `https://bible.usccb.org/readings.rss`.
 - the repo includes tracked hooks in `.githooks/`, but they are opt-in
   (`git config core.hooksPath .githooks`).
-- GitHub Actions runs `ci.yml` (lint, version-sync, unit, integration, e2e) on
-  pull requests to and pushes to `master`. The separate `version-check.yml`
-  workflow runs on pull requests to `master`. It fails the pull request when
-  the version is not above `master`. See [review_notes.md](./review_notes.md).
+- GitHub Actions runs lint, version sync, unit and integration coverage, E2E,
+  and timer tests in `ci.yml` on pull requests to and pushes to `master`.
+  The separate `version-check.yml` workflow runs on pull requests to `master`.
+  It fails the pull request when the version is not above `master`.
