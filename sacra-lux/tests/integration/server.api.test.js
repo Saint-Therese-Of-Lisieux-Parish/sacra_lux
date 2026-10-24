@@ -810,7 +810,8 @@ describe("server api integration", () => {
     const nullImport = await request(app)
       .post("/api/import-mass-zip")
       .send({ zipData: nullZip.toBuffer().toString("base64") });
-    expect(nullImport.status).toBeGreaterThanOrEqual(400);
+    expect(nullImport.status).toBe(400);
+    expect(nullImport.body.error).toBe("Mass definition must be a JSON object.");
 
     expect(snapshotTree(currentMassDir)).toEqual(before);
     expect(fs.readdirSync(appDir).filter((name) => name.startsWith(".current_mass-")))
@@ -880,6 +881,28 @@ describe("server api integration", () => {
     expect(fs.readFileSync(canaryPath, "utf8")).toBe("keep");
     expect(fs.readdirSync(path.dirname(currentMassDir)).filter((name) => name.startsWith(".current_mass-")))
       .toEqual([]);
+  });
+
+  test("import-mass-zip rejects non-object JSON and unsupported mass versions", async () => {
+    const importDefinition = (definition) => {
+      const zip = new AdmZip();
+      zip.addFile("mass.json", Buffer.from(JSON.stringify(definition)));
+      return request(app)
+        .post("/api/import-mass-zip")
+        .send({ zipData: zip.toBuffer().toString("base64") });
+    };
+
+    for (const value of [[], "text", 7, true]) {
+      const response = await importDefinition(value);
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Mass definition must be a JSON object.");
+    }
+
+    for (const version of [4, 2, undefined, "3"]) {
+      const response = await importDefinition({ format: "sacra-lux.mass", version, items: [] });
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Unsupported mass version.");
+    }
   });
 
   test("startup prefers valid current_mass over stale session title", async () => {

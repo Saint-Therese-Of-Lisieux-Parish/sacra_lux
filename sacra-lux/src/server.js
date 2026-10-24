@@ -411,11 +411,19 @@ const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
 
 function parseMassZipDefinition(definitionEntry) {
+  let definition;
   try {
-    return JSON.parse(definitionEntry.getData().toString("utf8"));
+    definition = JSON.parse(definitionEntry.getData().toString("utf8"));
   } catch (error) {
     throw new ValidationError(error.message || "Mass definition is not valid JSON.");
   }
+  if (!definition || typeof definition !== "object" || Array.isArray(definition)) {
+    throw new ValidationError("Mass definition must be a JSON object.");
+  }
+  if (definition.format === "sacra-lux.mass" && definition.version !== 3) {
+    throw new ValidationError("Unsupported mass version.");
+  }
+  return definition;
 }
 
 function validateMassZipArchive(zip, compressedBytes) {
