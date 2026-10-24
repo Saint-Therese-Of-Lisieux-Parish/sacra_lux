@@ -6036,13 +6036,13 @@
           const bgUrl = item.type === "imageSlideshow"
             ? (slideshowImages[0]?.url || repSlide?.imageUrl || lightBg)
             : (manualSlide?.imageUrl || repSlide?.imageUrl || lightBg);
-          thumbStyle = `background-image:url('${bgUrl.replace(/'/g, "\\'")}')`;
+          thumbStyle = `background-image:url('${bgUrl.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')`;
         } else if (isMovie) {
           thumbStyle = "background:linear-gradient(145deg, rgba(8,12,18,0.88), rgba(24,32,42,0.72))";
         } else if (item.backgroundTheme === "light") {
-          thumbStyle = `background-image:url('${lightBg.replace(/'/g, "\\'")}')`;
+          thumbStyle = `background-image:url('${lightBg.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')`;
         } else {
-          thumbStyle = `background-image:url('${darkBg.replace(/'/g, "\\'")}')`;
+          thumbStyle = `background-image:url('${darkBg.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')`;
         }
         const thumbContent = buildThumbHtml(item, repSlide, manualSlide);
         const safeItemId = escapeHtml(item.id);
@@ -7045,7 +7045,18 @@
 
     // ── Section presets ───────────────────────────────────────────────────────
     // ── Image preview helper ──────────────────────────────────────────────────
-    function updateImagePreview(url) {
+    // Only allow http, https, and blob media URLs in preview elements.
+    function safeMediaUrl(url) {
+      try {
+        const parsed = new URL(String(url || ""), window.location.href);
+        return ["http:", "https:", "blob:"].includes(parsed.protocol) ? parsed.href : "";
+      } catch {
+        return "";
+      }
+    }
+
+    function updateImagePreview(rawUrl) {
+      const url = safeMediaUrl(rawUrl);
       const preview = document.getElementById("imagePreview");
       if (!preview) return;
       if (url) {
@@ -7060,7 +7071,8 @@
       }
     }
 
-    function updateMoviePreview(url) {
+    function updateMoviePreview(rawUrl) {
+      const url = safeMediaUrl(rawUrl);
       if (!els.moviePreview) return;
       if (url) {
         els.moviePreview.src = url;
