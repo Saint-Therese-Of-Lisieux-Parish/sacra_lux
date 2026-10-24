@@ -37,7 +37,20 @@ repository.
 
 ## Verify a macOS DMG
 
-Mount the DMG. Replace `<volume-path>` with the mounted `Sacra Lux` volume.
+Each DMG has a Developer ID signature and a stapled notarization ticket.
+Check the DMG file first:
+
+```bash
+codesign -dv --verbose=2 Sacra-Lux-<version>-<mac-platform>.dmg
+xcrun stapler validate Sacra-Lux-<version>-<mac-platform>.dmg
+spctl -a -t open --context context:primary-signature -vv \
+  Sacra-Lux-<version>-<mac-platform>.dmg
+```
+
+The `codesign` output must show the Developer ID Application authority. The
+`spctl` output must show `accepted` with source `Notarized Developer ID`.
+
+Then check the app inside the DMG. Mount the DMG. Replace `<volume-path>` with the mounted `Sacra Lux` volume.
 Then run:
 
 ```bash
