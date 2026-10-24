@@ -1,4 +1,5 @@
 const { DEFAULT_THEME } = require("./themes");
+const { DEFAULT_TEXT_BOUNDS } = require("./textBounds");
 
 const state = {
   appSettings: {
@@ -60,7 +61,8 @@ const state = {
     textSlideShowPageNumber: true,
     textSlideMarginXPx: 110,
     textSlideMarginYPx: 90,
-    textSlideTextHeightPx: 900
+    textSlideTextHeightPx: 900,
+    textBounds: structuredClone(DEFAULT_TEXT_BOUNDS)
   },
   currentSlideIndex: 0,
   isBlack: false,

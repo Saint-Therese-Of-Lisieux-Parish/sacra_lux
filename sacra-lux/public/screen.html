@@ -210,10 +210,12 @@
 
     .reading-header {
       position: absolute;
-      left: var(--reading-text-margin-x, 80px);
+      left: var(--reading-passage-left, 80px);
+      right: var(--reading-passage-right, 1190px);
       top: var(--reading-passage-y, 970px);
-      width: var(--reading-passage-width, 650px);
+      height: var(--reading-passage-height, 102px);
       text-align: var(--reading-passage-align, center);
+      overflow: hidden;
       z-index: 2;
     }
 
@@ -251,10 +253,10 @@
       -webkit-text-stroke: var(--reading-text-stroke, 0);
       paint-order: stroke fill;
       position: absolute;
-      left: var(--reading-text-margin-x, 80px);
-      right: var(--reading-text-margin-x, 80px);
+      left: var(--reading-text-left, 80px);
+      right: var(--reading-text-right, 80px);
       top: var(--reading-text-top, 130px);
-      height: var(--reading-text-height, 840px);
+      bottom: var(--reading-text-bottom, 110px);
       padding: 0;
       text-shadow: var(--reading-text-shadow, 0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6));
       display: flex;
@@ -334,10 +336,10 @@
 
     .text-layout-wrap {
       position: absolute;
-      left: var(--text-slide-margin-x, 110px);
-      top: var(--text-slide-margin-y, 90px);
-      right: var(--text-slide-margin-x, 110px);
-      height: var(--text-slide-text-height, 900px);
+      left: var(--text-slide-left, 110px);
+      top: var(--text-slide-top, 90px);
+      right: var(--text-slide-right, 110px);
+      bottom: var(--text-slide-bottom, 90px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -909,7 +911,7 @@
 
       const headerEl = wrap.querySelector(".reading-header");
       const passageEl = wrap.querySelector(".reading-passage");
-      if (headerEl && passageEl) {
+      if (!settings.textBounds?.readingPassage && headerEl && passageEl) {
         const wrapHeight = wrap.clientHeight || frame.clientHeight || 1080;
         const measuredPassageHeight = Math.ceil(passageEl.getBoundingClientRect().height || 0);
         const fallbackPassageHeight = Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3);
@@ -1273,6 +1275,104 @@
       frame.style.setProperty("--section-accent-glow", tint.glow);
     }
 
+    const REFERENCE_TEXT_CANVAS = { width: 1920, height: 1080 };
+    const DEFAULT_TEXT_BOUNDS = {
+      readingBody: { left: 80, right: 80, top: 130, bottom: 110 },
+      readingPassage: { left: 80, right: 1190, top: 70, bottom: 908 },
+      hymn: { left: 110, right: 110, top: 90, bottom: 90 },
+      prayer: { left: 110, right: 110, top: 90, bottom: 90 },
+      text: { left: 110, right: 110, top: 90, bottom: 90 }
+    };
+
+    function normalizeTextBoxBounds(value, fallback) {
+      const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      const edge = (name, max) => {
+        const number = Number(input[name]);
+        return Math.min(max, Math.max(0, Number.isFinite(number) ? number : fallback[name]));
+      };
+      const bounds = {
+        left: edge("left", REFERENCE_TEXT_CANVAS.width - 120),
+        right: edge("right", REFERENCE_TEXT_CANVAS.width - 120),
+        top: edge("top", REFERENCE_TEXT_CANVAS.height - 80),
+        bottom: edge("bottom", REFERENCE_TEXT_CANVAS.height - 80)
+      };
+      if (REFERENCE_TEXT_CANVAS.width - bounds.left - bounds.right < 120) {
+        bounds.right = Math.max(0, REFERENCE_TEXT_CANVAS.width - bounds.left - 120);
+      }
+      if (REFERENCE_TEXT_CANVAS.height - bounds.top - bounds.bottom < 80) {
+        bounds.bottom = Math.max(0, REFERENCE_TEXT_CANVAS.height - bounds.top - 80);
+      }
+      return bounds;
+    }
+
+    function normalizeGlobalTextBounds(settings = {}) {
+      const source = settings.textBounds && typeof settings.textBounds === "object"
+        ? settings.textBounds
+        : {};
+      const legacyBody = {
+        left: Number(settings.readingTextMarginXPx) || 80,
+        right: Number(settings.readingTextMarginXPx) || 80,
+        top: Number(settings.readingTextMarginYPx) || 130,
+        bottom: 1080 - (Number(settings.readingTextMarginYPx) || 130) - (Number(settings.readingTextHeightPx) || 840)
+      };
+      const legacyPassage = {
+        left: Number(settings.readingTextMarginXPx) || 80,
+        right: 1920 - (Number(settings.readingTextMarginXPx) || 80) - (Number(settings.readingPassageWidthPx) || 650),
+        top: Number(settings.readingPassageYPx) || 70,
+        bottom: 1080 - (Number(settings.readingPassageYPx) || 70) - Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3)
+      };
+      const legacyText = {
+        left: Number(settings.textSlideMarginXPx) || 110,
+        right: Number(settings.textSlideMarginXPx) || 110,
+        top: Number(settings.textSlideMarginYPx) || 90,
+        bottom: 1080 - (Number(settings.textSlideMarginYPx) || 90) - (Number(settings.textSlideTextHeightPx) || 900)
+      };
+      return {
+        readingBody: normalizeTextBoxBounds(source.readingBody, legacyBody),
+        readingPassage: normalizeTextBoxBounds(source.readingPassage, legacyPassage),
+        hymn: normalizeTextBoxBounds(source.hymn, legacyText),
+        prayer: normalizeTextBoxBounds(source.prayer, legacyText),
+        text: normalizeTextBoxBounds(source.text, legacyText)
+      };
+    }
+
+    function scaledTextBoundsRect(settings, key) {
+      const canvases = {
+        "720p": { width: 1280, height: 720 },
+        "1080p": { width: 1920, height: 1080 },
+        "1440p": { width: 2560, height: 1440 },
+        "4k": { width: 3840, height: 2160 }
+      };
+      const canvas = canvases[settings.resolution] || canvases["1080p"];
+      const bounds = normalizeGlobalTextBounds(settings)[key] || DEFAULT_TEXT_BOUNDS.text;
+      const scaleX = canvas.width / REFERENCE_TEXT_CANVAS.width;
+      const scaleY = canvas.height / REFERENCE_TEXT_CANVAS.height;
+      const left = bounds.left * scaleX;
+      const right = bounds.right * scaleX;
+      const top = bounds.top * scaleY;
+      const bottom = bounds.bottom * scaleY;
+      return {
+        left,
+        right,
+        top,
+        bottom,
+        width: canvas.width - left - right,
+        height: canvas.height - top - bottom
+      };
+    }
+
+    function normalizeOverrideBounds(value) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+      const normalized = {};
+      if (value.body && typeof value.body === "object") {
+        normalized.body = normalizeTextBoxBounds(value.body, DEFAULT_TEXT_BOUNDS.text);
+      }
+      if (value.passage && typeof value.passage === "object") {
+        normalized.passage = normalizeTextBoxBounds(value.passage, DEFAULT_TEXT_BOUNDS.readingPassage);
+      }
+      return Object.keys(normalized).length ? normalized : undefined;
+    }
+
     function normalizeStyleOverrides(styleOverrides = {}) {
       if (!styleOverrides || typeof styleOverrides !== "object" || Array.isArray(styleOverrides)) {
         return {};
@@ -1290,6 +1390,8 @@
           normalized[key] = styleOverrides[key];
         }
       }
+      const bounds = normalizeOverrideBounds(styleOverrides.bounds);
+      if (bounds) normalized.bounds = bounds;
       return normalized;
     }
 
@@ -1300,8 +1402,14 @@
       }
 
       if (slide?.type === "reading") {
+        const textBounds = normalizeGlobalTextBounds(baseSettings);
         return {
           ...baseSettings,
+          textBounds: {
+            ...textBounds,
+            readingBody: overrides.bounds?.body || textBounds.readingBody,
+            readingPassage: overrides.bounds?.passage || textBounds.readingPassage
+          },
           ...(overrides.fontFamily ? { readingTextFont: overrides.fontFamily } : {}),
           ...(overrides.fontSizePx ? { readingTextSizePx: overrides.fontSizePx } : {}),
           ...(typeof overrides.bold === "boolean" ? { readingTextBold: overrides.bold } : {}),
@@ -1312,8 +1420,14 @@
       }
 
       if (slide?.type === "text" || slide?.type === "prayer" || slide?.type === "hymn") {
+        const textBounds = normalizeGlobalTextBounds(baseSettings);
+        const typeKey = { text: "text", prayer: "prayer", hymn: "hymn" }[slide.type];
         return {
           ...baseSettings,
+          textBounds: {
+            ...textBounds,
+            [typeKey]: overrides.bounds?.body || textBounds[typeKey]
+          },
           ...(overrides.fontFamily ? { textSlideTextFont: overrides.fontFamily } : {}),
           ...(overrides.fontSizePx ? { textSlideTextSizePx: overrides.fontSizePx } : {}),
           ...(typeof overrides.bold === "boolean" ? { textSlideTextBold: overrides.bold } : {}),
@@ -1326,7 +1440,7 @@
       return baseSettings;
     }
 
-    function applyScreenSettings(settings = {}) {
+    function applyScreenSettings(settings = {}, slide = null) {
       const fontFamily = settings.fontFamily || "Merriweather";
       const fontSizePx = Math.min(200, Math.max(24, Number(settings.fontSizePx) || 60));
       const darkBg = settings.darkBackgroundUrl || "/static/assets/default-text-background.png";
@@ -1369,12 +1483,16 @@
       stage.style.setProperty("--reading-passage-align", settings.readingPassageAlign || "center");
       const passageSize = Math.min(90, Math.max(20, Number(settings.readingPassageSizePx) || 44));
       stage.style.setProperty("--reading-passage-size", `${passageSize}px`);
-      stage.style.setProperty("--reading-text-margin-x", `${Math.min(260, Math.max(0, Number(settings.readingTextMarginXPx) || 80))}px`);
-      stage.style.setProperty("--reading-text-top", `${Math.min(360, Math.max(0, Number(settings.readingTextMarginYPx) || 130))}px`);
-      stage.style.setProperty("--reading-text-height", `${Math.min(980, Math.max(120, Number(settings.readingTextHeightPx) || 840))}px`);
-      const passageYResolved = resolveReadingHeaderY(settings);
-      stage.style.setProperty("--reading-passage-y", `${Math.min(1060, Math.max(0, passageYResolved))}px`);
-      stage.style.setProperty("--reading-passage-width", `${Math.min(1760, Math.max(180, Number(settings.readingPassageWidthPx) || 650))}px`);
+      const readingBodyBounds = scaledTextBoundsRect(settings, "readingBody");
+      const readingPassageBounds = scaledTextBoundsRect(settings, "readingPassage");
+      stage.style.setProperty("--reading-text-left", `${readingBodyBounds.left}px`);
+      stage.style.setProperty("--reading-text-right", `${readingBodyBounds.right}px`);
+      stage.style.setProperty("--reading-text-top", `${readingBodyBounds.top}px`);
+      stage.style.setProperty("--reading-text-bottom", `${readingBodyBounds.bottom}px`);
+      stage.style.setProperty("--reading-passage-left", `${readingPassageBounds.left}px`);
+      stage.style.setProperty("--reading-passage-right", `${readingPassageBounds.right}px`);
+      stage.style.setProperty("--reading-passage-y", `${readingPassageBounds.top}px`);
+      stage.style.setProperty("--reading-passage-height", `${readingPassageBounds.height}px`);
 
       // Line height and letter spacing for reading text
       const lineHeight = Math.min(3.0, Math.max(1.0, Number(settings.readingLineHeight) || 1.58));
@@ -1424,9 +1542,12 @@
       stage.style.setProperty("--text-slide-line-height", Math.min(3.0, Math.max(1.0, Number(settings.textSlideLineHeight) || 1.55)));
       const textSlideLetterSpacing = Math.min(10, Math.max(-2, Number(settings.textSlideLetterSpacingPx) || 0));
       stage.style.setProperty("--text-slide-letter-spacing", `${textSlideLetterSpacing}px`);
-      stage.style.setProperty("--text-slide-margin-x", `${Math.min(400, Math.max(0, Number(settings.textSlideMarginXPx) || 110))}px`);
-      stage.style.setProperty("--text-slide-margin-y", `${Math.min(400, Math.max(0, Number(settings.textSlideMarginYPx) || 90))}px`);
-      stage.style.setProperty("--text-slide-text-height", `${Math.min(1020, Math.max(120, Number(settings.textSlideTextHeightPx) || 900))}px`);
+      const textBoundsKey = ["hymn", "prayer", "text"].includes(slide?.type) ? slide.type : "text";
+      const textSlideBounds = scaledTextBoundsRect(settings, textBoundsKey);
+      stage.style.setProperty("--text-slide-left", `${textSlideBounds.left}px`);
+      stage.style.setProperty("--text-slide-right", `${textSlideBounds.right}px`);
+      stage.style.setProperty("--text-slide-top", `${textSlideBounds.top}px`);
+      stage.style.setProperty("--text-slide-bottom", `${textSlideBounds.bottom}px`);
       // Text slide italic / outline / shadow
       stage.style.setProperty("--text-slide-text-style", settings.textSlideTextItalic ? "italic" : "normal");
       if (settings.textSlideTextOutline) {
@@ -1489,7 +1610,8 @@
         settings.readingLineHeight, settings.readingLetterSpacingPx,
         settings.readingTextFont, settings.fontFamily, settings.boldText,
         settings.readingTextBold, settings.readingTextItalic,
-        settings.readingTextOutline, settings.readingTextShadow
+        settings.readingTextOutline, settings.readingTextShadow,
+        JSON.stringify(settings.textBounds || {})
       ];
       return keys.join("|");
     }
@@ -1543,8 +1665,8 @@
       for (const [gid, groupSlides] of Object.entries(groups)) {
         const groupSettings = getEffectiveScreenSettings(settings, groupSlides[0]);
         const baseFontSize = Number(groupSettings.readingTextSizePx) || Number(groupSettings.fontSizePx) || 60;
-        const marginX = Math.min(260, Math.max(0, Number(groupSettings.readingTextMarginXPx) || 80));
-        const textHeight = Math.min(980, Math.max(120, Number(groupSettings.readingTextHeightPx) || 840));
+        const readingBounds = scaledTextBoundsRect(groupSettings, "readingBody");
+        const textHeight = readingBounds.height;
         const lineHeight = Math.min(3.0, Math.max(1.0, Number(groupSettings.readingLineHeight) || 1.58));
         const letterSpacing = `${Math.min(10, Math.max(-2, Number(groupSettings.readingLetterSpacingPx) || 0))}px`;
         const textFont = groupSettings.readingTextFont
@@ -1554,7 +1676,7 @@
           ? "700"
           : (groupSettings.boldText ? "700" : "400");
         const textColor = groupSettings.readingTextColor || "#f8f8f8";
-        const bodyWidth = fw - (marginX * 2);
+        const bodyWidth = readingBounds.width;
         let minSize = baseFontSize;
 
         for (const slide of groupSlides) {
@@ -1670,7 +1792,7 @@
       const slide = slides[effectiveIndex];
       const baseSettings = state.screenSettings || {};
       const settings = getEffectiveScreenSettings(baseSettings, slide);
-      applyScreenSettings(settings);
+      applyScreenSettings(settings, slide);
       applySectionTint(slide);
       frame.dataset.slideId = slide?.id || "";
       frame.dataset.organizerItemId = slide?.organizerItemId || "";

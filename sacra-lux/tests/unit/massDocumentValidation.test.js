@@ -336,6 +336,38 @@ describe("massDocument helpers and round trips", () => {
     expect(runtime.manualSlides.pic.imageUrl).toBe("/api/mass-asset/pic.jpg");
   });
 
+  test("round trips global and group text bounds", () => {
+    const state = fullState();
+    state.screenSettings.textBounds = {
+      readingBody: { left: 100, right: 120, top: 140, bottom: 160 },
+      readingPassage: { left: 80, right: 1000, top: 50, bottom: 900 },
+      hymn: { left: 150, right: 160, top: 170, bottom: 180 },
+      prayer: { left: 190, right: 200, top: 210, bottom: 220 },
+      text: { left: 230, right: 240, top: 250, bottom: 260 }
+    };
+    const reading = state.organizerSequence.find((item) => item.type === "reading");
+    reading.styleOverrides = {
+      bounds: {
+        body: { left: 200, right: 220, top: 180, bottom: 160 },
+        passage: { left: 300, right: 900, top: 60, bottom: 880 }
+      }
+    };
+    const hymn = state.organizerSequence.find((item) => item.type === "hymn");
+    state.manualSlides[hymn.id].styleOverrides = {
+      bounds: { body: { left: 240, right: 260, top: 200, bottom: 180 } }
+    };
+
+    const document = JSON.parse(JSON.stringify(buildMassDocumentFromState(state)));
+    expect(() => validateMassDocument(document)).not.toThrow();
+    const runtime = buildRuntimeStateFromMassDocument(document);
+
+    expect(runtime.screenSettings.textBounds).toEqual(state.screenSettings.textBounds);
+    expect(runtime.organizerSequence.find((item) => item.id === reading.id).styleOverrides.bounds)
+      .toEqual(reading.styleOverrides.bounds);
+    expect(runtime.manualSlides[hymn.id].styleOverrides.bounds)
+      .toEqual(state.manualSlides[hymn.id].styleOverrides.bounds);
+  });
+
   test("maps legacy background aliases to the dark and light fields and back", () => {
     const state = fullState();
     state.screenSettings = {

@@ -44,6 +44,47 @@ describe("organizer", () => {
     expect(pages720).toBeGreaterThan(pages4k);
   });
 
+  test("repaginates only the reading group with a narrow bounds override", () => {
+    const line = "The word of the Lord came to the prophet in the days of the king.";
+    const documents = [{
+      stem: "Reading_I",
+      section: "Reading I",
+      passage: "Isaiah 1:1",
+      textLines: Array.from({ length: 18 }, () => line),
+      ending: null
+    }];
+    const presentation = buildPresentationFromOrganizer({
+      title: "Bounds",
+      documents,
+      sequence: [
+        { id: "reading:global", type: "reading", sourceStem: "Reading_I", phase: "mass" },
+        {
+          id: "reading:narrow",
+          type: "reading",
+          sourceStem: "Reading_I",
+          phase: "mass",
+          styleOverrides: {
+            bounds: { body: { left: 600, right: 600, top: 130, bottom: 110 } }
+          }
+        }
+      ],
+      manualSlides: {},
+      screenSettings: {
+        fontSizePx: 60,
+        fontFamily: "Merriweather",
+        readingTextHeightPx: 840,
+        readingTextMarginXPx: 80,
+        resolution: "1080p"
+      }
+    });
+    const globalPages = presentation.slides.filter((slide) => slide.organizerItemId === "reading:global");
+    const narrowPages = presentation.slides.filter((slide) => slide.organizerItemId === "reading:narrow");
+
+    expect(narrowPages.length).toBeGreaterThan(globalPages.length);
+    expect(globalPages[0].styleOverrides.bounds).toBeUndefined();
+    expect(narrowPages[0].styleOverrides.bounds.body).toEqual({ left: 600, right: 600, top: 130, bottom: 110 });
+  });
+
   test("normalizes legacy values", () => {
     expect(normalizeType("reading-group")).toBe("reading");
     expect(normalizeType("graphic")).toBe("image");

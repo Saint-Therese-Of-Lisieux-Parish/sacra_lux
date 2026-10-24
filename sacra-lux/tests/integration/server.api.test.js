@@ -1129,6 +1129,31 @@ describe("server api integration", () => {
     expect(stateRes.body.screenSettings.textSlideTextOutlineWidthPx).toBe(20);
   });
 
+  test("screen settings keep independent valid text bounds", async () => {
+    const res = await request(app)
+      .post("/api/screen-settings")
+      .send({
+        textBounds: {
+          readingBody: { left: 100, right: 120, top: 140, bottom: 160 },
+          readingPassage: { left: 200, right: 800, top: 50, bottom: 900 },
+          hymn: { left: 300, right: 320, top: 180, bottom: 200 },
+          prayer: { left: 400, right: 420, top: 220, bottom: 240 },
+          text: { left: -10, right: 5000, top: "bad", bottom: 5000 }
+        }
+      })
+      .expect(200);
+
+    expect(res.body.screenSettings.textBounds.readingBody).toEqual({ left: 100, right: 120, top: 140, bottom: 160 });
+    expect(res.body.screenSettings.textBounds.readingPassage).toEqual({ left: 200, right: 800, top: 50, bottom: 900 });
+    expect(res.body.screenSettings.textBounds.hymn).toEqual({ left: 300, right: 320, top: 180, bottom: 200 });
+    expect(res.body.screenSettings.textBounds.prayer).toEqual({ left: 400, right: 420, top: 220, bottom: 240 });
+    expect(res.body.screenSettings.textBounds.text.left).toBe(0);
+    expect(1920 - res.body.screenSettings.textBounds.text.left - res.body.screenSettings.textBounds.text.right)
+      .toBeGreaterThanOrEqual(120);
+    expect(1080 - res.body.screenSettings.textBounds.text.top - res.body.screenSettings.textBounds.text.bottom)
+      .toBeGreaterThanOrEqual(80);
+  });
+
   test("screen settings toggle the spoken reading ending", async () => {
     await request(app)
       .post("/api/screen-settings")

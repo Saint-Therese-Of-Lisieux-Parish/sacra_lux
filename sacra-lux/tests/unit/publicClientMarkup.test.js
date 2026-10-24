@@ -46,4 +46,15 @@ describe("public client markup guards", () => {
     expect(screenHtml).toContain("settings.readingShowEnding !== false");
     expect(screenHtml).toContain("groupSettings.readingShowEnding !== false");
   });
+
+  test("text bounds editors expose global and group controls", () => {
+    expect(appHtml).toContain('id="textBoundsLayout"');
+    expect(appHtml).toContain('id="textBoundsBox"');
+    expect(appHtml).toContain('id="editorBoundsPanel"');
+    expect(appHtml).toContain('id="editorBoundsUseGlobal"');
+    expect(appHtml).toContain("Behold, I will make those of the assembly of Satan");
+    expect(appHtml).toContain("Revelation 3:9");
+    expect(appHtml).toContain('data-handle="nw"');
+    expect(appHtml).toContain('data-handle="se"');
+  });
 });
