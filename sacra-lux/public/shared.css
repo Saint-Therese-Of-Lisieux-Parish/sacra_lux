@@ -139,7 +139,7 @@ button.danger:active {
 
 button.danger-outline {
   background: transparent;
-  color: var(--danger);
+  color: var(--danger-text, var(--danger));
   border-color: var(--danger);
   box-shadow: none;
 }

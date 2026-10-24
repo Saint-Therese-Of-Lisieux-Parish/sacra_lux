@@ -162,7 +162,7 @@
       margin: 0 0.72rem var(--remote-stack-gap);
       min-height: 0;
       font-size: 0.78rem;
-      color: var(--danger);
+      color: var(--danger-text, var(--danger));
       text-align: center;
     }
 
@@ -233,7 +233,7 @@
 
     .cue-group.group-active>.cue-group-summary {
       background: var(--active-bg);
-      color: var(--accent);
+      color: var(--accent-text, var(--accent));
     }
 
     .cue-group-summary::after {
