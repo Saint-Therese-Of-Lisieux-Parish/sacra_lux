@@ -2212,32 +2212,18 @@
     }
 
     .preview-next {
-      background: linear-gradient(to bottom, var(--accent-2), color-mix(in srgb, var(--accent-2), black 12%));
+      background: var(--accent-2);
       color: var(--ink-on-accent);
-      border-color: var(--strong-border);
-      border-bottom-color: color-mix(in srgb, var(--strong-border), black 15%);
-      text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-      box-shadow:
-        0 0.5px 1px rgba(0, 0, 0, 0.15),
-        0 1px 2px rgba(0, 0, 0, 0.1),
-        inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+      border-color: var(--accent-2);
     }
 
     .preview-next:hover {
-      background: linear-gradient(to bottom,
-        color-mix(in srgb, var(--accent-2), white 8%),
-        color-mix(in srgb, var(--accent-2), black 5%));
+      background: color-mix(in srgb, var(--accent-2), white 12%);
     }
 
     .preview-next:active {
-      background: linear-gradient(to bottom,
-        color-mix(in srgb, var(--accent-2), black 8%),
-        color-mix(in srgb, var(--accent-2), black 2%));
-      color: var(--ink-on-accent);
-      border-color: var(--strong-border);
-      box-shadow:
-        inset 0 1px 3px rgba(0, 0, 0, 0.2),
-        0 0.5px 0 rgba(255, 255, 255, 0.1);
+      background: color-mix(in srgb, var(--accent-2), black 14%);
+      box-shadow: none;
     }
 
     @media (max-width: 900px) {
