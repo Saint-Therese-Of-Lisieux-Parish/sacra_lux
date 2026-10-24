@@ -6,6 +6,14 @@ Commit reviewed: `b6531bd` (`origin/master`)
 
 Scope: Review the nested Node/Electron application for bugs, missing features, and test gaps. Each finding uses EARS wording and can become a GitHub Issue.
 
+## Status update
+
+Scanned SHA: `505105ae6a9591a9fa59c89a1527fd9c05bd5b9f`
+
+The SL-013 evidence below says `.github/workflows/release.yml` has no signing or notarization step. That was true at `b6531bd`. At the scanned SHA, the Release workflow signs, notarizes, and staples the macOS ZIP and DMG files. `CSC_IDENTITY_AUTO_DISCOVERY` is still `"false"`. The workflow imports the Apple certificate instead of using automatic discovery. Windows ZIP files are still not signed.
+
+This note does not close SL-011 or SL-012.
+
 ## Verification summary
 
 - `npm test`: passed, 20 unit suites with 239 tests and 9 integration suites with 106 tests.
