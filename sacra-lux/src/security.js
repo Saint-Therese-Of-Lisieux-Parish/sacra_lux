@@ -150,6 +150,7 @@ function isStartTokenValid({ token, ip, userAgent }) {
 
 // Clear one start link, or every start link when no token is given.
 function clearStartToken(token) {
+  // eslint-disable-next-line security/detect-possible-timing-attacks -- compares against undefined, not a secret
   if (token === undefined) {
     startTokens.clear();
     return;

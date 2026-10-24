@@ -264,6 +264,7 @@ function createManualSlideRecord(type = "image") {
   };
 }
 
+// eslint-disable-next-line security/detect-unsafe-regex -- one lazy group with a fixed suffix, so matching is linear; input is a file stem
 const ALTERNATE_STEM = /^(.+?)[-_]alternate(?:[-_]\d+)?$/i;
 
 // Group each base reading with its alternates, for example Gospel and Gospel-alternate_1.

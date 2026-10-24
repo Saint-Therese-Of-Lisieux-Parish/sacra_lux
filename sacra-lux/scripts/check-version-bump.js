@@ -1,3 +1,4 @@
+// eslint-disable-next-line security/detect-unsafe-regex -- character classes only, no nested quantifier; input is a version string
 const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function parseVersion(version) {
