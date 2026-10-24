@@ -222,12 +222,13 @@
     .reading-passage {
       display: -webkit-box;
       font-size: var(--reading-passage-size, 44px);
-      line-height: 1.15;
+      font-style: var(--reading-passage-style, normal);
+      line-height: var(--reading-passage-line-height, 1.15);
       opacity: 0.92;
       color: var(--reading-passage-color, #e8d5a0);
       font-family: var(--reading-passage-font, "Source Sans 3", sans-serif);
       font-weight: var(--reading-passage-weight, 700);
-      letter-spacing: 0.03em;
+      letter-spacing: var(--reading-passage-letter-spacing, 0.03em);
       max-width: 100%;
       overflow-wrap: anywhere;
       overflow: hidden;
@@ -236,7 +237,7 @@
       -webkit-box-orient: vertical;
       -webkit-text-stroke: var(--reading-passage-stroke, 0);
       paint-order: stroke fill;
-      text-shadow: var(--reading-text-shadow, 0 1px 6px rgba(0, 0, 0, 0.7));
+      text-shadow: var(--reading-passage-shadow, var(--reading-text-shadow, 0 1px 6px rgba(0, 0, 0, 0.7)));
     }
 
     .reading-body {
@@ -287,9 +288,10 @@
 
     /* Section label: "FIRST READING", "PSALM", "GOSPEL" etc. */
     .reading-section-name {
-      font-family: var(--reading-passage-font, "Source Sans 3", sans-serif);
-      font-size: calc(var(--reading-passage-size, 44px) * 0.5);
-      font-weight: var(--reading-passage-weight, 700);
+      font-family: var(--reading-section-font, var(--reading-passage-font, "Source Sans 3", sans-serif));
+      font-size: var(--reading-section-size, calc(var(--reading-passage-size, 44px) * 0.5));
+      font-weight: var(--reading-section-weight, var(--reading-passage-weight, 700));
+      font-style: var(--reading-section-style, normal);
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--reading-label-color, rgba(232, 213, 160, 0.55));
@@ -300,7 +302,7 @@
       text-overflow: ellipsis;
       -webkit-text-stroke: var(--reading-section-stroke, 0);
       paint-order: stroke fill;
-      text-shadow: var(--reading-text-shadow, 0 1px 5px rgba(0, 0, 0, 0.7));
+      text-shadow: var(--reading-section-shadow, var(--reading-text-shadow, 0 1px 5px rgba(0, 0, 0, 0.7)));
     }
 
     /* Page X / Y indicator in the top-right corner for multi-page readings. */
@@ -1519,10 +1521,46 @@
       } else {
         stage.style.setProperty("--reading-section-stroke", "0");
       }
-      if (settings.readingTextShadow !== false) {
-        stage.style.setProperty("--reading-text-shadow", "0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6)");
+      const readingShadow = "0 1px 10px rgba(0,0,0,0.8), 0 0 3px rgba(0,0,0,0.6)";
+      stage.style.setProperty("--reading-text-shadow", settings.readingTextShadow !== false ? readingShadow : "none");
+      // Reference: its own shadow, italic, line spacing, and letter spacing
+      const referenceShadow = settings.readingPassageShadow ?? (settings.readingTextShadow !== false);
+      stage.style.setProperty("--reading-passage-shadow", referenceShadow ? readingShadow : "none");
+      stage.style.setProperty("--reading-passage-style", settings.readingPassageItalic ? "italic" : "normal");
+      stage.style.setProperty("--reading-passage-line-height",
+        String(Math.min(3, Math.max(1, Number(settings.readingPassageLineHeight) || 1.15))));
+      if (settings.readingPassageLetterSpacingPx !== undefined && settings.readingPassageLetterSpacingPx !== null) {
+        const passageSpacing = Math.min(10, Math.max(-2, Number(settings.readingPassageLetterSpacingPx) || 0));
+        stage.style.setProperty("--reading-passage-letter-spacing", `${passageSpacing}px`);
       } else {
-        stage.style.setProperty("--reading-text-shadow", "none");
+        stage.style.removeProperty("--reading-passage-letter-spacing");
+      }
+      // Section title: its own font, size, color, weight, italic, and shadow
+      if (settings.readingSectionFont) {
+        const sectionFontSafe = String(settings.readingSectionFont).replace(/"/g, "").trim();
+        stage.style.setProperty("--reading-section-font", `"${sectionFontSafe}", sans-serif`);
+      } else {
+        stage.style.removeProperty("--reading-section-font");
+      }
+      if (Number(settings.readingSectionSizePx) > 0) {
+        stage.style.setProperty("--reading-section-size", `${Math.min(90, Math.max(10, Number(settings.readingSectionSizePx)))}px`);
+      } else {
+        stage.style.removeProperty("--reading-section-size");
+      }
+      if (/^#[0-9a-fA-F]{6}$/.test(String(settings.readingSectionColor || ""))) {
+        stage.style.setProperty("--reading-label-color",
+          `color-mix(in srgb, ${settings.readingSectionColor} 55%, transparent)`);
+      }
+      if (typeof settings.readingSectionBold === "boolean") {
+        stage.style.setProperty("--reading-section-weight", settings.readingSectionBold ? "700" : "400");
+      } else {
+        stage.style.removeProperty("--reading-section-weight");
+      }
+      stage.style.setProperty("--reading-section-style", settings.readingSectionItalic ? "italic" : "normal");
+      if (typeof settings.readingSectionShadow === "boolean") {
+        stage.style.setProperty("--reading-section-shadow", settings.readingSectionShadow ? readingShadow : "none");
+      } else {
+        stage.style.removeProperty("--reading-section-shadow");
       }
 
       // ---- Text/Prayer/Hymn slide layout ----
