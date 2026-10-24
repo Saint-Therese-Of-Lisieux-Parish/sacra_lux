@@ -542,6 +542,18 @@
       min-width: 0;
     }
 
+    .field-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .field-row > .modal-field {
+      height: auto;
+    }
+
     .modal-span-3 { grid-column: span 3; }
     .modal-span-4 { grid-column: span 4; }
     .modal-span-6 { grid-column: span 6; }
@@ -2122,66 +2134,9 @@
       background: var(--panel);
     }
 
-    #editorSectionCountdown .modal-field-grid {
-      grid-template-columns: 0.78fr 0.98fr 1fr 0.7fr;
-      gap: 0.55rem;
-      margin-top: 0.4rem;
-    }
-
-    #editorSectionCountdown .modal-field,
-    #editorSectionCountdown .settings-toggle {
-      background: color-mix(in srgb, white 88%, #eef4f8 12%);
-    }
-
-    #editorSectionCountdown .modal-field,
-    #editorSectionCountdown .settings-toggle {
-      grid-column: auto;
-      padding: 0.56rem 0.64rem;
-    }
-
-    #editorSectionCountdown .modal-field label {
-      gap: 0.28rem;
-      font-size: 0.8rem;
-    }
-
-    #editorSectionCountdown .settings-toggle {
-      align-items: flex-start;
-      gap: 0.48rem;
-      padding-top: 0.62rem;
-    }
-
-    #editorSectionCountdown .settings-toggle-copy {
-      gap: 0.12rem;
-    }
-
     .countdown-font-status {
       min-height: 0.85rem;
       margin-top: 0;
-    }
-
-    #editorSectionCountdown .settings-toggle-title {
-      font-size: 0.78rem;
-      line-height: 1.15;
-    }
-
-    #editorSectionCountdown .settings-toggle-help,
-    #editorSectionCountdown .settings-field-help {
-      font-size: 0.68rem;
-      line-height: 1.2;
-    }
-
-    #editorSectionCountdown .modal-field input,
-    #editorSectionCountdown .modal-field select {
-      min-width: 0;
-      min-height: 2.4rem;
-      padding: 0.48rem 0.72rem;
-      font-size: 0.82rem;
-      border-radius: 10px;
-    }
-
-    #editorSectionCountdown .settings-toggle input[type=checkbox] {
-      width: 0.92rem;
-      height: 0.92rem;
     }
 
     .editor-section-label {
@@ -3873,13 +3828,13 @@
           <div id="editorSectionCountdown" class="editor-type-section" hidden>
             <div class="editor-section-label">Countdown Settings</div>
             <div class="editor-help-text">Set the timer length, choose a display style, and select an optional font override.</div>
-            <div class="modal-field-grid">
-              <div class="modal-field modal-span-3">
-                <label>Duration (seconds)
+            <div class="field-row">
+              <div class="modal-field" style="width:7rem">
+                <label>Duration (sec)
                   <input id="editorCountdownSec" type="number" min="1" max="3600" value="60">
                 </label>
               </div>
-              <div class="modal-field modal-span-3">
+              <div class="modal-field" style="width:10rem">
                 <label>Style
                   <select id="editorCountdownStyle">
                     <option value="ring">Ring</option>
@@ -3891,7 +3846,7 @@
                   </select>
                 </label>
               </div>
-              <div class="modal-field modal-span-3">
+              <div class="modal-field" style="width:14rem">
                 <label>Font
                   <select id="editorCountdownFont">
                     <option value="">Use display font</option>
@@ -3915,15 +3870,15 @@
                     <option value="Poppins">Poppins</option>
                     <option value="Raleway">Raleway</option>
                   </select>
-                  <span id="editorCountdownFontStatus" class="settings-field-help countdown-font-status">Uses the display font.</span>
                 </label>
               </div>
-              <div class="modal-field modal-span-3">
+              <div class="modal-field" style="width:6rem">
                 <label>Size (%)
                   <input id="editorCountdownSizePercent" type="number" min="50" max="200" step="5" value="100">
                 </label>
               </div>
             </div>
+            <span id="editorCountdownFontStatus" class="settings-field-help countdown-font-status">Uses the display font.</span>
           </div>
 
           <!-- Export to PDF (Reading, Prayer, Hymn only) -->
