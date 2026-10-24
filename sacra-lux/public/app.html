@@ -316,12 +316,12 @@
     /* ── Slide editor modal dialog ──────────────────────────────────────── */
     #editorDialog {
       border: 1px solid color-mix(in srgb, var(--line), black 10%);
-      border-radius: 22px;
+      border-radius: var(--radius-lg);
       padding: 0;
       width: min(920px, 96vw);
       max-height: 90vh;
       overflow: hidden;
-      box-shadow: 0 18px 48px var(--shadow-strong);
+      box-shadow: var(--shadow-popup);
       background:
         radial-gradient(circle at top right, color-mix(in srgb, var(--bg-alt), white 18%) 0%, transparent 34%),
         linear-gradient(180deg, color-mix(in srgb, var(--panel-alt), white 14%), var(--panel-alt));
@@ -346,11 +346,11 @@
     #pinDialog,
     #screenDialog {
       border: 1px solid color-mix(in srgb, var(--line), black 10%);
-      border-radius: 22px;
+      border-radius: var(--radius-lg);
       padding: 0;
       width: min(520px, 94vw);
       overflow: hidden;
-      box-shadow: 0 18px 48px var(--shadow-strong);
+      box-shadow: var(--shadow-popup);
       background:
         radial-gradient(circle at top right, color-mix(in srgb, var(--bg-alt), white 18%) 0%, transparent 34%),
         linear-gradient(180deg, color-mix(in srgb, var(--panel-alt), white 14%), var(--panel-alt));
@@ -960,7 +960,7 @@
     /* ── Display settings dialog ─────────────────────────────────────────── */
     .settings-dialog {
       border: 1px solid color-mix(in srgb, var(--line), black 10%);
-      border-radius: 22px;
+      border-radius: var(--radius-lg);
       background:
         radial-gradient(circle at top right, color-mix(in srgb, var(--bg-alt), white 18%) 0%, transparent 34%),
         linear-gradient(180deg, color-mix(in srgb, var(--panel-alt), white 14%), var(--panel-alt));
@@ -969,7 +969,7 @@
       width: min(96vw, 1120px);
       max-height: 90vh;
       overflow: hidden;
-      box-shadow: 0 18px 48px var(--shadow-strong);
+      box-shadow: var(--shadow-popup);
     }
 
     .settings-dialog::backdrop {
@@ -1893,8 +1893,8 @@
       padding: 0.55rem;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 12px;
-      box-shadow: 0 14px 28px var(--shadow-strong);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-popup);
     }
 
     .file-actions-menu[open] .file-actions-popover {
@@ -2079,8 +2079,8 @@
       z-index: 200;
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 10px;
-      box-shadow: 0 4px 14px var(--shadow);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-popup);
       display: flex;
       flex-direction: column;
       min-width: 130px;
