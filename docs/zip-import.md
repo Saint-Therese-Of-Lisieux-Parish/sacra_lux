@@ -11,7 +11,9 @@ you import a Mass, and the conditions for a successful import. The code is in
 1. Put `mass.json` at the root of the ZIP. If `mass.json` is missing, the
    importer uses `settings.json` from the root.
 2. Put reading text files in `readings/`. Put media files in `assets/`.
-3. Keep every file one level deep. The importer ignores nested paths.
+3. Put each file directly in an accepted folder: `readings/`,
+   `readings/assets/`, `assets/`, or `uploads/`. The importer ignores files
+   in deeper folders.
 4. Keep the ZIP within the [limits](#limits).
 5. Use only the [media extensions](#media-extensions) in the list.
 
@@ -31,7 +33,8 @@ my-mass.zip
     └── old-image.png      media from older exports, copied to assets/
 ```
 
-The Mass folder on disk (`~/.sacra-lux/current_mass/`) has this result:
+The Mass folder on disk is `~/.sacra-lux/current_mass/`. After the import,
+it has this result:
 
 ```text
 current_mass/
@@ -50,7 +53,10 @@ The application can also write other files to the Mass folder, for example
 ## Accepted Entries
 
 The importer extracts only the entries in this table. The importer does not
-create other folders. Entry names are case sensitive.
+create other folders. Folder names, `mass.json`, `settings.json`, and the
+`.txt` extension of a reading file are case sensitive. For example, the
+importer ignores `Readings/a.txt` and `readings/A.TXT`. Only the media
+extension check ignores case.
 
 | ZIP path | Name rule | Destination |
 | --- | --- | --- |
@@ -113,12 +119,15 @@ reads the `format` and `version` keys to choose how to read the file.
 - The document must pass the validation in `src/massDocument.js`. Unknown keys
   at any level are errors. See [mass_document.md](./mass_document.md).
 - A v3 `mass.json` carries its own text. The `readings/` folder is optional
-  for v3. The importer uses the `.txt` files only if the document produces no
-  reading documents.
+  for v3. The importer uses the `.txt` files in the Mass folder only if the
+  v3 document produces no reading documents. Each item with `kind` equal to
+  `reading` produces one reading document. A v3 document has no reading
+  documents when it has no such item.
 - Media references use the form `assets/<file>`. The `<file>` has no `/`. A
   reference with another form is an error: `Unsupported asset ref "...".`
 - Put each referenced file in `assets/` in the ZIP. The import does not fail
-  if a referenced file is missing, but the slide shows no media.
+  if a referenced file is missing, and the response does not list missing
+  files. The slide shows no media.
 
 ### Legacy Packages
 
@@ -129,8 +138,11 @@ reads the `format` and `version` keys to choose how to read the file.
   (or `displaySettings`), `organizerSequence`, and `manualSlides` (or
   `manualCues`).
 - Media references can use `/api/mass-asset/<file>` or
-  `/static/uploads/<file>`. The matching files are in `assets/` or
-  `uploads/`.
+  `/static/uploads/<file>`. The importer does not rewrite the references in
+  `mass.json`. It copies the files from `assets/`, `readings/assets/`, and
+  `uploads/` into the `assets/` folder of the Mass folder, so the app finds
+  a file by the `/api/mass-asset/<file>` form. The app does not serve
+  `/static/uploads/`.
 
 ## Limits
 
@@ -140,7 +152,7 @@ reads the `format` and `version` keys to choose how to read the file.
 | Number of entries | 1000 |
 | Size of one entry, uncompressed | 50 MiB (52,428,800 bytes) |
 | Total size, uncompressed | 250 MiB (262,144,000 bytes) |
-| Rate limit | 10 requests in 10 minutes, 1 at a time |
+| Rate limit | 10 requests in 10 minutes and 1 at a time, per client IP |
 
 The importer checks the limits against the sizes in the ZIP headers before it
 extracts any file. The importer also counts the bytes that it extracts. If an
@@ -148,6 +160,10 @@ entry has more or fewer bytes than its header declares, or if the extracted
 bytes pass the entry limit or the total limit, the importer rejects the ZIP.
 A ZIP that exceeds a limit is rejected as a whole, and the current Mass stays
 unchanged.
+
+The 50 MiB compressed limit applies to the whole ZIP. A large `mp4` file and
+the other files together can exceed it. An `mp4` file is usually already
+compressed, so it takes almost the same space in the ZIP.
 
 ## Request Format
 
