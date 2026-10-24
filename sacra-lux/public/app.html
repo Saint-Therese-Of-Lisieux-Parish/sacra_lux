@@ -1579,52 +1579,12 @@
       background: var(--control-bg-hover);
     }
 
-    .settings-advanced {
-      margin-top: 0;
-      border: 1px dashed color-mix(in srgb, var(--line), black 6%);
-      border-radius: var(--radius);
-      padding: 0.2rem 0.85rem 0.85rem;
-      background: color-mix(in srgb, var(--panel), var(--bg-alt) 7%);
-    }
 
-    .settings-advanced>summary {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--ink);
-      cursor: pointer;
-      user-select: none;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.7rem 0 0.2rem;
-    }
 
-    .settings-advanced>summary::-webkit-details-marker {
-      display: none;
-    }
 
-    .settings-advanced>summary::before {
-      content: "▸";
-      font-size: 0.7rem;
-      color: var(--accent-text, var(--accent));
-      transition: transform 0.15s;
-    }
 
-    .settings-advanced[open]>summary::before {
-      transform: rotate(90deg);
-    }
 
-    .settings-advanced-copy {
-      margin: 0 0 0.8rem;
-      font-size: 0.8rem;
-      line-height: 1.45;
-      color: var(--ink-soft);
-    }
 
-    .settings-advanced .settings-row {
-      margin-top: 0.45rem;
-    }
 
     .settings-apply-row {
       position: sticky;
@@ -3242,43 +3202,6 @@
                 </div>
               </div>
 
-              <details class="settings-advanced" hidden>
-                <summary>Fine-tune reading positioning</summary>
-                <p class="settings-advanced-copy">Most parishes should not need these often. Adjust only when your projector framing, margins, or confidence monitor layout needs extra control.</p>
-                <div class="settings-field-grid">
-                  <div class="settings-field settings-span-3">
-                    <label>Side padding
-                      <input id="readingTextMarginXPx" type="number" min="0" max="260" step="1" value="80"
-                        title="Space on left and right sides (pixels)">
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Top padding
-                      <input id="readingTextMarginYPx" type="number" min="0" max="360" step="1" value="130"
-                        title="Space from top of screen (pixels)">
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Content height
-                      <input id="readingTextHeightPx" type="number" min="120" max="980" step="1" value="840"
-                        title="Height of the text area (pixels)">
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Reference offset
-                      <input id="readingPassageYPx" type="number" min="0" max="1060" step="1" value="70"
-                        title="Vertical position of the scripture reference (pixels)">
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Reference width
-                      <input id="readingPassageWidthPx" type="number" min="180" max="1760" step="1" value="650"
-                        title="Width of the scripture reference area (pixels)">
-                    </label>
-                  </div>
-                </div>
-              </details>
-
               <div class="settings-subsection" data-settings-panel="text" hidden>
                 <div>
                   <div class="settings-subsection-label">Slide Text</div>
@@ -3395,31 +3318,6 @@
                   </label>
                 </div>
               </div>
-
-              <details class="settings-advanced" hidden>
-                <summary>Fine-tune text slide positioning</summary>
-                <p class="settings-advanced-copy">Only adjust these if your projection area or text density needs extra nudging.</p>
-                <div class="settings-field-grid">
-                  <div class="settings-field settings-span-3">
-                    <label>Side padding
-                      <input id="textSlideMarginXPx" type="number" min="0" max="400" step="1" value="110"
-                        title="Space on left and right sides (pixels)">
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Top padding
-                      <input id="textSlideMarginYPx" type="number" min="0" max="400" step="1" value="90"
-                        title="Space from top of screen (pixels)">
-                    </label>
-                  </div>
-                  <div class="settings-field settings-span-3">
-                    <label>Content height
-                      <input id="textSlideTextHeightPx" type="number" min="120" max="1020" step="1" value="900"
-                        title="Height of the text area (pixels)">
-                    </label>
-                  </div>
-                </div>
-              </details>
             </section>
 
             <section class="settings-section settings-section--span-2" id="textBoundsSettings">
@@ -4385,11 +4283,6 @@
       readingShowPageNumber: document.getElementById("readingShowPageNumber"),
       readingShowLabel: document.getElementById("readingShowLabel"),
       readingShowEnding: document.getElementById("readingShowEnding"),
-      readingTextMarginXPx: document.getElementById("readingTextMarginXPx"),
-      readingTextMarginYPx: document.getElementById("readingTextMarginYPx"),
-      readingTextHeightPx: document.getElementById("readingTextHeightPx"),
-      readingPassageYPx: document.getElementById("readingPassageYPx"),
-      readingPassageWidthPx: document.getElementById("readingPassageWidthPx"),
       textSlideTextAlign: document.getElementById("textSlideTextAlign"),
       textSlideTextVAlign: document.getElementById("textSlideTextVAlign"),
       textSlideTextFont: document.getElementById("textSlideTextFont"),
@@ -4398,9 +4291,6 @@
       textSlideTextColor: document.getElementById("textSlideTextColor"),
       textSlideLineHeight: document.getElementById("textSlideLineHeight"),
       textSlideLetterSpacingPx: document.getElementById("textSlideLetterSpacingPx"),
-      textSlideMarginXPx: document.getElementById("textSlideMarginXPx"),
-      textSlideMarginYPx: document.getElementById("textSlideMarginYPx"),
-      textSlideTextHeightPx: document.getElementById("textSlideTextHeightPx"),
       textBoundsLayout: document.getElementById("textBoundsLayout"),
       textBoundsReset: document.getElementById("textBoundsReset"),
       textBoundsLeft: document.getElementById("textBoundsLeft"),
@@ -5542,11 +5432,6 @@
         readingShowPageNumber: Boolean(els.readingShowPageNumber.checked),
         readingShowLabel: Boolean(els.readingShowLabel.checked),
         readingShowEnding: Boolean(els.readingShowEnding.checked),
-        readingTextMarginXPx: Number(els.readingTextMarginXPx.value || 80),
-        readingTextMarginYPx: Number(els.readingTextMarginYPx.value || 130),
-        readingTextHeightPx: Number(els.readingTextHeightPx.value || 840),
-        readingPassageYPx: Number(els.readingPassageYPx.value || 70),
-        readingPassageWidthPx: Number(els.readingPassageWidthPx.value || 650),
         readingTextItalic: Boolean(els.readingTextItalic.checked),
         readingTextShadow: Boolean(els.readingTextShadow.checked),
         readingTextOutline: Boolean(els.readingTextOutline.checked),
@@ -5561,9 +5446,6 @@
         textSlideLineHeight: Number(els.textSlideLineHeight.value) || 1.55,
         textSlideLetterSpacingPx: Number(els.textSlideLetterSpacingPx.value) || 0,
         textSlideShowPageNumber: Boolean(els.textSlideShowPageNumber.checked),
-        textSlideMarginXPx: Number(els.textSlideMarginXPx.value || 110),
-        textSlideMarginYPx: Number(els.textSlideMarginYPx.value || 90),
-        textSlideTextHeightPx: Number(els.textSlideTextHeightPx.value || 900),
         textSlideTextItalic: Boolean(els.textSlideTextItalic.checked),
         textSlideTextShadow: Boolean(els.textSlideTextShadow.checked),
         textSlideTextOutline: Boolean(els.textSlideTextOutline.checked),
@@ -6569,21 +6451,6 @@
         els.readingShowPageNumber.checked = screen.readingShowPageNumber !== false;
         els.readingShowLabel.checked = screen.readingShowLabel !== false;
         els.readingShowEnding.checked = screen.readingShowEnding !== false;
-        if (screen.readingTextMarginXPx !== undefined) {
-          els.readingTextMarginXPx.value = String(screen.readingTextMarginXPx);
-        }
-        if (screen.readingTextMarginYPx !== undefined) {
-          els.readingTextMarginYPx.value = String(screen.readingTextMarginYPx);
-        }
-        if (screen.readingTextHeightPx !== undefined) {
-          els.readingTextHeightPx.value = String(screen.readingTextHeightPx);
-        }
-        if (screen.readingPassageYPx !== undefined) {
-          els.readingPassageYPx.value = String(screen.readingPassageYPx);
-        }
-        if (screen.readingPassageWidthPx !== undefined) {
-          els.readingPassageWidthPx.value = String(screen.readingPassageWidthPx);
-        }
         els.readingTextItalic.checked = Boolean(screen.readingTextItalic);
         els.readingTextShadow.checked = screen.readingTextShadow !== false;
         els.readingTextOutline.checked = Boolean(screen.readingTextOutline);
@@ -6617,15 +6484,6 @@
           els.textSlideLetterSpacingPx.value = String(screen.textSlideLetterSpacingPx || 0);
         }
         els.textSlideShowPageNumber.checked = screen.textSlideShowPageNumber !== false;
-        if (screen.textSlideMarginXPx !== undefined) {
-          els.textSlideMarginXPx.value = String(screen.textSlideMarginXPx);
-        }
-        if (screen.textSlideMarginYPx !== undefined) {
-          els.textSlideMarginYPx.value = String(screen.textSlideMarginYPx);
-        }
-        if (screen.textSlideTextHeightPx !== undefined) {
-          els.textSlideTextHeightPx.value = String(screen.textSlideTextHeightPx);
-        }
         els.textSlideTextItalic.checked = Boolean(screen.textSlideTextItalic);
         els.textSlideTextShadow.checked = screen.textSlideTextShadow !== false;
         els.textSlideTextOutline.checked = Boolean(screen.textSlideTextOutline);
@@ -8002,53 +7860,6 @@
       buildThemePicker();
     }).catch(() => { });
 
-    function syncBoundsFromLegacyControls(kind) {
-      const canvases = {
-        "720p": { width: 1280, height: 720 },
-        "1080p": { width: 1920, height: 1080 },
-        "1440p": { width: 2560, height: 1440 },
-        "4k": { width: 3840, height: 2160 }
-      };
-      const canvas = canvases[els.screenResolution.value] || canvases["1080p"];
-      const scaleX = 1920 / canvas.width;
-      const scaleY = 1080 / canvas.height;
-      if (kind === "reading") {
-        const marginX = Number(els.readingTextMarginXPx.value) || 0;
-        const top = Number(els.readingTextMarginYPx.value) || 0;
-        const height = Number(els.readingTextHeightPx.value) || 120;
-        globalTextBoundsDraft.readingBody = normalizeTextBoxBounds({
-          left: marginX * scaleX,
-          right: marginX * scaleX,
-          top: top * scaleY,
-          bottom: (canvas.height - top - height) * scaleY
-        }, DEFAULT_TEXT_BOUNDS.readingBody);
-      } else if (kind === "passage") {
-        const left = Number(els.readingTextMarginXPx.value) || 0;
-        const top = Number(els.readingPassageYPx.value) || 0;
-        const width = Number(els.readingPassageWidthPx.value) || 120;
-        const current = globalTextBoundsDraft.readingPassage;
-        const height = 1080 - current.top - current.bottom;
-        globalTextBoundsDraft.readingPassage = normalizeTextBoxBounds({
-          left: left * scaleX,
-          right: (canvas.width - left - width) * scaleX,
-          top: top * scaleY,
-          bottom: 1080 - (top * scaleY) - height
-        }, DEFAULT_TEXT_BOUNDS.readingPassage);
-      } else {
-        const marginX = Number(els.textSlideMarginXPx.value) || 0;
-        const top = Number(els.textSlideMarginYPx.value) || 0;
-        const height = Number(els.textSlideTextHeightPx.value) || 120;
-        const bounds = normalizeTextBoxBounds({
-          left: marginX * scaleX,
-          right: marginX * scaleX,
-          top: top * scaleY,
-          bottom: (canvas.height - top - height) * scaleY
-        });
-        for (const key of ["text", "prayer", "hymn"]) globalTextBoundsDraft[key] = { ...bounds };
-      }
-      renderBoundsEditor("global");
-    }
-
     els.textBoundsLayout.addEventListener("change", () => renderBoundsEditor("global"));
     [els.textBoundsLeft, els.textBoundsRight, els.textBoundsTop, els.textBoundsBottom].forEach((input) => {
       input.addEventListener("input", () => readBoundsEditorFields("global"));
@@ -8209,24 +8020,6 @@
     els.readingShowPageNumber.addEventListener("change", scheduleAutoApply);
     els.readingShowLabel.addEventListener("change", scheduleAutoApply);
     els.readingShowEnding.addEventListener("change", scheduleAutoApply);
-    [els.readingTextMarginXPx, els.readingTextMarginYPx, els.readingTextHeightPx].forEach((input) => {
-      input.addEventListener("input", () => syncBoundsFromLegacyControls("reading"));
-      input.addEventListener("change", () => syncBoundsFromLegacyControls("reading"));
-    });
-    [els.readingPassageYPx, els.readingPassageWidthPx].forEach((input) => {
-      input.addEventListener("input", () => syncBoundsFromLegacyControls("passage"));
-      input.addEventListener("change", () => syncBoundsFromLegacyControls("passage"));
-    });
-    els.readingTextMarginXPx.addEventListener("input", scheduleAutoApply);
-    els.readingTextMarginXPx.addEventListener("change", scheduleAutoApply);
-    els.readingTextMarginYPx.addEventListener("input", scheduleAutoApply);
-    els.readingTextMarginYPx.addEventListener("change", scheduleAutoApply);
-    els.readingTextHeightPx.addEventListener("input", scheduleAutoApply);
-    els.readingTextHeightPx.addEventListener("change", scheduleAutoApply);
-    els.readingPassageYPx.addEventListener("input", scheduleAutoApply);
-    els.readingPassageYPx.addEventListener("change", scheduleAutoApply);
-    els.readingPassageWidthPx.addEventListener("input", scheduleAutoApply);
-    els.readingPassageWidthPx.addEventListener("change", scheduleAutoApply);
     els.readingTextItalic.addEventListener("change", scheduleAutoApply);
     els.readingTextShadow.addEventListener("change", scheduleAutoApply);
     els.readingTextOutline.addEventListener("change", scheduleAutoApply);
@@ -8247,16 +8040,6 @@
     els.textSlideLineHeight.addEventListener("change", scheduleAutoApply);
     els.textSlideLetterSpacingPx.addEventListener("input", scheduleAutoApply);
     els.textSlideLetterSpacingPx.addEventListener("change", scheduleAutoApply);
-    [els.textSlideMarginXPx, els.textSlideMarginYPx, els.textSlideTextHeightPx].forEach((input) => {
-      input.addEventListener("input", () => syncBoundsFromLegacyControls("text"));
-      input.addEventListener("change", () => syncBoundsFromLegacyControls("text"));
-    });
-    els.textSlideMarginXPx.addEventListener("input", scheduleAutoApply);
-    els.textSlideMarginXPx.addEventListener("change", scheduleAutoApply);
-    els.textSlideMarginYPx.addEventListener("input", scheduleAutoApply);
-    els.textSlideMarginYPx.addEventListener("change", scheduleAutoApply);
-    els.textSlideTextHeightPx.addEventListener("input", scheduleAutoApply);
-    els.textSlideTextHeightPx.addEventListener("change", scheduleAutoApply);
     els.textSlideTextItalic.addEventListener("change", scheduleAutoApply);
     els.textSlideTextShadow.addEventListener("change", scheduleAutoApply);
     els.textSlideTextOutline.addEventListener("change", scheduleAutoApply);

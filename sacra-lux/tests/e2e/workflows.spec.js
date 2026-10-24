@@ -500,6 +500,29 @@ test("reference and section title settings reach the screen and the controls", a
   await expect.poll(async () => (await (await request.get(`${baseUrl}/api/state`)).json()).screenSettings.readingPassageShadow).toBe(true);
 });
 
+test("Screen Settings has no legacy position inputs and still saves bounds", async ({ page, request }) => {
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  const legacyIds = [
+    "readingTextMarginXPx", "readingTextMarginYPx", "readingTextHeightPx", "readingPassageYPx",
+    "readingPassageWidthPx", "textSlideMarginXPx", "textSlideMarginYPx", "textSlideTextHeightPx"
+  ];
+  for (const id of legacyIds) {
+    await expect(page.locator(`#${id}`)).toHaveCount(0);
+  }
+
+  // The derived keys still follow the bounds.
+  await request.post(`${baseUrl}/api/screen-settings`, {
+    data: { resolution: "1080p", textBounds: { readingBody: { left: 111, right: 111, top: 99, bottom: 200 } } }
+  });
+  const settings = (await (await request.get(`${baseUrl}/api/state`)).json()).screenSettings;
+  expect(settings.readingTextMarginXPx).toBe(111);
+  expect(settings.readingTextMarginYPx).toBe(99);
+  expect(settings.readingTextHeightPx).toBe(781);
+});
+
 test("Screen Settings shows one slide type text style at a time", async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
