@@ -2165,8 +2165,15 @@
             screenSettings: { ...event.data.screenSettings, transition: "none" }
           };
           render(mockState);
+          if (event.source) {
+            event.source.postMessage({ type: "preview_rendered" }, window.location.origin);
+          }
         }
       });
+      // Tell the parent page that the projector renderer is ready for slides.
+      if (window.parent !== window) {
+        window.parent.postMessage({ type: "preview_ready" }, window.location.origin);
+      }
     } else {
       socket.on("state:update", renderWithIdle);
       fetch("/api/state")

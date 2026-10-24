@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const { test, expect } = require("@playwright/test");
 const sharp = require("sharp");
 const { clearRateLimitState } = require("../../src/security");
@@ -77,7 +79,8 @@ test("Screen Settings edits global text bounds with pointer and keyboard control
   }
   await page.locator("#openSettingsBtn").click();
   await expect(page.locator("#textBoundsSettings")).toBeVisible();
-  await expect(page.locator("#textBoundsPreviewContent")).toHaveText(/Behold, I will make those of the assembly of Satan/);
+  await expect(page.frameLocator("#textBoundsPreviewFrame").locator("#stage"))
+    .toContainText(/Behold, I will make those of the assembly of Satan/);
 
   for (const layout of ["readingBody", "readingPassage", "hymn", "prayer", "text"]) {
     await page.locator("#textBoundsLayout").selectOption(layout);
@@ -141,6 +144,158 @@ test("Screen Settings edits global text bounds with pointer and keyboard control
   await expect(page.locator("#textBoundsBox")).toBeVisible();
 });
 
+async function openTextAreaTool(page) {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+  await expect(page.locator("#textBoundsSettings")).toBeVisible();
+}
+
+// Read the reading body bounds that the projector renderer applied inside a preview frame.
+async function previewReadingLeft(page, frameId) {
+  return page.frameLocator(`#${frameId}`).locator("#stage").evaluate((stage) =>
+    parseFloat(getComputedStyle(stage).getPropertyValue("--reading-text-left")));
+}
+
+test("Text Area tool draws its handles over the projector renderer", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { resolution: "1080p" } });
+  await openTextAreaTool(page);
+
+  const frame = page.locator("#textBoundsPreviewFrame");
+  await expect(frame).toHaveAttribute("src", "/screen?preview=1");
+  const stage = page.frameLocator("#textBoundsPreviewFrame").locator("#stage");
+  await expect(stage).toContainText("Revelation 3:9");
+  await expect(stage).toContainText(/Behold, I will make those of the assembly of Satan/);
+  await expect(page.locator("#textBoundsPreviewError")).toBeHidden();
+
+  // The handles sit over the same area as the preview frame.
+  await frame.scrollIntoViewIfNeeded();
+  const frameBox = await page.locator("#textBoundsPreview").boundingBox();
+  const boundsBox = await page.locator("#textBoundsBox").boundingBox();
+  expect(boundsBox.x).toBeGreaterThanOrEqual(frameBox.x);
+  expect(boundsBox.x + boundsBox.width).toBeLessThanOrEqual(frameBox.x + frameBox.width + 1);
+
+  // A number field change shows in the real preview within 100 ms.
+  await page.locator("#textBoundsLayout").selectOption("readingBody");
+  const startLeft = Number(await page.locator("#textBoundsLeft").inputValue());
+  await expect.poll(() => previewReadingLeft(page, "textBoundsPreviewFrame")).toBe(startLeft);
+  const elapsed = await page.evaluate(async () => {
+    const input = document.getElementById("textBoundsLeft");
+    const previewStage = document.getElementById("textBoundsPreviewFrame").contentDocument.getElementById("stage");
+    const start = performance.now();
+    input.value = "300";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    while (performance.now() - start < 1000) {
+      if (parseFloat(getComputedStyle(previewStage).getPropertyValue("--reading-text-left")) === 300) {
+        return performance.now() - start;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    return Number.POSITIVE_INFINITY;
+  });
+  expect(elapsed).toBeLessThan(100);
+
+  // A handle drag moves the number fields and the real preview together.
+  const handle = page.locator('#textBoundsBox [data-handle="w"]');
+  const handleBox = await handle.boundingBox();
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x + handleBox.width / 2 + 30, handleBox.y + handleBox.height / 2, { steps: 4 });
+  await page.mouse.up();
+  const draggedLeft = Number(await page.locator("#textBoundsLeft").inputValue());
+  expect(draggedLeft).toBeGreaterThan(300);
+  await expect.poll(() => previewReadingLeft(page, "textBoundsPreviewFrame")).toBe(draggedLeft);
+
+  await page.locator("#textBoundsReset").click();
+  await expect(page.locator("#textBoundsLeft")).toHaveValue("80");
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.screenSettings.textBounds?.readingBody?.left;
+  }).toBe(80);
+});
+
+test("Text Area tool shows the group text and the projector page breaks", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { resolution: "1080p" } });
+  const longReadingPath = path.join(path.dirname(readingsPath), "long-readings");
+  fs.mkdirSync(longReadingPath, { recursive: true });
+  const verses = Array.from({ length: 14 }, (_, index) =>
+    `Verse ${index + 1}: They devoted themselves to the teaching of the apostles and to the breaking of the bread.`);
+  fs.writeFileSync(path.join(longReadingPath, "Reading_I.txt"), `Acts of the Apostles 2:42-47\n\n${verses.join("\n")}`, "utf8");
+  const previousTitle = (await (await request.get(`${baseUrl}/api/state`)).json()).presentation?.title || "";
+  await request.post(`${baseUrl}/api/load-readings`, { data: { folderPath: longReadingPath } });
+
+  const initial = await (await request.get(`${baseUrl}/api/state`)).json();
+  const item = initial.organizerSequence.find((entry) => entry.sourceStem === "Reading_I");
+  expect(item).toBeTruthy();
+
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator(`[data-edit-id="${item.id}"]`).click();
+  await expect(page.locator("#editorBoundsPanel")).toBeVisible();
+  const stage = page.frameLocator("#editorBoundsPreviewFrame").locator("#stage");
+  await expect(stage).toContainText("Acts of the Apostles 2:42-47");
+  await expect(stage).toContainText("Verse 1:");
+
+  // Make the body box small so the text needs more than one page.
+  for (const [edge, value] of [["Left", "700"], ["Right", "700"], ["Top", "380"], ["Bottom", "380"]]) {
+    await page.locator(`#editorBounds${edge}`).fill(value);
+  }
+  await page.locator("#editorBoundsBottom").press("Tab");
+  await expect.poll(() => previewReadingLeft(page, "editorBoundsPreviewFrame")).toBe(700);
+
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.organizerSequence.find((entry) => entry.id === item.id)?.styleOverrides?.bounds?.body?.left;
+  }).toBe(700);
+  const saved = await (await request.get(`${baseUrl}/api/state`)).json();
+  const projectorPages = saved.presentation.slides.filter((slide) => slide.organizerItemId === item.id);
+  expect(projectorPages.length).toBeGreaterThan(1);
+  await expect(page.locator("#editorBoundsPreviewStatus")).toHaveText(`Page 1 of ${projectorPages.length}`);
+  await expect(stage).toContainText(projectorPages[0].text.split("\n")[0]);
+
+  await page.locator("#editorBoundsUseGlobal").click();
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.organizerSequence.find((entry) => entry.id === item.id)?.styleOverrides?.bounds;
+  }).toBeUndefined();
+  // Later tests expect the Mass title from before this test.
+  await request.post(`${baseUrl}/api/update-title`, { data: { title: previousTitle } });
+});
+
+test("Text Area tool keeps the number fields usable when the preview fails", async ({ page, request }) => {
+  await page.route((url) => url.pathname === "/screen" && url.searchParams.get("preview") === "1",
+    (route) => route.abort());
+  await page.route("**/api/preview-reading", (route) => route.fulfill({
+    status: 500,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "Renderer failure" })
+  }));
+  await openTextAreaTool(page);
+
+  await expect(page.locator("#textBoundsPreviewError")).toBeVisible();
+  await expect(page.locator("#textBoundsPreviewError")).toContainText("The slide preview is not available");
+
+  await page.locator("#textBoundsLayout").selectOption("readingBody");
+  await page.locator("#textBoundsTop").fill("150");
+  await page.locator("#textBoundsTop").press("Tab");
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.screenSettings.textBounds?.readingBody?.top;
+  }).toBe(150);
+
+  await page.locator("#textBoundsReset").click();
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.screenSettings.textBounds?.readingBody?.top;
+  }).toBe(130);
+});
+
 test("slide groups save, copy, and remove text bounds overrides", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {
@@ -163,7 +318,7 @@ test("slide groups save, copy, and remove text bounds overrides", async ({ page,
   }
   await page.locator('[data-edit-id="text:bounds-e2e"]').click();
   await expect(page.locator("#editorBoundsPanel")).toBeVisible();
-  await expect(page.locator("#editorBoundsPreviewContent")).toHaveText("Current group content");
+  await expect(page.frameLocator("#editorBoundsPreviewFrame").locator("#stage")).toContainText("Current group content");
   await expect(page.locator('#editorBoundsLayout option[value="passage"]')).toBeHidden();
 
   await page.locator("#editorBoundsLeft").fill("333");
