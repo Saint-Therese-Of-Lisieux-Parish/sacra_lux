@@ -85,13 +85,10 @@
       flex: 1;
       min-height: 0;
       overflow: auto;
-      padding: 1rem 1.1rem 1.1rem;
-      border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 22px;
-      background:
-        radial-gradient(circle at top right, color-mix(in srgb, var(--bg-alt), white 12%) 0%, transparent 24%),
-        linear-gradient(180deg, color-mix(in srgb, var(--panel), white 5%), color-mix(in srgb, var(--panel-alt), white 3%));
-      box-shadow: 0 14px 34px var(--shadow);
+      padding: 0.5rem 1rem 0.75rem;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      background: var(--panel);
     }
 
     /* ── Section headers in organizer list ───────────────────────────── */
@@ -140,17 +137,17 @@
     }
 
     .sequence-item {
-      border: 1px solid var(--surface-border);
-      border-radius: var(--radius);
-      background: var(--panel);
-      padding: 0.6rem 0.8rem;
-      margin-bottom: 0.4rem;
+      border: 0;
+      border-bottom: 1px solid var(--surface-border);
+      border-radius: 0;
+      background: transparent;
+      padding: 0.6rem 0.5rem;
+      margin-bottom: 0;
       cursor: pointer;
-      transition: border-color 0.14s ease, background 0.14s ease;
+      transition: background 0.14s ease;
     }
 
     .sequence-item:hover {
-      border-color: var(--control-border-hover);
       background: var(--control-bg-hover);
     }
 
@@ -210,8 +207,8 @@
     }
 
     .sequence-item.active {
-      border-color: var(--accent);
       background: var(--active-bg);
+      box-shadow: inset 3px 0 0 var(--accent);
     }
 
     .sequence-head {
