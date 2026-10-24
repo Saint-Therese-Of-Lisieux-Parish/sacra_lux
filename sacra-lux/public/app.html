@@ -2689,7 +2689,9 @@
                   <div class="settings-subsection-label">Scripture Reference &amp; Title</div>
                   <p class="settings-subsection-copy">Style the smaller metadata separately so it supports the reading without competing with it.</p>
                 </div>
-                <div class="settings-field-grid">
+                <div class="settings-group">
+                  <div class="settings-group-label">Layout</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-3">
                     <label>Horizontal alignment
                       <select id="readingPassageAlign">
@@ -2707,6 +2709,11 @@
                       </select>
                     </label>
                   </div>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Type</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-4">
                     <label>Font
                       <select id="readingPassageFont">
@@ -2742,6 +2749,20 @@
                       <input id="readingPassageColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#e8d5a0">
                     </label>
                   </div>
+                  </div>
+                  <div class="settings-toggle-grid">
+                  <label class="settings-toggle">
+                    <input id="readingPassageBold" type="checkbox" checked>
+                    <span class="settings-toggle-copy">
+                      <span class="settings-toggle-title">Bold reference</span>
+                      <span class="settings-toggle-help">Keeps the citation visible without enlarging it too much.</span>
+                    </span>
+                  </label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Outline</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-2">
                     <label>Outline color
                       <input id="readingPassageOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
@@ -2762,15 +2783,8 @@
                       <input id="readingSectionOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
                     </label>
                   </div>
-                </div>
-                <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="readingPassageBold" type="checkbox" checked>
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Bold reference</span>
-                      <span class="settings-toggle-help">Keeps the citation visible without enlarging it too much.</span>
-                    </span>
-                  </label>
+                  </div>
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingPassageOutline" type="checkbox">
                     <span class="settings-toggle-copy">
@@ -2785,6 +2799,11 @@
                       <span class="settings-toggle-help">Adds separation for section titles like “First Reading”.</span>
                     </span>
                   </label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Show on slide</div>
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingShowPageNumber" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -2806,6 +2825,7 @@
                       <span class="settings-toggle-help">Shows “The Word of the Lord” or “The Gospel of the Lord” on the last page.</span>
                     </span>
                   </label>
+                  </div>
                 </div>
               </div>
 
@@ -2861,7 +2881,9 @@
                   <div class="settings-subsection-label">Slide Text</div>
                   <p class="settings-subsection-copy">These settings control the main text on text, prayer, and hymn slides.</p>
                 </div>
-                <div class="settings-field-grid">
+                <div class="settings-group">
+                  <div class="settings-group-label">Layout</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-3">
                     <label>Horizontal alignment
                       <select id="textSlideTextAlign">
@@ -2880,6 +2902,11 @@
                       </select>
                     </label>
                   </div>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Type</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-4">
                     <label>Font override
                       <select id="textSlideTextFont">
@@ -2928,18 +2955,8 @@
                         title="Extra space between each letter">
                     </label>
                   </div>
-                  <div class="settings-field settings-span-2">
-                    <label>Outline color
-                      <input id="textSlideTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
-                    </label>
                   </div>
-                  <div class="settings-field settings-span-2">
-                    <label>Outline width
-                      <input id="textSlideTextOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
-                    </label>
-                  </div>
-                </div>
-                <div class="settings-toggle-grid">
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="textSlideTextBold" type="checkbox">
                     <span class="settings-toggle-copy">
@@ -2954,6 +2971,23 @@
                       <span class="settings-toggle-help">Best for occasional emphasis, not for whole hymns.</span>
                     </span>
                   </label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Outline &amp; shadow</div>
+                  <div class="settings-field-grid">
+                  <div class="settings-field settings-span-2">
+                    <label>Outline color
+                      <input id="textSlideTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-2">
+                    <label>Outline width
+                      <input id="textSlideTextOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
+                    </label>
+                  </div>
+                  </div>
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="textSlideTextShadow" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -2968,6 +3002,11 @@
                       <span class="settings-toggle-help">Reserve for photos or ornate artwork.</span>
                     </span>
                   </label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Show on slide</div>
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="textSlideShowPageNumber" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -2975,6 +3014,7 @@
                       <span class="settings-toggle-help">Displays page count on hymns, prayers, and text slides when they span multiple slides.</span>
                     </span>
                   </label>
+                  </div>
                 </div>
               </div>
 
