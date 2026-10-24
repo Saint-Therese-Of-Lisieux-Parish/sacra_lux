@@ -45,7 +45,8 @@ refreshed to align with:
 ### `src/server.js` is still large
 
 The docs describe the boundaries accurately, but the main runtime composition
-file still carries many concerns across roughly 3575 lines.
+file still carries many concerns. At the 2026-10-11 review the file was
+roughly 3575 lines. At commit `505105a` the file is 4169 lines.
 
 ### Frontend internals are summarized, not exhaustively mapped
 
