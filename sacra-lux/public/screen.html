@@ -1421,7 +1421,7 @@
 
       if (slide?.type === "text" || slide?.type === "prayer" || slide?.type === "hymn") {
         const textBounds = normalizeGlobalTextBounds(baseSettings);
-        const typeKey = slide.type;
+        const typeKey = { text: "text", prayer: "prayer", hymn: "hymn" }[slide.type];
         return {
           ...baseSettings,
           textBounds: {
