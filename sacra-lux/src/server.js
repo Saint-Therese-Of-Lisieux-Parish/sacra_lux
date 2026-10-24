@@ -2227,7 +2227,13 @@ function startServer(port = 17841, options = {}) {
     maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent
   });
 
-  app.use("/api", globalApiRateLimit);
+  // Media reads (images, video ranges) are cheap static files. A page with many
+  // slides would otherwise use the whole global budget and block the API.
+  app.use("/api", (req, res, next) => {
+    const isRead = req.method === "GET" || req.method === "HEAD";
+    if (isRead && req.path.startsWith("/mass-asset/")) return next();
+    return globalApiRateLimit(req, res, next);
+  });
   app.use("/api", (req, res, next) => {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
     if (req.path === "/verify-pin" || req.path === "/start-pin") return next();

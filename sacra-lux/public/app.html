@@ -5460,6 +5460,12 @@
       els.massLibraryStatus.textContent = "Loading Mass library…";
       const res = await fetch("/api/mass-history");
       const data = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        const waitSec = Math.max(1, Number(res.headers.get("Retry-After")) || 60);
+        els.massLibraryStatus.textContent = `Too many requests. Wait ${waitSec} seconds, then press Retry.`;
+        els.massHistoryList.innerHTML = '<div class="mass-history-empty"><button class="save-btn" type="button" data-archive-action="retry">Retry</button></div>';
+        return [];
+      }
       if (!res.ok) {
         throw new Error(data.error || "Failed to load Mass library.");
       }
@@ -8746,6 +8752,12 @@
       const btn = e.target.closest("[data-archive-action]");
       if (!btn) return;
       const action = btn.getAttribute("data-archive-action");
+      if (action === "retry") {
+        refreshMassHistory().catch((err) => {
+          els.massLibraryStatus.textContent = err.message;
+        });
+        return;
+      }
       const archiveId = btn.getAttribute("data-archive-id");
       if (!action || !archiveId) return;
 
