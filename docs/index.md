@@ -66,7 +66,7 @@ settings, phases, PIN and remote, the Mass library, and export/import.
 
 ### [release-verification.md](./release-verification.md)
 
-How to verify a release ZIP against its build provenance attestation.
+How to verify a release ZIP or DMG and its build provenance attestation.
 
 ### [troubleshooting.md](./troubleshooting.md)
 

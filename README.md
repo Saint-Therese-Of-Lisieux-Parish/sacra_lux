@@ -263,20 +263,22 @@ any other tag.
 The Release workflow runs when a tag that matches `v*` is pushed. The tag
 must equal `v` plus the package version, as stated above.
 
-The workflow publishes three ZIP files and a checksum file:
+The workflow publishes three ZIP files, two DMG files, and a checksum file:
 
 - `Sacra-Lux-<version>-mac-arm64.zip`
 - `Sacra-Lux-<version>-mac-x64.zip`
 - `Sacra-Lux-<version>-win-x64.zip`
-- `SHA256SUMS.txt` (SHA-256 of those ZIP files)
+- `Sacra-Lux-<version>-mac-arm64.dmg`
+- `Sacra-Lux-<version>-mac-x64.dmg`
+- `SHA256SUMS.txt` (SHA-256 of each ZIP and DMG file)
 
 A version that contains a hyphen, such as `0.0.146-alpha`, is published as
 a GitHub prerelease. The workflow also attaches a build-provenance
-attestation to each ZIP. How to check that attestation is in
+attestation to each ZIP and DMG file. How to check that attestation is in
 [docs/release-verification.md](./docs/release-verification.md).
 
-macOS ZIP files are signed and notarized. The macOS jobs stop if any of
-these repository secrets is missing:
+macOS ZIP and DMG files contain a signed and notarized application. The macOS
+jobs stop if any of these repository secrets is missing:
 
 - `CSC_LINK` (base64 contents of the Apple signing certificate)
 - `CSC_KEY_PASSWORD`
@@ -294,8 +296,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.148-alpha
-git push origin v0.0.148-alpha
+git tag v0.0.149-alpha
+git push origin v0.0.149-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -311,10 +313,10 @@ If the package version changes, use `v` plus the new version.
 | Mass ZIP layout | [docs/zip-import.md](./docs/zip-import.md) |
 | `mass.json` schema | [docs/mass_document.md](./docs/mass_document.md) |
 | Routes and Socket.IO events | [docs/interfaces.md](./docs/interfaces.md) |
-| Release ZIP check | [docs/release-verification.md](./docs/release-verification.md) |
+| Release file check | [docs/release-verification.md](./docs/release-verification.md) |
 | Package notes | [sacra-lux/README.md](./sacra-lux/README.md) |
 | Agent guidance | [AGENTS.md](./AGENTS.md) |
 
 ## Current version
 
-The current package version is `0.0.148-alpha`.
+The current package version is `0.0.149-alpha`.
