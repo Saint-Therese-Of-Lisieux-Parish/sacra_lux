@@ -69,6 +69,161 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+  await expect(page.locator("#textBoundsSettings")).toBeVisible();
+  await expect(page.locator("#textBoundsPreviewContent")).toHaveText(/Behold, I will make those of the assembly of Satan/);
+
+  for (const layout of ["readingBody", "readingPassage", "hymn", "prayer", "text"]) {
+    await page.locator("#textBoundsLayout").selectOption(layout);
+    await expect(page.locator("#textBoundsBox")).toBeVisible();
+    for (const edge of ["Left", "Right", "Top", "Bottom"]) {
+      await expect(page.locator(`#textBounds${edge}`)).toBeVisible();
+    }
+  }
+
+  await page.locator("#textBoundsLayout").selectOption("readingBody");
+  await page.locator("#textBoundsLeft").fill("240");
+  await page.locator("#textBoundsLeft").press("Tab");
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.screenSettings.textBounds?.readingBody?.left;
+  }).toBe(240);
+
+  const box = page.locator("#textBoundsBox");
+  const initialLeft = Number(await page.locator("#textBoundsLeft").inputValue());
+  await box.scrollIntoViewIfNeeded();
+  const boundsBox = await box.boundingBox();
+  await page.mouse.move(boundsBox.x + boundsBox.width / 2, boundsBox.y + boundsBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(boundsBox.x + boundsBox.width / 2 + 20, boundsBox.y + boundsBox.height / 2 + 10, { steps: 5 });
+  await page.mouse.up();
+  expect(Number(await page.locator("#textBoundsLeft").inputValue())).toBeGreaterThan(initialLeft);
+
+  const handleMoves = {
+    nw: [3, 3], n: [0, 3], ne: [-3, 3], e: [-3, 0],
+    se: [-3, -3], s: [0, -3], sw: [3, -3], w: [3, 0]
+  };
+  for (const [handle, [dx, dy]] of Object.entries(handleMoves)) {
+    const locator = page.locator(`#textBoundsBox [data-handle="${handle}"]`);
+    await locator.scrollIntoViewIfNeeded();
+    const before = await page.locator("#textBoundsLeft").inputValue() + ":" +
+      await page.locator("#textBoundsRight").inputValue() + ":" +
+      await page.locator("#textBoundsTop").inputValue() + ":" +
+      await page.locator("#textBoundsBottom").inputValue();
+    const handleBox = await locator.boundingBox();
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handleBox.x + handleBox.width / 2 + dx, handleBox.y + handleBox.height / 2 + dy, { steps: 3 });
+    await page.mouse.up();
+    const after = await page.locator("#textBoundsLeft").inputValue() + ":" +
+      await page.locator("#textBoundsRight").inputValue() + ":" +
+      await page.locator("#textBoundsTop").inputValue() + ":" +
+      await page.locator("#textBoundsBottom").inputValue();
+    expect(after).not.toBe(before);
+  }
+
+  await box.focus();
+  const keyboardLeft = Number(await page.locator("#textBoundsLeft").inputValue());
+  await box.press("Shift+ArrowRight");
+  await expect(page.locator("#textBoundsLeft")).toHaveValue(String(keyboardLeft + 10));
+  await expect(box).toBeFocused();
+
+  await page.locator("#textBoundsReset").click();
+  await expect(page.locator("#textBoundsLeft")).toHaveValue("80");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("#textBoundsPreview")).toBeVisible();
+  await expect(page.locator("#textBoundsBox")).toBeVisible();
+});
+
+test("slide groups save, copy, and remove text bounds overrides", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{
+        id: "text:bounds-e2e",
+        type: "text",
+        label: "Bounds test",
+        phase: "mass",
+        backgroundTheme: "dark"
+      }],
+      manualSlides: {
+        "text:bounds-e2e": { text: "Current group content", styleOverrides: {} }
+      }
+    }
+  });
+
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator('[data-edit-id="text:bounds-e2e"]').click();
+  await expect(page.locator("#editorBoundsPanel")).toBeVisible();
+  await expect(page.locator("#editorBoundsPreviewContent")).toHaveText("Current group content");
+  await expect(page.locator('#editorBoundsLayout option[value="passage"]')).toBeHidden();
+
+  await page.locator("#editorBoundsLeft").fill("333");
+  await page.locator("#editorBoundsLeft").press("Tab");
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.manualSlides["text:bounds-e2e"]?.styleOverrides?.bounds?.body?.left;
+  }).toBe(333);
+
+  await page.locator("#duplicateItemBtn").evaluate((button) => button.click());
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    const copy = state.organizerSequence.find((item) => item.id !== "text:bounds-e2e");
+    return copy ? state.manualSlides[copy.id]?.styleOverrides?.bounds?.body?.left : null;
+  }).toBe(333);
+
+  await page.locator("#editorBoundsUseGlobal").click();
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    const copy = state.organizerSequence.find((item) => item.id !== "text:bounds-e2e");
+    return copy ? state.manualSlides[copy.id]?.styleOverrides?.bounds : "missing";
+  }).toBeUndefined();
+});
+
+test("projector keeps custom text bounds proportional at each resolution", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{ id: "text:projector-bounds", type: "text", label: "Bounds", phase: "mass", backgroundTheme: "dark" }],
+      manualSlides: { "text:projector-bounds": { text: "Projector bounds" } }
+    }
+  });
+  const expected = {
+    "720p": [128, 256, 72, 144],
+    "1080p": [192, 384, 108, 216],
+    "1440p": [256, 512, 144, 288],
+    "4k": [384, 768, 216, 432]
+  };
+
+  await page.goto(`${baseUrl}/screen`);
+  for (const [resolution, values] of Object.entries(expected)) {
+    await request.post(`${baseUrl}/api/screen-settings`, {
+      data: {
+        resolution,
+        textBounds: {
+          text: { left: 192, right: 384, top: 108, bottom: 216 }
+        }
+      }
+    });
+    await expect.poll(async () => page.locator("#stage").evaluate((stage) => {
+      const style = getComputedStyle(stage);
+      return [
+        parseFloat(style.getPropertyValue("--text-slide-left")),
+        parseFloat(style.getPropertyValue("--text-slide-right")),
+        parseFloat(style.getPropertyValue("--text-slide-top")),
+        parseFloat(style.getPropertyValue("--text-slide-bottom"))
+      ];
+    })).toEqual(values);
+  }
+});
+
 test("Image Slideshow editor sorts batches and supports persistent ordering controls", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {

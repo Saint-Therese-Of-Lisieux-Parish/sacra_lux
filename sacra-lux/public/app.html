@@ -1014,6 +1014,90 @@
         linear-gradient(180deg, color-mix(in srgb, var(--panel), white 4%), color-mix(in srgb, var(--panel-alt), white 2%));
     }
 
+    .text-bounds-toolbar,
+    .text-bounds-fields {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.65rem;
+      align-items: end;
+    }
+
+    .text-bounds-fields {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 0.75rem;
+    }
+
+    .text-bounds-preview {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      margin-top: 0.85rem;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #201b32, #101923);
+      color: #f8f8f8;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .text-bounds-preview-content {
+      position: absolute;
+      inset: 10%;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-family: Merriweather, serif;
+      font-size: clamp(0.62rem, 1.15vw, 1rem);
+      line-height: 1.45;
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    .text-bounds-box {
+      position: absolute;
+      border: 2px solid #f3c969;
+      background: rgba(243, 201, 105, 0.12);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+      cursor: move;
+      outline: none;
+    }
+
+    .text-bounds-box:focus-visible {
+      box-shadow: 0 0 0 3px #fff, 0 0 0 6px #7055c5;
+    }
+
+    .text-bounds-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border: 1px solid #3b2a00;
+      border-radius: 3px;
+      background: #f3c969;
+    }
+
+    .text-bounds-handle[data-handle="nw"] { left: -7px; top: -7px; cursor: nwse-resize; }
+    .text-bounds-handle[data-handle="n"] { left: calc(50% - 6px); top: -7px; cursor: ns-resize; }
+    .text-bounds-handle[data-handle="ne"] { right: -7px; top: -7px; cursor: nesw-resize; }
+    .text-bounds-handle[data-handle="e"] { right: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+    .text-bounds-handle[data-handle="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
+    .text-bounds-handle[data-handle="s"] { left: calc(50% - 6px); bottom: -7px; cursor: ns-resize; }
+    .text-bounds-handle[data-handle="sw"] { left: -7px; bottom: -7px; cursor: nesw-resize; }
+    .text-bounds-handle[data-handle="w"] { left: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+
+    .text-bounds-help {
+      margin-top: 0.55rem;
+      color: var(--ink-soft);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 720px) {
+      .text-bounds-toolbar,
+      .text-bounds-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
     .settings-section-header {
       display: flex;
       align-items: flex-start;
@@ -2862,6 +2946,48 @@
                 </div>
               </details>
             </section>
+
+            <section class="settings-section settings-section--span-2" id="textBoundsSettings">
+              <div class="settings-section-header">
+                <div>
+                  <div class="settings-section-label">Text Layout</div>
+                  <h3 class="settings-section-title">Visual Bounds Editor</h3>
+                  <p class="settings-section-copy">Move or resize one layout box. Use the edge fields for exact values.</p>
+                </div>
+              </div>
+              <div class="text-bounds-toolbar">
+                <label style="grid-column:span 3">Layout
+                  <select id="textBoundsLayout">
+                    <option value="readingBody">Reading body</option>
+                    <option value="readingPassage">Passage reference</option>
+                    <option value="hymn">Hymn</option>
+                    <option value="prayer">Prayer</option>
+                    <option value="text">Text slide</option>
+                  </select>
+                </label>
+                <button id="textBoundsReset" type="button" style="grid-column:span 2">Reset to Default</button>
+              </div>
+              <div class="text-bounds-fields">
+                <label>Left<input id="textBoundsLeft" type="number" min="0" max="1800" step="1"></label>
+                <label>Right<input id="textBoundsRight" type="number" min="0" max="1800" step="1"></label>
+                <label>Top<input id="textBoundsTop" type="number" min="0" max="1000" step="1"></label>
+                <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+              </div>
+              <div class="text-bounds-preview" id="textBoundsPreview">
+                <div class="text-bounds-preview-content" id="textBoundsPreviewContent"></div>
+                <div class="text-bounds-box" id="textBoundsBox" tabindex="0" role="group" aria-label="Selected text bounds">
+                  <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
+                  <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
+                  <span class="text-bounds-handle" data-handle="ne" role="button" tabindex="0" aria-label="Resize top right"></span>
+                  <span class="text-bounds-handle" data-handle="e" role="button" tabindex="0" aria-label="Resize right"></span>
+                  <span class="text-bounds-handle" data-handle="se" role="button" tabindex="0" aria-label="Resize bottom right"></span>
+                  <span class="text-bounds-handle" data-handle="s" role="button" tabindex="0" aria-label="Resize bottom"></span>
+                  <span class="text-bounds-handle" data-handle="sw" role="button" tabindex="0" aria-label="Resize bottom left"></span>
+                  <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
+                </div>
+              </div>
+              <div class="text-bounds-help">Use the arrow keys to move a focused box or handle. Hold Shift for 10-pixel steps.</div>
+            </section>
           </div>
 
           <div class="settings-apply-row">
@@ -3129,6 +3255,37 @@
                     <button type="button" class="editor-style-choice-btn" data-tristate-button="false" data-target-input="editorTextStyleShadow">Off</button>
                   </span>
                 </label>
+              </div>
+              <div id="editorBoundsPanel" hidden style="margin-top:0.9rem">
+                <div class="text-bounds-toolbar">
+                  <label style="grid-column:span 3">Group layout
+                    <select id="editorBoundsLayout">
+                      <option value="body">Text body</option>
+                      <option value="passage">Passage reference</option>
+                    </select>
+                  </label>
+                  <button id="editorBoundsUseGlobal" type="button" style="grid-column:span 2">Use Global Default</button>
+                </div>
+                <div class="text-bounds-fields">
+                  <label>Left<input id="editorBoundsLeft" type="number" min="0" max="1800" step="1"></label>
+                  <label>Right<input id="editorBoundsRight" type="number" min="0" max="1800" step="1"></label>
+                  <label>Top<input id="editorBoundsTop" type="number" min="0" max="1000" step="1"></label>
+                  <label>Bottom<input id="editorBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+                </div>
+                <div class="text-bounds-preview" id="editorBoundsPreview">
+                  <div class="text-bounds-preview-content" id="editorBoundsPreviewContent"></div>
+                  <div class="text-bounds-box" id="editorBoundsBox" tabindex="0" role="group" aria-label="Group text bounds">
+                    <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
+                    <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
+                    <span class="text-bounds-handle" data-handle="ne" role="button" tabindex="0" aria-label="Resize top right"></span>
+                    <span class="text-bounds-handle" data-handle="e" role="button" tabindex="0" aria-label="Resize right"></span>
+                    <span class="text-bounds-handle" data-handle="se" role="button" tabindex="0" aria-label="Resize bottom right"></span>
+                    <span class="text-bounds-handle" data-handle="s" role="button" tabindex="0" aria-label="Resize bottom"></span>
+                    <span class="text-bounds-handle" data-handle="sw" role="button" tabindex="0" aria-label="Resize bottom left"></span>
+                    <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
+                  </div>
+                </div>
+                <div class="text-bounds-help">A saved override applies to all pages in this group.</div>
               </div>
             </div>
           </div>
@@ -3793,6 +3950,15 @@
       textSlideMarginXPx: document.getElementById("textSlideMarginXPx"),
       textSlideMarginYPx: document.getElementById("textSlideMarginYPx"),
       textSlideTextHeightPx: document.getElementById("textSlideTextHeightPx"),
+      textBoundsLayout: document.getElementById("textBoundsLayout"),
+      textBoundsReset: document.getElementById("textBoundsReset"),
+      textBoundsLeft: document.getElementById("textBoundsLeft"),
+      textBoundsRight: document.getElementById("textBoundsRight"),
+      textBoundsTop: document.getElementById("textBoundsTop"),
+      textBoundsBottom: document.getElementById("textBoundsBottom"),
+      textBoundsPreview: document.getElementById("textBoundsPreview"),
+      textBoundsPreviewContent: document.getElementById("textBoundsPreviewContent"),
+      textBoundsBox: document.getElementById("textBoundsBox"),
       textSlideTextItalic: document.getElementById("textSlideTextItalic"),
       textSlideTextShadow: document.getElementById("textSlideTextShadow"),
       textSlideTextOutline: document.getElementById("textSlideTextOutline"),
@@ -3984,6 +4150,16 @@
       editorPreviewStyleHelp: document.getElementById("editorPreviewStyleHelp"),
       editorPreviewReadingStyleStrip: document.getElementById("editorPreviewReadingStyleStrip"),
       editorPreviewTextStyleStrip: document.getElementById("editorPreviewTextStyleStrip"),
+      editorBoundsPanel: document.getElementById("editorBoundsPanel"),
+      editorBoundsLayout: document.getElementById("editorBoundsLayout"),
+      editorBoundsUseGlobal: document.getElementById("editorBoundsUseGlobal"),
+      editorBoundsLeft: document.getElementById("editorBoundsLeft"),
+      editorBoundsRight: document.getElementById("editorBoundsRight"),
+      editorBoundsTop: document.getElementById("editorBoundsTop"),
+      editorBoundsBottom: document.getElementById("editorBoundsBottom"),
+      editorBoundsPreview: document.getElementById("editorBoundsPreview"),
+      editorBoundsPreviewContent: document.getElementById("editorBoundsPreviewContent"),
+      editorBoundsBox: document.getElementById("editorBoundsBox"),
       editorReadingText: document.getElementById("editorReadingText"),
       editorPageCount: document.getElementById("editorPageCount"),
       insertPageBreakBtn: document.getElementById("insertPageBreakBtn"),
@@ -4000,6 +4176,194 @@
     let editorPreviewIndex = 0;
     let editorPreviewCountdownEndsAt = null;
     let editorPreviewCountdownTimer = null;
+    const TEXT_BOUNDS_SAMPLE = "Behold, I will make those of the assembly of Satan who claim to be Jews and are not, but are lying, behold I will make them come and fall prostrate at your feet, and they will realize that I love you.";
+    const DEFAULT_TEXT_BOUNDS = {
+      readingBody: { left: 80, right: 80, top: 130, bottom: 110 },
+      readingPassage: { left: 80, right: 1190, top: 70, bottom: 908 },
+      hymn: { left: 110, right: 110, top: 90, bottom: 90 },
+      prayer: { left: 110, right: 110, top: 90, bottom: 90 },
+      text: { left: 110, right: 110, top: 90, bottom: 90 }
+    };
+    let globalTextBoundsDraft = JSON.parse(JSON.stringify(DEFAULT_TEXT_BOUNDS));
+    let editorBoundsDraft = {};
+
+    function normalizeTextBoxBounds(value, fallback = DEFAULT_TEXT_BOUNDS.text) {
+      const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      const numberOr = (name) => Number.isFinite(Number(input[name])) ? Math.round(Number(input[name])) : fallback[name];
+      const bounds = {
+        left: Math.min(1800, Math.max(0, numberOr("left"))),
+        right: Math.min(1800, Math.max(0, numberOr("right"))),
+        top: Math.min(1000, Math.max(0, numberOr("top"))),
+        bottom: Math.min(1000, Math.max(0, numberOr("bottom")))
+      };
+      if (1920 - bounds.left - bounds.right < 120) {
+        bounds.right = Math.max(0, 1920 - bounds.left - 120);
+      }
+      if (1080 - bounds.top - bounds.bottom < 80) {
+        bounds.bottom = Math.max(0, 1080 - bounds.top - 80);
+      }
+      return bounds;
+    }
+
+    function normalizeAllTextBounds(value = {}) {
+      const normalized = {};
+      for (const key of Object.keys(DEFAULT_TEXT_BOUNDS)) {
+        normalized[key] = normalizeTextBoxBounds(value[key], DEFAULT_TEXT_BOUNDS[key]);
+      }
+      return normalized;
+    }
+
+    function normalizeEditorBounds(value = {}) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+      const normalized = {};
+      if (value.body) normalized.body = normalizeTextBoxBounds(value.body);
+      if (value.passage) normalized.passage = normalizeTextBoxBounds(value.passage, DEFAULT_TEXT_BOUNDS.readingPassage);
+      return normalized;
+    }
+
+    function groupGlobalBoundsKey(kind, part) {
+      if (kind === "reading") return part === "passage" ? "readingPassage" : "readingBody";
+      return ["hymn", "prayer", "text"].includes(kind) ? kind : "text";
+    }
+
+    function boundsEditorElements(mode) {
+      const group = mode === "group";
+      return {
+        layout: group ? els.editorBoundsLayout : els.textBoundsLayout,
+        left: group ? els.editorBoundsLeft : els.textBoundsLeft,
+        right: group ? els.editorBoundsRight : els.textBoundsRight,
+        top: group ? els.editorBoundsTop : els.textBoundsTop,
+        bottom: group ? els.editorBoundsBottom : els.textBoundsBottom,
+        preview: group ? els.editorBoundsPreview : els.textBoundsPreview,
+        content: group ? els.editorBoundsPreviewContent : els.textBoundsPreviewContent,
+        box: group ? els.editorBoundsBox : els.textBoundsBox
+      };
+    }
+
+    function currentBoundsForEditor(mode) {
+      const parts = boundsEditorElements(mode);
+      if (mode === "global") {
+        const key = parts.layout.value || "readingBody";
+        return normalizeTextBoxBounds(globalTextBoundsDraft[key], DEFAULT_TEXT_BOUNDS[key]);
+      }
+      const kind = els.editorType?.value || "text";
+      const part = kind === "reading" ? (parts.layout.value || "body") : "body";
+      const globalKey = groupGlobalBoundsKey(kind, part);
+      return normalizeTextBoxBounds(editorBoundsDraft[part], globalTextBoundsDraft[globalKey]);
+    }
+
+    function currentGroupPreviewText(part) {
+      const kind = els.editorType?.value || "text";
+      if (kind === "reading") {
+        const doc = getDocuments().find((entry) => entry.stem === els.editorSourceStem?.value);
+        if (part === "passage") return doc?.passage || "Revelation 3:9";
+        const text = els.editorReadingText?.value || doc?.textLines?.join("\n") || TEXT_BOUNDS_SAMPLE;
+        return `${text}\n\n${doc?.passage || "Revelation 3:9"}`;
+      }
+      return els.editorText?.value || TEXT_BOUNDS_SAMPLE;
+    }
+
+    function renderBoundsEditor(mode) {
+      const parts = boundsEditorElements(mode);
+      if (!parts.box) return;
+      const bounds = currentBoundsForEditor(mode);
+      parts.left.value = String(bounds.left);
+      parts.right.value = String(bounds.right);
+      parts.top.value = String(bounds.top);
+      parts.bottom.value = String(bounds.bottom);
+      parts.box.style.left = `${bounds.left / 19.2}%`;
+      parts.box.style.right = `${bounds.right / 19.2}%`;
+      parts.box.style.top = `${bounds.top / 10.8}%`;
+      parts.box.style.bottom = `${bounds.bottom / 10.8}%`;
+      const selected = parts.layout.value;
+      if (mode === "global") {
+        parts.content.textContent = selected === "readingPassage" ? "Revelation 3:9" : TEXT_BOUNDS_SAMPLE;
+      } else {
+        parts.content.textContent = currentGroupPreviewText(selected || "body");
+      }
+    }
+
+    function commitBoundsEditor(mode, bounds, save = true) {
+      const parts = boundsEditorElements(mode);
+      const fallback = currentBoundsForEditor(mode);
+      const next = normalizeTextBoxBounds(bounds, fallback);
+      if (mode === "global") {
+        globalTextBoundsDraft[parts.layout.value || "readingBody"] = next;
+        if (save) scheduleAutoApply();
+      } else {
+        const kind = els.editorType?.value || "text";
+        const part = kind === "reading" ? (parts.layout.value || "body") : "body";
+        editorBoundsDraft[part] = next;
+        if (save) scheduleEditorSave();
+      }
+      renderBoundsEditor(mode);
+    }
+
+    function readBoundsEditorFields(mode) {
+      const parts = boundsEditorElements(mode);
+      commitBoundsEditor(mode, {
+        left: parts.left.value,
+        right: parts.right.value,
+        top: parts.top.value,
+        bottom: parts.bottom.value
+      });
+    }
+
+    function moveBounds(bounds, handle, dx, dy) {
+      const next = { ...bounds };
+      if (!handle) {
+        const width = 1920 - next.left - next.right;
+        const height = 1080 - next.top - next.bottom;
+        next.left = Math.min(1920 - width, Math.max(0, next.left + dx));
+        next.right = 1920 - width - next.left;
+        next.top = Math.min(1080 - height, Math.max(0, next.top + dy));
+        next.bottom = 1080 - height - next.top;
+        return next;
+      }
+      if (handle.includes("w")) next.left += dx;
+      if (handle.includes("e")) next.right -= dx;
+      if (handle.includes("n")) next.top += dy;
+      if (handle.includes("s")) next.bottom -= dy;
+      return next;
+    }
+
+    function installBoundsPointerEditor(mode) {
+      const parts = boundsEditorElements(mode);
+      if (!parts.box || !parts.preview) return;
+      parts.box.addEventListener("pointerdown", (event) => {
+        const handle = event.target.dataset.handle || "";
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startBounds = currentBoundsForEditor(mode);
+        const rect = parts.preview.getBoundingClientRect();
+        parts.box.setPointerCapture(event.pointerId);
+        const move = (moveEvent) => {
+          const dx = Math.round((moveEvent.clientX - startX) * 1920 / rect.width);
+          const dy = Math.round((moveEvent.clientY - startY) * 1080 / rect.height);
+          commitBoundsEditor(mode, moveBounds(startBounds, handle, dx, dy), false);
+        };
+        const end = () => {
+          parts.box.removeEventListener("pointermove", move);
+          parts.box.removeEventListener("pointerup", end);
+          parts.box.removeEventListener("pointercancel", end);
+          if (mode === "global") scheduleAutoApply();
+          else scheduleEditorSave();
+        };
+        parts.box.addEventListener("pointermove", move);
+        parts.box.addEventListener("pointerup", end);
+        parts.box.addEventListener("pointercancel", end);
+        event.preventDefault();
+      });
+      parts.box.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+        const step = event.shiftKey ? 10 : 1;
+        const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+        const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+        const handle = event.target.dataset.handle || "";
+        commitBoundsEditor(mode, moveBounds(currentBoundsForEditor(mode), handle, dx, dy));
+        event.preventDefault();
+      });
+    }
 
     function normalizeEditorStyleOverrides(input) {
       if (!input || typeof input !== "object") return {};
@@ -4015,6 +4379,8 @@
           normalized[key] = input[key];
         }
       }
+      const bounds = normalizeEditorBounds(input.bounds);
+      if (Object.keys(bounds).length) normalized.bounds = bounds;
       return normalized;
     }
 
@@ -4070,7 +4436,8 @@
           bold: readTriStateSelect(els.editorReadingStyleBold),
           italic: readTriStateSelect(els.editorReadingStyleItalic),
           outline: readTriStateSelect(els.editorReadingStyleOutline),
-          shadow: readTriStateSelect(els.editorReadingStyleShadow)
+          shadow: readTriStateSelect(els.editorReadingStyleShadow),
+          bounds: editorBoundsDraft
         });
       }
 
@@ -4081,7 +4448,8 @@
           bold: readTriStateSelect(els.editorTextStyleBold),
           italic: readTriStateSelect(els.editorTextStyleItalic),
           outline: readTriStateSelect(els.editorTextStyleOutline),
-          shadow: readTriStateSelect(els.editorTextStyleShadow)
+          shadow: readTriStateSelect(els.editorTextStyleShadow),
+          bounds: editorBoundsDraft
         });
       }
 
@@ -4091,22 +4459,26 @@
     function populateEditorStyleOverrides(type, styleOverrides = {}) {
       const overrides = normalizeEditorStyleOverrides(styleOverrides);
       if (type === "reading") {
+        editorBoundsDraft = normalizeEditorBounds(overrides.bounds);
         if (els.editorReadingStyleFont) els.editorReadingStyleFont.value = overrides.fontFamily || "";
         if (els.editorReadingStyleSizePx) els.editorReadingStyleSizePx.value = overrides.fontSizePx ? String(overrides.fontSizePx) : "";
         writeTriStateSelect(els.editorReadingStyleBold, overrides.bold);
         writeTriStateSelect(els.editorReadingStyleItalic, overrides.italic);
         writeTriStateSelect(els.editorReadingStyleOutline, overrides.outline);
         writeTriStateSelect(els.editorReadingStyleShadow, overrides.shadow);
+        renderBoundsEditor("group");
         return;
       }
 
       if (type === "text" || type === "prayer" || type === "hymn") {
+        editorBoundsDraft = normalizeEditorBounds(overrides.bounds);
         if (els.editorTextStyleFont) els.editorTextStyleFont.value = overrides.fontFamily || "";
         if (els.editorTextStyleSizePx) els.editorTextStyleSizePx.value = overrides.fontSizePx ? String(overrides.fontSizePx) : "";
         writeTriStateSelect(els.editorTextStyleBold, overrides.bold);
         writeTriStateSelect(els.editorTextStyleItalic, overrides.italic);
         writeTriStateSelect(els.editorTextStyleOutline, overrides.outline);
         writeTriStateSelect(els.editorTextStyleShadow, overrides.shadow);
+        renderBoundsEditor("group");
       }
     }
 
@@ -4116,8 +4488,14 @@
       if (!Object.keys(overrides).length) return base;
 
       if (type === "reading") {
+        const textBounds = normalizeAllTextBounds(base.textBounds || globalTextBoundsDraft);
         return {
           ...base,
+          textBounds: {
+            ...textBounds,
+            readingBody: overrides.bounds?.body || textBounds.readingBody,
+            readingPassage: overrides.bounds?.passage || textBounds.readingPassage
+          },
           ...(overrides.fontFamily ? { readingTextFont: overrides.fontFamily } : {}),
           ...(overrides.fontSizePx ? { readingTextSizePx: overrides.fontSizePx } : {}),
           ...(typeof overrides.bold === "boolean" ? { readingTextBold: overrides.bold } : {}),
@@ -4128,8 +4506,13 @@
       }
 
       if (type === "text" || type === "prayer" || type === "hymn") {
+        const textBounds = normalizeAllTextBounds(base.textBounds || globalTextBoundsDraft);
         return {
           ...base,
+          textBounds: {
+            ...textBounds,
+            [type]: overrides.bounds?.body || textBounds[type]
+          },
           ...(overrides.fontFamily ? { textSlideTextFont: overrides.fontFamily } : {}),
           ...(overrides.fontSizePx ? { textSlideTextSizePx: overrides.fontSizePx } : {}),
           ...(typeof overrides.bold === "boolean" ? { textSlideTextBold: overrides.bold } : {}),
@@ -4494,7 +4877,8 @@
         textSlideTextShadow: Boolean(els.textSlideTextShadow.checked),
         textSlideTextOutline: Boolean(els.textSlideTextOutline.checked),
         textSlideTextOutlineColor: els.textSlideTextOutlineColor.value,
-        textSlideTextOutlineWidthPx: Number(els.textSlideTextOutlineWidthPx.value) || 1
+        textSlideTextOutlineWidthPx: Number(els.textSlideTextOutlineWidthPx.value) || 1,
+        textBounds: normalizeAllTextBounds(globalTextBoundsDraft)
       };
     }
 
@@ -5264,6 +5648,14 @@
       if (els.editorPreviewTextStyleStrip) {
         els.editorPreviewTextStyleStrip.hidden = !isTextType;
       }
+      if (els.editorBoundsPanel) {
+        els.editorBoundsPanel.hidden = !showStylePanel;
+      }
+      const passageOption = els.editorBoundsLayout?.querySelector('option[value="passage"]');
+      if (passageOption) passageOption.hidden = !isReading;
+      if (!isReading && els.editorBoundsLayout?.value === "passage") {
+        els.editorBoundsLayout.value = "body";
+      }
       if (els.editorPreviewStyleTitle) {
         els.editorPreviewStyleTitle.textContent = isReading ? "Reading Style Override" : "Slide Style Override";
       }
@@ -5389,6 +5781,8 @@
 
       // Skip overwriting screen settings UI while a local change is pending
       if (!window.__autoApplyTimer) {
+        globalTextBoundsDraft = normalizeAllTextBounds(screen.textBounds || globalTextBoundsDraft);
+        renderBoundsEditor("global");
         if (screen.transition) {
           els.screenTransition.value = screen.transition;
         }
@@ -6872,6 +7266,80 @@
       applyTheme(currentThemeId);
       buildThemePicker();
     }).catch(() => { });
+
+    function syncBoundsFromLegacyControls(kind) {
+      const canvases = {
+        "720p": { width: 1280, height: 720 },
+        "1080p": { width: 1920, height: 1080 },
+        "1440p": { width: 2560, height: 1440 },
+        "4k": { width: 3840, height: 2160 }
+      };
+      const canvas = canvases[els.screenResolution.value] || canvases["1080p"];
+      const scaleX = 1920 / canvas.width;
+      const scaleY = 1080 / canvas.height;
+      if (kind === "reading") {
+        const marginX = Number(els.readingTextMarginXPx.value) || 0;
+        const top = Number(els.readingTextMarginYPx.value) || 0;
+        const height = Number(els.readingTextHeightPx.value) || 120;
+        globalTextBoundsDraft.readingBody = normalizeTextBoxBounds({
+          left: marginX * scaleX,
+          right: marginX * scaleX,
+          top: top * scaleY,
+          bottom: (canvas.height - top - height) * scaleY
+        }, DEFAULT_TEXT_BOUNDS.readingBody);
+      } else if (kind === "passage") {
+        const left = Number(els.readingTextMarginXPx.value) || 0;
+        const top = Number(els.readingPassageYPx.value) || 0;
+        const width = Number(els.readingPassageWidthPx.value) || 120;
+        const current = globalTextBoundsDraft.readingPassage;
+        const height = 1080 - current.top - current.bottom;
+        globalTextBoundsDraft.readingPassage = normalizeTextBoxBounds({
+          left: left * scaleX,
+          right: (canvas.width - left - width) * scaleX,
+          top: top * scaleY,
+          bottom: 1080 - (top * scaleY) - height
+        }, DEFAULT_TEXT_BOUNDS.readingPassage);
+      } else {
+        const marginX = Number(els.textSlideMarginXPx.value) || 0;
+        const top = Number(els.textSlideMarginYPx.value) || 0;
+        const height = Number(els.textSlideTextHeightPx.value) || 120;
+        const bounds = normalizeTextBoxBounds({
+          left: marginX * scaleX,
+          right: marginX * scaleX,
+          top: top * scaleY,
+          bottom: (canvas.height - top - height) * scaleY
+        });
+        for (const key of ["text", "prayer", "hymn"]) globalTextBoundsDraft[key] = { ...bounds };
+      }
+      renderBoundsEditor("global");
+    }
+
+    els.textBoundsLayout.addEventListener("change", () => renderBoundsEditor("global"));
+    [els.textBoundsLeft, els.textBoundsRight, els.textBoundsTop, els.textBoundsBottom].forEach((input) => {
+      input.addEventListener("input", () => readBoundsEditorFields("global"));
+      input.addEventListener("change", () => readBoundsEditorFields("global"));
+    });
+    els.textBoundsReset.addEventListener("click", () => {
+      const key = els.textBoundsLayout.value || "readingBody";
+      globalTextBoundsDraft[key] = { ...DEFAULT_TEXT_BOUNDS[key] };
+      renderBoundsEditor("global");
+      scheduleAutoApply();
+    });
+    els.editorBoundsLayout.addEventListener("change", () => renderBoundsEditor("group"));
+    [els.editorBoundsLeft, els.editorBoundsRight, els.editorBoundsTop, els.editorBoundsBottom].forEach((input) => {
+      input.addEventListener("input", () => readBoundsEditorFields("group"));
+      input.addEventListener("change", () => readBoundsEditorFields("group"));
+    });
+    els.editorBoundsUseGlobal.addEventListener("click", () => {
+      editorBoundsDraft = {};
+      renderBoundsEditor("group");
+      scheduleEditorSave();
+    });
+    installBoundsPointerEditor("global");
+    installBoundsPointerEditor("group");
+    els.editorReadingText.addEventListener("input", () => renderBoundsEditor("group"));
+    els.editorText.addEventListener("input", () => renderBoundsEditor("group"));
+
     els.screenTransition.addEventListener("change", scheduleAutoApply);
     els.screenResolution.addEventListener("change", scheduleAutoApply);
     els.fontFamily.addEventListener("change", scheduleAutoApply);
@@ -6890,7 +7358,14 @@
     els.readingLineHeight.addEventListener("change", scheduleAutoApply);
     els.readingLetterSpacingPx.addEventListener("input", scheduleAutoApply);
     els.readingLetterSpacingPx.addEventListener("change", scheduleAutoApply);
-    els.readingPassagePosition.addEventListener("change", scheduleAutoApply);
+    els.readingPassagePosition.addEventListener("change", () => {
+      const current = globalTextBoundsDraft.readingPassage || DEFAULT_TEXT_BOUNDS.readingPassage;
+      const height = 1080 - current.top - current.bottom;
+      const top = els.readingPassagePosition.value === "bottom" ? Math.max(0, 1080 - height - 12) : 70;
+      globalTextBoundsDraft.readingPassage = normalizeTextBoxBounds({ ...current, top, bottom: 1080 - top - height }, current);
+      renderBoundsEditor("global");
+      scheduleAutoApply();
+    });
     els.readingPassageAlign.addEventListener("change", scheduleAutoApply);
     els.readingPassageFont.addEventListener("change", scheduleAutoApply);
     els.readingPassageSizePx.addEventListener("input", scheduleAutoApply);
@@ -6911,6 +7386,14 @@
     els.readingShowPageNumber.addEventListener("change", scheduleAutoApply);
     els.readingShowLabel.addEventListener("change", scheduleAutoApply);
     els.readingShowEnding.addEventListener("change", scheduleAutoApply);
+    [els.readingTextMarginXPx, els.readingTextMarginYPx, els.readingTextHeightPx].forEach((input) => {
+      input.addEventListener("input", () => syncBoundsFromLegacyControls("reading"));
+      input.addEventListener("change", () => syncBoundsFromLegacyControls("reading"));
+    });
+    [els.readingPassageYPx, els.readingPassageWidthPx].forEach((input) => {
+      input.addEventListener("input", () => syncBoundsFromLegacyControls("passage"));
+      input.addEventListener("change", () => syncBoundsFromLegacyControls("passage"));
+    });
     els.readingTextMarginXPx.addEventListener("input", scheduleAutoApply);
     els.readingTextMarginXPx.addEventListener("change", scheduleAutoApply);
     els.readingTextMarginYPx.addEventListener("input", scheduleAutoApply);
@@ -6941,6 +7424,10 @@
     els.textSlideLineHeight.addEventListener("change", scheduleAutoApply);
     els.textSlideLetterSpacingPx.addEventListener("input", scheduleAutoApply);
     els.textSlideLetterSpacingPx.addEventListener("change", scheduleAutoApply);
+    [els.textSlideMarginXPx, els.textSlideMarginYPx, els.textSlideTextHeightPx].forEach((input) => {
+      input.addEventListener("input", () => syncBoundsFromLegacyControls("text"));
+      input.addEventListener("change", () => syncBoundsFromLegacyControls("text"));
+    });
     els.textSlideMarginXPx.addEventListener("input", scheduleAutoApply);
     els.textSlideMarginXPx.addEventListener("change", scheduleAutoApply);
     els.textSlideMarginYPx.addEventListener("input", scheduleAutoApply);

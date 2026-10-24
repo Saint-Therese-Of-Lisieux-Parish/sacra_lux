@@ -33,6 +33,7 @@ function _createPaginationCacheKey(documents, options) {
     fontSizePx: options.fontSizePx,
     readingTextSizePx: options.readingTextSizePx,
     readingTextHeightPx: options.readingTextHeightPx,
+    readingTextWidthPx: options.readingTextWidthPx,
     readingLineHeight: options.readingLineHeight,
     readingTextMarginXPx: options.readingTextMarginXPx,
     canvasWidth: options.canvasWidth,
@@ -520,7 +521,10 @@ function paginateDocuments(documents, options = {}) {
   // Default: 1920px canvas minus 2 × 80px margins = 1760px.
   const canvasWidth = Number(options.canvasWidth) || 1920;
   const marginX = clamp(Number(options.readingTextMarginXPx) || 80, 0, 260);
-  const boxWidthPx = canvasWidth - (marginX * 2);
+  const requestedWidth = Number(options.readingTextWidthPx);
+  const boxWidthPx = Number.isFinite(requestedWidth) && requestedWidth > 0
+    ? Math.min(canvasWidth, requestedWidth)
+    : canvasWidth - (marginX * 2);
 
   const slides = [];
 

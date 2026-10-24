@@ -80,6 +80,16 @@ describe("readingsImporter error paths", () => {
     expect(slides[slides.length - 1].totalPages).toBe(slides.length);
   });
 
+  test("uses an explicit bounds width for reading line breaks", () => {
+    const line = "The word of the Lord came to the prophet in the days of the king.";
+    const docs = [{ stem: "R", section: "Reading I", passage: "P", textLines: Array(16).fill(line), ending: null }];
+    const wide = paginateDocuments(docs, { ...layout, readingTextWidthPx: 1760 });
+    clearPaginationCache();
+    const narrow = paginateDocuments(docs, { ...layout, readingTextWidthPx: 600 });
+
+    expect(narrow.length).toBeGreaterThan(wide.length);
+  });
+
   test("moves overflow ahead of the last page when the ending needs room", () => {
     const lines = Array.from({ length: 12 }, (_, i) => `Line ${i} of a short reading.`);
     const docs = [{ stem: "R", section: "Gospel", passage: "P", textLines: lines, ending: "The Gospel of the Lord." }];

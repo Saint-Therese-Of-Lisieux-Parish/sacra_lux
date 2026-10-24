@@ -88,6 +88,12 @@ const {
   verifyPin
 } = require("./security");
 const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
+const {
+  boundsToRect,
+  legacyTextBoundsFromSettings,
+  normalizeTextBounds,
+  textBoundsToLegacySettings
+} = require("./textBounds");
 
 const GOOGLE_FONTS = new Set([
   "Merriweather",
@@ -879,6 +885,25 @@ function normalizeScreenSettings(input = {}) {
   const transition = VALID_TRANSITIONS.includes(String(input.transition || current.transition || ""))
     ? String(input.transition || current.transition)
     : "fade";
+  const legacyGeometryKeys = [
+    "readingTextMarginXPx",
+    "readingTextMarginYPx",
+    "readingTextHeightPx",
+    "readingPassageYPx",
+    "readingPassageWidthPx",
+    "textSlideMarginXPx",
+    "textSlideMarginYPx",
+    "textSlideTextHeightPx"
+  ];
+  const hasIncomingBounds = Object.prototype.hasOwnProperty.call(input, "textBounds");
+  const hasIncomingLegacyGeometry = legacyGeometryKeys.some((key) => Object.prototype.hasOwnProperty.call(input, key));
+  const currentBounds = current.textBounds || legacyTextBoundsFromSettings(current);
+  const textBounds = hasIncomingBounds
+    ? normalizeTextBounds(input.textBounds, currentBounds)
+    : hasIncomingLegacyGeometry
+      ? legacyTextBoundsFromSettings({ ...current, ...input, resolution })
+      : normalizeTextBounds(currentBounds);
+  const legacyGeometry = textBoundsToLegacySettings(textBounds, resolution);
 
   return {
     fontFamily,
@@ -913,11 +938,11 @@ function normalizeScreenSettings(input = {}) {
     readingShowPageNumber: Boolean(input.readingShowPageNumber ?? current.readingShowPageNumber ?? true),
     readingShowLabel: Boolean(input.readingShowLabel ?? current.readingShowLabel ?? true),
     readingShowEnding: Boolean(input.readingShowEnding ?? current.readingShowEnding ?? true),
-    readingTextMarginXPx: Math.min(260, Math.max(0, Number(input.readingTextMarginXPx) || current.readingTextMarginXPx || 80)),
-    readingTextMarginYPx: Math.min(360, Math.max(0, Number(input.readingTextMarginYPx) || current.readingTextMarginYPx || 130)),
-    readingTextHeightPx: Math.min(980, Math.max(120, Number(input.readingTextHeightPx) || current.readingTextHeightPx || 840)),
-    readingPassageYPx: Math.min(1060, Math.max(0, Number(input.readingPassageYPx) || current.readingPassageYPx || 70)),
-    readingPassageWidthPx: Math.min(1760, Math.max(180, Number(input.readingPassageWidthPx) || current.readingPassageWidthPx || 650)),
+    readingTextMarginXPx: legacyGeometry.readingTextMarginXPx,
+    readingTextMarginYPx: legacyGeometry.readingTextMarginYPx,
+    readingTextHeightPx: legacyGeometry.readingTextHeightPx,
+    readingPassageYPx: legacyGeometry.readingPassageYPx,
+    readingPassageWidthPx: legacyGeometry.readingPassageWidthPx,
     readingLineHeight: Math.round(Math.min(3.0, Math.max(1.0, Number(input.readingLineHeight) || current.readingLineHeight || 1.58)) * 100) / 100,
     readingLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, Number(input.readingLetterSpacingPx ?? current.readingLetterSpacingPx ?? 0))) * 10) / 10,
     readingTextItalic: Boolean(input.readingTextItalic ?? current.readingTextItalic ?? false),
@@ -943,9 +968,10 @@ function normalizeScreenSettings(input = {}) {
     textSlideTextOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.textSlideTextOutlineWidthPx ?? current.textSlideTextOutlineWidthPx ?? 1))) * 10) / 10,
     textSlideTextShadow: Boolean(input.textSlideTextShadow ?? current.textSlideTextShadow ?? true),
     textSlideShowPageNumber: Boolean(input.textSlideShowPageNumber ?? current.textSlideShowPageNumber ?? true),
-    textSlideMarginXPx: Math.min(400, Math.max(0, Number(input.textSlideMarginXPx) || current.textSlideMarginXPx || 110)),
-    textSlideMarginYPx: Math.min(400, Math.max(0, Number(input.textSlideMarginYPx) || current.textSlideMarginYPx || 90)),
-    textSlideTextHeightPx: Math.min(1020, Math.max(120, Number(input.textSlideTextHeightPx) || current.textSlideTextHeightPx || 900))
+    textSlideMarginXPx: legacyGeometry.textSlideMarginXPx,
+    textSlideMarginYPx: legacyGeometry.textSlideMarginYPx,
+    textSlideTextHeightPx: legacyGeometry.textSlideTextHeightPx,
+    textBounds
   };
 }
 
@@ -3485,18 +3511,27 @@ function startServer(port = 17841, options = {}) {
         ...state.screenSettings,
         ...(overrideSettings || {})
       };
+      const normalizedOverrides = normalizeStyleOverrides(styleOverrides);
+      const previewTextBounds = normalizeTextBounds(
+        settings.textBounds || legacyTextBoundsFromSettings(settings)
+      );
+      const previewReadingRect = boundsToRect(
+        normalizedOverrides.bounds?.body || previewTextBounds.readingBody,
+        settings.resolution || "1080p"
+      );
 
       const slides = paginateDocuments([dummyDoc], {
         fontSizePx: settings.fontSizePx,
         fontFamily: settings.fontFamily,
-        readingTextHeightPx: settings.readingTextHeightPx,
+        readingTextHeightPx: previewReadingRect.height,
+        readingTextWidthPx: previewReadingRect.width,
         readingLineHeight: settings.readingLineHeight,
         readingTextMarginXPx: settings.readingTextMarginXPx,
         readingTextSizePx: settings.readingTextSizePx,
         psalmRefrainIndex: req.body?.psalmRefrainIndex
       }).map((slide) => ({
         ...slide,
-        styleOverrides: normalizeStyleOverrides(styleOverrides),
+        styleOverrides: normalizedOverrides,
         groupLabel: String(label || doc.section || "")
       }));
 

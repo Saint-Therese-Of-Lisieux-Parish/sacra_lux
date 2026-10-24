@@ -1,4 +1,10 @@
 const { paginateDocuments } = require("./readingsImporter");
+const {
+  boundsToRect,
+  legacyTextBoundsFromSettings,
+  normalizeGroupBounds,
+  normalizeTextBounds
+} = require("./textBounds");
 
 /**
  * Split manual text at hard-break markers (`---` on its own line).
@@ -179,6 +185,11 @@ function normalizeStyleOverrides(input) {
     if (typeof input[key] === "boolean") {
       normalized[key] = input[key];
     }
+  }
+
+  const bounds = normalizeGroupBounds(input.bounds);
+  if (bounds) {
+    normalized.bounds = bounds;
   }
 
   return normalized;
@@ -464,8 +475,17 @@ function buildReadingSlides(item, documents, screenSettings) {
   }
 
   const styleOverrides = normalizeStyleOverrides(item.styleOverrides);
+  const globalTextBounds = normalizeTextBounds(
+    screenSettings.textBounds || legacyTextBoundsFromSettings(screenSettings)
+  );
+  const effectiveTextBounds = {
+    ...globalTextBounds,
+    readingBody: styleOverrides.bounds?.body || globalTextBounds.readingBody,
+    readingPassage: styleOverrides.bounds?.passage || globalTextBounds.readingPassage
+  };
   const effectiveScreenSettings = {
     ...screenSettings,
+    textBounds: effectiveTextBounds,
     ...(styleOverrides.fontFamily ? { readingTextFont: styleOverrides.fontFamily } : {}),
     ...(styleOverrides.fontSizePx ? { readingTextSizePx: styleOverrides.fontSizePx } : {}),
     ...(typeof styleOverrides.bold === "boolean" ? { readingTextBold: styleOverrides.bold } : {}),
@@ -473,11 +493,16 @@ function buildReadingSlides(item, documents, screenSettings) {
     ...(typeof styleOverrides.outline === "boolean" ? { readingTextOutline: styleOverrides.outline } : {}),
     ...(typeof styleOverrides.shadow === "boolean" ? { readingTextShadow: styleOverrides.shadow } : {})
   };
+  const readingRect = boundsToRect(
+    effectiveTextBounds.readingBody,
+    effectiveScreenSettings.resolution || "1080p"
+  );
 
   const paginated = paginateDocuments([doc], {
     fontSizePx: effectiveScreenSettings.fontSizePx,
     fontFamily: effectiveScreenSettings.fontFamily,
-    readingTextHeightPx: effectiveScreenSettings.readingTextHeightPx,
+    readingTextHeightPx: readingRect.height,
+    readingTextWidthPx: readingRect.width,
     readingTextSizePx: effectiveScreenSettings.readingTextSizePx,
     readingLineHeight: effectiveScreenSettings.readingLineHeight,
     readingTextMarginXPx: effectiveScreenSettings.readingTextMarginXPx,

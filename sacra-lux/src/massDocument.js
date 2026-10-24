@@ -1,3 +1,5 @@
+const { MIN_BOX, REFERENCE_CANVAS, normalizeGroupBounds } = require("./textBounds");
+
 const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "imageSlideshow", "movie", "countdown", "interstitial"]);
 const VALID_SECTIONS = new Set(["pre", "gathering", "mass", "post"]);
 const ITEM_KEYS = new Set(["id", "kind", "label", "section", "durationSec", "notes", "content", "source", "asset", "assets", "presentation"]);
@@ -16,6 +18,7 @@ const PRESENTATION_KEYS = new Set([
   "italic",
   "outline",
   "shadow",
+  "bounds",
   "countdownStyle",
   "countdownSizePercent",
   "loop",
@@ -280,6 +283,25 @@ function validatePresentation(presentation) {
       throw new ValidationError(`presentation.${key} must be a boolean.`);
     }
   }
+  if (presentation.bounds != null) {
+    assertObject(presentation.bounds, "presentation.bounds");
+    assertKnownKeys(presentation.bounds, new Set(["body", "passage"]), "presentation.bounds");
+    for (const [name, bounds] of Object.entries(presentation.bounds)) {
+      assertObject(bounds, `presentation.bounds.${name}`);
+      assertKnownKeys(bounds, new Set(["left", "right", "top", "bottom"]), `presentation.bounds.${name}`);
+      for (const edge of ["left", "right", "top", "bottom"]) {
+        if (!Number.isFinite(Number(bounds[edge])) || Number(bounds[edge]) < 0) {
+          throw new ValidationError(`presentation.bounds.${name}.${edge} must be a non-negative number.`);
+        }
+      }
+      if (Number(bounds.left) + Number(bounds.right) > REFERENCE_CANVAS.width - MIN_BOX.width) {
+        throw new ValidationError(`presentation.bounds.${name} must be at least ${MIN_BOX.width} pixels wide.`);
+      }
+      if (Number(bounds.top) + Number(bounds.bottom) > REFERENCE_CANVAS.height - MIN_BOX.height) {
+        throw new ValidationError(`presentation.bounds.${name} must be at least ${MIN_BOX.height} pixels high.`);
+      }
+    }
+  }
   if (presentation.countdownStyle != null && !VALID_COUNTDOWN_STYLES.has(String(presentation.countdownStyle))) {
     throw new ValidationError(`Unsupported presentation.countdownStyle "${presentation.countdownStyle}".`);
   }
@@ -448,6 +470,11 @@ function serializeStyleOverrides(styleOverrides) {
     }
   }
 
+  const bounds = normalizeGroupBounds(styleOverrides.bounds);
+  if (bounds) {
+    presentation.bounds = bounds;
+  }
+
   return presentation;
 }
 
@@ -471,6 +498,11 @@ function readStyleOverridesFromPresentation(presentation = {}) {
     if (typeof presentation[key] === "boolean") {
       styleOverrides[key] = presentation[key];
     }
+  }
+
+  const bounds = normalizeGroupBounds(presentation.bounds);
+  if (bounds) {
+    styleOverrides.bounds = bounds;
   }
 
   return styleOverrides;
