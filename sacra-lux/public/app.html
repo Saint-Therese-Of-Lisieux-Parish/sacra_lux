@@ -1167,7 +1167,7 @@
       height: 100%;
       padding: 0.72rem 0.8rem;
       border: 1px solid color-mix(in srgb, var(--line), white 12%);
-      border-radius: 14px;
+      border-radius: var(--radius);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 14%);
     }
 
@@ -1223,7 +1223,7 @@
       gap: 0.85rem;
       padding: 0.95rem;
       border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 16px;
+      border-radius: var(--radius);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
     }
 
@@ -1257,7 +1257,7 @@
       height: 100%;
       padding: 0.75rem 0.85rem;
       border: 1px solid color-mix(in srgb, var(--line), white 8%);
-      border-radius: 14px;
+      border-radius: var(--radius);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
       font-weight: 700;
       color: var(--ink);
@@ -1303,7 +1303,7 @@
       gap: 0.65rem;
       padding: 0.8rem;
       border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 16px;
+      border-radius: var(--radius);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
     }
 
@@ -1318,25 +1318,22 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 44px;
-      padding: 0.6rem 0.95rem;
-      border: 1px solid color-mix(in srgb, var(--line), black 10%);
-      border-radius: 12px;
-      background: linear-gradient(to bottom, var(--panel), var(--panel-alt));
-      box-shadow:
-        0 0.5px 1px color-mix(in srgb, var(--shadow-strong) 55%, transparent),
-        0 1px 2px color-mix(in srgb, var(--shadow) 75%, transparent),
-        inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+      min-height: 2.1rem;
+      padding: 0.3rem 0.75rem;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+      box-shadow: var(--shadow-press);
     }
 
     .settings-upload-card .upload-bg-label:hover {
-      background: linear-gradient(to bottom, color-mix(in srgb, var(--panel), white 4%), var(--bg-alt));
+      background: var(--control-bg-hover);
     }
 
     .settings-advanced {
       margin-top: 0;
       border: 1px dashed color-mix(in srgb, var(--line), black 6%);
-      border-radius: 14px;
+      border-radius: var(--radius);
       padding: 0.2rem 0.85rem 0.85rem;
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 7%);
     }
