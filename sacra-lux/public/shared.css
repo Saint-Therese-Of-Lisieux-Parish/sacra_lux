@@ -57,6 +57,7 @@
   --control-bg-hover: var(--bg-alt);
   --control-border: color-mix(in srgb, var(--line), black 12%);
   --control-border-hover: color-mix(in srgb, var(--line), black 28%);
+  --surface-border: color-mix(in srgb, var(--line), transparent 55%);
   --disabled-opacity: 0.45;
   --body-gradient:
     radial-gradient(circle at 15% 20%, #faf5ee 0%, transparent 30%),
