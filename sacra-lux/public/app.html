@@ -142,21 +142,18 @@
     }
 
     .sequence-item {
-      border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 20px;
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--panel), white 7%), color-mix(in srgb, var(--panel), var(--bg-alt) 9%));
-      padding: 0.8rem;
-      margin-bottom: 0.7rem;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 0.4rem;
       cursor: pointer;
-      box-shadow: 0 10px 24px var(--shadow);
-      transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+      transition: border-color 0.14s ease, background 0.14s ease;
     }
 
     .sequence-item:hover {
-      transform: translateY(-1px);
-      border-color: color-mix(in srgb, var(--accent), white 58%);
-      box-shadow: 0 14px 30px var(--shadow);
+      border-color: var(--control-border-hover);
+      background: var(--control-bg-hover);
     }
 
     .sequence-row {
@@ -169,8 +166,8 @@
     .sequence-thumb {
       width: 140px;
       aspect-ratio: 16 / 9;
-      border-radius: 14px;
-      border: 1px solid color-mix(in srgb, var(--line), white 10%);
+      border-radius: 4px;
+      border: 1px solid var(--surface-border);
       background: #101010;
       display: block;
       position: relative;
@@ -178,7 +175,6 @@
       background-size: cover;
       background-position: center;
       flex-shrink: 0;
-      box-shadow: 0 8px 22px color-mix(in srgb, black 18%, transparent);
     }
 
     .thumb-render {
@@ -216,13 +212,8 @@
     }
 
     .sequence-item.active {
-      border-color: color-mix(in srgb, var(--accent), white 44%);
-      background:
-        radial-gradient(circle at top right, color-mix(in srgb, var(--accent), white 88%) 0%, transparent 22%),
-        linear-gradient(180deg, color-mix(in srgb, var(--active-bg), white 12%), color-mix(in srgb, var(--panel), var(--bg-alt) 12%));
-      box-shadow:
-        inset 0 0 0 1px color-mix(in srgb, var(--accent), white 62%),
-        0 16px 30px var(--shadow);
+      border-color: var(--accent);
+      background: var(--active-bg);
     }
 
     .sequence-head {
