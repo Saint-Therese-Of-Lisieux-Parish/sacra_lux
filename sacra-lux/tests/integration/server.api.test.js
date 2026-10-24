@@ -1978,6 +1978,41 @@ describe("server api integration", () => {
     expect(asset.body.toString()).toBe("legacy-image");
   });
 
+  test("import-mass-zip resolves media name collisions by folder, not ZIP order", async () => {
+    const buildZip = (entries) => {
+      const zip = new AdmZip();
+      zip.addFile("settings.json", Buffer.from(JSON.stringify({
+        version: 2,
+        presentationTitle: "Collisions",
+        screenSettings: {},
+        organizerSequence: [],
+        manualSlides: {}
+      })));
+      for (const [name, text] of entries) zip.addFile(name, Buffer.from(text));
+      return zip.toBuffer().toString("base64");
+    };
+    const entries = [
+      ["uploads/x.png", "from-uploads"],
+      ["readings/assets/x.png", "from-readings-assets"],
+      ["assets/x.png", "from-assets"],
+      ["uploads/y.png", "y-uploads"],
+      ["readings/assets/y.png", "y-readings-assets"],
+      ["uploads/z.png", "z-uploads"]
+    ];
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    const readAsset = (name) => fs.readFileSync(path.join(assetsDir, name), "utf8");
+
+    for (const ordered of [entries, [...entries].reverse()]) {
+      await request(app)
+        .post("/api/import-mass-zip")
+        .send({ zipData: buildZip(ordered) })
+        .expect(200);
+      expect(readAsset("x.png")).toBe("from-assets");
+      expect(readAsset("y.png")).toBe("y-readings-assets");
+      expect(readAsset("z.png")).toBe("z-uploads");
+    }
+  });
+
   test("import-settings keeps state unchanged when the start time is invalid", async () => {
     await request(app)
       .post("/api/organizer")

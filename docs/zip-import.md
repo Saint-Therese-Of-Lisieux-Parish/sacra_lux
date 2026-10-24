@@ -78,8 +78,28 @@ A valid `<name>` or `<file>` has these properties:
 The extension of a reading file is `.txt`. The extension of a media file is in
 the list below. The extension check ignores case for media files.
 
-If `uploads/<file>` has the same name as a file that the importer already
-wrote, the importer keeps the first file and skips the `uploads/` file.
+### Name Collisions
+
+The importer extracts folders in a fixed order, not in ZIP order. So the
+result is the same for each ZIP with the same entries.
+
+1. `readings/`: reading files go to the Mass folder root.
+2. `readings/assets/`: media files go to `assets/`.
+3. `assets/`: media files go to `assets/`.
+4. `uploads/`: media files go to `assets/`.
+
+Reading files have one source folder. A ZIP cannot hold two `readings/*.txt`
+files with the same path, so no collision can occur.
+
+Media files can collide in `assets/`. If two media files have the same name,
+the winner depends on the folder:
+
+- `assets/<file>` replaces `readings/assets/<file>`.
+- `uploads/<file>` never replaces a file that the importer already wrote.
+  The importer skips it.
+
+So the order of priority is `assets/`, then `readings/assets/`, then
+`uploads/`.
 
 The importer writes the parsed definition to `mass.json` in the Mass folder.
 The ZIP file `settings.json` is not copied.
