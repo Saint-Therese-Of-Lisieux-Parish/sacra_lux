@@ -16,9 +16,9 @@ you import a Mass, and the conditions for a successful import. The code is in
    in deeper folders.
 4. Keep the ZIP within the [limits](#limits).
 5. Use only the [media extensions](#media-extensions) in the list.
-
 6. The importer orders items by phase: `pre`, `gathering`, `mass`, `post`.
    Items keep their relative order inside a phase.
+
 ## Directory Layout
 
 ```text
