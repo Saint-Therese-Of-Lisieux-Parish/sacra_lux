@@ -932,6 +932,42 @@ test("remote preview interaction keeps the large preview pinned at the top", asy
   expect(previewBox.y).toBeLessThan(2);
 });
 
+test("controls show a focus ring and a clear disabled state", async ({ page }) => {
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+
+  // Keyboard focus draws a visible ring on a button, a select, and an input.
+  await page.evaluate(() => {
+    const host = document.createElement("div");
+    host.id = "a11yProbe";
+    host.innerHTML = '<button id="probeBtn">Probe</button><select id="probeSelect"><option>A</option></select>' +
+      '<input id="probeInput"><button id="probeDisabled" disabled>Off</button>';
+    document.body.appendChild(host);
+  });
+  for (const id of ["probeBtn", "probeSelect", "probeInput"]) {
+    await page.locator(`#${id}`).focus();
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Tab");
+    const ring = await page.locator(`#${id}`).evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { style: style.outlineStyle, width: parseFloat(style.outlineWidth) };
+    });
+    expect(ring.style, `${id} outline style`).not.toBe("none");
+    expect(ring.width, `${id} outline width`).toBeGreaterThanOrEqual(2);
+  }
+
+  // A disabled button looks different from an enabled one and shows a blocked cursor.
+  const states = await page.evaluate(() => {
+    const on = getComputedStyle(document.getElementById("probeBtn"));
+    const off = getComputedStyle(document.getElementById("probeDisabled"));
+    return { onOpacity: Number(on.opacity), offOpacity: Number(off.opacity), cursor: off.cursor };
+  });
+  expect(states.offOpacity).toBeLessThan(states.onOpacity);
+  expect(states.cursor).toBe("not-allowed");
+});
+
 test("remote controls keep a 44 px touch target", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${baseUrl}/remote`);
