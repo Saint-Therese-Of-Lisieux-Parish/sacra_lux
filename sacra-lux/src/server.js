@@ -306,7 +306,6 @@ function saveCurrentMass() {
     startTime: state.massStartTime
   });
   state.activeMassArchiveId = archive.id;
-  logInfo(`[save] Mass saved to ${CURRENT_MASS_DIR}`);
 }
 
 function buildExportFilename(title, startTime, suffix = ".zip") {
