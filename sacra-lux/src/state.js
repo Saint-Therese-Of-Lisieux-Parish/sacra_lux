@@ -19,7 +19,7 @@ const state = {
   screenSettings: {
     fontFamily: "Merriweather",
     fontSizePx: 60,
-    darkBackgroundUrl: "/static/assets/default-text-background.png",
+    darkBackgroundUrl: "/static/assets/default-text-background.avif",
     lightBackgroundUrl: "/static/assets/default-interstitial.png",
     boldText: false,
     readingTextAlign: "left",

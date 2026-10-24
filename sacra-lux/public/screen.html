@@ -69,13 +69,13 @@
       inset: 0;
       background-size: cover;
       background-position: center;
-      background-image: var(--bg-dark, url('/static/assets/default-text-background.png'));
+      background-image: var(--bg-dark, url('/static/assets/default-text-background.avif'));
       z-index: -2;
       transition: opacity 200ms ease;
     }
 
     .frame.bg-dark::before {
-      background-image: var(--bg-dark, url('/static/assets/default-text-background.png'));
+      background-image: var(--bg-dark, url('/static/assets/default-text-background.avif'));
     }
 
     .frame.bg-light::before {
@@ -1443,7 +1443,7 @@
     function applyScreenSettings(settings = {}, slide = null) {
       const fontFamily = settings.fontFamily || "Merriweather";
       const fontSizePx = Math.min(200, Math.max(24, Number(settings.fontSizePx) || 60));
-      const darkBg = settings.darkBackgroundUrl || "/static/assets/default-text-background.png";
+      const darkBg = settings.darkBackgroundUrl || "/static/assets/default-text-background.avif";
       const lightBg = settings.lightBackgroundUrl || "/static/assets/default-interstitial.png";
 
       // All global screen CSS vars are set on #stage so both frames inherit them.
