@@ -437,6 +437,69 @@ test("Screen Settings color fields pair each code with a visual picker", async (
   expect(await savedColor("readingPassageColor")).toBe(passageBefore);
 });
 
+test("reference and section title settings reach the screen and the controls", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/screen`);
+  await request.post(`${baseUrl}/api/screen-settings`, {
+    data: {
+      readingPassageItalic: true,
+      readingPassageShadow: false,
+      readingPassageLineHeight: 1.4,
+      readingPassageLetterSpacingPx: 3,
+      readingSectionFont: "Lora",
+      readingSectionSizePx: 31,
+      readingSectionColor: "#336699",
+      readingSectionBold: false,
+      readingSectionItalic: true,
+      readingSectionShadow: false
+    }
+  });
+  await expect.poll(async () => page.locator("#stage").evaluate((stage) => {
+    const style = getComputedStyle(stage);
+    return {
+      italic: style.getPropertyValue("--reading-passage-style").trim(),
+      shadow: style.getPropertyValue("--reading-passage-shadow").trim(),
+      line: style.getPropertyValue("--reading-passage-line-height").trim(),
+      spacing: style.getPropertyValue("--reading-passage-letter-spacing").trim(),
+      sectionFont: style.getPropertyValue("--reading-section-font").trim(),
+      sectionSize: style.getPropertyValue("--reading-section-size").trim(),
+      sectionWeight: style.getPropertyValue("--reading-section-weight").trim(),
+      sectionStyle: style.getPropertyValue("--reading-section-style").trim(),
+      sectionShadow: style.getPropertyValue("--reading-section-shadow").trim()
+    };
+  })).toEqual({
+    italic: "italic",
+    shadow: "none",
+    line: "1.4",
+    spacing: "3px",
+    sectionFont: '"Lora", sans-serif',
+    sectionSize: "31px",
+    sectionWeight: "400",
+    sectionStyle: "italic",
+    sectionShadow: "none"
+  });
+
+  // The Screen Settings controls show the saved values.
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+  await page.locator('[data-settings-tab="reading-ref"]').click();
+  await expect(page.locator("#readingPassageItalic")).toBeChecked();
+  await expect(page.locator("#readingPassageShadow")).not.toBeChecked();
+  await expect(page.locator("#readingPassageLineHeight")).toHaveValue("1.4");
+  await expect(page.locator("#readingSectionFont")).toHaveValue("Lora");
+  await expect(page.locator("#readingSectionSizePx")).toHaveValue("31");
+  await expect(page.locator("#readingSectionColor")).toHaveValue("#336699");
+  await expect(page.locator("#readingSectionBold")).not.toBeChecked();
+  await expect(page.locator("#readingSectionItalic")).toBeChecked();
+
+  // Changing a control saves it.
+  await page.locator("label.fmt-toggle:has(#readingPassageShadow)").click();
+  await expect.poll(async () => (await (await request.get(`${baseUrl}/api/state`)).json()).screenSettings.readingPassageShadow).toBe(true);
+});
+
 test("Screen Settings shows one slide type text style at a time", async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);

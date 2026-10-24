@@ -3085,6 +3085,14 @@
                   <input id="readingPassageBold" type="checkbox" checked>
                   <span class="fmt-glyph" aria-label="Bold reference"><b>B</b></span>
                 </label>
+                <label class="settings-toggle fmt-toggle" title="Italic: Slants the scripture reference.">
+                  <input id="readingPassageItalic" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Italic"><i>I</i></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Drop shadow: Improves legibility of the reference on photos.">
+                  <input id="readingPassageShadow" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Drop shadow"><span class="fmt-shadow">S</span></span>
+                </label>
                 <label class="settings-toggle fmt-toggle" title="Reference outline: Useful when the reference sits on a photo or stained-glass image.">
                   <input id="readingPassageOutline" type="checkbox">
                   <span class="fmt-glyph" aria-label="Reference outline"><span class="fmt-outline">O</span></span>
@@ -3109,6 +3117,18 @@
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
+                    <label>Line spacing
+                      <input id="readingPassageLineHeight" type="number" min="1.0" max="3.0" step="0.05" value="1.15"
+                        title="Space between lines (1.0 = tight, 2.0 = double-spaced)">
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-2">
+                    <label>Letter spacing
+                      <input id="readingPassageLetterSpacingPx" type="number" min="-2" max="10" step="0.5" value="1.3"
+                        title="Extra space between each letter">
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-2">
                     <label>Outline color
                       <input id="readingPassageOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
                     </label>
@@ -3122,13 +3142,66 @@
                 </div>
                 <div class="settings-group">
                   <div class="settings-group-label">Section Title</div>
-                  <p class="settings-subsection-copy">Section titles such as First Reading use the reference font and color, softened, at half the reference size.</p>
+                  <p class="settings-subsection-copy">Section titles such as First Reading. The color is softened on the slide.</p>
                   <div class="format-bar" role="toolbar" aria-label="Section title formatting">
+                  <div class="settings-field settings-span-4">
+                    <label>Title Font
+                      <select id="readingSectionFont">
+                        <option value="Merriweather">Merriweather</option>
+                        <option value="Lora">Lora</option>
+                        <option value="Playfair Display">Playfair Display</option>
+                        <option value="Cormorant Garamond">Cormorant Garamond</option>
+                        <option value="EB Garamond">EB Garamond</option>
+                        <option value="Libre Baskerville">Libre Baskerville</option>
+                        <option value="Crimson Pro">Crimson Pro</option>
+                        <option value="Noto Serif">Noto Serif</option>
+                        <option value="PT Serif">PT Serif</option>
+                        <option value="Source Sans 3" selected>Source Sans 3</option>
+                        <option value="Inter">Inter</option>
+                        <option value="Open Sans">Open Sans</option>
+                        <option value="Roboto">Roboto</option>
+                        <option value="Work Sans">Work Sans</option>
+                        <option value="Noto Sans">Noto Sans</option>
+                        <option value="PT Sans">PT Sans</option>
+                        <option value="Montserrat">Montserrat</option>
+                        <option value="Poppins">Poppins</option>
+                        <option value="Raleway">Raleway</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-2">
+                    <label>Title Size
+                      <span class="editor-size-stepper">
+                        <button type="button" class="editor-size-btn" data-size-step="-2" data-target-input="readingSectionSizePx" aria-label="Decrease size">&minus;</button>
+                        <input id="readingSectionSizePx" type="number" min="10" max="90" step="1" value="22">
+                        <button type="button" class="editor-size-btn" data-size-step="2" data-target-input="readingSectionSizePx" aria-label="Increase size">+</button>
+                      </span>
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-2">
+                    <label>Title Color
+                      <input id="readingSectionColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#e8d5a0">
+                    </label>
+                  </div>
+                  <span class="format-sep"></span>
+                <label class="settings-toggle fmt-toggle" title="Bold title: Keeps the section title readable.">
+                  <input id="readingSectionBold" type="checkbox" checked>
+                  <span class="fmt-glyph" aria-label="Bold title"><b>B</b></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Italic: Slants the section title.">
+                  <input id="readingSectionItalic" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Italic"><i>I</i></span>
+                </label>
+                <label class="settings-toggle fmt-toggle" title="Drop shadow: Improves legibility of the section title on photos.">
+                  <input id="readingSectionShadow" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Drop shadow"><span class="fmt-shadow">S</span></span>
+                </label>
                 <label class="settings-toggle fmt-toggle" title="Title outline: Adds separation for section titles like First Reading.">
                   <input id="readingSectionOutline" type="checkbox">
                   <span class="fmt-glyph" aria-label="Title outline"><span class="fmt-outline">O</span></span>
                 </label>
-                  <span class="format-sep"></span>
+                  </div>
+                  <div class="format-bar" role="toolbar" aria-label="Section title outline">
                   <div class="settings-field settings-span-2">
                     <label>Title outline color
                       <input id="readingSectionOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
@@ -4292,6 +4365,16 @@
       readingPassageFont: document.getElementById("readingPassageFont"),
       readingPassageSizePx: document.getElementById("readingPassageSizePx"),
       readingPassageBold: document.getElementById("readingPassageBold"),
+      readingPassageItalic: document.getElementById("readingPassageItalic"),
+      readingPassageShadow: document.getElementById("readingPassageShadow"),
+      readingPassageLineHeight: document.getElementById("readingPassageLineHeight"),
+      readingPassageLetterSpacingPx: document.getElementById("readingPassageLetterSpacingPx"),
+      readingSectionFont: document.getElementById("readingSectionFont"),
+      readingSectionSizePx: document.getElementById("readingSectionSizePx"),
+      readingSectionColor: document.getElementById("readingSectionColor"),
+      readingSectionBold: document.getElementById("readingSectionBold"),
+      readingSectionItalic: document.getElementById("readingSectionItalic"),
+      readingSectionShadow: document.getElementById("readingSectionShadow"),
       readingPassageColor: document.getElementById("readingPassageColor"),
       readingPassageOutline: document.getElementById("readingPassageOutline"),
       readingPassageOutlineColor: document.getElementById("readingPassageOutlineColor"),
@@ -5439,6 +5522,16 @@
         readingPassageFont: els.readingPassageFont.value,
         readingPassageSizePx: Number(els.readingPassageSizePx.value || 44),
         readingPassageBold: Boolean(els.readingPassageBold.checked),
+        readingPassageItalic: Boolean(els.readingPassageItalic.checked),
+        readingPassageShadow: Boolean(els.readingPassageShadow.checked),
+        readingPassageLineHeight: Number(els.readingPassageLineHeight.value) || 1.15,
+        readingPassageLetterSpacingPx: Number.isFinite(parseFloat(els.readingPassageLetterSpacingPx.value)) ? parseFloat(els.readingPassageLetterSpacingPx.value) : 1.3,
+        readingSectionFont: els.readingSectionFont.value,
+        readingSectionSizePx: Number(els.readingSectionSizePx.value) || 0,
+        readingSectionColor: colorCodeValue(els.readingSectionColor),
+        readingSectionBold: Boolean(els.readingSectionBold.checked),
+        readingSectionItalic: Boolean(els.readingSectionItalic.checked),
+        readingSectionShadow: Boolean(els.readingSectionShadow.checked),
         readingPassageColor: colorCodeValue(els.readingPassageColor),
         readingPassageOutline: Boolean(els.readingPassageOutline.checked),
         readingPassageOutlineColor: colorCodeValue(els.readingPassageOutlineColor),
@@ -6436,6 +6529,26 @@
           els.readingPassageSizePx.value = String(screen.readingPassageSizePx);
         }
         els.readingPassageBold.checked = screen.readingPassageBold !== false;
+        els.readingPassageItalic.checked = Boolean(screen.readingPassageItalic);
+        els.readingPassageShadow.checked = screen.readingPassageShadow !== false;
+        if (screen.readingPassageLineHeight) {
+          els.readingPassageLineHeight.value = String(screen.readingPassageLineHeight);
+        }
+        if (screen.readingPassageLetterSpacingPx !== undefined) {
+          els.readingPassageLetterSpacingPx.value = String(screen.readingPassageLetterSpacingPx);
+        }
+        if (screen.readingSectionFont) {
+          els.readingSectionFont.value = screen.readingSectionFont;
+        }
+        if (screen.readingSectionSizePx) {
+          els.readingSectionSizePx.value = String(screen.readingSectionSizePx);
+        }
+        if (screen.readingSectionColor) {
+          els.readingSectionColor.value = screen.readingSectionColor;
+        }
+        els.readingSectionBold.checked = screen.readingSectionBold !== false;
+        els.readingSectionItalic.checked = Boolean(screen.readingSectionItalic);
+        els.readingSectionShadow.checked = screen.readingSectionShadow !== false;
         if (screen.readingPassageColor) {
           els.readingPassageColor.value = screen.readingPassageColor;
         }
@@ -8067,6 +8180,20 @@
     els.readingPassageSizePx.addEventListener("input", scheduleAutoApply);
     els.readingPassageSizePx.addEventListener("change", scheduleAutoApply);
     els.readingPassageBold.addEventListener("change", scheduleAutoApply);
+    els.readingPassageItalic.addEventListener("change", scheduleAutoApply);
+    els.readingPassageShadow.addEventListener("change", scheduleAutoApply);
+    els.readingPassageLineHeight.addEventListener("input", scheduleAutoApply);
+    els.readingPassageLineHeight.addEventListener("change", scheduleAutoApply);
+    els.readingPassageLetterSpacingPx.addEventListener("input", scheduleAutoApply);
+    els.readingPassageLetterSpacingPx.addEventListener("change", scheduleAutoApply);
+    els.readingSectionFont.addEventListener("change", scheduleAutoApply);
+    els.readingSectionSizePx.addEventListener("input", scheduleAutoApply);
+    els.readingSectionSizePx.addEventListener("change", scheduleAutoApply);
+    els.readingSectionColor.addEventListener("input", scheduleAutoApply);
+    els.readingSectionColor.addEventListener("change", scheduleAutoApply);
+    els.readingSectionBold.addEventListener("change", scheduleAutoApply);
+    els.readingSectionItalic.addEventListener("change", scheduleAutoApply);
+    els.readingSectionShadow.addEventListener("change", scheduleAutoApply);
     els.readingPassageColor.addEventListener("input", scheduleAutoApply);
     els.readingPassageColor.addEventListener("change", scheduleAutoApply);
     els.readingPassageOutline.addEventListener("change", scheduleAutoApply);
