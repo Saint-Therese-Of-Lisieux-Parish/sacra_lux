@@ -448,6 +448,22 @@ const MAX_MASS_ZIP_ENTRIES = 1000;
 const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
 
+/**
+ * Rewrite legacy `/static/uploads/<file>` references to `/api/mass-asset/<file>`.
+ * The importer copies `uploads/` files into `assets/`, so only the new form resolves.
+ */
+function rewriteLegacyUploadRefs(value) {
+  if (typeof value === "string") {
+    const match = value.match(/^\/static\/uploads\/([^/]+)$/);
+    return match ? `/api/mass-asset/${match[1]}` : value;
+  }
+  if (Array.isArray(value)) return value.map(rewriteLegacyUploadRefs);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, rewriteLegacyUploadRefs(entry)]));
+  }
+  return value;
+}
+
 function parseMassZipDefinition(definitionEntry) {
   const text = readZipEntryData(definitionEntry).toString("utf8");
   let definition;
@@ -462,7 +478,7 @@ function parseMassZipDefinition(definitionEntry) {
   if (definition.format === "sacra-lux.mass" && definition.version !== 3) {
     throw new ValidationError("Unsupported mass version.");
   }
-  return definition;
+  return definition.format === "sacra-lux.mass" ? definition : rewriteLegacyUploadRefs(definition);
 }
 
 function validateMassZipArchive(zip, compressedBytes) {
@@ -3245,6 +3261,7 @@ function startServer(port = 17841, options = {}) {
         }
         try {
           packageData = JSON.parse(definitionEntry.getData().toString("utf8"));
+          if (packageData?.format !== "sacra-lux.mass") packageData = rewriteLegacyUploadRefs(packageData);
         } catch {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
