@@ -797,13 +797,10 @@
 
     /* ── Connection info bar with QR codes ─────────────────────────────── */
     .connection-panel {
-      border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 22px;
-      background:
-        radial-gradient(circle at top right, color-mix(in srgb, var(--bg-alt), white 16%) 0%, transparent 28%),
-        linear-gradient(180deg, color-mix(in srgb, var(--panel-alt), white 12%), color-mix(in srgb, var(--panel), white 2%));
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
+      background: var(--panel);
       overflow: hidden;
-      box-shadow: 0 18px 40px var(--shadow);
     }
 
     .connection-panel-toggle {
@@ -862,10 +859,10 @@
       align-items: center;
       gap: 0.45rem;
       padding: 0.9rem 0.8rem 0.8rem;
-      background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
-      border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 18px;
-      box-shadow: 0 10px 24px var(--shadow);
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .connection-card-label {
