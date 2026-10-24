@@ -456,6 +456,12 @@ test("Screen Settings shows one slide type text style at a time", async ({ page 
   await page.locator('[data-settings-tab="text"]').click();
   await expect(page.locator("#textSlideTextColor")).toBeVisible();
   await expect(page.locator('[data-settings-tab="text"]')).toHaveAttribute("aria-selected", "true");
+
+  // Inherited values show the real global font and size, not a generic label.
+  const globalFont = await page.locator("#fontFamily").inputValue();
+  const globalSize = await page.locator("#fontSizePx").inputValue();
+  await expect(page.locator("#textSlideTextFont option").first()).toHaveText(`Default (${globalFont})`);
+  await expect(page.locator("#textSlideTextSizePx")).toHaveAttribute("placeholder", globalSize);
 });
 
 test("Image Slideshow editor sorts batches and supports persistent ordering controls", async ({ page, request }) => {

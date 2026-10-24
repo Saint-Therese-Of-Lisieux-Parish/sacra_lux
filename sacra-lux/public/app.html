@@ -2960,7 +2960,11 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Size
-                      <input id="readingTextSizePx" type="number" min="24" max="110" step="1" placeholder="Use global">
+                      <span class="editor-size-stepper">
+                        <button type="button" class="editor-size-btn" data-size-step="-2" data-target-input="readingTextSizePx" aria-label="Decrease size">&minus;</button>
+                        <input id="readingTextSizePx" type="number" min="24" max="110" step="1" placeholder="Use global">
+                        <button type="button" class="editor-size-btn" data-size-step="2" data-target-input="readingTextSizePx" aria-label="Increase size">+</button>
+                      </span>
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -3063,7 +3067,11 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Size
-                      <input id="readingPassageSizePx" type="number" min="20" max="90" step="1" value="44">
+                      <span class="editor-size-stepper">
+                        <button type="button" class="editor-size-btn" data-size-step="-2" data-target-input="readingPassageSizePx" aria-label="Decrease size">&minus;</button>
+                        <input id="readingPassageSizePx" type="number" min="20" max="90" step="1" value="44">
+                        <button type="button" class="editor-size-btn" data-size-step="2" data-target-input="readingPassageSizePx" aria-label="Increase size">+</button>
+                      </span>
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -3223,7 +3231,11 @@
                   </div>
                   <div class="settings-field settings-span-2">
                     <label>Size
-                      <input id="textSlideTextSizePx" type="number" min="24" max="200" step="1" placeholder="Use global">
+                      <span class="editor-size-stepper">
+                        <button type="button" class="editor-size-btn" data-size-step="-2" data-target-input="textSlideTextSizePx" aria-label="Decrease size">&minus;</button>
+                        <input id="textSlideTextSizePx" type="number" min="24" max="200" step="1" placeholder="Use global">
+                        <button type="button" class="editor-size-btn" data-size-step="2" data-target-input="textSlideTextSizePx" aria-label="Increase size">+</button>
+                      </span>
                     </label>
                   </div>
                   <div class="settings-field settings-span-2">
@@ -4978,6 +4990,19 @@
       return {};
     }
 
+    // Show the real global font and size where a slide type inherits them.
+    function refreshGlobalDefaultLabels() {
+      const font = els.fontFamily?.value || "";
+      const size = els.fontSizePx?.value || "";
+      for (const select of [els.readingTextFont, els.textSlideTextFont]) {
+        const first = select?.options[0];
+        if (first && first.value === "") first.textContent = font ? `Default (${font})` : "Default font";
+      }
+      for (const input of [els.readingTextSizePx, els.textSlideTextSizePx]) {
+        if (input) input.placeholder = size || "Default";
+      }
+    }
+
     // Body / Reference tabs choose the layout box; only Reading slides have two boxes.
     function syncBoundsTabs(isReading = els.editorType?.value === "reading") {
       const tabs = document.getElementById("editorBoundsTabs");
@@ -6484,6 +6509,7 @@
         }
 
         screenSettingsDependencyUpdaters.forEach((update) => update());
+        refreshGlobalDefaultLabels();
         choosePresetForUrl(els.darkBgPreset, screen.darkBackgroundUrl || "");
         choosePresetForUrl(els.lightBgPreset, screen.lightBackgroundUrl || "");
       }
@@ -8329,6 +8355,10 @@
         });
       });
     });
+
+    els.fontFamily?.addEventListener("change", refreshGlobalDefaultLabels);
+    els.fontSizePx?.addEventListener("input", refreshGlobalDefaultLabels);
+    refreshGlobalDefaultLabels();
 
     document.querySelectorAll("[data-size-step]").forEach((button) => {
       button.addEventListener("click", () => {
