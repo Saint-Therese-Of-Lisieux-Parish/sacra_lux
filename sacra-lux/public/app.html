@@ -120,7 +120,7 @@
     }
 
     .phase-section-header.folder-import-target {
-      border-radius: 10px;
+      border-radius: var(--radius);
       transition: background 0.15s, color 0.15s;
     }
 
@@ -369,7 +369,7 @@
 
     .mass-history-item {
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       background: var(--panel);
       padding: 0.8rem 0.9rem;
       display: grid;
@@ -406,7 +406,7 @@
       text-align: center;
       color: var(--ink-soft);
       border: 1px dashed var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
     }
 
     .editor-dialog-inner {
@@ -460,7 +460,7 @@
       min-height: 180px;
       resize: vertical;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius);
       padding: 0.7rem;
     }
 
@@ -616,7 +616,7 @@
       gap: 0.6rem;
       padding: 0.72rem 0.8rem;
       border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 14px;
+      border-radius: var(--radius);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 12%);
       font-weight: 600;
       color: var(--ink);
@@ -768,7 +768,7 @@
       margin-bottom: 0.7rem;
       padding: 1rem;
       border: 2px dashed var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       color: var(--ink-soft);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 16%);
       cursor: pointer;
@@ -794,7 +794,7 @@
       align-items: center;
       padding: 0.5rem;
       border: 1px solid var(--line);
-      border-radius: 10px;
+      border-radius: var(--radius);
       background: var(--panel);
     }
 
@@ -1020,9 +1020,8 @@
       gap: 0.9rem;
       padding: 1rem;
       border: 1px solid color-mix(in srgb, var(--line), white 6%);
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       background: linear-gradient(180deg, color-mix(in srgb, var(--panel), white 4%), color-mix(in srgb, var(--panel-alt), white 2%));
-      box-shadow: 0 10px 28px var(--shadow);
     }
 
     .settings-section--span-2 {
@@ -1108,7 +1107,7 @@
       margin-top: 0.85rem;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       background: linear-gradient(135deg, #201b32, #101923);
       color: #f8f8f8;
       user-select: none;
@@ -1690,7 +1689,7 @@
 
     .theme-swatch {
       border: 2px solid var(--line);
-      border-radius: 10px;
+      border-radius: var(--radius);
       padding: 0.6rem;
       cursor: pointer;
       text-align: center;
@@ -1700,7 +1699,7 @@
     }
 
     .theme-swatch:hover {
-      box-shadow: 0 2px 8px var(--shadow);
+      border-color: var(--control-border-hover);
     }
 
     .theme-swatch.active {
@@ -1864,7 +1863,7 @@
       border: 1px solid var(--line);
       background: var(--panel);
       color: var(--ink);
-      border-radius: 10px;
+      border-radius: var(--radius);
       padding: 0.55rem 0.8rem;
       font: inherit;
       font-size: 0.85rem;
@@ -2129,8 +2128,7 @@
         radial-gradient(circle at top right, color-mix(in srgb, var(--bg-alt), white 16%) 0%, transparent 28%),
         linear-gradient(180deg, color-mix(in srgb, var(--panel), white 7%), color-mix(in srgb, var(--panel-alt), white 2%));
       border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 20px;
-      box-shadow: 0 16px 34px var(--shadow);
+      border-radius: var(--radius-lg);
     }
 
     .preview-header {
@@ -2166,7 +2164,7 @@
       width: 100%;
       aspect-ratio: 16 / 9;
       background: #050505;
-      border-radius: 10px;
+      border-radius: var(--radius);
       overflow: hidden;
       border: 1px solid var(--line);
       margin-bottom: 0.45rem;
@@ -2210,7 +2208,7 @@
       font-size: 0.9rem;
       font-weight: 700;
       padding: 0.75rem 1rem;
-      border-radius: 14px;
+      border-radius: var(--radius);
     }
 
     .preview-next {
@@ -2572,9 +2570,8 @@
       padding: 0.95rem;
       margin-bottom: 0.9rem;
       border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 16px;
+      border-radius: var(--radius-lg);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
-      box-shadow: 0 10px 28px var(--shadow);
     }
 
     /* Ensure hidden attribute wins over display:flex on editor-row */

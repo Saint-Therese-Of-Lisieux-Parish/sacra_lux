@@ -272,7 +272,7 @@
     /* ── Live screen preview ──────────────────────────────────────────── */
     .screen-preview-wrap {
       margin: 0 auto var(--remote-stack-gap);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       border: 1px solid var(--line);
       /* 16:9 aspect-ratio container */
@@ -396,7 +396,7 @@
 
     .carousel-card.center {
       z-index: 1;
-      box-shadow: 0 10px 22px var(--shadow);
+      box-shadow: var(--shadow-press);
     }
 
     .carousel-card.selected {
@@ -415,7 +415,7 @@
 
     .carousel-card.active {
       border-color: var(--accent);
-      box-shadow: 0 10px 22px var(--shadow);
+      box-shadow: var(--shadow-press);
     }
 
     .carousel-thumb-wrap {
@@ -440,7 +440,7 @@
 
     .carousel-empty {
       border: 1px dashed var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       padding: 0.8rem;
       color: var(--ink-soft);
       text-align: center;
