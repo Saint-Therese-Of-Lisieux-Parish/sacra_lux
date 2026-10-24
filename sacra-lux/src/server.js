@@ -2773,7 +2773,9 @@ function startServer(port = 17841, options = {}) {
       // The first start before Mass may open the pre-Mass loop.
       // A phone that joins after Mass has begun, or while a phase is already
       // running, only attaches. It must not rewind the projector.
-      if (!massHasBegun && !phaseAlreadyRunning) {
+      // A client without control permission (no PIN, non-loopback, control
+      // mode unset) only attaches.
+      if (!massHasBegun && !phaseAlreadyRunning && clientMayControl(req)) {
         const firstPreIdx = slides.findIndex((s) => s.phase === "pre");
         if (firstPreIdx >= 0) {
           stopGatheringTimer();
