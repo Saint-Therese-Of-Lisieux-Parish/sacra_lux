@@ -152,7 +152,7 @@ reads the `format` and `version` keys to choose how to read the file.
 | Number of entries | 1000 |
 | Size of one entry, uncompressed | 50 MiB (52,428,800 bytes) |
 | Total size, uncompressed | 250 MiB (262,144,000 bytes) |
-| Rate limit | 10 requests in 10 minutes, 1 at a time, for each client IP address |
+| Rate limit | 10 requests in 10 minutes and 1 at a time, per client IP |
 
 The importer checks the limits against the sizes in the ZIP headers before it
 extracts any file. The importer also counts the bytes that it extracts. If an
