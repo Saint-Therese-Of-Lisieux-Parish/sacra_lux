@@ -2507,6 +2507,53 @@
       background: var(--control-bg-hover);
     }
 
+    .slideshow-settings {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 1.5rem;
+      margin-top: 0.7rem;
+    }
+
+    .inline-field {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .inline-field input {
+      width: 4.5rem;
+      text-align: right;
+    }
+
+    .inline-unit {
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
+    .slideshow-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-left: auto;
+    }
+
+    .slideshow-readout-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .slideshow-readout output {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
     .insert-break-btn {
       font-size: 0.75rem;
       padding: 0.2rem 0.5rem;
@@ -3663,24 +3710,21 @@
               <span id="slideshowImageCount" class="muted-small">0 images</span>
             </div>
             <div id="slideshowImageList" class="slideshow-image-list" role="list" aria-label="Slideshow image order"></div>
-            <div class="modal-field-grid" style="margin-top:0.7rem">
-              <div class="modal-field modal-span-4">
-                <label>Seconds per image
-                  <input id="editorSlideshowDurationSec" type="number" min="1" max="3600" value="10">
-                </label>
-              </div>
-              <div class="modal-field modal-span-4">
-                <label>Loop count
-                  <input id="editorSlideshowLoopCount" type="number" min="1" max="1000" value="1">
-                </label>
-              </div>
-              <div class="modal-field modal-span-4">
-                <label>Total runtime
-                  <output id="slideshowRuntimePreview">0s</output>
-                </label>
+            <div class="slideshow-settings">
+              <label class="inline-field">Show each image
+                <input id="editorSlideshowDurationSec" type="number" min="1" max="3600" value="10" aria-label="Seconds per image">
+                <span class="inline-unit">sec</span>
+              </label>
+              <label class="inline-field">Repeat
+                <input id="editorSlideshowLoopCount" type="number" min="1" max="1000" value="1" aria-label="Loop count">
+                <span class="inline-unit">&times;</span>
+              </label>
+              <div class="slideshow-readout">
+                <span class="slideshow-readout-label">Total runtime</span>
+                <output id="slideshowRuntimePreview">0s</output>
               </div>
             </div>
-            <div id="slideshowPreflightSummary" class="muted-small" aria-live="polite" style="margin-top:0.6rem"></div>
+            <div id="slideshowPreflightSummary" class="muted-small" aria-live="polite" style="margin-top:0.4rem"></div>
           </div>
 
           <div id="editorSectionMovie" class="editor-type-section" hidden>
