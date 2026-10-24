@@ -2131,12 +2131,71 @@
       margin: -0.2rem 0 0.1rem;
     }
 
+    /* Word-processor style formatting bar: family, size, then B I O S. */
     .editor-style-strip {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 0.55rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      width: fit-content;
+      max-width: 100%;
       margin-top: 0.75rem;
-      align-items: end;
+      padding: 3px 6px;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+    }
+
+    .editor-style-strip .editor-style-field > span:first-child {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+
+    .editor-style-strip .editor-style-field {
+      display: block;
+    }
+
+    .editor-style-strip .editor-style-field-wide {
+      width: 11rem;
+    }
+
+    .editor-style-strip .editor-style-field input,
+    .editor-style-strip .editor-style-field select {
+      min-height: 1.8rem;
+      width: 100%;
+    }
+
+    .editor-style-field span.editor-size-stepper {
+      padding-left: 0;
+      font-size: inherit;
+      letter-spacing: normal;
+      text-transform: none;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .editor-style-strip .editor-size-stepper input {
+      width: 3.6rem;
+      padding: 0.2rem 0.3rem;
+      text-align: center;
+    }
+
+    .editor-size-btn {
+      width: 1.6rem;
+      height: 1.8rem;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      font-size: 1rem;
+    }
+
+    .editor-size-btn:hover {
+      background: var(--control-bg-hover);
     }
 
     .editor-style-strip[hidden] {
@@ -2202,15 +2261,12 @@
     }
 
     .editor-format-toolbar {
-      grid-column: 1 / -1;
       display: flex;
       align-items: center;
       gap: 2px;
-      padding: 2px;
-      width: fit-content;
-      border: 1px solid var(--control-border);
-      border-radius: var(--radius);
-      background: var(--control-bg);
+      margin-left: 0.2rem;
+      padding-left: 0.45rem;
+      border-left: 1px solid var(--surface-border);
     }
 
     .editor-format-btn {
@@ -3309,7 +3365,11 @@
                   </select>
                 </label>
                 <label class="editor-style-field editor-style-field-size"> <span>Size</span>
-                  <input id="editorReadingStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
+                  <span class="editor-size-stepper">
+                    <button type="button" class="editor-size-btn" data-size-step="-2" data-target-input="editorReadingStyleSizePx" aria-label="Decrease size">&minus;</button>
+                    <input id="editorReadingStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
+                    <button type="button" class="editor-size-btn" data-size-step="2" data-target-input="editorReadingStyleSizePx" aria-label="Increase size">+</button>
+                  </span>
                 </label>
                 <div class="editor-format-toolbar" role="toolbar" aria-label="Reading text formatting">
                   <input id="editorReadingStyleBold" type="hidden" data-editor-style-input data-tristate-select>
@@ -3349,7 +3409,11 @@
                   </select>
                 </label>
                 <label class="editor-style-field editor-style-field-size"> <span>Size</span>
-                  <input id="editorTextStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
+                  <span class="editor-size-stepper">
+                    <button type="button" class="editor-size-btn" data-size-step="-2" data-target-input="editorTextStyleSizePx" aria-label="Decrease size">&minus;</button>
+                    <input id="editorTextStyleSizePx" type="number" min="24" max="200" step="1" placeholder="Default" data-editor-style-input>
+                    <button type="button" class="editor-size-btn" data-size-step="2" data-target-input="editorTextStyleSizePx" aria-label="Increase size">+</button>
+                  </span>
                 </label>
                 <div class="editor-format-toolbar" role="toolbar" aria-label="Slide text formatting">
                   <input id="editorTextStyleBold" type="hidden" data-editor-style-input data-tristate-select>
@@ -8024,6 +8088,19 @@
         const input = document.getElementById(button.dataset.targetInput || "");
         if (!input) return;
         writeTriStateSelect(input, input.dataset.tristateValue !== "true");
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+
+    document.querySelectorAll("[data-size-step]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.targetInput || "");
+        if (!input) return;
+        const min = Number(input.min) || 1;
+        const max = Number(input.max) || 999;
+        const current = Number(input.value) || 48;
+        input.value = String(Math.min(max, Math.max(min, current + Number(button.dataset.sizeStep))));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
       });
     });
