@@ -181,6 +181,10 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 - `readingPassageSizePx` — clamped 20–90
 - `readingPassageBold`
 - `readingPassageColor` — `#rrggbb`
+- `readingPassageItalic`
+- `readingPassageShadow` — starts at the body drop shadow when not saved
+- `readingPassageLineHeight` — clamped 1.0–3.0, default 1.15
+- `readingPassageLetterSpacingPx` — clamped -2–10, starts at 3 percent of the size when not saved
 - `readingPassageOutline`
 - `readingPassageOutlineColor` — `#rrggbb`
 - `readingPassageOutlineWidthPx` — clamped 0.5–20
@@ -189,6 +193,14 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 
 ### Reading section title fields
 
+A section title setting that is not saved starts at the matching reference value, with half the reference size. After it is saved, it no longer follows the reference.
+
+- `readingSectionFont` — allowlist
+- `readingSectionSizePx` — clamped 10–90
+- `readingSectionColor` — `#rrggbb`
+- `readingSectionBold`
+- `readingSectionItalic`
+- `readingSectionShadow`
 - `readingSectionOutline`
 - `readingSectionOutlineColor` — `#rrggbb`
 - `readingSectionOutlineWidthPx` — clamped 0.5–20
