@@ -554,6 +554,10 @@
       height: auto;
     }
 
+    .field-row > .modal-field[hidden] {
+      display: none;
+    }
+
     .modal-span-3 { grid-column: span 3; }
     .modal-span-4 { grid-column: span 4; }
     .modal-span-6 { grid-column: span 6; }
@@ -3587,13 +3591,13 @@
           <div class="modal-panel">
             <div class="modal-panel-title">Slide Basics</div>
             <p class="modal-panel-copy">These settings decide what the slide is, where it appears, and how it is staged.</p>
-            <div class="modal-field-grid">
-              <div class="modal-field modal-span-12">
+            <div class="field-row">
+              <div class="modal-field" style="flex:1 1 14rem">
                 <label>Label
                   <input id="editorLabel">
                 </label>
               </div>
-              <div class="modal-field modal-span-3">
+              <div class="modal-field" style="width:11rem">
                 <label>Type
                   <select id="editorType">
                     <option value="reading">Reading</option>
@@ -3608,7 +3612,7 @@
                   </select>
                 </label>
               </div>
-              <div class="modal-field modal-span-3">
+              <div class="modal-field" style="width:14rem">
                 <label>Section
                   <select id="editorPhase">
                     <option value="pre">Pre-Mass Announcements</option>
@@ -3618,7 +3622,7 @@
                   </select>
                 </label>
               </div>
-              <div class="modal-field modal-span-3" id="editorBackgroundThemeWrap">
+              <div class="modal-field" style="width:7rem" id="editorBackgroundThemeWrap">
                 <label>Background
                   <select id="editorBackgroundTheme">
                     <option value="dark">Dark</option>
@@ -3626,7 +3630,7 @@
                   </select>
                 </label>
               </div>
-              <div class="modal-field modal-span-3" id="editorDurationWrap" hidden>
+              <div class="modal-field" style="width:7rem" id="editorDurationWrap" hidden>
                 <label>Duration (seconds)
                   <input id="editorDurationSec" type="number" min="1" max="3600" value="10"
                     title="Stored duration for this slide in seconds">
