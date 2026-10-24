@@ -78,8 +78,9 @@ above the `master` version. Bump the version in `sacra-lux/package.json`.
 - operator guide: [docs/user-guide.md](./docs/user-guide.md)
 - troubleshooting: [docs/troubleshooting.md](./docs/troubleshooting.md)
 - Mass ZIP import structure: [docs/zip-import.md](./docs/zip-import.md)
+- release ZIP verification: [docs/release-verification.md](./docs/release-verification.md)
 - agent guidance: [AGENTS.md](./AGENTS.md)
 
 ## Current Version
 
-The current package version is `0.0.131-alpha`.
+The current package version is `0.0.132-alpha`.
