@@ -77,11 +77,9 @@
       margin-top: 0.7rem;
       padding: 0.85rem 0.95rem;
       border: 1px solid color-mix(in srgb, var(--line), transparent 16%);
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       background: rgba(255, 255, 255, 0.84);
-      box-shadow:
-        0 16px 32px rgba(0, 0, 0, 0.16),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      box-shadow: var(--shadow-press);
     }
 
     .remote-splash-row {
@@ -148,6 +146,11 @@
       backdrop-filter: blur(10px);
     }
 
+    .controls-row button,
+    .cue-btn {
+      min-height: 44px;
+    }
+
     .controls-row {
       padding: 0 0.72rem var(--remote-stack-gap);
       display: grid;
@@ -159,7 +162,7 @@
       margin: 0 0.72rem var(--remote-stack-gap);
       min-height: 0;
       font-size: 0.78rem;
-      color: var(--danger);
+      color: var(--danger-text, var(--danger));
       text-align: center;
     }
 
@@ -182,7 +185,7 @@
       padding: 0.7rem 0.85rem;
       font-size: 0.9rem;
       line-height: 1.3;
-      border-radius: 10px;
+      border-radius: var(--radius);
       transition: background 0.1s, transform 0.08s;
       -webkit-tap-highlight-color: transparent;
     }
@@ -200,8 +203,8 @@
 
     /* ── Grouped slide list ───────────────────────────────────────── */
     .cue-group {
-      border: 1px solid var(--line);
-      border-radius: 10px;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-lg);
       background: var(--panel);
       overflow: hidden;
     }
@@ -230,7 +233,7 @@
 
     .cue-group.group-active>.cue-group-summary {
       background: var(--active-bg);
-      color: var(--accent);
+      color: var(--accent-text, var(--accent));
     }
 
     .cue-group-summary::after {
@@ -269,7 +272,7 @@
     /* ── Live screen preview ──────────────────────────────────────────── */
     .screen-preview-wrap {
       margin: 0 auto var(--remote-stack-gap);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       border: 1px solid var(--line);
       /* 16:9 aspect-ratio container */
@@ -370,10 +373,10 @@
       width: 50%;
       height: 100%;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       background: var(--panel);
-      box-shadow: 0 6px 16px var(--shadow);
+      box-shadow: var(--shadow-press);
       transition: transform 0.12s ease, opacity 0.2s ease, border-color 0.12s ease, box-shadow 0.12s ease;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
@@ -393,7 +396,7 @@
 
     .carousel-card.center {
       z-index: 1;
-      box-shadow: 0 10px 22px var(--shadow);
+      box-shadow: var(--shadow-press);
     }
 
     .carousel-card.selected {
@@ -412,7 +415,7 @@
 
     .carousel-card.active {
       border-color: var(--accent);
-      box-shadow: 0 10px 22px var(--shadow);
+      box-shadow: var(--shadow-press);
     }
 
     .carousel-thumb-wrap {
@@ -437,7 +440,7 @@
 
     .carousel-empty {
       border: 1px dashed var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       padding: 0.8rem;
       color: var(--ink-soft);
       text-align: center;

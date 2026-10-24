@@ -44,6 +44,22 @@
   --editor-reading-bg: #eaf0e0;
   --editor-image-bg: #f0e8f0;
   --editor-text-bg: #f5f0e0;
+  --radius: 6px;
+  --radius-lg: 12px;
+  --border-width: 1px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --shadow-press: 0 1px 2px var(--shadow);
+  --shadow-popup: 0 8px 24px var(--shadow-strong);
+  --focus-ring: 2px solid var(--accent);
+  --control-bg: var(--panel);
+  --control-bg-hover: var(--bg-alt);
+  --control-border: color-mix(in srgb, var(--line), black 12%);
+  --control-border-hover: color-mix(in srgb, var(--line), black 28%);
+  --surface-border: color-mix(in srgb, var(--line), transparent 55%);
+  --disabled-opacity: 0.45;
   --body-gradient:
     radial-gradient(circle at 15% 20%, #faf5ee 0%, transparent 30%),
     radial-gradient(circle at 85% 0%, #f0e8d8 0%, transparent 25%),
@@ -68,163 +84,113 @@ textarea {
   font: inherit;
 }
 
+/* Shared control surface: flat, 1 px border, soft shadow on pressable controls only. */
 button {
   cursor: pointer;
-  border: 1px solid color-mix(in srgb, var(--line), black 10%);
-  border-bottom-color: color-mix(in srgb, var(--line), black 22%);
-  background: linear-gradient(to bottom, var(--panel), var(--panel-alt));
+  border: var(--border-width) solid var(--control-border);
+  background: var(--control-bg);
   color: var(--ink);
-  border-radius: 6px;
-  padding: 0.4rem 0.9rem;
-  box-shadow:
-    0 0.5px 1px color-mix(in srgb, var(--shadow-strong) 55%, transparent),
-    0 1px 2px color-mix(in srgb, var(--shadow) 75%, transparent),
-    inset 0 1px 0 color-mix(in srgb, white 16%, transparent);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.75rem;
+  box-shadow: var(--shadow-press);
   font-weight: 500;
-  font-size: 0.9rem;
-  letter-spacing: -0.01em;
-  transition: background 0.12s, box-shadow 0.12s, border-color 0.12s;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 
 button:hover {
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--panel), white 4%), var(--bg-alt));
-  box-shadow:
-    0 0.5px 1px color-mix(in srgb, var(--shadow-strong) 60%, transparent),
-    0 2px 4px color-mix(in srgb, var(--shadow) 85%, transparent),
-    inset 0 1px 0 color-mix(in srgb, white 20%, transparent);
-  border-color: color-mix(in srgb, var(--line), black 16%);
+  background: var(--control-bg-hover);
+  border-color: var(--control-border-hover);
 }
 
 button:active {
-  background: linear-gradient(to bottom, var(--pressed-bg), var(--active-bg));
-  box-shadow:
-    inset 0 1px 3px color-mix(in srgb, var(--shadow-strong) 70%, transparent),
-    0 0.5px 0 color-mix(in srgb, white 10%, transparent);
-  border-color: color-mix(in srgb, var(--line), black 24%);
+  background: var(--pressed-bg);
+  box-shadow: none;
+  transform: translateY(1px);
 }
 
-button.primary {
-  background: linear-gradient(to bottom, var(--accent), color-mix(in srgb, var(--accent), black 12%));
-  color: var(--ink-on-accent);
-  border-color: var(--primary-border);
-  border-bottom-color: color-mix(in srgb, var(--primary-border), black 15%);
-}
-
-button.primary:hover {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--accent), white 8%),
-    color-mix(in srgb, var(--accent), black 5%));
-}
-
-button.primary:active {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--accent), black 8%),
-    color-mix(in srgb, var(--accent), black 2%));
-  color: var(--ink-on-accent);
-  border-color: var(--primary-border);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.2),
-    0 0.5px 0 rgba(255, 255, 255, 0.1);
-}
-
-button.strong {
-  background: linear-gradient(to bottom, var(--accent-2), color-mix(in srgb, var(--accent-2), black 12%));
-  color: var(--ink-on-accent);
-  border-color: var(--strong-border);
-  border-bottom-color: color-mix(in srgb, var(--strong-border), black 15%);
-}
-
-button.strong:hover {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--accent-2), white 8%),
-    color-mix(in srgb, var(--accent-2), black 5%));
-}
-
-button.strong:active {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--accent-2), black 8%),
-    color-mix(in srgb, var(--accent-2), black 2%));
-  color: var(--ink-on-accent);
-  border-color: var(--strong-border);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.2),
-    0 0.5px 0 rgba(255, 255, 255, 0.1);
-}
-
-button.danger {
-  background: linear-gradient(to bottom, var(--danger), color-mix(in srgb, var(--danger), black 12%));
-  color: var(--ink-on-accent);
-  border-color: var(--danger-border);
-  border-bottom-color: color-mix(in srgb, var(--danger-border), black 15%);
-}
-
-button.danger:hover {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--danger), white 8%),
-    color-mix(in srgb, var(--danger), black 5%));
-}
-
-button.danger:active {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--danger), black 8%),
-    color-mix(in srgb, var(--danger), black 2%));
-  color: var(--ink-on-accent);
-  border-color: var(--danger-border);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.2),
-    0 0.5px 0 rgba(255, 255, 255, 0.1);
-}
-
+/* Accent buttons: one solid color per role, state shown by lightness only. */
 button.primary,
 button.strong,
 button.danger {
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-  box-shadow:
-    0 0.5px 1px rgba(0, 0, 0, 0.15),
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+  --btn: var(--accent);
+  background: var(--btn);
+  color: var(--ink-on-accent);
+  border-color: var(--btn);
+}
+
+button.strong { --btn: var(--accent-2); }
+button.danger { --btn: var(--danger); }
+
+button.primary:hover,
+button.strong:hover,
+button.danger:hover {
+  background: color-mix(in srgb, var(--btn), white 12%);
+  border-color: color-mix(in srgb, var(--btn), white 12%);
+}
+
+button.primary:active,
+button.strong:active,
+button.danger:active {
+  background: color-mix(in srgb, var(--btn), black 14%);
+  border-color: color-mix(in srgb, var(--btn), black 14%);
 }
 
 button.danger-outline {
   background: transparent;
-  color: var(--danger);
-  border-color: var(--danger-border);
+  color: var(--danger-text, var(--danger));
+  border-color: var(--danger);
+  box-shadow: none;
 }
 
 button.danger-outline:hover {
-  background: linear-gradient(to bottom, var(--danger), color-mix(in srgb, var(--danger), black 12%));
+  background: var(--danger);
   color: var(--ink-on-accent);
-  border-color: var(--danger-border);
-  border-bottom-color: color-mix(in srgb, var(--danger-border), black 15%);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-  box-shadow:
-    0 0.5px 1px rgba(0, 0, 0, 0.15),
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+  border-color: var(--danger);
 }
 
 button.danger-outline:active {
-  background: linear-gradient(to bottom,
-    color-mix(in srgb, var(--danger), black 8%),
-    color-mix(in srgb, var(--danger), black 2%));
+  background: color-mix(in srgb, var(--danger), black 14%);
   color: var(--ink-on-accent);
-  border-color: var(--danger-border);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.2),
-    0 0.5px 0 rgba(255, 255, 255, 0.1);
+  border-color: color-mix(in srgb, var(--danger), black 14%);
+}
+
+button:disabled,
+button[aria-disabled="true"] {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+  background: var(--control-bg);
+  border-color: var(--control-border);
+  color: var(--ink);
+}
+
+button.primary:disabled,
+button.strong:disabled,
+button.danger:disabled {
+  background: var(--btn);
+  border-color: var(--btn);
+  color: var(--ink-on-accent);
 }
 
 input,
 select,
 textarea {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0.5rem 0.7rem;
-  background: color-mix(in srgb, var(--panel), var(--panel-alt) 22%);
+  border: var(--border-width) solid var(--control-border);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.6rem;
+  background: var(--control-bg);
   color: var(--ink);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
-    0 1px 2px color-mix(in srgb, var(--shadow) 55%, transparent);
+  box-shadow: none;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
 }
 
 option {
@@ -233,12 +199,17 @@ option {
 }
 
 button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent), white 14%);
-  outline-offset: 2px;
-  border-color: color-mix(in srgb, var(--accent), black 8%);
+  border-color: var(--accent);
 }
 
 ::placeholder {

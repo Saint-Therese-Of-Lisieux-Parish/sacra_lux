@@ -46,7 +46,9 @@
       "--editor-reading-bg": "#e8f1f6",
       "--editor-image-bg": "#f8ece4",
       "--editor-text-bg": "#f7f0e4",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fffbf6 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f2e7da 0%, transparent 25%), linear-gradient(145deg, #faf6f0, #efe4d4)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fffbf6 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f2e7da 0%, transparent 25%), linear-gradient(145deg, #faf6f0, #efe4d4)",
+      "--accent-text": "#993300",
+      "--danger-text": "#ba111c"
     }
   },
   "carmeliteDark": {
@@ -96,7 +98,9 @@
       "--editor-reading-bg": "#173646",
       "--editor-image-bg": "#4a2a1a",
       "--editor-text-bg": "#40322a",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #2a1e17 0%, transparent 30%), radial-gradient(circle at 85% 0%, #14303e 0%, transparent 25%), linear-gradient(145deg, #1c1512, #261d18)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #2a1e17 0%, transparent 30%), radial-gradient(circle at 85% 0%, #14303e 0%, transparent 25%), linear-gradient(145deg, #1c1512, #261d18)",
+      "--accent-text": "#e8a480",
+      "--danger-text": "#fe968c"
     }
   },
   "light": {
@@ -108,9 +112,9 @@
       "--panel": "#ffffff",
       "--panel-alt": "#f8f9fc",
       "--ink": "#1a1a1a",
-      "--ink-soft": "#888888",
+      "--ink-soft": "#6e6e6e",
       "--ink-on-accent": "#ffffff",
-      "--accent": "#4a6cf7",
+      "--accent": "#496af2",
       "--accent-2": "#0e7e80",
       "--danger": "#c53030",
       "--line": "#d1d5db",
@@ -146,7 +150,9 @@
       "--editor-reading-bg": "#f0fdf4",
       "--editor-image-bg": "#f5f3ff",
       "--editor-text-bg": "#fffbeb",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #f5f5f5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #eef2ff 0%, transparent 25%), linear-gradient(145deg, #f5f5f5, #eef2ff)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #f5f5f5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #eef2ff 0%, transparent 25%), linear-gradient(145deg, #f5f5f5, #eef2ff)",
+      "--accent-text": "#415ccb",
+      "--danger-text": "#be2f2f"
     }
   },
   "dark": {
@@ -158,7 +164,7 @@
       "--panel": "#252545",
       "--panel-alt": "#2a2a4a",
       "--ink": "#e0e0e0",
-      "--ink-soft": "#8888a0",
+      "--ink-soft": "#9393a8",
       "--ink-on-accent": "#ffffff",
       "--accent": "#5b6be0",
       "--accent-2": "#1a7a8a",
@@ -196,7 +202,9 @@
       "--editor-reading-bg": "#1a2e22",
       "--editor-image-bg": "#221a3a",
       "--editor-text-bg": "#2a2518",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a1a2e 0%, transparent 30%), radial-gradient(circle at 85% 0%, #16213e 0%, transparent 25%), linear-gradient(145deg, #1a1a2e, #16213e)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a1a2e 0%, transparent 30%), radial-gradient(circle at 85% 0%, #16213e 0%, transparent 25%), linear-gradient(145deg, #1a1a2e, #16213e)",
+      "--accent-text": "#969ee0",
+      "--danger-text": "#d49098"
     }
   },
   "rose": {
@@ -208,7 +216,7 @@
       "--panel": "#ffffff",
       "--panel-alt": "#fdf2f8",
       "--ink": "#2d1a2e",
-      "--ink-soft": "#a07090",
+      "--ink-soft": "#875d7a",
       "--ink-on-accent": "#ffffff",
       "--accent": "#be185d",
       "--accent-2": "#7c3aed",
@@ -246,7 +254,9 @@
       "--editor-reading-bg": "#f0fdf4",
       "--editor-image-bg": "#faf5ff",
       "--editor-text-bg": "#fdf2f8",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fdf2f8 0%, transparent 30%), radial-gradient(circle at 85% 0%, #fce7f3 0%, transparent 25%), linear-gradient(145deg, #fdf2f8, #fce7f3)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fdf2f8 0%, transparent 30%), radial-gradient(circle at 85% 0%, #fce7f3 0%, transparent 25%), linear-gradient(145deg, #fdf2f8, #fce7f3)",
+      "--accent-text": "#b8185b",
+      "--danger-text": "#b52847"
     }
   },
   "solarized": {
@@ -258,7 +268,7 @@
       "--panel": "#eee8d5",
       "--panel-alt": "#fdf6e3",
       "--ink": "#073642",
-      "--ink-soft": "#93a1a1",
+      "--ink-soft": "#4d6b72",
       "--ink-on-accent": "#fdf6e3",
       "--accent": "#2176b5",
       "--accent-2": "#637200",
@@ -296,7 +306,9 @@
       "--editor-reading-bg": "#e8efd0",
       "--editor-image-bg": "#dde0e8",
       "--editor-text-bg": "#f0e8d0",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fdf6e3 0%, transparent 30%), radial-gradient(circle at 85% 0%, #eee8d5 0%, transparent 25%), linear-gradient(145deg, #fdf6e3, #eee8d5)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fdf6e3 0%, transparent 30%), radial-gradient(circle at 85% 0%, #eee8d5 0%, transparent 25%), linear-gradient(145deg, #fdf6e3, #eee8d5)",
+      "--accent-text": "#18608e",
+      "--danger-text": "#a92e2e"
     }
   },
   "ocean": {
@@ -308,11 +320,11 @@
       "--panel": "#ffffff",
       "--panel-alt": "#f0f9ff",
       "--ink": "#0c2d48",
-      "--ink-soft": "#6b8fa3",
-      "--ink-on-accent": "#ffffff",
+      "--ink-soft": "#4d7086",
+      "--ink-on-accent": "#000000",
       "--accent": "#0284c7",
       "--accent-2": "#0d9488",
-      "--danger": "#b84430",
+      "--danger": "#be5341",
       "--line": "#bae6fd",
       "--primary-border": "#0369a1",
       "--strong-border": "#0f766e",
@@ -346,7 +358,9 @@
       "--editor-reading-bg": "#ecfdf5",
       "--editor-image-bg": "#eef2ff",
       "--editor-text-bg": "#f0f9ff",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #f0f9ff 0%, transparent 30%), radial-gradient(circle at 85% 0%, #e0f2fe 0%, transparent 25%), linear-gradient(145deg, #f0f9ff, #e0f2fe)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #f0f9ff 0%, transparent 30%), radial-gradient(circle at 85% 0%, #e0f2fe 0%, transparent 25%), linear-gradient(145deg, #f0f9ff, #e0f2fe)",
+      "--accent-text": "#05689e",
+      "--danger-text": "#9a4b42"
     }
   },
   "advent": {
@@ -362,7 +376,7 @@
       "--ink-on-accent": "#ffffff",
       "--accent": "#8A6820",
       "--accent-2": "#7848b0",
-      "--danger": "#d84848",
+      "--danger": "#cf4545",
       "--line": "#4a3870",
       "--primary-border": "#6A5018",
       "--strong-border": "#5e3890",
@@ -396,7 +410,9 @@
       "--editor-reading-bg": "#242e22",
       "--editor-image-bg": "#2a1a48",
       "--editor-text-bg": "#302818",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #1e1030 0%, transparent 30%), radial-gradient(circle at 85% 0%, #2a1845 0%, transparent 25%), linear-gradient(145deg, #1e1030, #2a1845)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #1e1030 0%, transparent 30%), radial-gradient(circle at 85% 0%, #2a1845 0%, transparent 25%), linear-gradient(145deg, #1e1030, #2a1845)",
+      "--accent-text": "#b9a388",
+      "--danger-text": "#dc949e"
     }
   },
   "lenten": {
@@ -408,7 +424,7 @@
       "--panel": "#ffffff",
       "--panel-alt": "#f5f0f5",
       "--ink": "#2e1a30",
-      "--ink-soft": "#8a6890",
+      "--ink-soft": "#795a7f",
       "--ink-on-accent": "#ffffff",
       "--accent": "#6b3a7d",
       "--accent-2": "#5a6848",
@@ -446,7 +462,9 @@
       "--editor-reading-bg": "#eaf0e8",
       "--editor-image-bg": "#f0e8f5",
       "--editor-text-bg": "#f5f0f0",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #f5f0f5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #ebe0eb 0%, transparent 25%), linear-gradient(145deg, #f5f0f5, #ebe0eb)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #f5f0f5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #ebe0eb 0%, transparent 25%), linear-gradient(145deg, #f5f0f5, #ebe0eb)",
+      "--accent-text": "#6b3a7d",
+      "--danger-text": "#9b3030"
     }
   },
   "easter": {
@@ -458,10 +476,10 @@
       "--panel": "#ffffff",
       "--panel-alt": "#fffef5",
       "--ink": "#2a2510",
-      "--ink-soft": "#a09060",
+      "--ink-soft": "#7a6e46",
       "--ink-on-accent": "#ffffff",
       "--accent": "#8B6F18",
-      "--accent-2": "#2a8848",
+      "--accent-2": "#2a8747",
       "--danger": "#c04030",
       "--line": "#e0d8b0",
       "--primary-border": "#6A5510",
@@ -496,7 +514,9 @@
       "--editor-reading-bg": "#e8f5e8",
       "--editor-image-bg": "#f5f0fa",
       "--editor-text-bg": "#faf5e0",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fffef5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #faf5e0 0%, transparent 25%), linear-gradient(145deg, #fffef5, #faf5e0)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fffef5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #faf5e0 0%, transparent 25%), linear-gradient(145deg, #fffef5, #faf5e0)",
+      "--accent-text": "#7d6517",
+      "--danger-text": "#b73e2e"
     }
   },
   "marian": {
@@ -508,7 +528,7 @@
       "--panel": "#ffffff",
       "--panel-alt": "#f0f5fc",
       "--ink": "#1a2848",
-      "--ink-soft": "#6880a8",
+      "--ink-soft": "#54698f",
       "--ink-on-accent": "#ffffff",
       "--accent": "#2855a0",
       "--accent-2": "#8A7518",
@@ -546,7 +566,9 @@
       "--editor-reading-bg": "#e8f5ee",
       "--editor-image-bg": "#eaeaf8",
       "--editor-text-bg": "#f0f5fc",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #f0f5fc 0%, transparent 30%), radial-gradient(circle at 85% 0%, #e0eaf8 0%, transparent 25%), linear-gradient(145deg, #f0f5fc, #e0eaf8)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #f0f5fc 0%, transparent 30%), radial-gradient(circle at 85% 0%, #e0eaf8 0%, transparent 25%), linear-gradient(145deg, #f0f5fc, #e0eaf8)",
+      "--accent-text": "#2855a0",
+      "--danger-text": "#a83040"
     }
   },
   "sacredHeart": {
@@ -558,7 +580,7 @@
       "--panel": "#ffffff",
       "--panel-alt": "#fdf5f5",
       "--ink": "#301818",
-      "--ink-soft": "#a06060",
+      "--ink-soft": "#905656",
       "--ink-on-accent": "#ffffff",
       "--accent": "#a82828",
       "--accent-2": "#8B6F18",
@@ -596,7 +618,9 @@
       "--editor-reading-bg": "#e8f5ea",
       "--editor-image-bg": "#f8e8f0",
       "--editor-text-bg": "#fdf5f0",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fdf5f5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f5e0e0 0%, transparent 25%), linear-gradient(145deg, #fdf5f5, #f5e0e0)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fdf5f5 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f5e0e0 0%, transparent 25%), linear-gradient(145deg, #fdf5f5, #f5e0e0)",
+      "--accent-text": "#a82828",
+      "--danger-text": "#901818"
     }
   },
   "sanJuan": {
@@ -608,10 +632,10 @@
       "--panel": "#182840",
       "--panel-alt": "#1e3048",
       "--ink": "#d0dce8",
-      "--ink-soft": "#7898b8",
-      "--ink-on-accent": "#ffffff",
+      "--ink-soft": "#7a99b9",
+      "--ink-on-accent": "#000000",
       "--accent": "#5088c8",
-      "--accent-2": "#4878a0",
+      "--accent-2": "#4a79a1",
       "--danger": "#d87060",
       "--line": "#2a4060",
       "--primary-border": "#3870a8",
@@ -646,7 +670,9 @@
       "--editor-reading-bg": "#142820",
       "--editor-image-bg": "#1a1430",
       "--editor-text-bg": "#1e2818",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #0e1828 0%, transparent 30%), radial-gradient(circle at 85% 0%, #142038 0%, transparent 25%), linear-gradient(145deg, #0e1828, #142038)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #0e1828 0%, transparent 30%), radial-gradient(circle at 85% 0%, #142038 0%, transparent 25%), linear-gradient(145deg, #0e1828, #142038)",
+      "--accent-text": "#88add6",
+      "--danger-text": "#d59b96"
     }
   },
   "jesuit": {
@@ -696,7 +722,9 @@
       "--editor-reading-bg": "#eef2e6",
       "--editor-image-bg": "#f6eae6",
       "--editor-text-bg": "#f8f1de",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #f7f2e6 0%, transparent 30%), radial-gradient(circle at 85% 0%, #ebe1c5 0%, transparent 25%), linear-gradient(145deg, #f7f2e6, #ebe1c5)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #f7f2e6 0%, transparent 30%), radial-gradient(circle at 85% 0%, #ebe1c5 0%, transparent 25%), linear-gradient(145deg, #f7f2e6, #ebe1c5)",
+      "--accent-text": "#7f0000",
+      "--danger-text": "#a53c1a"
     }
   },
   "dominican": {
@@ -746,7 +774,9 @@
       "--editor-reading-bg": "#eef2e6",
       "--editor-image-bg": "#f6eee2",
       "--editor-text-bg": "#fbf3e2",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fff9ef 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f1e6d2 0%, transparent 25%), linear-gradient(145deg, #fff9ef, #f1e6d2)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fff9ef 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f1e6d2 0%, transparent 25%), linear-gradient(145deg, #fff9ef, #f1e6d2)",
+      "--accent-text": "#1f1f1f",
+      "--danger-text": "#790000"
     }
   },
   "franciscan": {
@@ -796,7 +826,9 @@
       "--editor-reading-bg": "#ebf1e6",
       "--editor-image-bg": "#f6ece4",
       "--editor-text-bg": "#f8f1e6",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #fbf9f7 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f1edea 0%, transparent 25%), linear-gradient(145deg, #fbf9f7, #efe7df)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #fbf9f7 0%, transparent 30%), radial-gradient(circle at 85% 0%, #f1edea 0%, transparent 25%), linear-gradient(145deg, #fbf9f7, #efe7df)",
+      "--accent-text": "#542015",
+      "--danger-text": "#a3261b"
     }
   },
   "benedictine": {
@@ -846,7 +878,9 @@
       "--editor-reading-bg": "#222a1c",
       "--editor-image-bg": "#2e241c",
       "--editor-text-bg": "#2c2618",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a1816 0%, transparent 30%), radial-gradient(circle at 85% 0%, #23201c 0%, transparent 25%), linear-gradient(145deg, #1a1816, #23201c)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a1816 0%, transparent 30%), radial-gradient(circle at 85% 0%, #23201c 0%, transparent 25%), linear-gradient(145deg, #1a1816, #23201c)",
+      "--accent-text": "#d4c8bc",
+      "--danger-text": "#e99376"
     }
   },
   "highContrast": {
@@ -896,7 +930,9 @@
       "--editor-reading-bg": "#0a1a0a",
       "--editor-image-bg": "#120018",
       "--editor-text-bg": "#1a1a00",
-      "--body-gradient": "linear-gradient(145deg, #000000, #0a0a0a)"
+      "--body-gradient": "linear-gradient(145deg, #000000, #0a0a0a)",
+      "--accent-text": "#ffff00",
+      "--danger-text": "#ff6d6d"
     }
   },
   "nord": {
@@ -908,7 +944,7 @@
       "--panel": "#3b4252",
       "--panel-alt": "#434c5e",
       "--ink": "#eceff4",
-      "--ink-soft": "#a0aabb",
+      "--ink-soft": "#b4bcca",
       "--ink-on-accent": "#2e3440",
       "--accent": "#88c0d0",
       "--accent-2": "#a3be8c",
@@ -946,7 +982,9 @@
       "--editor-reading-bg": "#2a3628",
       "--editor-image-bg": "#2e2638",
       "--editor-text-bg": "#363020",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #2e3440 0%, transparent 30%), radial-gradient(circle at 85% 0%, #3b4252 0%, transparent 25%), linear-gradient(145deg, #2e3440, #3b4252)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #2e3440 0%, transparent 30%), radial-gradient(circle at 85% 0%, #3b4252 0%, transparent 25%), linear-gradient(145deg, #2e3440, #3b4252)",
+      "--accent-text": "#acd1dd",
+      "--danger-text": "#e7c2c8"
     }
   },
   "monokai": {
@@ -958,8 +996,8 @@
       "--panel": "#3e3d32",
       "--panel-alt": "#49483e",
       "--ink": "#f8f8f2",
-      "--ink-soft": "#a0a090",
-      "--ink-on-accent": "#272822",
+      "--ink-soft": "#b7b7a9",
+      "--ink-on-accent": "#000000",
       "--accent": "#f92672",
       "--accent-2": "#a6e22e",
       "--danger": "#f92672",
@@ -996,7 +1034,9 @@
       "--editor-reading-bg": "#2a3222",
       "--editor-image-bg": "#302228",
       "--editor-text-bg": "#302e18",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #272822 0%, transparent 30%), radial-gradient(circle at 85% 0%, #2e2f28 0%, transparent 25%), linear-gradient(145deg, #272822, #2e2f28)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #272822 0%, transparent 30%), radial-gradient(circle at 85% 0%, #2e2f28 0%, transparent 25%), linear-gradient(145deg, #272822, #2e2f28)",
+      "--accent-text": "#f8bdce",
+      "--danger-text": "#f8bdce"
     }
   },
   "stainedGlass": {
@@ -1009,7 +1049,7 @@
       "--panel-alt": "#302230",
       "--ink": "#e8dce0",
       "--ink-soft": "#a090a0",
-      "--ink-on-accent": "#ffffff",
+      "--ink-on-accent": "#000000",
       "--accent": "#c04888",
       "--accent-2": "#208858",
       "--danger": "#d04848",
@@ -1046,7 +1086,9 @@
       "--editor-reading-bg": "#142a1e",
       "--editor-image-bg": "#281428",
       "--editor-text-bg": "#282010",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a1018 0%, transparent 30%), radial-gradient(circle at 85% 0%, #241620 0%, transparent 25%), linear-gradient(145deg, #1a1018, #241620)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a1018 0%, transparent 30%), radial-gradient(circle at 85% 0%, #241620 0%, transparent 25%), linear-gradient(145deg, #1a1018, #241620)",
+      "--accent-text": "#d186ad",
+      "--danger-text": "#da8688"
     }
   },
   "lsuTigers": {
@@ -1096,7 +1138,9 @@
       "--editor-reading-bg": "#1e2818",
       "--editor-image-bg": "#261440",
       "--editor-text-bg": "#2a1e10",
-      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a0e30 0%, transparent 30%), radial-gradient(circle at 85% 0%, #241540 0%, transparent 25%), linear-gradient(145deg, #1a0e30, #241540)"
+      "--body-gradient": "radial-gradient(circle at 15% 20%, #1a0e30 0%, transparent 30%), radial-gradient(circle at 85% 0%, #241540 0%, transparent 25%), linear-gradient(145deg, #1a0e30, #241540)",
+      "--accent-text": "#FDD023",
+      "--danger-text": "#ec8e62"
     }
   }
 }
