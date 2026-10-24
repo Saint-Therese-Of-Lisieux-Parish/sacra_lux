@@ -176,4 +176,79 @@ describe("screen settings normalization", () => {
     expect(settings.readingTextAlign).toBe("right");
     expect(settings.textSlideMarginXPx).toBe(120);
   });
+
+  describe("reference and section title style", () => {
+    test("old sessions start from the look the screen used before", async () => {
+      state.screenSettings = {
+        readingPassageFont: "Lora",
+        readingPassageSizePx: 60,
+        readingPassageBold: false,
+        readingPassageColor: "#445566",
+        readingTextShadow: false
+      };
+      const settings = await post({});
+
+      expect(settings).toMatchObject({
+        readingPassageItalic: false,
+        readingPassageShadow: false,
+        readingPassageLineHeight: 1.15,
+        readingPassageLetterSpacingPx: 1.8,
+        readingSectionFont: "Lora",
+        readingSectionSizePx: 30,
+        readingSectionColor: "#445566",
+        readingSectionBold: false,
+        readingSectionItalic: false,
+        readingSectionShadow: false
+      });
+    });
+
+    test("saves new values and keeps the title independent of the reference", async () => {
+      state.screenSettings = { readingPassageFont: "Lora", readingPassageColor: "#112233", readingPassageBold: true };
+      const settings = await post({
+        readingPassageItalic: true,
+        readingPassageShadow: false,
+        readingPassageLineHeight: 1.4,
+        readingPassageLetterSpacingPx: 2.5,
+        readingSectionFont: "Inter",
+        readingSectionSizePx: 28,
+        readingSectionColor: "#abcdef",
+        readingSectionBold: false,
+        readingSectionItalic: true,
+        readingSectionShadow: true
+      });
+      expect(settings).toMatchObject({
+        readingPassageItalic: true,
+        readingPassageShadow: false,
+        readingPassageLineHeight: 1.4,
+        readingPassageLetterSpacingPx: 2.5,
+        readingSectionFont: "Inter",
+        readingSectionSizePx: 28,
+        readingSectionColor: "#abcdef",
+        readingSectionBold: false,
+        readingSectionItalic: true,
+        readingSectionShadow: true
+      });
+
+      const changed = await post({ readingPassageColor: "#998877", readingPassageFont: "Lora" });
+      expect(changed.readingPassageColor).toBe("#998877");
+      expect(changed.readingSectionColor).toBe("#abcdef");
+      expect(changed.readingSectionFont).toBe("Inter");
+    });
+
+    test("limits ranges and rejects bad fonts and colors", async () => {
+      state.screenSettings = { readingPassageFont: "Lora", readingPassageColor: "#112233" };
+      const settings = await post({
+        readingPassageLineHeight: 9,
+        readingPassageLetterSpacingPx: 99,
+        readingSectionFont: "Not A Font",
+        readingSectionSizePx: 500,
+        readingSectionColor: "red"
+      });
+      expect(settings.readingPassageLineHeight).toBe(3);
+      expect(settings.readingPassageLetterSpacingPx).toBe(10);
+      expect(settings.readingSectionFont).toBe("Lora");
+      expect(settings.readingSectionSizePx).toBe(90);
+      expect(settings.readingSectionColor).toBe("#112233");
+    });
+  });
 });
