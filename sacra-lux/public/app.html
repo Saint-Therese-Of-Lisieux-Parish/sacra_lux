@@ -1168,6 +1168,25 @@
       padding: 0.2rem 0;
     }
 
+    .settings-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .settings-group + .settings-group {
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--surface-border);
+    }
+
+    .settings-group-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
     .settings-field.is-disabled {
       opacity: 0.58;
     }
@@ -2539,7 +2558,9 @@
                   <div class="settings-subsection-label">Reading Body Text</div>
                   <p class="settings-subsection-copy">Use these controls for the main reading itself.</p>
                 </div>
-                <div class="settings-field-grid">
+                <div class="settings-group">
+                  <div class="settings-group-label">Layout</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-3">
                     <label>Horizontal alignment
                       <select id="readingTextAlign">
@@ -2558,6 +2579,11 @@
                       </select>
                     </label>
                   </div>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Type</div>
+                  <div class="settings-field-grid">
                   <div class="settings-field settings-span-4">
                     <label>Font override
                       <select id="readingTextFont">
@@ -2606,18 +2632,8 @@
                         title="Extra space between each letter">
                     </label>
                   </div>
-                  <div class="settings-field settings-span-2">
-                    <label>Outline color
-                      <input id="readingTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
-                    </label>
                   </div>
-                  <div class="settings-field settings-span-2">
-                    <label>Outline width
-                      <input id="readingTextOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
-                    </label>
-                  </div>
-                </div>
-                <div class="settings-toggle-grid">
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingTextBold" type="checkbox">
                     <span class="settings-toggle-copy">
@@ -2632,6 +2648,23 @@
                       <span class="settings-toggle-help">Use sparingly for emphasis.</span>
                     </span>
                   </label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Outline &amp; shadow</div>
+                  <div class="settings-field-grid">
+                  <div class="settings-field settings-span-2">
+                    <label>Outline color
+                      <input id="readingTextOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
+                    </label>
+                  </div>
+                  <div class="settings-field settings-span-2">
+                    <label>Outline width
+                      <input id="readingTextOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
+                    </label>
+                  </div>
+                  </div>
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingTextShadow" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -2646,6 +2679,7 @@
                       <span class="settings-toggle-help">Best for busy photography, not plain fields of color.</span>
                     </span>
                   </label>
+                  </div>
                 </div>
               </div>
 
