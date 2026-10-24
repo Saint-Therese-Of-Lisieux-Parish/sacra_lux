@@ -75,6 +75,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/image-slideshow/preflight` — report duplicates, missing, unsupported, or unreadable slideshow images
 - `GET /api/mass-assets` — list assets; `?kind=image|video|all`
 - `GET /api/mass-asset/:filename` — serve one Mass asset
+- `GET /api/builtin-backgrounds` — list the built-in background images. This route allows 60 requests in 60 seconds.
 - `GET /api/prayers`, `GET /api/prayers/:filename`
 
 ### Import, export, and archive
@@ -161,5 +162,6 @@ handled in `src/main.js`:
 
 | Path prefix | Source |
 | --- | --- |
+| `/static/backgrounds/*` | `sacra-lux/backgrounds/` (from the packaged `backgrounds` resource when that directory exists) |
 | `/static/*` | `sacra-lux/public/` (from `app.asar.unpacked/public` in packaged builds) |
 | `/api/mass-asset/*` | `~/.sacra-lux/current_mass/assets/` |
