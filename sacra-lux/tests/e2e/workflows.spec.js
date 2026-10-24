@@ -932,6 +932,20 @@ test("remote preview interaction keeps the large preview pinned at the top", asy
   expect(previewBox.y).toBeLessThan(2);
 });
 
+test("remote controls keep a 44 px touch target", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}/remote`);
+  await expect(page.locator("#nextSectionBtn")).toBeVisible();
+  for (const selector of ["#blackoutBtn", "#interstitialBtn", "#nextSectionBtn"]) {
+    const box = await page.locator(selector).boundingBox();
+    expect(box.height, `${selector} height`).toBeGreaterThanOrEqual(44);
+  }
+  const cue = page.locator(".cue-btn").first();
+  if (await cue.count()) {
+    expect((await cue.boundingBox()).height).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("start page validates PIN-gated mass start flow", async ({ page, request }) => {
   const setPin = await request.post(`${baseUrl}/api/start-pin`, {
     data: { pin: "1234" }

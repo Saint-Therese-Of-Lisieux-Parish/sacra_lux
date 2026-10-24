@@ -77,11 +77,9 @@
       margin-top: 0.7rem;
       padding: 0.85rem 0.95rem;
       border: 1px solid color-mix(in srgb, var(--line), transparent 16%);
-      border-radius: 18px;
+      border-radius: var(--radius-lg);
       background: rgba(255, 255, 255, 0.84);
-      box-shadow:
-        0 16px 32px rgba(0, 0, 0, 0.16),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      box-shadow: var(--shadow-press);
     }
 
     .remote-splash-row {
@@ -148,6 +146,11 @@
       backdrop-filter: blur(10px);
     }
 
+    .controls-row button,
+    .cue-btn {
+      min-height: 44px;
+    }
+
     .controls-row {
       padding: 0 0.72rem var(--remote-stack-gap);
       display: grid;
@@ -182,7 +185,7 @@
       padding: 0.7rem 0.85rem;
       font-size: 0.9rem;
       line-height: 1.3;
-      border-radius: 10px;
+      border-radius: var(--radius);
       transition: background 0.1s, transform 0.08s;
       -webkit-tap-highlight-color: transparent;
     }
@@ -200,8 +203,8 @@
 
     /* ── Grouped slide list ───────────────────────────────────────── */
     .cue-group {
-      border: 1px solid var(--line);
-      border-radius: 10px;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius-lg);
       background: var(--panel);
       overflow: hidden;
     }
@@ -370,10 +373,10 @@
       width: 50%;
       height: 100%;
       border: 1px solid var(--line);
-      border-radius: 12px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
       background: var(--panel);
-      box-shadow: 0 6px 16px var(--shadow);
+      box-shadow: var(--shadow-press);
       transition: transform 0.12s ease, opacity 0.2s ease, border-color 0.12s ease, box-shadow 0.12s ease;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
