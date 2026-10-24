@@ -101,7 +101,7 @@ describe("public html integration", () => {
   test("screen markup preserves the branded default backgrounds for blank interstitials", async () => {
     const res = await request(app).get("/screen").expect(200);
 
-    expect(res.text).toContain("/static/assets/default-text-background.png");
+    expect(res.text).toContain("/static/assets/default-text-background.avif");
     expect(res.text).toContain("/static/assets/default-interstitial.png");
     expect(res.text).toContain('frame.style.removeProperty("--bg-light")');
   });

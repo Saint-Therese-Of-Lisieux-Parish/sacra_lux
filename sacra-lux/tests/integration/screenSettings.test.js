@@ -161,7 +161,7 @@ describe("screen settings normalization", () => {
       readingLetterSpacingPx: -2,
       readingTextSizePx: 200
     });
-    expect(settings.darkBackgroundUrl).toBe("/static/assets/default-text-background.png");
+    expect(settings.darkBackgroundUrl).toBe("/static/assets/default-text-background.avif");
     expect(settings.lightBackgroundUrl).toBe("/static/assets/default-interstitial.png");
   });
 

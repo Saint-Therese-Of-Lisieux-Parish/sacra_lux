@@ -5030,7 +5030,7 @@
         fontSizePx: Number(els.fontSizePx.value || 60),
         darkBackgroundUrl: resolveBackgroundValue(
           els.darkBgPreset,
-          "/static/assets/default-text-background.png"
+          "/static/assets/default-text-background.avif"
         ),
         lightBackgroundUrl: resolveBackgroundValue(
           els.lightBgPreset,
@@ -5589,7 +5589,7 @@
         return slideCount * (item.durationSec || 10);
       };
 
-      const darkBg = screenSettings.darkBackgroundUrl || "/static/assets/default-text-background.png";
+      const darkBg = screenSettings.darkBackgroundUrl || "/static/assets/default-text-background.avif";
       const lightBg = screenSettings.lightBackgroundUrl || "/static/assets/default-interstitial.png";
 
       // Count total slides per phase
