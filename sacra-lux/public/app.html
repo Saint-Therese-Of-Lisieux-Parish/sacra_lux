@@ -1037,6 +1037,38 @@
       color: var(--ink);
     }
 
+    /* One-line bounds editor: layout, four edges, then reset. */
+    .bounds-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem 1.25rem;
+      margin-top: 0.75rem;
+    }
+
+    .bounds-line > .text-bounds-toolbar,
+    .bounds-line > .text-bounds-fields {
+      display: contents;
+    }
+
+    .bounds-line label {
+      grid-column: auto !important;
+    }
+
+    .bounds-line .text-bounds-fields label input {
+      width: 5.5rem;
+    }
+
+    .bounds-line .text-bounds-toolbar select {
+      min-width: 11rem;
+    }
+
+    .bounds-line .text-bounds-toolbar > button {
+      order: 10;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
     .text-bounds-preview {
       position: relative;
       width: 100%;
@@ -3263,23 +3295,25 @@
                   <p class="settings-section-copy">Move or resize one layout box. Use the edge fields for exact values.</p>
                 </div>
               </div>
-              <div class="text-bounds-toolbar">
-                <label style="grid-column:span 3">Layout
-                  <select id="textBoundsLayout">
-                    <option value="readingBody">Reading body</option>
-                    <option value="readingPassage">Passage reference</option>
-                    <option value="hymn">Hymn</option>
-                    <option value="prayer">Prayer</option>
-                    <option value="text">Text slide</option>
-                  </select>
-                </label>
-                <button id="textBoundsReset" type="button" style="grid-column:span 2">Reset to Default</button>
-              </div>
-              <div class="text-bounds-fields">
-                <label>Left<input id="textBoundsLeft" type="number" min="0" max="1800" step="1"></label>
-                <label>Right<input id="textBoundsRight" type="number" min="0" max="1800" step="1"></label>
-                <label>Top<input id="textBoundsTop" type="number" min="0" max="1000" step="1"></label>
-                <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+              <div class="bounds-line">
+                <div class="text-bounds-toolbar">
+                  <label style="grid-column:span 3">Layout
+                    <select id="textBoundsLayout">
+                      <option value="readingBody">Reading body</option>
+                      <option value="readingPassage">Passage reference</option>
+                      <option value="hymn">Hymn</option>
+                      <option value="prayer">Prayer</option>
+                      <option value="text">Text slide</option>
+                    </select>
+                  </label>
+                  <button id="textBoundsReset" type="button" style="grid-column:span 2">Reset to Default</button>
+                </div>
+                <div class="text-bounds-fields">
+                  <label>Left<input id="textBoundsLeft" type="number" min="0" max="1800" step="1"></label>
+                  <label>Right<input id="textBoundsRight" type="number" min="0" max="1800" step="1"></label>
+                  <label>Top<input id="textBoundsTop" type="number" min="0" max="1000" step="1"></label>
+                  <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+                </div>
               </div>
               <div class="text-bounds-preview" id="textBoundsPreview">
                 <iframe class="text-bounds-preview-frame" id="textBoundsPreviewFrame" src="/screen?preview=1" title="Text area slide preview" tabindex="-1"></iframe>
@@ -3526,22 +3560,24 @@
                 </div>
               </div>
               <div id="editorBoundsPanel" hidden style="margin-top:0.9rem">
-                <div class="text-bounds-toolbar">
-                  <div id="editorBoundsTabs" class="bounds-tabs" role="tablist" aria-label="Group layout" style="grid-column:span 3" hidden>
-                    <button type="button" role="tab" class="bounds-tab" data-bounds-tab="body">Body</button>
-                    <button type="button" role="tab" class="bounds-tab" data-bounds-tab="passage">Reference</button>
+                <div class="bounds-line">
+                  <div class="text-bounds-toolbar">
+                    <div id="editorBoundsTabs" class="bounds-tabs" role="tablist" aria-label="Group layout" style="grid-column:span 3" hidden>
+                      <button type="button" role="tab" class="bounds-tab" data-bounds-tab="body">Body</button>
+                      <button type="button" role="tab" class="bounds-tab" data-bounds-tab="passage">Reference</button>
+                    </div>
+                    <select id="editorBoundsLayout" hidden aria-hidden="true" tabindex="-1">
+                      <option value="body">Text body</option>
+                      <option value="passage">Passage reference</option>
+                    </select>
+                    <button id="editorBoundsUseGlobal" type="button" style="grid-column:span 2">Use Global Default</button>
                   </div>
-                  <select id="editorBoundsLayout" hidden aria-hidden="true" tabindex="-1">
-                    <option value="body">Text body</option>
-                    <option value="passage">Passage reference</option>
-                  </select>
-                  <button id="editorBoundsUseGlobal" type="button" style="grid-column:span 2">Use Global Default</button>
-                </div>
-                <div class="text-bounds-fields">
-                  <label>Left<input id="editorBoundsLeft" type="number" min="0" max="1800" step="1"></label>
-                  <label>Right<input id="editorBoundsRight" type="number" min="0" max="1800" step="1"></label>
-                  <label>Top<input id="editorBoundsTop" type="number" min="0" max="1000" step="1"></label>
-                  <label>Bottom<input id="editorBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+                  <div class="text-bounds-fields">
+                    <label>Left<input id="editorBoundsLeft" type="number" min="0" max="1800" step="1"></label>
+                    <label>Right<input id="editorBoundsRight" type="number" min="0" max="1800" step="1"></label>
+                    <label>Top<input id="editorBoundsTop" type="number" min="0" max="1000" step="1"></label>
+                    <label>Bottom<input id="editorBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+                  </div>
                 </div>
                 <div class="text-bounds-preview" id="editorBoundsPreview">
                   <iframe class="text-bounds-preview-frame" id="editorBoundsPreviewFrame" src="/screen?preview=1" title="Group text area slide preview" tabindex="-1"></iframe>
