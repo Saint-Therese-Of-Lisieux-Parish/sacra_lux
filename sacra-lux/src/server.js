@@ -3184,6 +3184,7 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "zipData is required." });
       }
       // Accept base64 data URL (data:application/zip;base64,...) or plain base64
+      // eslint-disable-next-line security/detect-unsafe-regex -- no nested quantifier; the pattern is anchored and linear
       const match = String(zipData).match(/^(?:data:[^;]+;base64,)?([A-Za-z0-9+/=\s]+)$/);
       if (!match) {
         return res.status(400).json({ error: "Invalid zip data." });

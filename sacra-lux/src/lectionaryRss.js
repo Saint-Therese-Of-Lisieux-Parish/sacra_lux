@@ -63,6 +63,7 @@ function passageFromHeading(heading) {
 }
 
 function extractTag(xml, tagName) {
+  // eslint-disable-next-line security/detect-non-literal-regexp -- every caller passes a literal tag name
   const match = String(xml || "").match(new RegExp(`<${tagName}\\b[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i"));
   return match ? decodeHtml(match[1]).trim() : "";
 }

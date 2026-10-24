@@ -1,5 +1,6 @@
 const globals = require('globals');
 const html = require('eslint-plugin-html');
+const security = require('eslint-plugin-security');
 
 const commonRules = {
   'no-constant-condition': ['error', { checkLoops: false }],
@@ -58,5 +59,19 @@ module.exports = [
       }
     },
     rules: commonRules
+  },
+  {
+    files: ['src/**/*.js', 'scripts/**/*.js', 'public/**/*.js', 'public/*.html'],
+    ignores: ['public/vendor/**'],
+    plugins: { security },
+    rules: {
+      ...Object.fromEntries(
+        Object.keys(security.configs.recommended.rules).map((name) => [name, 'error'])
+      ),
+      // These two rules flag nearly every indexed read and every fs call (about 315 findings).
+      // The app builds file paths from user-chosen folders by design, and CodeQL covers path injection.
+      'security/detect-object-injection': 'off',
+      'security/detect-non-literal-fs-filename': 'off'
+    }
   }
 ];
