@@ -13,7 +13,7 @@ function getAdmZip() {
   return _AdmZip;
 }
 
-const { importReadings, paginateDocuments } = require("./readingsImporter");
+const { importReadings } = require("./readingsImporter");
 const { fetchUsccbDailyReadings } = require("./lectionaryRss");
 const {
   ValidationError,
@@ -89,7 +89,6 @@ const {
 } = require("./security");
 const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 const {
-  boundsToRect,
   legacyTextBoundsFromSettings,
   normalizeTextBounds,
   textBoundsToLegacySettings
@@ -3492,14 +3491,18 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/preview-reading", (req, res) => {
     try {
-      const { text, stem, label, overrideSettings, styleOverrides } = req.body || {};
+      const { text, stem, label, overrideSettings, styleOverrides, passage } = req.body || {};
 
-      const doc = state.readingsSource?.documents?.find((d) => d.stem === stem);
+      // Without a stem, preview a sample reading so the Text Area tool can
+      // show real slides before a Mass folder loads.
+      const doc = stem
+        ? state.readingsSource?.documents?.find((d) => d.stem === stem)
+        : { stem: "preview:sample", section: "", passage: String(passage || "").trim(), ending: "" };
       if (!doc) {
         return res.status(404).json({ error: "Reading not found in loaded documents." });
       }
 
-      const dummyDoc = {
+      const previewDoc = {
         stem: doc.stem,
         section: doc.section,
         passage: doc.passage,
@@ -3507,35 +3510,27 @@ function startServer(port = 17841, options = {}) {
         ending: doc.ending
       };
 
-      const settings = {
-        ...state.screenSettings,
-        ...(overrideSettings || {})
-      };
-      const normalizedOverrides = normalizeStyleOverrides(styleOverrides);
-      const previewTextBounds = normalizeTextBounds(
-        settings.textBounds || legacyTextBoundsFromSettings(settings)
-      );
-      const previewReadingRect = boundsToRect(
-        normalizedOverrides.bounds?.body || previewTextBounds.readingBody,
-        settings.resolution || "1080p"
-      );
+      // Build the slides with the same organizer path as the projector so the
+      // preview shows the same page breaks.
+      const presentation = buildPresentationFromOrganizer({
+        title: "Preview",
+        documents: [previewDoc],
+        sequence: [{
+          id: "preview:reading",
+          type: "reading",
+          sourceStem: previewDoc.stem,
+          label: String(label || doc.section || ""),
+          styleOverrides,
+          psalmRefrainIndex: req.body?.psalmRefrainIndex
+        }],
+        manualSlides: {},
+        screenSettings: {
+          ...state.screenSettings,
+          ...(overrideSettings || {})
+        }
+      });
 
-      const slides = paginateDocuments([dummyDoc], {
-        fontSizePx: settings.fontSizePx,
-        fontFamily: settings.fontFamily,
-        readingTextHeightPx: previewReadingRect.height,
-        readingTextWidthPx: previewReadingRect.width,
-        readingLineHeight: settings.readingLineHeight,
-        readingTextMarginXPx: settings.readingTextMarginXPx,
-        readingTextSizePx: settings.readingTextSizePx,
-        psalmRefrainIndex: req.body?.psalmRefrainIndex
-      }).map((slide) => ({
-        ...slide,
-        styleOverrides: normalizedOverrides,
-        groupLabel: String(label || doc.section || "")
-      }));
-
-      return res.json({ ok: true, slides });
+      return res.json({ ok: true, slides: presentation.slides || [] });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to preview reading." });
     }

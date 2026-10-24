@@ -509,6 +509,69 @@ describe("server api integration", () => {
     expect(res.body.slides[0].groupLabel).toBe("First Reading");
   });
 
+  test("preview-reading shows a sample reading when no stem is given", async () => {
+    const res = await request(app)
+      .post("/api/preview-reading")
+      .send({
+        label: "Sample Reading",
+        passage: "Revelation 3:9",
+        text: "Behold, I will make those of the assembly of Satan come and fall prostrate at your feet."
+      })
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.slides.length).toBeGreaterThan(0);
+    expect(res.body.slides[0].type).toBe("reading");
+    expect(res.body.slides[0].passage).toBe("Revelation 3:9");
+    expect(res.body.slides[0].groupLabel).toBe("Sample Reading");
+  });
+
+  test("preview-reading returns 404 for an unknown stem", async () => {
+    await request(app)
+      .post("/api/preview-reading")
+      .send({ stem: "Missing_Stem", text: "Text" })
+      .expect(404);
+  });
+
+  test("preview-reading uses the same page breaks as the projector", async () => {
+    const readingsDir = path.join(handle.homeDir, "preview-pagination");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    const longText = Array.from({ length: 12 }, (_, index) =>
+      `Verse ${index + 1}: They devoted themselves to the teaching of the apostles and to the communal life.`
+    ).join("\n");
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), `Acts of the Apostles 2:42-47\n\n${longText}`, "utf8");
+
+    const before = (await request(app).get("/api/state").expect(200)).body.screenSettings.textBounds;
+    const narrowBody = { left: 600, right: 600, top: 300, bottom: 400 };
+    try {
+      await request(app)
+        .post("/api/screen-settings")
+        .send({ textBounds: { ...before, readingBody: narrowBody } })
+        .expect(200);
+      await request(app)
+        .post("/api/load-readings")
+        .send({ folderPath: readingsDir })
+        .expect(200);
+
+      const live = (await request(app).get("/api/state").expect(200)).body;
+      const doc = live.readingsSource.documents.find((entry) => entry.stem === "Reading_I");
+      const projectorSlides = live.presentation.slides.filter((slide) => String(slide.id).startsWith("reading-Reading_I-p"));
+      expect(projectorSlides.length).toBeGreaterThan(1);
+
+      const preview = await request(app)
+        .post("/api/preview-reading")
+        .send({ stem: "Reading_I", text: doc.textLines.join("\n") })
+        .expect(200);
+
+      expect(preview.body.slides.map((slide) => slide.text)).toEqual(projectorSlides.map((slide) => slide.text));
+    } finally {
+      await request(app)
+        .post("/api/screen-settings")
+        .send({ textBounds: before })
+        .expect(200);
+    }
+  });
+
   test("load-readings asks which alternate to keep and leaves the unused file on disk", async () => {
     const readingsDir = path.join(handle.homeDir, "alternate-readings");
     fs.mkdirSync(readingsDir, { recursive: true });
