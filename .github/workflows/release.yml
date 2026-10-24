@@ -141,13 +141,14 @@ jobs:
             "${keychain_file}" \
             "${HOME}/Library/Keychains/login.keychain-db"
 
-          identity="$(security find-identity -v -p codesigning "${keychain_file}" \
+          full_identity="$(security find-identity -v -p codesigning "${keychain_file}" \
             | sed -n 's/.*"\(Developer ID Application:.*\)"/\1/p' \
             | head -n 1)"
-          if [ -z "${identity}" ]; then
+          if [ -z "${full_identity}" ]; then
             echo "::error::The imported keychain has no Developer ID Application identity."
             exit 1
           fi
+          identity="${full_identity#Developer ID Application: }"
           echo "CSC_NAME=${identity}" >> "${GITHUB_ENV}"
 
       - name: Build signed and notarized macOS ZIP
