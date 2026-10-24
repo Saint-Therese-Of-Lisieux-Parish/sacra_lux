@@ -434,6 +434,26 @@ const MAX_SLIDESHOW_IMPORT_BYTES = 120 * 1024 * 1024;
 const MAX_MASS_ZIP_COMPRESSED_BYTES = 50 * 1024 * 1024;
 // JSON request body limits. Base64 adds one third, so each upload route allows
 // its decoded limit times 4/3 plus 1 MB for the JSON wrapper.
+// The pages use inline scripts and styles, so the policy allows them but limits every other source to this origin.
+const HTML_SECURITY_HEADERS = Object.freeze({
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "media-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self' ws: wss:",
+    "frame-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'"
+  ].join("; "),
+  "Referrer-Policy": "no-referrer",
+  "X-Frame-Options": "SAMEORIGIN"
+});
+
 const JSON_BODY_LIMIT_DEFAULT = "10mb";
 const JSON_BODY_LIMIT_SINGLE_UPLOAD = `${Math.ceil((MAX_SINGLE_UPLOAD_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_SLIDESHOW_IMPORT = `${Math.ceil((MAX_SLIDESHOW_IMPORT_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
@@ -2162,6 +2182,10 @@ function startServer(port = 17841, options = {}) {
   }
 
   const app = express();
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    next();
+  });
   const server = http.createServer(app);
   const io = new Server(server, {
     cors: {
@@ -2246,7 +2270,9 @@ function startServer(port = 17841, options = {}) {
   function sendPublicPage(res, next, filename) {
     try {
       // Reading through Node's fs works both from source and inside an ASAR.
-      res.type("html").send(fs.readFileSync(path.join(publicDir, filename), "utf8"));
+      const html = fs.readFileSync(path.join(publicDir, filename), "utf8");
+      for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) res.setHeader(name, value);
+      res.type("html").send(html);
     } catch (error) {
       next(error);
     }
