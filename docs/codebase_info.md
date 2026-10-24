@@ -20,7 +20,7 @@
 | ZIP and image processing | adm-zip, sharp |
 | PDF export | Electron offscreen capture plus pdf-lib |
 | tests | Jest 30, supertest, Playwright 1.64 |
-| linting | ESLint 9 |
+| linting | ESLint 10 |
 
 ## Repository Layout
 
