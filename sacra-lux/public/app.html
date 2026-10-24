@@ -1324,6 +1324,7 @@
 
     .format-bar .settings-field label {
       gap: 0.3rem;
+      white-space: nowrap;
       font-size: 0.75rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -1354,6 +1355,15 @@
     .format-bar .settings-field:has([id$="VAlign"]),
     .format-bar .settings-field:has([id$="Position"]) {
       width: 9rem;
+    }
+
+    .format-bar :is(select, input:not([type="checkbox"])) {
+      height: 2.1rem;
+      box-sizing: border-box;
+    }
+
+    .format-bar .editor-size-stepper {
+      align-items: center;
     }
 
     .format-sep {
@@ -2998,7 +3008,7 @@
                 </div>
                 <div class="format-bar" role="toolbar" aria-label="Reading text layout">
                   <div class="settings-field settings-span-3">
-                    <label>Horizontal alignment
+                    <label>Alignment
                       <select id="readingTextAlign">
                         <option value="left">Left</option>
                         <option value="center">Center</option>
@@ -3045,7 +3055,9 @@
                   <div class="settings-subsection-label">Scripture Reference &amp; Title</div>
                   <p class="settings-subsection-copy">Style the smaller metadata separately so it supports the reading without competing with it.</p>
                 </div>
-                <div class="format-bar" role="toolbar" aria-label="Reference formatting">
+                <div class="settings-group">
+                  <div class="settings-group-label">Scripture Reference</div>
+                  <div class="format-bar" role="toolbar" aria-label="Reference formatting">
                   <div class="settings-field settings-span-4">
                     <label>Font
                       <select id="readingPassageFont">
@@ -3094,10 +3106,10 @@
                   <input id="readingPassageOutline" type="checkbox">
                   <span class="fmt-glyph" aria-label="Reference outline"><span class="fmt-outline">O</span></span>
                 </label>
-                </div>
-                <div class="format-bar" role="toolbar" aria-label="Reference layout">
+                  </div>
+                  <div class="format-bar" role="toolbar" aria-label="Reference layout">
                   <div class="settings-field settings-span-3">
-                    <label>Horizontal alignment
+                    <label>Alignment
                       <select id="readingPassageAlign">
                         <option value="left">Left</option>
                         <option value="center">Center</option>
@@ -3123,6 +3135,17 @@
                       <input id="readingPassageOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
                     </label>
                   </div>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <div class="settings-group-label">Section Title</div>
+                  <p class="settings-subsection-copy">Section titles such as First Reading use the reference font, size, and color.</p>
+                  <div class="format-bar" role="toolbar" aria-label="Section title formatting">
+                <label class="settings-toggle fmt-toggle" title="Title outline: Adds separation for section titles like First Reading.">
+                  <input id="readingSectionOutline" type="checkbox">
+                  <span class="fmt-glyph" aria-label="Title outline"><span class="fmt-outline">O</span></span>
+                </label>
+                  <span class="format-sep"></span>
                   <div class="settings-field settings-span-2">
                     <label>Title outline color
                       <input id="readingSectionOutlineColor" class="settings-color-input" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="#RRGGBB" value="#000000">
@@ -3133,15 +3156,11 @@
                       <input id="readingSectionOutlineWidthPx" type="number" min="0.5" max="20" step="0.5" value="1">
                     </label>
                   </div>
+                  </div>
                 </div>
-                <div class="settings-toggle-grid">
-                  <label class="settings-toggle">
-                    <input id="readingSectionOutline" type="checkbox">
-                    <span class="settings-toggle-copy">
-                      <span class="settings-toggle-title">Title outline</span>
-                      <span class="settings-toggle-help">Adds separation for section titles like “First Reading”.</span>
-                    </span>
-                  </label>
+                <div class="settings-group">
+                  <div class="settings-group-label">On the Slide</div>
+                  <div class="settings-toggle-grid">
                   <label class="settings-toggle">
                     <input id="readingShowPageNumber" type="checkbox" checked>
                     <span class="settings-toggle-copy">
@@ -3163,6 +3182,7 @@
                       <span class="settings-toggle-help">Shows “The Word of the Lord” or “The Gospel of the Lord” on the last page.</span>
                     </span>
                   </label>
+                  </div>
                 </div>
               </div>
 
@@ -3269,7 +3289,7 @@
                 </div>
                 <div class="format-bar" role="toolbar" aria-label="Slide text layout">
                   <div class="settings-field settings-span-3">
-                    <label>Horizontal alignment
+                    <label>Alignment
                       <select id="textSlideTextAlign">
                         <option value="left">Left</option>
                         <option value="center">Center</option>
