@@ -143,7 +143,11 @@ reads the `format` and `version` keys to choose how to read the file.
 | Rate limit | 10 requests in 10 minutes, 1 at a time |
 
 The importer checks the limits against the sizes in the ZIP headers before it
-extracts any file. A ZIP that exceeds a limit is rejected as a whole.
+extracts any file. The importer also counts the bytes that it extracts. If an
+entry has more or fewer bytes than its header declares, or if the extracted
+bytes pass the entry limit or the total limit, the importer rejects the ZIP.
+A ZIP that exceeds a limit is rejected as a whole, and the current Mass stays
+unchanged.
 
 ## Request Format
 
@@ -167,6 +171,7 @@ the data is ignored.
 | Compressed size too large | 400 | `Mass ZIP compressed size exceeds the 52428800 byte limit.` |
 | Too many entries | 400 | `Mass ZIP contains too many entries; the limit is 1000.` |
 | One entry too large | 400 | `Mass ZIP entry "<name>" exceeds the 52428800 byte limit.` |
+| Entry content differs from its declared size | 400 | `Mass ZIP entry "<name>" does not match its declared size.` or `Mass ZIP entry "<name>" is larger than its declared size.` |
 | Total size too large | 400 | `Mass ZIP uncompressed size exceeds the 262144000 byte limit.` |
 | Invalid entry size | 400 | `Mass ZIP entry "<name>" has an invalid size.` |
 | No definition file | 400 | `ZIP does not contain mass.json or settings.json.` |

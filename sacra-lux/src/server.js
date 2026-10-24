@@ -159,8 +159,41 @@ function replaceCurrentMassDir(populate) {
   fs.rmSync(backupDir, { recursive: true, force: true });
 }
 
+/**
+ * Extract one ZIP entry and check the real byte count.
+ * Reject the ZIP when the data differs from the declared size or passes a limit.
+ * `budget.remainingBytes` tracks the total extracted bytes across entries.
+ */
+function readZipEntryData(entry, budget) {
+  const declaredBytes = Number(entry.header?.size);
+  let data;
+  try {
+    data = entry.getData();
+  } catch {
+    throw new ValidationError(`Mass ZIP entry "${entry.entryName}" is larger than its declared size.`);
+  }
+  if (data.length !== declaredBytes) {
+    throw new ValidationError(`Mass ZIP entry "${entry.entryName}" does not match its declared size.`);
+  }
+  if (data.length > MAX_MASS_ZIP_ENTRY_BYTES) {
+    throw new ValidationError(
+      `Mass ZIP entry "${entry.entryName}" exceeds the ${MAX_MASS_ZIP_ENTRY_BYTES} byte limit.`
+    );
+  }
+  if (budget) {
+    budget.remainingBytes -= data.length;
+    if (budget.remainingBytes < 0) {
+      throw new ValidationError(
+        `Mass ZIP uncompressed size exceeds the ${MAX_MASS_ZIP_UNCOMPRESSED_BYTES} byte limit.`
+      );
+    }
+  }
+  return data;
+}
+
 function writeZipMassPackage(zip, destDir, packageDefinition) {
   fs.mkdirSync(destDir, { recursive: true });
+  const budget = { remainingBytes: MAX_MASS_ZIP_UNCOMPRESSED_BYTES };
   const mediaPattern = /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i;
   const groups = [
     ["readings/", /^[^/\\:*?"<>|]+\.txt$/, ""],
@@ -180,7 +213,7 @@ function writeZipMassPackage(zip, destDir, packageDefinition) {
       fs.mkdirSync(targetDir, { recursive: true });
       const dest = path.join(targetDir, filename);
       if (prefix === "uploads/" && fs.existsSync(dest)) continue;
-      fs.writeFileSync(dest, entry.getData());
+      fs.writeFileSync(dest, readZipEntryData(entry, budget));
     }
   }
 
@@ -411,9 +444,10 @@ const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
 
 function parseMassZipDefinition(definitionEntry) {
+  const text = readZipEntryData(definitionEntry).toString("utf8");
   let definition;
   try {
-    definition = JSON.parse(definitionEntry.getData().toString("utf8"));
+    definition = JSON.parse(text);
   } catch (error) {
     throw new ValidationError(error.message || "Mass definition is not valid JSON.");
   }

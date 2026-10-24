@@ -905,6 +905,37 @@ describe("server api integration", () => {
     }
   });
 
+  test("import-mass-zip rejects an entry whose content exceeds its declared size", async () => {
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    const canaryPath = path.join(currentMassDir, "declared-size-canary.txt");
+    fs.writeFileSync(canaryPath, "keep", "utf8");
+
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({ presentationTitle: "Should Not Import" })));
+    zip.addFile("assets/big.png", Buffer.alloc(1024 * 1024, 1));
+    const zipBuf = zip.toBuffer();
+    // Set the declared size of every entry to 100 bytes in both ZIP headers.
+    const patchSize = (signature, offset) => {
+      const sig = Buffer.from(signature, "hex");
+      for (let at = zipBuf.indexOf(sig); at >= 0; at = zipBuf.indexOf(sig, at + 4)) {
+        zipBuf.writeUInt32LE(100, at + offset);
+      }
+    };
+    patchSize("504b0102", 24);
+    patchSize("504b0304", 22);
+
+    const response = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zipBuf.toString("base64") });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/declared size/i);
+    expect(fs.readFileSync(canaryPath, "utf8")).toBe("keep");
+    expect(fs.readdirSync(path.dirname(currentMassDir)).filter((name) => name.startsWith(".current_mass-")))
+      .toEqual([]);
+  });
+
   test("startup prefers valid current_mass over stale session title", async () => {
     const homeDir = createTempHome("sacra-lux-startup-valid-");
     const appDir = path.join(homeDir, ".sacra-lux");
