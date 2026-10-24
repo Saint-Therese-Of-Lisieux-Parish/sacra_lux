@@ -478,10 +478,9 @@
       flex-direction: column;
       gap: 0.85rem;
       padding: 0.95rem;
-      border: 1px solid color-mix(in srgb, var(--line), white 10%);
-      border-radius: 16px;
+      border: 1px solid var(--surface-border);
+      border-radius: var(--radius);
       background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
-      box-shadow: 0 10px 28px var(--shadow);
       margin-bottom: 0.9rem;
     }
 
@@ -526,10 +525,7 @@
       gap: 0.4rem;
       min-width: 0;
       height: 100%;
-      padding: 0.72rem 0.8rem;
-      border: 1px solid color-mix(in srgb, var(--line), white 12%);
-      border-radius: 14px;
-      background: color-mix(in srgb, var(--panel), var(--bg-alt) 14%);
+      padding: 0.2rem 0;
     }
 
     .modal-field label,
@@ -2165,15 +2161,14 @@
 
     .editor-style-field input,
     .editor-style-field select {
-      min-height: 2.65rem;
-      padding: 0.56rem 0.72rem;
-      border-radius: 12px;
-      font-size: 0.88rem;
-      font-weight: 700;
-      background: color-mix(in srgb, var(--panel), white 8%);
-      border: 1px solid color-mix(in srgb, var(--line), white 14%);
+      min-height: 2.1rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 600;
+      background: var(--control-bg);
+      border: 1px solid var(--control-border);
       color: var(--ink);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
     }
 
     .editor-style-field input::placeholder {
@@ -2211,39 +2206,38 @@
       flex-wrap: wrap;
       align-items: stretch;
       gap: 0.24rem;
-      min-height: 2.65rem;
-      padding: 0.24rem;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--panel), white 8%);
-      border: 1px solid color-mix(in srgb, var(--line), white 14%);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      min-height: 2.1rem;
+      padding: 2px;
+      border-radius: var(--radius);
+      background: var(--control-bg);
+      border: 1px solid var(--control-border);
     }
 
     .editor-style-choice-btn {
       flex: 1 1 auto;
-      min-height: 2.1rem;
-      padding: 0.28rem 0.32rem;
+      min-height: 1.7rem;
+      padding: 0.15rem 0.5rem;
       border: 0;
-      border-radius: 9px;
+      border-radius: calc(var(--radius) - 2px);
       background: transparent;
-      color: color-mix(in srgb, var(--ink-soft), var(--ink) 55%);
-      font-size: 0.77rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
+      box-shadow: none;
+      color: var(--ink);
+      font-size: 0.8rem;
+      font-weight: 600;
       white-space: nowrap;
       cursor: pointer;
       transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
     }
 
     .editor-style-choice-btn:hover {
-      background: color-mix(in srgb, var(--panel), white 20%);
+      background: var(--control-bg-hover);
       color: var(--ink);
     }
 
     .editor-style-choice-btn.is-active {
-      background: color-mix(in srgb, var(--accent), white 80%);
-      color: var(--ink);
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent), white 30%);
+      background: var(--accent);
+      color: var(--ink-on-accent);
+      box-shadow: none;
     }
 
     #editorPreviewSection {
