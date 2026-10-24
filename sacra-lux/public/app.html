@@ -15,6 +15,14 @@
       overflow: hidden;
     }
 
+    /* Optical centering: modal dialogs sit slightly above the geometric center.
+       Skipped on narrow screens, where dialogs fill the viewport. */
+    @media (min-width: 761px) {
+      dialog[open] {
+        inset-block-end: 8vh;
+      }
+    }
+
     .layout {
       padding: 1.1rem;
       height: 100vh;
