@@ -460,6 +460,85 @@ describe("server api integration", () => {
     expect(after.body.postMassRunning).toBe(false);
   });
 
+  describe("no-PIN start redirect before Mass", () => {
+    let lanLayer;
+
+    async function seedPreMassSlides() {
+      await request(app)
+        .post("/api/organizer")
+        .send({
+          sequence: [
+            { id: "text:welcome", type: "text", label: "Welcome", phase: "pre", backgroundTheme: "dark", durationSec: 10 },
+            { id: "text:opening", type: "text", label: "Opening", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
+          ],
+          manualSlides: {
+            "text:welcome": { text: "Welcome" },
+            "text:opening": { text: "Opening" }
+          }
+        })
+        .expect(200);
+      await request(app)
+        .post("/api/start-time")
+        .send({ time: new Date(Date.now() + (60 * 60 * 1000)).toISOString() })
+        .expect(200);
+      state.currentSlideIndex = 1;
+      state.preMassRunning = false;
+      state.gatheringRunning = false;
+      state.postMassRunning = false;
+    }
+
+    function useLanClient() {
+      app.use((req, res, next) => {
+        Object.defineProperty(req.socket, "remoteAddress", { value: "192.168.1.50", configurable: true });
+        next();
+      });
+      const stack = app.router.stack;
+      lanLayer = stack.pop();
+      stack.unshift(lanLayer);
+    }
+
+    afterEach(() => {
+      if (lanLayer) {
+        app.router.stack.splice(app.router.stack.indexOf(lanLayer), 1);
+        lanLayer = null;
+      }
+      state.preMassRunning = false;
+    });
+
+    test("a non-loopback client cannot start pre-Mass while the control mode is unset", async () => {
+      await seedPreMassSlides();
+      useLanClient();
+
+      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote");
+
+      const after = await request(app).get("/api/state").expect(200);
+      expect(after.body.currentSlideIndex).toBe(1);
+      expect(after.body.preMassRunning).toBe(false);
+    });
+
+    test("a loopback client starts pre-Mass", async () => {
+      await seedPreMassSlides();
+
+      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote");
+
+      const after = await request(app).get("/api/state").expect(200);
+      expect(after.body.currentSlideIndex).toBe(0);
+      expect(after.body.preMassRunning).toBe(true);
+    });
+
+    test("a non-loopback client starts pre-Mass in trusted-lan mode", async () => {
+      await seedPreMassSlides();
+      state.controlMode = "trusted-lan";
+      useLanClient();
+
+      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote");
+
+      const after = await request(app).get("/api/state").expect(200);
+      expect(after.body.currentSlideIndex).toBe(0);
+      expect(after.body.preMassRunning).toBe(true);
+    });
+  });
+
   test("preview-manual-slide returns split slides for text hard breaks", async () => {
     const res = await request(app)
       .post("/api/preview-manual-slide")
