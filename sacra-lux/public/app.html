@@ -1229,6 +1229,40 @@
       color: var(--accent);
     }
 
+    .settings-tabs {
+      display: flex;
+      gap: 2px;
+      width: fit-content;
+      max-width: 100%;
+      flex-wrap: wrap;
+      padding: 2px;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+    }
+
+    .settings-tab {
+      padding: 0.35rem 1rem;
+      border: 0;
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      box-shadow: none;
+      font-size: 0.875rem;
+    }
+
+    .settings-tab:hover {
+      background: var(--control-bg-hover);
+    }
+
+    .settings-tab.is-active {
+      background: var(--accent);
+      color: var(--ink-on-accent);
+    }
+
+    [data-settings-panel][hidden] {
+      display: none !important;
+    }
+
     .settings-field.is-disabled {
       opacity: 0.58;
     }
@@ -2788,16 +2822,21 @@
               </div>
             </section>
 
-            <section class="settings-section settings-section--span-2">
+            <section class="settings-section settings-section--span-2" id="slideTextStyles">
               <div class="settings-section-header">
                 <div>
-                  <div class="settings-section-label">Readings</div>
-                  <h3 class="settings-section-title">Reading Slides</h3>
-                  <p class="settings-section-copy">Keep scripture readable from the back pew: body text first, reference second, and only then decorative effects.</p>
+                  <div class="settings-section-label">Slide Types</div>
+                  <h3 class="settings-section-title">Text Styles</h3>
+                  <p class="settings-section-copy">Choose a slide type, then adjust only its text style. Readings come first: body text, then reference.</p>
                 </div>
               </div>
+              <div class="settings-tabs" role="tablist" aria-label="Slide type">
+                <button type="button" role="tab" class="settings-tab is-active" data-settings-tab="reading-body" aria-selected="true">Reading body</button>
+                <button type="button" role="tab" class="settings-tab" data-settings-tab="reading-ref" aria-selected="false">Reference &amp; title</button>
+                <button type="button" role="tab" class="settings-tab" data-settings-tab="text" aria-selected="false">Text, prayer &amp; hymn</button>
+              </div>
 
-              <div class="settings-subsection">
+              <div class="settings-subsection" data-settings-panel="reading-body">
                 <div>
                   <div class="settings-subsection-label">Reading Body Text</div>
                   <p class="settings-subsection-copy">Use these controls for the main reading itself.</p>
@@ -2927,7 +2966,7 @@
                 </div>
               </div>
 
-              <div class="settings-subsection">
+              <div class="settings-subsection" data-settings-panel="reading-ref" hidden>
                 <div>
                   <div class="settings-subsection-label">Scripture Reference &amp; Title</div>
                   <p class="settings-subsection-copy">Style the smaller metadata separately so it supports the reading without competing with it.</p>
@@ -3072,7 +3111,7 @@
                 </div>
               </div>
 
-              <details class="settings-advanced">
+              <details class="settings-advanced" data-settings-panel="reading-body reading-ref">
                 <summary>Fine-tune reading positioning</summary>
                 <p class="settings-advanced-copy">Most parishes should not need these often. Adjust only when your projector framing, margins, or confidence monitor layout needs extra control.</p>
                 <div class="settings-field-grid">
@@ -3108,18 +3147,8 @@
                   </div>
                 </div>
               </details>
-            </section>
 
-            <section class="settings-section settings-section--span-2">
-              <div class="settings-section-header">
-                <div>
-                  <div class="settings-section-label">Other Slides</div>
-                  <h3 class="settings-section-title">Text, Prayer &amp; Hymn Slides</h3>
-                  <p class="settings-section-copy">Use a simpler structure here so congregational text stays calm, stable, and easy to sing or read aloud.</p>
-                </div>
-              </div>
-
-              <div class="settings-subsection">
+              <div class="settings-subsection" data-settings-panel="text" hidden>
                 <div>
                   <div class="settings-subsection-label">Slide Text</div>
                   <p class="settings-subsection-copy">These settings control the main text on text, prayer, and hymn slides.</p>
@@ -3261,7 +3290,7 @@
                 </div>
               </div>
 
-              <details class="settings-advanced">
+              <details class="settings-advanced" data-settings-panel="text" hidden>
                 <summary>Fine-tune text slide positioning</summary>
                 <p class="settings-advanced-copy">Only adjust these if your projection area or text density needs extra nudging.</p>
                 <div class="settings-field-grid">
@@ -8272,6 +8301,20 @@
         if (!input) return;
         writeTriStateSelect(input, input.dataset.tristateValue !== "true");
         input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    });
+
+    document.querySelectorAll("[data-settings-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.settingsTab;
+        document.querySelectorAll("[data-settings-tab]").forEach((other) => {
+          const active = other === tab;
+          other.classList.toggle("is-active", active);
+          other.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        document.querySelectorAll("[data-settings-panel]").forEach((panel) => {
+          panel.hidden = !panel.dataset.settingsPanel.split(" ").includes(name);
+        });
       });
     });
 

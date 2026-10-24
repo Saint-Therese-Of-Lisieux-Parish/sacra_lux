@@ -418,13 +418,15 @@ test("Screen Settings color fields pair each code with a visual picker", async (
   await expect(page.locator("#readingTextColor")).toHaveValue("#336699");
   await expect.poll(() => savedColor("readingTextColor")).toBe("#336699");
 
-  // Valid code -> picker.
+  // Valid code -> picker. The text fields live in their own settings tab.
+  await page.locator('[data-settings-tab="text"]').click();
   await page.locator("#textSlideTextColor").fill("#AA5500");
   await expect(page.locator('.color-control:has(#textSlideTextColor) input[type="color"]')).toHaveValue("#aa5500");
   await expect.poll(() => savedColor("textSlideTextColor")).toBe("#AA5500");
 
   // Invalid code keeps the last valid color. Let earlier state updates settle first.
   await page.waitForTimeout(500);
+  await page.locator('[data-settings-tab="reading-ref"]').click();
   await page.locator("#readingPassageColor").fill("#12zz");
   await page.waitForTimeout(500);
   await expect(page.locator("#readingPassageColor")).toHaveAttribute("aria-invalid", "true");
@@ -433,6 +435,27 @@ test("Screen Settings color fields pair each code with a visual picker", async (
   await expect(page.locator("#readingPassageColor")).toHaveValue(passageBefore);
   await expect(page.locator("#readingPassageColor")).not.toHaveAttribute("aria-invalid", "true");
   expect(await savedColor("readingPassageColor")).toBe(passageBefore);
+});
+
+test("Screen Settings shows one slide type text style at a time", async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+
+  await expect(page.locator("#readingTextColor")).toBeVisible();
+  await expect(page.locator("#readingPassageColor")).toBeHidden();
+  await expect(page.locator("#textSlideTextColor")).toBeHidden();
+
+  await page.locator('[data-settings-tab="reading-ref"]').click();
+  await expect(page.locator("#readingPassageColor")).toBeVisible();
+  await expect(page.locator("#readingTextColor")).toBeHidden();
+
+  await page.locator('[data-settings-tab="text"]').click();
+  await expect(page.locator("#textSlideTextColor")).toBeVisible();
+  await expect(page.locator('[data-settings-tab="text"]')).toHaveAttribute("aria-selected", "true");
 });
 
 test("Image Slideshow editor sorts batches and supports persistent ordering controls", async ({ page, request }) => {
