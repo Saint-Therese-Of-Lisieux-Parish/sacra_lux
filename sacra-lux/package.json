@@ -1,6 +1,6 @@
 {
   "name": "sacra-lux",
-  "version": "0.0.143-alpha",
+  "version": "0.0.144-alpha",
   "description": "Catholic Mass presentation app with phone remote control",
   "main": "src/main.js",
   "engines": {
@@ -79,6 +79,9 @@
     "mac": {
       "icon": "build/icon.icns",
       "category": "public.app-category.utilities",
+      "hardenedRuntime": true,
+      "forceCodeSigning": true,
+      "notarize": true,
       "target": [
         {
           "target": "dmg",

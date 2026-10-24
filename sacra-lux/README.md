@@ -78,7 +78,7 @@ The workflow builds `Sacra-Lux-<version>-mac-arm64.zip`,
 `Sacra-Lux-<version>-mac-x64.zip`, and `Sacra-Lux-<version>-win-x64.zip`.
 It publishes a GitHub Release with generated release notes and
 `SHA256SUMS.txt`. A version with a hyphen, such as `-alpha`, becomes a
-prerelease. The builds are not signed or notarized.
+prerelease. The macOS builds are signed and notarized when the release workflow has the required Apple credentials. Windows signing remains out of scope until a Windows signing method is configured.
 
 ## Default URLs
 

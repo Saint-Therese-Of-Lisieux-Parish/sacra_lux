@@ -81,8 +81,61 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build ZIP
-        run: npx electron-builder ${{ matrix.build }} --publish never "--config.directories.output=dist"
+      - name: Check macOS signing credentials
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          missing=()
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY \
+            APPLE_API_KEY_ID APPLE_API_ISSUER; do
+            if [ -z "${!name}" ]; then
+              missing+=("${name}")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing macOS signing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Build signed and notarized macOS ZIP
+        if: runner.os == 'macOS'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          apple_key_file="${RUNNER_TEMP}/AuthKey_${APPLE_API_KEY_ID}.p8"
+          printf '%s' "${APPLE_API_KEY}" > "${apple_key_file}"
+          export APPLE_API_KEY="${apple_key_file}"
+          npx electron-builder ${{ matrix.build }} --publish never \
+            "--config.directories.output=dist"
+
+      - name: Build Windows ZIP
+        if: runner.os == 'Windows'
+        run: >-
+          npx electron-builder ${{ matrix.build }} --publish never
+          "--config.directories.output=dist"
+
+      - name: Verify macOS signature and notarization
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app=$(find dist -type d -name '*.app' -print -quit)
+          if [ -z "${app}" ]; then
+            echo "::error::No macOS application found in dist"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "${app}"
+          spctl --assess --type execute --verbose=4 "${app}"
+          xcrun stapler validate "${app}"
 
       - name: Normalize ZIP name
         if: runner.os != 'Windows'
