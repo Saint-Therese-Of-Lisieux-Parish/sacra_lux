@@ -2057,6 +2057,24 @@ describe("server api integration", () => {
     expect(asset.body.toString()).toBe("legacy-image");
   });
 
+  test("a normal Mass save does not write the saved path to the console", () => {
+    const { saveCurrentMass } = require("../../src/server");
+    const logger = require("../../src/logger");
+    const wasQuiet = logger.isQuietLogs();
+    logger.setQuietLogs(false);
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+    try {
+      saveCurrentMass();
+      const logged = logSpy.mock.calls.map((call) => String(call[0])).join("\n");
+      expect(logged).not.toContain("[save] Mass saved to");
+      const massJson = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+      expect(fs.existsSync(massJson)).toBe(true);
+    } finally {
+      logSpy.mockRestore();
+      logger.setQuietLogs(wasQuiet);
+    }
+  });
+
   test("import-mass-zip resolves media name collisions by folder, not ZIP order", async () => {
     const buildZip = (entries) => {
       const zip = new AdmZip();
