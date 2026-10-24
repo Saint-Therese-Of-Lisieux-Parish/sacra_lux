@@ -1006,6 +1006,27 @@
       margin-top: 0.75rem;
     }
 
+    .text-bounds-toolbar label,
+    .text-bounds-fields label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .text-bounds-toolbar label :is(input, select),
+    .text-bounds-fields label :is(input, select) {
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: normal;
+      text-transform: none;
+      color: var(--ink);
+    }
+
     .text-bounds-preview {
       position: relative;
       width: 100%;
