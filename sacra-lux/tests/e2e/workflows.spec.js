@@ -79,6 +79,7 @@ test("Screen Settings edits global text bounds with pointer and keyboard control
   }
   await page.locator("#openSettingsBtn").click();
   await expect(page.locator("#textBoundsSettings")).toBeVisible();
+  await page.getByRole("tab", { name: "Window Position" }).click();
   await expect(page.frameLocator("#textBoundsPreviewFrame").locator("#stage"))
     .toContainText(/Behold, I will make those of the assembly of Satan/);
 
@@ -152,6 +153,7 @@ async function openTextAreaTool(page) {
   }
   await page.locator("#openSettingsBtn").click();
   await expect(page.locator("#textBoundsSettings")).toBeVisible();
+  await page.getByRole("tab", { name: "Window Position" }).click();
 }
 
 // Read the reading body bounds that the projector renderer applied inside a preview frame.

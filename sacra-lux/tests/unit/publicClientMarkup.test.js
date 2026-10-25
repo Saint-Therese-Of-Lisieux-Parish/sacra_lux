@@ -68,6 +68,24 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('data-handle="se"');
   });
 
+  test("display settings put slide type tabs above the preview and control tabs below it", () => {
+    const slideTabs = appHtml.indexOf('aria-label="Slide type"');
+    const preview = appHtml.indexOf('id="textBoundsPreview"');
+    const controlTabs = appHtml.indexOf('aria-label="Control panel"');
+    const fontPane = appHtml.indexOf('data-control-pane="font"');
+    const positionPane = appHtml.indexOf('data-control-pane="position"');
+    expect(slideTabs).toBeGreaterThan(-1);
+    expect(slideTabs).toBeLessThan(preview);
+    expect(preview).toBeLessThan(controlTabs);
+    expect(controlTabs).toBeLessThan(fontPane);
+    expect(fontPane).toBeLessThan(positionPane);
+    expect(appHtml.indexOf('data-settings-panel="reading-body"')).toBeGreaterThan(fontPane);
+    expect(appHtml.indexOf('id="textBoundsLeft"')).toBeGreaterThan(positionPane);
+    expect(appHtml.indexOf('id="textBoundsReset"')).toBeGreaterThan(positionPane);
+    expect(appHtml).toContain('data-control-tab="font"');
+    expect(appHtml).toContain('data-control-tab="position"');
+  });
+
   test("text bounds editors draw the handles over the projector renderer", () => {
     const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
 
