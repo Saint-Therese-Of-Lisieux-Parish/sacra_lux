@@ -1294,6 +1294,14 @@
       color: var(--ink-on-accent);
     }
 
+    [data-control-pane][hidden] {
+      display: none !important;
+    }
+
+    .settings-control-tabs {
+      margin-top: 0.85rem;
+    }
+
     [data-settings-panel][hidden] {
       display: none !important;
     }
@@ -2894,7 +2902,7 @@
                 <div>
                   <div class="settings-section-label">Slide Types</div>
                   <h3 class="settings-section-title">Text Styles</h3>
-                  <p class="settings-section-copy">Choose a slide type, then adjust only its text style. Readings come first: body text, then reference.</p>
+                  <p class="settings-section-copy">Choose a slide type above the preview, then adjust its font or window position below it.</p>
                 </div>
               </div>
               <div class="settings-tabs" role="tablist" aria-label="Slide type">
@@ -2902,7 +2910,29 @@
                 <button type="button" role="tab" class="settings-tab" data-settings-tab="reading-ref" aria-selected="false">Reading Reference &amp; Passage</button>
                 <button type="button" role="tab" class="settings-tab" data-settings-tab="text" aria-selected="false">Text, Prayer &amp; Hymn</button>
               </div>
-
+              <div id="textBoundsSettings">
+                <div class="text-bounds-preview" id="textBoundsPreview">
+                  <iframe class="text-bounds-preview-frame" id="textBoundsPreviewFrame" src="/screen?preview=1" title="Text area slide preview" tabindex="-1"></iframe>
+                  <div class="text-bounds-box" id="textBoundsBox" tabindex="0" role="group" aria-label="Selected text bounds">
+                    <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
+                    <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
+                    <span class="text-bounds-handle" data-handle="ne" role="button" tabindex="0" aria-label="Resize top right"></span>
+                    <span class="text-bounds-handle" data-handle="e" role="button" tabindex="0" aria-label="Resize right"></span>
+                    <span class="text-bounds-handle" data-handle="se" role="button" tabindex="0" aria-label="Resize bottom right"></span>
+                    <span class="text-bounds-handle" data-handle="s" role="button" tabindex="0" aria-label="Resize bottom"></span>
+                    <span class="text-bounds-handle" data-handle="sw" role="button" tabindex="0" aria-label="Resize bottom left"></span>
+                    <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
+                  </div>
+                </div>
+                <div class="text-bounds-preview-status" id="textBoundsPreviewStatus" aria-live="polite"></div>
+                <div class="text-bounds-preview-error" id="textBoundsPreviewError" role="alert" hidden></div>
+                <div class="text-bounds-help">Use the arrow keys to move a focused box or handle. Hold Shift for 10-pixel steps.</div>
+              </div>
+              <div class="settings-tabs settings-control-tabs" role="tablist" aria-label="Control panel">
+                <button type="button" role="tab" class="settings-tab is-active" data-control-tab="font" aria-selected="true">Font</button>
+                <button type="button" role="tab" class="settings-tab" data-control-tab="position" aria-selected="false">Window Position</button>
+              </div>
+              <div data-control-pane="font">
               <div class="settings-subsection" data-settings-panel="reading-body">
                 <div>
                   <div class="settings-subsection-label">Reading Body Text</div>
@@ -3336,52 +3366,29 @@
                   </label>
                 </div>
               </div>
-            </section>
-
-            <section class="settings-section settings-section--span-2" id="textBoundsSettings">
-              <div class="settings-section-header">
-                <div>
-                  <div class="settings-section-label">Text Layout</div>
-                  <h3 class="settings-section-title">Visual Bounds Editor</h3>
-                  <p class="settings-section-copy">Move or resize one layout box. Use the edge fields for exact values.</p>
+              </div>
+              <div data-control-pane="position" hidden>
+                <div class="bounds-line">
+                  <div class="text-bounds-toolbar">
+                    <label style="grid-column:span 3">Layout
+                      <select id="textBoundsLayout">
+                        <option value="readingBody">Reading body</option>
+                        <option value="readingPassage">Passage reference</option>
+                        <option value="hymn">Hymn</option>
+                        <option value="prayer">Prayer</option>
+                        <option value="text">Text slide</option>
+                      </select>
+                    </label>
+                    <button id="textBoundsReset" type="button" style="grid-column:span 2">Reset to Default</button>
+                  </div>
+                  <div class="text-bounds-fields">
+                    <label>Left<input id="textBoundsLeft" type="number" min="0" max="1800" step="1"></label>
+                    <label>Right<input id="textBoundsRight" type="number" min="0" max="1800" step="1"></label>
+                    <label>Top<input id="textBoundsTop" type="number" min="0" max="1000" step="1"></label>
+                    <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+                  </div>
                 </div>
               </div>
-              <div class="bounds-line">
-                <div class="text-bounds-toolbar">
-                  <label style="grid-column:span 3">Layout
-                    <select id="textBoundsLayout">
-                      <option value="readingBody">Reading body</option>
-                      <option value="readingPassage">Passage reference</option>
-                      <option value="hymn">Hymn</option>
-                      <option value="prayer">Prayer</option>
-                      <option value="text">Text slide</option>
-                    </select>
-                  </label>
-                  <button id="textBoundsReset" type="button" style="grid-column:span 2">Reset to Default</button>
-                </div>
-                <div class="text-bounds-fields">
-                  <label>Left<input id="textBoundsLeft" type="number" min="0" max="1800" step="1"></label>
-                  <label>Right<input id="textBoundsRight" type="number" min="0" max="1800" step="1"></label>
-                  <label>Top<input id="textBoundsTop" type="number" min="0" max="1000" step="1"></label>
-                  <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
-                </div>
-              </div>
-              <div class="text-bounds-preview" id="textBoundsPreview">
-                <iframe class="text-bounds-preview-frame" id="textBoundsPreviewFrame" src="/screen?preview=1" title="Text area slide preview" tabindex="-1"></iframe>
-                <div class="text-bounds-box" id="textBoundsBox" tabindex="0" role="group" aria-label="Selected text bounds">
-                  <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
-                  <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
-                  <span class="text-bounds-handle" data-handle="ne" role="button" tabindex="0" aria-label="Resize top right"></span>
-                  <span class="text-bounds-handle" data-handle="e" role="button" tabindex="0" aria-label="Resize right"></span>
-                  <span class="text-bounds-handle" data-handle="se" role="button" tabindex="0" aria-label="Resize bottom right"></span>
-                  <span class="text-bounds-handle" data-handle="s" role="button" tabindex="0" aria-label="Resize bottom"></span>
-                  <span class="text-bounds-handle" data-handle="sw" role="button" tabindex="0" aria-label="Resize bottom left"></span>
-                  <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
-                </div>
-              </div>
-              <div class="text-bounds-preview-status" id="textBoundsPreviewStatus" aria-live="polite"></div>
-              <div class="text-bounds-preview-error" id="textBoundsPreviewError" role="alert" hidden></div>
-              <div class="text-bounds-help">Use the arrow keys to move a focused box or handle. Hold Shift for 10-pixel steps.</div>
             </section>
           </div>
 
@@ -8325,6 +8332,20 @@
         });
         document.querySelectorAll("[data-settings-panel]").forEach((panel) => {
           panel.hidden = !panel.dataset.settingsPanel.split(" ").includes(name);
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-control-tab]").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const name = tab.dataset.controlTab;
+        document.querySelectorAll("[data-control-tab]").forEach((other) => {
+          const active = other === tab;
+          other.classList.toggle("is-active", active);
+          other.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        document.querySelectorAll("[data-control-pane]").forEach((pane) => {
+          pane.hidden = pane.dataset.controlPane !== name;
         });
       });
     });
