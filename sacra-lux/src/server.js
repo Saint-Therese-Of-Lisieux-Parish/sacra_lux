@@ -120,6 +120,7 @@ const GOOGLE_FONTS = new Set([
 
 const logInfo = logger.info;
 const logWarn = logger.warn;
+const logError = logger.error;
 const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
 const IMAGE_ASSET_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
@@ -2120,9 +2121,13 @@ function scheduleSave(syncCurrentMass = false) {
     _saveTimer = null;
     const shouldSyncCurrentMass = _syncCurrentMassOnSave;
     _syncCurrentMassOnSave = false;
-    saveSession(state);
-    if (shouldSyncCurrentMass) {
-      saveCurrentMass();
+    try {
+      saveSession(state);
+      if (shouldSyncCurrentMass) {
+        saveCurrentMass();
+      }
+    } catch (error) {
+      logError(`[persistence] Save failed: ${error.message}`);
     }
   }, 600);
 }
