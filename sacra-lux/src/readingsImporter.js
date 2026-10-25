@@ -339,7 +339,28 @@ function isSentenceEnd(line) {
 }
 
 // Paginate narrative readings by paragraph while respecting visual line limits.
-function paginateReading(lines, limit = 8, fontSizePx = 60, boxWidthPx = 1760) {
+/**
+ * Split a source line that is longer than one page at word boundaries.
+ * Without this, one long paragraph stays on one page and overflows the box.
+ */
+function splitOverlongLine(line, limit, fontSizePx, boxWidthPx) {
+  if (estimateVisualLines(line, fontSizePx, boxWidthPx) <= limit) return [line];
+  const charsPerLine = Math.max(1, Math.floor(boxWidthPx / (fontSizePx * AVG_CHAR_WIDTH_RATIO)));
+  const maxChars = charsPerLine * Math.max(1, limit);
+  const pieces = [];
+  let rest = line.trim();
+  while (rest.length > maxChars) {
+    let cut = rest.lastIndexOf(" ", maxChars);
+    if (cut <= 0) cut = maxChars;
+    pieces.push(rest.slice(0, cut).trimEnd());
+    rest = rest.slice(cut).trimStart();
+  }
+  if (rest) pieces.push(rest);
+  return pieces;
+}
+
+function paginateReading(sourceLines, limit = 8, fontSizePx = 60, boxWidthPx = 1760) {
+  const lines = sourceLines.flatMap((line) => splitOverlongLine(line, limit, fontSizePx, boxWidthPx));
   // Build paragraph blocks by splitting on blank lines.
   const paragraphs = [];
   let current = [];
