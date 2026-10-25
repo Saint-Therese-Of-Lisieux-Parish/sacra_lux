@@ -25,6 +25,12 @@ module.exports = defineConfig({
       testMatch: /workflows\.spec\.js/,
       grep: /workflows\.spec\.js.* remote /,
       use: { ...devices["iPhone 13"] }
+    },
+    {
+      // The hostile text checks run in WebKit as well as Chromium.
+      name: "xss-webkit",
+      testMatch: /xssPayloads\.spec\.js/,
+      use: { browserName: "webkit" }
     }
   ]
 });
