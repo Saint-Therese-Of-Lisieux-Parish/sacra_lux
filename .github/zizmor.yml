@@ -6,8 +6,3 @@ rules:
       # The coverage-badge job pushes the badges branch with the checkout credentials.
       # Its token has only contents: write and it runs only on push to master.
       - ci.yml:125
-  cache-poisoning:
-    ignore:
-      # The release job restores the npm cache before it builds the release files.
-      # A fix changes the release process and needs a human decision. See issue #314.
-      - release.yml:79
