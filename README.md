@@ -79,6 +79,7 @@ release tag commands. Those run from the repository root.
 | `npm run test:unit` | Runs Jest on `tests/unit`. |
 | `npm run test:integration` | Runs Jest on `tests/integration`. |
 | `npm run test:coverage` | Runs unit and integration tests with coverage. |
+| `npm run test:mutation` | Runs StrykerJS mutation tests on `src/security.js`. The run fails below a score of 59. |
 | `npm run test:e2e` | Runs Playwright. Install the browsers first. |
 | `npm run test:e2e:headed` | Runs Playwright with a visible browser. |
 | `npm run test:e2e:install` | Installs Playwright Chromium and WebKit, plus system dependencies. |
@@ -269,6 +270,7 @@ GitHub checks on a pull request to `master`:
 | [secret-scan.yml](./.github/workflows/secret-scan.yml) | A gitleaks scan of the pull request history. |
 | [workflow-lint.yml](./.github/workflows/workflow-lint.yml) | A zizmor scan of the workflow files. It fails on medium findings or higher. Accepted findings are in [.github/zizmor.yml](./.github/zizmor.yml). |
 | [codeql.yml](./.github/workflows/codeql.yml) | CodeQL analysis. It also runs on a weekly schedule. |
+| [mutation.yml](./.github/workflows/mutation.yml) | Not a pull request check. It runs StrykerJS on `src/security.js` each week and on demand. It uploads the HTML report. |
 
 Every pull request must raise the version in `sacra-lux/package.json` and
 the two matching fields in `sacra-lux/package-lock.json`. The same version
@@ -318,8 +320,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.162-alpha
-git push origin v0.0.162-alpha
+git tag v0.0.163-alpha
+git push origin v0.0.163-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -341,4 +343,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.162-alpha`.
+The current package version is `0.0.163-alpha`.
