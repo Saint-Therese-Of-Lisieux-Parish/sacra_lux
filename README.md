@@ -124,6 +124,27 @@ The port changes in these cases:
 The server binds to `0.0.0.0`, so another device can open the remote URL.
 Use the host printed in the server log.
 
+### Allowed hosts and origins
+
+The server rejects a request when its `Host` header is not allowed (HTTP 403).
+It also rejects a state-changing request, or a Socket.IO connection, when its
+`Origin` header is not allowed. A request with no `Origin` header is accepted.
+This stops a web page in the operator browser, and DNS rebinding, from using
+the server.
+
+These hosts are always allowed: `localhost`, loopback addresses, and the
+addresses of this computer. To allow other devices, set
+`SACRA_LUX_ALLOWED_NETWORKS` to a comma-separated list before you start the
+app. Each entry is an IPv4 network in CIDR form, a single IPv4 address, or a
+host name:
+
+```bash
+SACRA_LUX_ALLOWED_NETWORKS="192.168.1.0/24,10.12.0.0/21,sacra.local" npm start
+```
+
+The server logs a warning and ignores an entry that is not valid. To add a
+host name, add it to the same list.
+
 ## Repository layout
 
 | Path | Role |
@@ -297,8 +318,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.159-alpha
-git push origin v0.0.159-alpha
+git tag v0.0.160-alpha
+git push origin v0.0.160-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -320,4 +341,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.159-alpha`.
+The current package version is `0.0.160-alpha`.
