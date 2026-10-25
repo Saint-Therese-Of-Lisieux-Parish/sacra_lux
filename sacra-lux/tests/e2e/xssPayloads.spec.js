@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const AdmZip = require("adm-zip");
 const { test, expect } = require("@playwright/test");
-const { clearRateLimitState } = require("../../src/security");
 
 const {
   createTempHome,
@@ -27,7 +26,20 @@ const HOSTILE_TITLE = PAYLOADS[2];
 let handle;
 let baseUrl;
 
+// Other specs in the same worker can leave a start PIN in the loaded server
+// module. A PIN makes every state-changing request fail with 401. Drop the
+// loaded modules so this spec starts with a clean server.
+function dropLoadedServerModules() {
+  const srcDir = path.resolve(__dirname, "../../src");
+  for (const key of Object.keys(require.cache)) {
+    if (key.startsWith(srcDir)) {
+      delete require.cache[key];
+    }
+  }
+}
+
 test.beforeAll(async () => {
+  dropLoadedServerModules();
   const homeDir = createTempHome("sacra-lux-xss-");
   makeReadingsFolder(homeDir);
   handle = await startIsolatedServer({ port: 0, homeDir });
@@ -35,7 +47,7 @@ test.beforeAll(async () => {
 });
 
 test.beforeEach(() => {
-  clearRateLimitState();
+  require("../../src/security").clearRateLimitState();
 });
 
 test.afterAll(async () => {
