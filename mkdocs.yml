@@ -1,0 +1,26 @@
+site_name: Sacra Lux User Guide
+site_url: https://saint-therese-of-lisieux-parish.github.io/sacra_lux/
+repo_url: https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux
+docs_dir: docs
+strict: true
+
+# Only the four user guides are published. Developer files stay out of the site.
+exclude_docs: |
+  index.md
+  architecture.md
+  code_review_ears_report.md
+  codebase_info.md
+  components.md
+  data_models.md
+  dependencies.md
+  git-change-lifecycle.*
+  interfaces.md
+  release-verification.md
+  review_notes.md
+  workflows.md
+
+nav:
+  - User guide: user-guide.md
+  - ZIP import: zip-import.md
+  - Mass document: mass_document.md
+  - Troubleshooting: troubleshooting.md
