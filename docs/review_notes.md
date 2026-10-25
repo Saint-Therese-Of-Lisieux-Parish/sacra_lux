@@ -45,7 +45,8 @@ refreshed to align with:
 ### `src/server.js` is still large
 
 The docs describe the boundaries accurately, but the main runtime composition
-file still carries many concerns across roughly 3575 lines.
+file still carries many concerns. At the 2026-10-11 review the file was
+roughly 3575 lines. At commit `505105a` the file is 4169 lines.
 
 ### Frontend internals are summarized, not exhaustively mapped
 
@@ -59,5 +60,8 @@ hardening gaps. They are documented, not fixed, in this pass.
 
 ### Release and packaging playbook remains light
 
-Build targets and storage are documented, but there is no full release
-checklist or deployment playbook.
+At the 2026-10-11 review, build targets and storage were documented, but there
+was no full release checklist. At commit `505105a`, the root README and
+[release-verification.md](./release-verification.md) describe the release
+files, the attestation check, and the macOS notarization checks. There is
+still no deployment playbook.

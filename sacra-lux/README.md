@@ -66,19 +66,27 @@ npm run test:e2e:install
 
 ## Releases
 
-The `Release` GitHub Actions workflow publishes zipped builds. Push a tag
-that matches the `package.json` version:
+The `Release` GitHub Actions workflow publishes the release files. Push a tag
+that matches the `package.json` version. The current version uses this tag:
 
 ```bash
-git tag v0.0.60-alpha
-git push origin v0.0.60-alpha
+git tag v0.0.152-alpha
+git push origin v0.0.152-alpha
 ```
 
-The workflow builds `Sacra-Lux-<version>-mac-arm64.zip`,
-`Sacra-Lux-<version>-mac-x64.zip`, and `Sacra-Lux-<version>-win-x64.zip`.
-It publishes a GitHub Release with generated release notes and
-`SHA256SUMS.txt`. A version with a hyphen, such as `-alpha`, becomes a
-prerelease. The macOS builds are signed and notarized when the release workflow has the required Apple credentials. Windows signing remains out of scope until a Windows signing method is configured.
+The workflow builds these files:
+
+- `Sacra-Lux-<version>-mac-arm64.zip`
+- `Sacra-Lux-<version>-mac-arm64.dmg`
+- `Sacra-Lux-<version>-mac-x64.zip`
+- `Sacra-Lux-<version>-mac-x64.dmg`
+- `Sacra-Lux-<version>-win-x64.zip`
+- `SHA256SUMS.txt`
+
+It publishes a GitHub Release with generated release notes. A version with a
+hyphen, such as `-alpha`, becomes a prerelease. The macOS ZIP and DMG files
+are signed and notarized when the release workflow has the Apple credentials.
+Windows ZIP files are not signed.
 
 ## Default URLs
 

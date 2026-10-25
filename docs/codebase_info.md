@@ -4,7 +4,7 @@
 
 - name: Sacra Lux
 - package: `sacra-lux`
-- version: `0.0.160-alpha`
+- version: `0.0.161-alpha`
 - author: Robert Toups
 - license: ISC
 - repository: `https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux.git`
@@ -20,7 +20,7 @@
 | ZIP and image processing | adm-zip, sharp |
 | PDF export | Electron offscreen capture plus pdf-lib |
 | tests | Jest 30, supertest, Playwright 1.64 |
-| linting | ESLint 9 |
+| linting | ESLint 10 |
 
 ## Repository Layout
 
@@ -65,8 +65,13 @@ they never touch this path.
 
 ## Build Targets
 
+`npm run build` uses the targets in `sacra-lux/package.json`:
+
 - macOS DMG, arm64 and x64
 - Windows NSIS installer, x64 and arm64
+
+The Release workflow publishes ZIP files and macOS DMG files. It does not
+publish the Windows NSIS installer. See the root [README](../README.md).
 
 Build output defaults to `~/Documents/sacra-lux-dist/`. The packaged app
 unpacks `public/` (`asarUnpack`) so Express can stream the pages, and ships

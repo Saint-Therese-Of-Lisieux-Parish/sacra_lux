@@ -75,6 +75,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/image-slideshow/preflight` — report duplicates, missing, unsupported, or unreadable slideshow images
 - `GET /api/mass-assets` — list assets; `?kind=image|video|all`
 - `GET /api/mass-asset/:filename` — serve one Mass asset
+- `GET /api/builtin-backgrounds` — list the built-in background images. This route allows 60 requests in 60 seconds.
 - `GET /api/prayers`, `GET /api/prayers/:filename`
 
 ### Import, export, and archive
@@ -104,11 +105,13 @@ A larger body gets HTTP 413 before route logic runs:
 Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 
 | Bucket | Window | Max | Applied to |
-| --- | --- | --- | --- |
-| `global` | 60 s | 120 | all `/api` requests per IP |
+| --- | --- | --- | --- | --- |
+| `global` | 60 s | 120 | `/api` requests per IP, except `GET` and `HEAD` for `/api/mass-asset/*` |
 | `auth` | 5 min | 10 | `start-pin`, `verify-pin`, `start-redirect` |
 | `upload` | 10 min | 20 (2 concurrent) | asset and image uploads |
 | `heavy` | 10 min | 10 (1 concurrent) | ZIP/AVIF exports, imports, Mass creation |
+
+`GET` and `HEAD` for `/api/mass-asset/*` skip the global bucket. A projector page with many images does not consume that budget. Upload and other `/api` routes still use it.
 
 ## Socket.IO Events
 
@@ -159,5 +162,6 @@ handled in `src/main.js`:
 
 | Path prefix | Source |
 | --- | --- |
+| `/static/backgrounds/*` | `sacra-lux/backgrounds/` (from the packaged `backgrounds` resource when that directory exists) |
 | `/static/*` | `sacra-lux/public/` (from `app.asar.unpacked/public` in packaged builds) |
 | `/api/mass-asset/*` | `~/.sacra-lux/current_mass/assets/` |
