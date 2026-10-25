@@ -88,7 +88,7 @@ exist only in the Electron app. In web mode they are unavailable; check
 ## Security and data-safety items
 
 Some security limits remain tracked with reproduction steps in
-[code_review_ears_report.md](./code_review_ears_report.md). With no PIN,
+[code review report](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/docs/code_review_ears_report.md). With no PIN,
 loopback clients can control the app by default. Select `trusted-lan` to allow
 non-loopback control, or configure a PIN for session-based control.
 
@@ -98,4 +98,4 @@ The server rejects a request when its `Host` or `Origin` is not allowed. This
 can happen when a phone opens the remote through a host name or a network
 address that is not an address of this computer. Set
 `SACRA_LUX_ALLOWED_NETWORKS` to the network, for example `192.168.1.0/24`, and
-restart the app. See [Allowed hosts and origins](../README.md#allowed-hosts-and-origins).
+restart the app. See [Allowed hosts and origins](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/README.md#allowed-hosts-and-origins).

@@ -15,6 +15,8 @@
 !/.githooks/*
 !/sacra-lux
 !/docs
+!/mkdocs.yml
+!/requirements-docs.txt
 sacra-lux/node_modules/
 sacra-lux/dist/
 sacra-lux/.jest-localstorage

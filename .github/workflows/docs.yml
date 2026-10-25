@@ -56,5 +56,6 @@ jobs:
             --max-retries 2
             --exclude-path sacra-lux/node_modules
             --exclude-loopback
+            --exclude '^https://saint-therese-of-lisieux-parish.github.io/sacra_lux/'
             '**/*.md'
           fail: true
