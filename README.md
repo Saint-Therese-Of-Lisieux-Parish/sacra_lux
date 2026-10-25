@@ -246,6 +246,7 @@ GitHub checks on a pull request to `master`:
 | [docs.yml](./.github/workflows/docs.yml) | Markdown lint and link checks when Markdown or the lint config changes. |
 | [smoke.yml](./.github/workflows/smoke.yml) | A packaged-app smoke test on macOS Intel, macOS ARM, and Windows. |
 | [secret-scan.yml](./.github/workflows/secret-scan.yml) | A gitleaks scan of the pull request history. |
+| [workflow-lint.yml](./.github/workflows/workflow-lint.yml) | A zizmor scan of the workflow files. It fails on medium findings or higher. Accepted findings are in [.github/zizmor.yml](./.github/zizmor.yml). |
 | [codeql.yml](./.github/workflows/codeql.yml) | CodeQL analysis. It also runs on a weekly schedule. |
 
 Every pull request must raise the version in `sacra-lux/package.json` and
@@ -296,8 +297,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.155-alpha
-git push origin v0.0.155-alpha
+git tag v0.0.156-alpha
+git push origin v0.0.156-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -319,4 +320,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.155-alpha`.
+The current package version is `0.0.156-alpha`.
