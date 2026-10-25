@@ -10,6 +10,7 @@ const { listThemes, getTheme } = require("./themes");
 const logger = require("./logger");
 const { writeStartupBanner } = require("./cliBanner");
 const { createIpcHandlers, registerIpcHandlers } = require("./ipcHandlers");
+const { secureWindow } = require("./windowSecurity");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -28,6 +29,11 @@ const screenWindows = new Map();
 let remoteWindow;
 let splashWindow;
 let appMenu = null;
+
+// Every window may navigate only inside the local app origin.
+function lockWindow(win) {
+  secureWindow(win, { getPort: () => PORT, getLocalAddress: getLocalIpv4Address });
+}
 
 function getLocalIpv4Address() {
   const interfaces = os.networkInterfaces();
@@ -120,6 +126,7 @@ function openOrFocusRemoteWindow(url) {
     }
   });
 
+  lockWindow(remoteWindow);
   remoteWindow.on("closed", () => {
     remoteWindow = null;
   });
@@ -189,6 +196,7 @@ function createAppWindow() {
       preload: PRELOAD_PATH
     }
   });
+  lockWindow(appWindow);
 }
 
 function createScreenWindow(targetScreenId = null) {
@@ -204,6 +212,8 @@ function createScreenWindow(targetScreenId = null) {
       sandbox: false
     }
   });
+
+  lockWindow(win);
 
   if (targetScreenId != null) {
     const target = screen.getAllDisplays().find((display) => display.id === targetScreenId);
@@ -319,6 +329,7 @@ async function createCaptureWindow() {
     frame: false,
     webPreferences: { contextIsolation: true, sandbox: false, offscreen: true }
   });
+  lockWindow(win);
   win.webContents.setFrameRate(30);
   // Load in preview mode: the screen page skips the Socket.IO state:update
   // listener AND the initial fetch("/api/state").then(renderWithIdle) entirely.
@@ -803,6 +814,7 @@ function createSplash() {
     center: true,
     webPreferences: { contextIsolation: true }
   });
+  lockWindow(splashWindow);
 
   // Read icon and encode as base64 data URL for the splash
   let iconDataUrl = "";
