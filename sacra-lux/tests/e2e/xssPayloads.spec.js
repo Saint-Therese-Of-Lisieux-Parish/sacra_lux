@@ -5,6 +5,7 @@ const { test, expect } = require("@playwright/test");
 
 const {
   createTempHome,
+  dropLoadedServerModules,
   makeReadingsFolder,
   startIsolatedServer
 } = require("../helpers/testHarness");
@@ -26,18 +27,6 @@ const HOSTILE_TITLE = PAYLOADS[2];
 let handle;
 let baseUrl;
 
-// Other specs in the same worker can leave a start PIN in the loaded server
-// module. A PIN makes every state-changing request fail with 401. Drop the
-// loaded modules so this spec starts with a clean server.
-function dropLoadedServerModules() {
-  const srcDir = path.resolve(__dirname, "../../src");
-  for (const key of Object.keys(require.cache)) {
-    if (key.startsWith(srcDir)) {
-      delete require.cache[key];
-    }
-  }
-}
-
 test.beforeAll(async () => {
   dropLoadedServerModules();
   const homeDir = createTempHome("sacra-lux-xss-");
@@ -54,6 +43,8 @@ test.afterAll(async () => {
   if (handle) {
     await handle.stop();
   }
+  // Leave no state behind for the specs that run after this one.
+  dropLoadedServerModules();
 });
 
 function watchPage(page) {
