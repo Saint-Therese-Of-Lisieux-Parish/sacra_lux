@@ -1002,6 +1002,8 @@
 
     .settings-dialog-body {
       overflow-y: auto;
+      /* Keep focused or scrolled-to controls clear of the sticky preview stage. */
+      scroll-padding-top: calc(33vh + 8rem);
       max-height: calc(90vh - 4.9rem);
       padding: 1rem 1.15rem 0;
     }
@@ -1102,7 +1104,8 @@
 
     .text-bounds-preview {
       position: relative;
-      width: 100%;
+      width: min(100%, calc(33vh * 16 / 9));
+      margin-inline: auto;
       aspect-ratio: 16 / 9;
       margin-top: 0.85rem;
       overflow: hidden;
@@ -1292,6 +1295,19 @@
     .settings-tab.is-active {
       background: var(--accent);
       color: var(--ink-on-accent);
+    }
+
+    /* Keep the slide tabs, preview, and control tabs in view while the pane scrolls. */
+    .settings-section--first {
+      order: -1;
+    }
+
+    .settings-sticky-stage {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding-bottom: 0.5rem;
+      background: var(--panel);
     }
 
     [data-control-pane][hidden] {
@@ -2897,14 +2913,14 @@
               </div>
             </section>
 
-            <section class="settings-section settings-section--span-2" id="slideTextStyles">
+            <section class="settings-section settings-section--span-2 settings-section--first" id="slideTextStyles">
               <div class="settings-section-header">
                 <div>
                   <div class="settings-section-label">Slide Types</div>
                   <h3 class="settings-section-title">Text Styles</h3>
-                  <p class="settings-section-copy">Choose a slide type above the preview, then adjust its font or window position below it.</p>
                 </div>
               </div>
+              <div class="settings-sticky-stage">
               <div class="settings-tabs" role="tablist" aria-label="Slide type">
                 <button type="button" role="tab" class="settings-tab is-active" data-settings-tab="reading-body" aria-selected="true">Reading Body</button>
                 <button type="button" role="tab" class="settings-tab" data-settings-tab="reading-ref" aria-selected="false">Reading Reference &amp; Passage</button>
@@ -2931,6 +2947,7 @@
               <div class="settings-tabs settings-control-tabs" role="tablist" aria-label="Control panel">
                 <button type="button" role="tab" class="settings-tab is-active" data-control-tab="font" aria-selected="true">Font</button>
                 <button type="button" role="tab" class="settings-tab" data-control-tab="position" aria-selected="false">Window Position</button>
+              </div>
               </div>
               <div data-control-pane="font">
               <div class="settings-subsection" data-settings-panel="reading-body">

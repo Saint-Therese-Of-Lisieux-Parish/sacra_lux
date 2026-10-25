@@ -145,6 +145,36 @@ test("Screen Settings edits global text bounds with pointer and keyboard control
   await expect(page.locator("#textBoundsBox")).toBeVisible();
 });
 
+test("Screen Settings fits the tabs and preview at the minimum window size", async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 600 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+  const box = async (selector) => page.locator(selector).evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom };
+  });
+  const body = await box("#settingsDialog .settings-dialog-body");
+  const inBody = (rect) => rect.top >= body.top - 1 && rect.bottom <= body.bottom + 1;
+
+  for (const tab of ["Font", "Window Position"]) {
+    await page.getByRole("tab", { name: tab, exact: true }).click();
+    expect(inBody(await box('[aria-label="Slide type"]'))).toBe(true);
+    const preview = await box("#textBoundsPreview");
+    expect(inBody(preview)).toBe(true);
+    expect(preview.bottom - preview.top).toBeLessThanOrEqual(200);
+    expect(inBody(await box('[aria-label="Control panel"]'))).toBe(true);
+  }
+
+  // The tabs and the preview stay in view while the control pane scrolls.
+  await page.getByRole("tab", { name: "Font", exact: true }).click();
+  await page.locator("#readingTextOutlineWidthPx").scrollIntoViewIfNeeded();
+  expect(inBody(await box("#textBoundsPreview"))).toBe(true);
+  expect(inBody(await box('[aria-label="Control panel"]'))).toBe(true);
+});
+
 async function openTextAreaTool(page) {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
