@@ -79,6 +79,7 @@ release tag commands. Those run from the repository root.
 | `npm run test:unit` | Runs Jest on `tests/unit`. |
 | `npm run test:integration` | Runs Jest on `tests/integration`. |
 | `npm run test:coverage` | Runs unit and integration tests with coverage. |
+| `npm run test:mutation` | Runs StrykerJS mutation tests on `src/security.js`. The run fails below a score of 59. |
 | `npm run test:e2e` | Runs Playwright. Install the browsers first. |
 | `npm run test:e2e:headed` | Runs Playwright with a visible browser. |
 | `npm run test:e2e:install` | Installs Playwright Chromium and WebKit, plus system dependencies. |
@@ -123,6 +124,27 @@ The port changes in these cases:
 
 The server binds to `0.0.0.0`, so another device can open the remote URL.
 Use the host printed in the server log.
+
+### Allowed hosts and origins
+
+The server rejects a request when its `Host` header is not allowed (HTTP 403).
+It also rejects a state-changing request, or a Socket.IO connection, when its
+`Origin` header is not allowed. A request with no `Origin` header is accepted.
+This stops a web page in the operator browser, and DNS rebinding, from using
+the server.
+
+These hosts are always allowed: `localhost`, loopback addresses, and the
+addresses of this computer. To allow other devices, set
+`SACRA_LUX_ALLOWED_NETWORKS` to a comma-separated list before you start the
+app. Each entry is an IPv4 network in CIDR form, a single IPv4 address, or a
+host name:
+
+```bash
+SACRA_LUX_ALLOWED_NETWORKS="192.168.1.0/24,10.12.0.0/21,sacra.local" npm start
+```
+
+The server logs a warning and ignores an entry that is not valid. To add a
+host name, add it to the same list.
 
 ## Repository layout
 
@@ -246,7 +268,9 @@ GitHub checks on a pull request to `master`:
 | [docs.yml](./.github/workflows/docs.yml) | Markdown lint and link checks when Markdown or the lint config changes. |
 | [smoke.yml](./.github/workflows/smoke.yml) | A packaged-app smoke test on macOS Intel, macOS ARM, and Windows. |
 | [secret-scan.yml](./.github/workflows/secret-scan.yml) | A gitleaks scan of the pull request history. |
+| [workflow-lint.yml](./.github/workflows/workflow-lint.yml) | A zizmor scan of the workflow files. It fails on medium findings or higher. Accepted findings are in [.github/zizmor.yml](./.github/zizmor.yml). |
 | [codeql.yml](./.github/workflows/codeql.yml) | CodeQL analysis. It also runs on a weekly schedule. |
+| [mutation.yml](./.github/workflows/mutation.yml) | Not a pull request check. It runs StrykerJS on `src/security.js` each week and on demand. It uploads the HTML report. |
 
 Every pull request must raise the version in `sacra-lux/package.json` and
 the two matching fields in `sacra-lux/package-lock.json`. The same version
@@ -263,14 +287,25 @@ any other tag.
 The Release workflow runs when a tag that matches `v*` is pushed. The tag
 must equal `v` plus the package version, as stated above.
 
-The workflow publishes three ZIP files, two DMG files, and a checksum file:
+The workflow publishes three ZIP files, two DMG files, an SBOM for each ZIP,
+a Grype report for each ZIP, and a checksum file:
 
 - `Sacra-Lux-<version>-mac-arm64.zip`
 - `Sacra-Lux-<version>-mac-x64.zip`
 - `Sacra-Lux-<version>-win-x64.zip`
 - `Sacra-Lux-<version>-mac-arm64.dmg`
 - `Sacra-Lux-<version>-mac-x64.dmg`
-- `SHA256SUMS.txt` (SHA-256 of each ZIP and DMG file)
+- `Sacra-Lux-<version>-<platform>.spdx.json` (SPDX SBOM from Syft)
+- `Sacra-Lux-<version>-<platform>.cdx.json` (CycloneDX SBOM from Syft)
+- `Sacra-Lux-<version>-<platform>.grype.json` (Grype JSON report)
+- `Sacra-Lux-<version>-<platform>.grype.sarif` (Grype SARIF report)
+- `SHA256SUMS.txt` (SHA-256 of each ZIP, DMG, SBOM, and Grype report)
+
+`<platform>` is `mac-arm64`, `mac-x64`, or `win-x64`. The scan job extracts
+`app.asar` from each ZIP. Syft writes the SBOM files. Grype scans each SPDX
+SBOM. If Grype reports a vulnerability at high severity or above, the
+workflow does not publish the release. The scan does not check the DMG file.
+The DMG contains the same application as the macOS ZIP.
 
 A version that contains a hyphen, such as `0.0.146-alpha`, is published as
 a GitHub prerelease. The workflow also attaches a build-provenance
@@ -296,8 +331,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.154-alpha
-git push origin v0.0.154-alpha
+git tag v0.0.169-alpha
+git push origin v0.0.169-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -319,4 +354,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.154-alpha`.
+The current package version is `0.0.169-alpha`.

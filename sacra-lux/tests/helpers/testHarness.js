@@ -24,6 +24,18 @@ function makeReadingsFolder(rootDir) {
   return folder;
 }
 
+// Specs that share one Playwright worker also share the loaded server module.
+// A start PIN from an earlier spec makes every state-changing request fail
+// with 401. Drop the loaded modules so the next spec starts a clean server.
+function dropLoadedServerModules() {
+  const srcDir = path.resolve(__dirname, "../../src");
+  for (const key of Object.keys(require.cache)) {
+    if (key.startsWith(srcDir)) {
+      delete require.cache[key];
+    }
+  }
+}
+
 function waitForListening(server) {
   if (server.listening) return Promise.resolve();
   return new Promise((resolve, reject) => {
@@ -82,6 +94,7 @@ async function startIsolatedServer({ port = 0, homeDir } = {}) {
 }
 
 module.exports = {
+  dropLoadedServerModules,
   createTempHome,
   makeReadingsFolder,
   startIsolatedServer

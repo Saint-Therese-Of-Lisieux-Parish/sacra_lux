@@ -14,13 +14,25 @@ class InvalidArchiveIdError extends Error {
   }
 }
 
+// Leaves room under the 255-byte file name limit for the "-N" collision suffix.
+const MAX_ARCHIVE_ID_BYTES = 200;
+
+function truncateToBytes(str, maxBytes) {
+  let out = str;
+  while (Buffer.byteLength(out, "utf8") > maxBytes) {
+    out = Array.from(out).slice(0, -1).join("");
+  }
+  return out;
+}
+
 function sanitizeForFilename(str) {
-  return String(str || "")
+  const cleaned = String(str || "")
     .trim()
     .replace(/[<>:"/\\|?*]+/g, "")
     .replace(/\s+/g, "-")
     .replace(/-{2,}/g, "-")
     .replace(/^-|-$/g, "");
+  return truncateToBytes(cleaned, MAX_ARCHIVE_ID_BYTES).replace(/-$/, "");
 }
 
 function normalizeArchiveId(value) {

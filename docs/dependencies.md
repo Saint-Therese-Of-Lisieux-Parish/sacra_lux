@@ -5,6 +5,7 @@
 | Package | Version | Purpose |
 | --- | --- | --- |
 | `express` | ^5.3.0 | HTTP routes and middleware |
+| `express-rate-limit` | ^8.7.1 | limit for the built-in background list |
 | `socket.io` | ^4.8.4 | synchronized client state and AVIF export progress |
 | `adm-zip` | ^0.6.1 | ZIP import and export |
 | `sharp` | ^0.35.5 | AVIF conversion, image metadata, and slideshow preflight |
@@ -24,8 +25,12 @@
 | `jest` | ^30.5.2 | unit and integration tests |
 | `supertest` | ^7.3.1 | API assertions |
 | `@playwright/test` | ^1.64.1 | browser E2E coverage |
+| `@stryker-mutator/core` | ^10.1.1 | mutation tests on `src/security.js` |
+| `@stryker-mutator/jest-runner` | ^10.1.1 | Jest runner for StrykerJS |
 | `eslint` | ^10.13.0 | JavaScript linting |
 | `globals` | ^17.13.0 | ESLint environment globals |
+| `htmlhint` | ^1.9.2 | HTML lint for `public/*.html` |
+| `stylelint` | ^17.16.0 | CSS lint for `public/*.css` and `public/*.html` |
 
 ## Other Development Tooling
 

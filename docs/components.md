@@ -7,7 +7,7 @@ harness. Every source file has an entry.
 
 ### `src/server.js`
 
-HTTP and Socket.IO composition root, roughly 3575 lines. Owns:
+HTTP and Socket.IO composition root, 4169 lines. Owns:
 
 - route registration and the control-auth `/api` middleware
 - socket event handling and the `withControl()` guard
@@ -18,6 +18,13 @@ HTTP and Socket.IO composition root, roughly 3575 lines. Owns:
 - archive operations
 - remote interstitial-hold behavior
 - the 100 ms serialized-snapshot cache (`getCachedStateSnapshot()`)
+
+### `src/textBounds.js`
+
+Layout boxes for projector text. `DEFAULT_TEXT_BOUNDS` holds the five boxes
+`readingBody`, `readingPassage`, `hymn`, `prayer`, and `text`. Each box is
+clamped on a 1920×1080 reference canvas. `normalizeTextBounds()` checks input.
+`textBoundsToLegacySettings()` derives the older margin fields.
 
 ### `src/state.js`
 
@@ -78,6 +85,12 @@ Archive lifecycle:
 - syncing `current_mass/` into an archive package
 - listing, sizing, compressing (via the server), and deleting archives
 
+### `src/atomicWrite.js`
+
+`writeFileAtomic()` writes a same-directory temporary file, flushes it, and
+renames it onto the destination. With `keepBackup`, it copies the previous
+file to `<path>.bak` before the rename. Session save and reading saves use it.
+
 ### `src/persistence.js`
 
 Durable session fields:
@@ -85,6 +98,11 @@ Durable session fields:
 - save `session.json` version 2
 - load and migrate version 1 sessions
 - expose the session file path
+
+### `src/uploadLimits.js`
+
+`MAX_SINGLE_UPLOAD_BYTES` is 140 MB. The HTTP upload routes and the Electron
+file pickers share this limit.
 
 ### `src/security.js`
 
@@ -117,6 +135,18 @@ Small runtime logging wrapper with `info` and `warn`.
 
 ## Electron Modules
 
+### `src/cliBanner.js`
+
+Writes the SACRA LUX startup banner once. `npm start` and `npm run web` call
+`writeStartupBanner()`. The banner is skipped when stdout is not a TTY or when
+logs are quiet. Color is omitted when `NO_COLOR` is set.
+
+### `src/ipcHandlers.js`
+
+Electron IPC implementation for the channels in
+[interfaces.md](./interfaces.md). `createIpcHandlers()` builds the handlers.
+`registerIpcHandlers()` attaches them to `ipcMain`. `main.js` calls both.
+
 ### `src/main.js`
 
 Electron entry point. Handles BrowserWindow creation, the application menu,
@@ -124,6 +154,13 @@ monitor targeting and fullscreen actions, native file pickers (folder, image,
 video), opening the current Mass folder, and PDF export through offscreen
 capture. Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
+
+### `src/windowSecurity.js`
+
+Navigation lock for every Electron window. It cancels navigation outside the
+local app origin (`http` on the app port, on a loopback host or the local
+network address) and denies new windows. The app window allows only the
+`/remote` popup.
 
 ### `src/preload.js`
 

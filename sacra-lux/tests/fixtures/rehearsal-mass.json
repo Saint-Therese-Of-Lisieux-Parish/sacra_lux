@@ -1,0 +1,25 @@
+{
+  "description": "Rehearsal Mass for tests/e2e/massRehearsal.spec.js. Two timed gathering text slides of 4 seconds each, then a Mass with an opening hymn, the first reading, an image slide, the psalm, a prayer, and the Gospel. The reading files are written to a readings folder and loaded first. The sequence and manual slides are then saved through /api/organizer.",
+  "readings": {
+    "mass_title.txt": "Rehearsal Sunday",
+    "Reading_I.txt": "Genesis 1:1-3\n\nIn the beginning God created the heavens and the earth.",
+    "Responsorial_Psalm.txt": "Psalm 23\n\nR. The Lord is my shepherd; there is nothing I shall want.\nHe guides me along right paths.\nR. The Lord is my shepherd; there is nothing I shall want.",
+    "Gospel.txt": "John 1:1-5\n\nIn the beginning was the Word.\nAnd the Word was with God."
+  },
+  "sequence": [
+    { "id": "text:welcome", "type": "text", "label": "Welcome", "phase": "gathering", "backgroundTheme": "dark", "durationSec": 4 },
+    { "id": "text:notices", "type": "text", "label": "Notices", "phase": "gathering", "backgroundTheme": "dark", "durationSec": 4 },
+    { "id": "hymn:opening", "type": "hymn", "label": "Opening Hymn", "phase": "mass", "backgroundTheme": "dark" },
+    { "id": "reading:Reading_I", "type": "reading", "sourceStem": "Reading_I", "label": "First Reading", "phase": "mass", "backgroundTheme": "dark" },
+    { "id": "image:Reading_I:2", "type": "image", "label": "Image", "phase": "mass", "backgroundTheme": "light" },
+    { "id": "reading:Responsorial_Psalm", "type": "reading", "sourceStem": "Responsorial_Psalm", "label": "Psalm", "phase": "mass", "backgroundTheme": "dark" },
+    { "id": "prayer:creed", "type": "prayer", "label": "Prayer", "phase": "mass", "backgroundTheme": "dark" },
+    { "id": "reading:Gospel", "type": "reading", "sourceStem": "Gospel", "label": "Gospel", "phase": "mass", "backgroundTheme": "dark" }
+  ],
+  "manualSlides": {
+    "text:welcome": { "text": "Welcome to the rehearsal", "notes": "", "textVAlign": "middle", "imageUrl": null },
+    "text:notices": { "text": "Parish notices", "notes": "", "textVAlign": "middle", "imageUrl": null },
+    "hymn:opening": { "text": "Holy God, we praise thy name", "notes": "", "textVAlign": "middle", "imageUrl": null },
+    "prayer:creed": { "text": "We believe in one God", "notes": "", "textVAlign": "middle", "imageUrl": null }
+  }
+}

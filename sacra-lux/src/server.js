@@ -88,6 +88,7 @@ const {
   socketMayControl,
   verifyPin
 } = require("./security");
+const { ALLOWED_NETWORKS_ENV, createHostGuard } = require("./hostGuard");
 const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 const {
   legacyTextBoundsFromSettings,
@@ -119,6 +120,7 @@ const GOOGLE_FONTS = new Set([
 
 const logInfo = logger.info;
 const logWarn = logger.warn;
+const logError = logger.error;
 const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
 const IMAGE_ASSET_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
@@ -2119,9 +2121,13 @@ function scheduleSave(syncCurrentMass = false) {
     _saveTimer = null;
     const shouldSyncCurrentMass = _syncCurrentMassOnSave;
     _syncCurrentMassOnSave = false;
-    saveSession(state);
-    if (shouldSyncCurrentMass) {
-      saveCurrentMass();
+    try {
+      saveSession(state);
+      if (shouldSyncCurrentMass) {
+        saveCurrentMass();
+      }
+    } catch (error) {
+      logError(`[persistence] Save failed: ${error.message}`);
     }
   }, 600);
 }
@@ -2210,16 +2216,19 @@ function startServer(port = 17841, options = {}) {
     return "localhost";
   }
 
+  const hostGuard = createHostGuard({
+    onInvalidEntry: (entry) => logger.warn(`[security] Ignoring invalid ${ALLOWED_NETWORKS_ENV} entry: ${entry}`)
+  });
+
   const app = express();
+  app.use(hostGuard.middleware);
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     next();
   });
   const server = http.createServer(app);
   const io = new Server(server, {
-    cors: {
-      origin: "*"
-    }
+    allowRequest: hostGuard.allowRequest
   });
 
   const globalApiRateLimit = createRateLimitMiddleware({

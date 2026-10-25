@@ -154,6 +154,33 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 `wordBackgroundUrl` map to `darkBackgroundUrl`; `imageBackgroundUrl` and
 `graphicBackgroundUrl` map to `lightBackgroundUrl`.
 
+### Text bounds
+
+`textBounds` stores the layout boxes. `normalizeScreenSettings()` keeps this
+object. `src/textBounds.js` clamps each box on a 1920×1080 reference canvas.
+
+The keys are `readingBody`, `readingPassage`, `hymn`, `prayer`, and `text`.
+Each value is `{ left, right, top, bottom }` in pixels from the canvas edges.
+The box stays at least 120 pixels wide and 80 pixels tall. Left and right stay
+in 0–1800. Top and bottom stay in 0–1000.
+
+Defaults in `DEFAULT_TEXT_BOUNDS`:
+
+- `readingBody`: left 80, right 80, top 130, bottom 110
+- `readingPassage`: left 80, right 1190, top 70, bottom 908
+- `hymn`, `prayer`, and `text`: left 110, right 110, top 90, bottom 90
+
+The margin fields below are derived from these boxes for the selected
+resolution. The server does not clamp those fields on their own.
+`readingTextMarginXPx`, `readingTextMarginYPx`, and `readingTextHeightPx` come
+from `readingBody`. `readingPassageYPx` and `readingPassageWidthPx` come from
+`readingPassage`. `textSlideMarginXPx`, `textSlideMarginYPx`, and
+`textSlideTextHeightPx` come from `text`. The hymn and prayer boxes do not
+change those three text-slide fields.
+
+An input that sends the old margin fields, and does not send `textBounds`, is
+converted once by `legacyTextBoundsFromSettings()`.
+
 ### Reading body fields
 
 - `readingTextAlign` — `left` | `center` | `right`
@@ -169,9 +196,7 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 - `readingTextShadow`
 - `readingLineHeight` — clamped 1.0–3.0
 - `readingLetterSpacingPx` — clamped -2–10
-- `readingTextMarginXPx` — clamped 0–260
-- `readingTextMarginYPx` — clamped 0–360
-- `readingTextHeightPx` — clamped 120–980
+- `readingTextMarginXPx`, `readingTextMarginYPx`, `readingTextHeightPx` — derived from `textBounds.readingBody`
 
 ### Reading scripture reference fields
 
@@ -188,8 +213,7 @@ Legacy background aliases accepted on input only: `colorBackgroundUrl` and
 - `readingPassageOutline`
 - `readingPassageOutlineColor` — `#rrggbb`
 - `readingPassageOutlineWidthPx` — clamped 0.5–20
-- `readingPassageYPx` — clamped 0–1060
-- `readingPassageWidthPx` — clamped 180–1760
+- `readingPassageYPx`, `readingPassageWidthPx` — derived from `textBounds.readingPassage`
 
 ### Reading section title fields
 
@@ -224,9 +248,7 @@ A section title setting that is not saved starts at the matching reference value
 - `textSlideTextOutlineWidthPx` — clamped 0.5–20
 - `textSlideTextShadow`
 - `textSlideShowPageNumber`
-- `textSlideMarginXPx` — clamped 0–400
-- `textSlideMarginYPx` — clamped 0–400
-- `textSlideTextHeightPx` — clamped 120–1020
+- `textSlideMarginXPx`, `textSlideMarginYPx`, `textSlideTextHeightPx` — derived from `textBounds.text`
 
 ## Client-Safe State Snapshot
 

@@ -95,18 +95,16 @@ edit back to the source `.txt` in the Mass package.
 
 ## Screen Settings
 
-**⚙ Screen Settings** tunes how the projector renders, in four sections:
+**⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections:
 
-- **Typography & Output** — base font and size, resolution, transition, bold
-- **Dark & Light Presets** — the background image used for dark and light slides
-- **Reading Slides** — separate controls for reading body text, scripture
-  reference, and the reading section title (font, size, colour, outline,
-  alignment, line height, letter spacing, margins, and height)
-- **Text, Prayer & Hymn Slides** — the same family of controls for text-like
-  slides
+1. **Typography & Output** sets the primary font, the base size, the transition, the resolution, and bold global text.
+2. **Dark & Light Presets** sets the background image for dark slides and the background image for light slides.
+3. **Text Styles** shows one slide type at a time. The tabs are **Reading Body**, **Reading Reference & Passage**, and **Text, Prayer & Hymn**. The reference tab also sets the section title, such as First Reading.
+4. **Visual Bounds Editor** moves one layout box. The choices are Reading body, Passage reference, Hymn, Prayer, and Text slide.
 
-Settings are validated and clamped on the server. Changing layout-affecting
-reading settings re-paginates the reading slides immediately.
+**🎨 Select Theme** opens the theme list. It does not change the projector text.
+
+The server validates and clamps these settings. A change that affects reading layout re-paginates the reading slides.
 
 ## Start Time and Phases
 
