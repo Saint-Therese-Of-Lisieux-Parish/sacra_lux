@@ -238,7 +238,7 @@ test("Text Area tool shows the group text and the projector page breaks", async 
   }
   await page.locator(`[data-edit-id="${item.id}"]`).click();
   await expect(page.locator("#editorBoundsPanel")).toBeVisible();
-  const stage = page.frameLocator("#editorBoundsPreviewFrame").locator("#stage");
+  const stage = page.frameLocator("#editorPreviewFrame").locator("#stage");
   await expect(stage).toContainText("Acts of the Apostles 2:42-47");
   await expect(stage).toContainText("Verse 1:");
 
@@ -247,7 +247,7 @@ test("Text Area tool shows the group text and the projector page breaks", async 
     await page.locator(`#editorBounds${edge}`).fill(value);
   }
   await page.locator("#editorBoundsBottom").press("Tab");
-  await expect.poll(() => previewReadingLeft(page, "editorBoundsPreviewFrame")).toBe(700);
+  await expect.poll(() => previewReadingLeft(page, "editorPreviewFrame")).toBe(700);
 
   await expect.poll(async () => {
     const state = await (await request.get(`${baseUrl}/api/state`)).json();
@@ -256,7 +256,8 @@ test("Text Area tool shows the group text and the projector page breaks", async 
   const saved = await (await request.get(`${baseUrl}/api/state`)).json();
   const projectorPages = saved.presentation.slides.filter((slide) => slide.organizerItemId === item.id);
   expect(projectorPages.length).toBeGreaterThan(1);
-  await expect(page.locator("#editorBoundsPreviewStatus")).toHaveText(`Page 1 of ${projectorPages.length}`);
+  await expect(page.locator("#editorPreviewStatus")).toHaveText(`1 / ${projectorPages.length}`);
+  await expect(page.locator("#editorDialog iframe[src^='/screen?preview=1']")).toHaveCount(1);
   await expect(stage).toContainText(projectorPages[0].text.split("\n")[0]);
 
   await page.locator("#editorBoundsUseGlobal").click();
@@ -318,7 +319,7 @@ test("slide groups save, copy, and remove text bounds overrides", async ({ page,
   }
   await page.locator('[data-edit-id="text:bounds-e2e"]').click();
   await expect(page.locator("#editorBoundsPanel")).toBeVisible();
-  await expect(page.frameLocator("#editorBoundsPreviewFrame").locator("#stage")).toContainText("Current group content");
+  await expect(page.frameLocator("#editorPreviewFrame").locator("#stage")).toContainText("Current group content");
   await expect(page.locator('#editorBoundsLayout option[value="passage"]')).toBeHidden();
 
   await page.locator("#editorBoundsLeft").fill("333");

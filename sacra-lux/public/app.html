@@ -1149,6 +1149,10 @@
       outline: none;
     }
 
+    .text-bounds-box[hidden] {
+      display: none;
+    }
+
     .text-bounds-box:focus-visible {
       box-shadow: 0 0 0 3px #fff, 0 0 0 6px #7055c5;
     }
@@ -2512,6 +2516,20 @@
       box-shadow: none;
     }
 
+    .editor-preview-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding-top: 0.3rem;
+      background: color-mix(in srgb, var(--panel), var(--bg-alt) 10%);
+    }
+
+    .editor-bounds-show {
+      display: block;
+      margin-top: 0.55rem;
+      font-size: 0.85rem;
+    }
+
     #editorPreviewSection {
       padding: 0.95rem;
       margin-bottom: 0.9rem;
@@ -3542,20 +3560,56 @@
           <div id="editorPreviewSection">
             <div class="editor-section-label">Live Preview</div>
             <div class="editor-help-text">Use this as your confidence check before the slide goes to the projector.</div>
-            <div class="display-preview-wrap" id="editorPreviewWrap" style="margin-bottom:0.45rem">
-              <iframe id="editorPreviewFrame" src="/screen?preview=1" title="Slide Preview"></iframe>
-            </div>
-            <div class="preview-controls" id="editorPreviewControls" style="margin-bottom:0.8rem">
-              <button id="editorPreviewPrevBtn">&#9664; Prev</button>
-              <span id="editorPreviewStatus"
-                style="flex:1;text-align:center;font-size:0.88rem;align-self:center;color:var(--ink-soft);font-weight:600">1
-                / 1</span>
-              <button id="editorPreviewNextBtn" class="preview-next">Next &#9654;</button>
-              <button id="editorPreviewCountdownBtn" class="preview-next" hidden>Simulate Countdown</button>
+            <div class="editor-preview-sticky">
+              <div class="display-preview-wrap" id="editorPreviewWrap" style="margin-bottom:0.45rem">
+                <iframe id="editorPreviewFrame" src="/screen?preview=1" title="Slide Preview"></iframe>
+                <div class="text-bounds-box" id="editorBoundsBox" tabindex="0" role="group" aria-label="Group text bounds">
+                  <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
+                  <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
+                  <span class="text-bounds-handle" data-handle="ne" role="button" tabindex="0" aria-label="Resize top right"></span>
+                  <span class="text-bounds-handle" data-handle="e" role="button" tabindex="0" aria-label="Resize right"></span>
+                  <span class="text-bounds-handle" data-handle="se" role="button" tabindex="0" aria-label="Resize bottom right"></span>
+                  <span class="text-bounds-handle" data-handle="s" role="button" tabindex="0" aria-label="Resize bottom"></span>
+                  <span class="text-bounds-handle" data-handle="sw" role="button" tabindex="0" aria-label="Resize bottom left"></span>
+                  <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
+                </div>
+              </div>
+              <div class="preview-controls" id="editorPreviewControls" style="margin-bottom:0.8rem">
+                <button id="editorPreviewPrevBtn">&#9664; Prev</button>
+                <span id="editorPreviewStatus"
+                  style="flex:1;text-align:center;font-size:0.88rem;align-self:center;color:var(--ink-soft);font-weight:600">1
+                  / 1</span>
+                <button id="editorPreviewNextBtn" class="preview-next">Next &#9654;</button>
+                <button id="editorPreviewCountdownBtn" class="preview-next" hidden>Simulate Countdown</button>
+              </div>
             </div>
             <div id="editorPreviewStylePanel" class="modal-panel" hidden style="margin-top:0.8rem">
               <div id="editorPreviewStyleTitle" class="modal-panel-title">Style Override</div>
               <p id="editorPreviewStyleHelp" class="modal-panel-copy">Adjust only what this slide needs while watching the preview update above.</p>
+              <div id="editorBoundsPanel" hidden style="margin-top:0.2rem;margin-bottom:0.9rem">
+                <div class="bounds-line">
+                  <div class="text-bounds-toolbar">
+                    <div id="editorBoundsTabs" class="bounds-tabs" role="tablist" aria-label="Group layout" style="grid-column:span 3" hidden>
+                      <button type="button" role="tab" class="bounds-tab" data-bounds-tab="body">Body</button>
+                      <button type="button" role="tab" class="bounds-tab" data-bounds-tab="passage">Reference</button>
+                    </div>
+                    <select id="editorBoundsLayout" hidden aria-hidden="true" tabindex="-1">
+                      <option value="body">Text body</option>
+                      <option value="passage">Passage reference</option>
+                    </select>
+                    <button id="editorBoundsUseGlobal" type="button" style="grid-column:span 2">Use Global Default</button>
+                  </div>
+                  <div class="text-bounds-fields">
+                    <label>Left<input id="editorBoundsLeft" type="number" min="0" max="1800" step="1"></label>
+                    <label>Right<input id="editorBoundsRight" type="number" min="0" max="1800" step="1"></label>
+                    <label>Top<input id="editorBoundsTop" type="number" min="0" max="1000" step="1"></label>
+                    <label>Bottom<input id="editorBoundsBottom" type="number" min="0" max="1000" step="1"></label>
+                  </div>
+                </div>
+                <div class="text-bounds-preview-error" id="editorBoundsPreviewError" role="alert" hidden></div>
+                <label class="editor-bounds-show"><input id="editorBoundsShow" type="checkbox" checked> Show the bounds box on the preview</label>
+                <div class="text-bounds-help">A saved override applies to all pages in this group.</div>
+              </div>
               <div id="editorPreviewReadingStyleStrip" class="editor-style-strip" hidden>
                 <label class="editor-style-field editor-style-field-wide"> <span>Family</span>
                   <select id="editorReadingStyleFont" data-editor-style-input>
@@ -3643,43 +3697,6 @@
                   <button type="button" class="editor-format-btn" data-tristate-cycle data-target-input="editorTextStyleShadow" aria-label="Shadow" title="Shadow: default"><span class="fmt-shadow">S</span></button>
                   <button type="button" class="editor-format-reset" data-tristate-reset="editorTextStyleFont editorTextStyleSizePx editorTextStyleBold editorTextStyleItalic editorTextStyleOutline editorTextStyleShadow">Reset to default</button>
                 </div>
-              </div>
-              <div id="editorBoundsPanel" hidden style="margin-top:0.9rem">
-                <div class="bounds-line">
-                  <div class="text-bounds-toolbar">
-                    <div id="editorBoundsTabs" class="bounds-tabs" role="tablist" aria-label="Group layout" style="grid-column:span 3" hidden>
-                      <button type="button" role="tab" class="bounds-tab" data-bounds-tab="body">Body</button>
-                      <button type="button" role="tab" class="bounds-tab" data-bounds-tab="passage">Reference</button>
-                    </div>
-                    <select id="editorBoundsLayout" hidden aria-hidden="true" tabindex="-1">
-                      <option value="body">Text body</option>
-                      <option value="passage">Passage reference</option>
-                    </select>
-                    <button id="editorBoundsUseGlobal" type="button" style="grid-column:span 2">Use Global Default</button>
-                  </div>
-                  <div class="text-bounds-fields">
-                    <label>Left<input id="editorBoundsLeft" type="number" min="0" max="1800" step="1"></label>
-                    <label>Right<input id="editorBoundsRight" type="number" min="0" max="1800" step="1"></label>
-                    <label>Top<input id="editorBoundsTop" type="number" min="0" max="1000" step="1"></label>
-                    <label>Bottom<input id="editorBoundsBottom" type="number" min="0" max="1000" step="1"></label>
-                  </div>
-                </div>
-                <div class="text-bounds-preview" id="editorBoundsPreview">
-                  <iframe class="text-bounds-preview-frame" id="editorBoundsPreviewFrame" src="/screen?preview=1" title="Group text area slide preview" tabindex="-1"></iframe>
-                  <div class="text-bounds-box" id="editorBoundsBox" tabindex="0" role="group" aria-label="Group text bounds">
-                    <span class="text-bounds-handle" data-handle="nw" role="button" tabindex="0" aria-label="Resize top left"></span>
-                    <span class="text-bounds-handle" data-handle="n" role="button" tabindex="0" aria-label="Resize top"></span>
-                    <span class="text-bounds-handle" data-handle="ne" role="button" tabindex="0" aria-label="Resize top right"></span>
-                    <span class="text-bounds-handle" data-handle="e" role="button" tabindex="0" aria-label="Resize right"></span>
-                    <span class="text-bounds-handle" data-handle="se" role="button" tabindex="0" aria-label="Resize bottom right"></span>
-                    <span class="text-bounds-handle" data-handle="s" role="button" tabindex="0" aria-label="Resize bottom"></span>
-                    <span class="text-bounds-handle" data-handle="sw" role="button" tabindex="0" aria-label="Resize bottom left"></span>
-                    <span class="text-bounds-handle" data-handle="w" role="button" tabindex="0" aria-label="Resize left"></span>
-                  </div>
-                </div>
-                <div class="text-bounds-preview-status" id="editorBoundsPreviewStatus" aria-live="polite"></div>
-                <div class="text-bounds-preview-error" id="editorBoundsPreviewError" role="alert" hidden></div>
-                <div class="text-bounds-help">A saved override applies to all pages in this group.</div>
               </div>
             </div>
           </div>
@@ -4500,9 +4517,7 @@
       editorBoundsRight: document.getElementById("editorBoundsRight"),
       editorBoundsTop: document.getElementById("editorBoundsTop"),
       editorBoundsBottom: document.getElementById("editorBoundsBottom"),
-      editorBoundsPreview: document.getElementById("editorBoundsPreview"),
-      editorBoundsPreviewFrame: document.getElementById("editorBoundsPreviewFrame"),
-      editorBoundsPreviewStatus: document.getElementById("editorBoundsPreviewStatus"),
+      editorBoundsShow: document.getElementById("editorBoundsShow"),
       editorBoundsPreviewError: document.getElementById("editorBoundsPreviewError"),
       editorBoundsBox: document.getElementById("editorBoundsBox"),
       editorReadingText: document.getElementById("editorReadingText"),
@@ -4579,9 +4594,10 @@
         right: group ? els.editorBoundsRight : els.textBoundsRight,
         top: group ? els.editorBoundsTop : els.textBoundsTop,
         bottom: group ? els.editorBoundsBottom : els.textBoundsBottom,
-        preview: group ? els.editorBoundsPreview : els.textBoundsPreview,
-        frame: group ? els.editorBoundsPreviewFrame : els.textBoundsPreviewFrame,
-        status: group ? els.editorBoundsPreviewStatus : els.textBoundsPreviewStatus,
+        // The group editor draws its box on the single slide editor preview.
+        preview: group ? els.editorPreviewWrap : els.textBoundsPreview,
+        frame: group ? els.editorPreviewFrame : els.textBoundsPreviewFrame,
+        status: group ? null : els.textBoundsPreviewStatus,
         error: group ? els.editorBoundsPreviewError : els.textBoundsPreviewError,
         box: group ? els.editorBoundsBox : els.textBoundsBox
       };
@@ -4636,11 +4652,14 @@
     }
 
     function postBoundsPreview(mode) {
+      if (mode === "group") {
+        postEditorPreview();
+        return;
+      }
       const parts = boundsEditorElements(mode);
       const preview = boundsPreviewState[mode];
-      const sourceSlides = mode === "group" ? (editorPreviewSlides || []) : preview.slides;
-      const index = mode === "group" ? editorPreviewIndex : preview.index;
-      const slides = mode === "group" ? slidesWithGroupBoundsDraft(sourceSlides) : sourceSlides;
+      const slides = preview.slides;
+      const index = preview.index;
       const safeIndex = Math.min(Math.max(0, index), Math.max(0, slides.length - 1));
       if (parts.status) {
         parts.status.textContent = slides.length ? `Page ${safeIndex + 1} of ${slides.length}` : "";
@@ -4770,6 +4789,12 @@
         if (frame && event.source === frame.contentWindow) markBoundsPreviewReady(mode);
       }
     });
+
+    // Show the box only when the bounds panel shows and the user wants it.
+    function syncEditorBoundsBox() {
+      if (!els.editorBoundsBox) return;
+      els.editorBoundsBox.hidden = Boolean(els.editorBoundsPanel?.hidden) || !els.editorBoundsShow?.checked;
+    }
 
     function renderBoundsEditor(mode) {
       const parts = boundsEditorElements(mode);
@@ -5282,17 +5307,26 @@
       }
       syncEditorPreviewControls(slide);
 
-      if (els.editorPreviewFrame && els.editorPreviewFrame.contentWindow) {
-        els.editorPreviewFrame.contentWindow.postMessage({
-          type: "preview_update",
-          slides: editorPreviewSlides,
-          currentSlideIndex: safeIndex,
-          slide,
-          screenSettings: uiState.data?.screenSettings,
-          countdownEndsAt: slide?.type === "countdown" ? editorPreviewCountdownEndsAt : null
-        }, "*");
-      }
-      postBoundsPreview("group");
+      postEditorPreview();
+    }
+
+    // Send the editor slides to the one preview. While the bounds panel shows,
+    // the unsaved group bounds go with the slides so the box and text match.
+    function postEditorPreview() {
+      const frame = els.editorPreviewFrame;
+      if (!frame || !frame.contentWindow || !editorPreviewSlides?.length) return;
+      const withBounds = !els.editorBoundsPanel?.hidden;
+      const slides = withBounds ? slidesWithGroupBoundsDraft(editorPreviewSlides) : editorPreviewSlides;
+      const safeIndex = Math.min(Math.max(0, editorPreviewIndex), slides.length - 1);
+      const slide = slides[safeIndex];
+      frame.contentWindow.postMessage({
+        type: "preview_update",
+        slides,
+        currentSlideIndex: safeIndex,
+        slide,
+        screenSettings: withBounds ? boundsPreviewSettings() : uiState.data?.screenSettings,
+        countdownEndsAt: slide?.type === "countdown" ? editorPreviewCountdownEndsAt : null
+      }, "*");
     }
 
     // ── Screen preview iframe scaling ───────────────────────────────────────
@@ -6230,6 +6264,7 @@
       if (els.editorBoundsPanel) {
         els.editorBoundsPanel.hidden = !showStylePanel;
       }
+      syncEditorBoundsBox();
       const passageOption = els.editorBoundsLayout?.querySelector('option[value="passage"]');
       if (passageOption) passageOption.hidden = !isReading;
       if (!isReading && els.editorBoundsLayout?.value === "passage") {
@@ -7893,6 +7928,7 @@
     });
     installBoundsPointerEditor("global");
     installBoundsPointerEditor("group");
+    els.editorBoundsShow?.addEventListener("change", syncEditorBoundsBox);
     installBoundsPreviewFrame("global");
     installBoundsPreviewFrame("group");
 

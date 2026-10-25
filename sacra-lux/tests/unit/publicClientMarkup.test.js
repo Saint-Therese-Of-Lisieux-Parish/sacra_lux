@@ -71,17 +71,34 @@ describe("public client markup guards", () => {
   test("text bounds editors draw the handles over the projector renderer", () => {
     const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
 
-    for (const id of ["textBoundsPreview", "editorBoundsPreview"]) {
-      const previewStart = appHtml.indexOf(`id="${id}"`);
-      expect(previewStart).toBeGreaterThan(-1);
-      const preview = appHtml.slice(previewStart, appHtml.indexOf("</div>", appHtml.indexOf("text-bounds-box", previewStart)));
-      expect(preview).toContain(`<iframe class="text-bounds-preview-frame" id="${id}Frame" src="/screen?preview=1"`);
-      expect(preview).not.toContain("text-bounds-preview-content");
-    }
+    const previewStart = appHtml.indexOf('id="textBoundsPreview"');
+    expect(previewStart).toBeGreaterThan(-1);
+    const preview = appHtml.slice(previewStart, appHtml.indexOf("</div>", appHtml.indexOf("text-bounds-box", previewStart)));
+    expect(preview).toContain('<iframe class="text-bounds-preview-frame" id="textBoundsPreviewFrame" src="/screen?preview=1"');
+    expect(preview).not.toContain("text-bounds-preview-content");
+
+    // The slide editor draws its box on the one slide preview.
+    const wrapStart = appHtml.indexOf('id="editorPreviewWrap"');
+    const wrap = appHtml.slice(wrapStart, appHtml.indexOf('id="editorPreviewControls"'));
+    expect(wrap).toContain('id="editorPreviewFrame"');
+    expect(wrap).toContain('id="editorBoundsBox"');
     expect(appHtml).not.toContain('id="textBoundsPreviewContent"');
     expect(appHtml).not.toContain('id="editorBoundsPreviewContent"');
+    expect(appHtml).not.toContain('id="editorBoundsPreviewFrame"');
     expect(appHtml).toContain('id="textBoundsPreviewError" role="alert"');
     expect(appHtml).toContain('id="editorBoundsPreviewError" role="alert"');
     expect(screenHtml).toContain('postMessage({ type: "preview_ready" }, window.location.origin)');
+  });
+
+  test("slide editor shows one sticky preview between Slide Basics and the controls", () => {
+    const dialogHtml = appHtml.slice(appHtml.indexOf('<dialog id="editorDialog">'), appHtml.indexOf("</dialog>", appHtml.indexOf('<dialog id="editorDialog">')));
+    expect(dialogHtml.match(/<iframe /g)).toHaveLength(1);
+    const dialog = appHtml.slice(appHtml.indexOf('<dialog id="editorDialog">'));
+    const order = ["Slide Basics", 'id="editorPreviewWrap"', 'id="editorBoundsPanel"', 'id="editorPreviewReadingStyleStrip"']
+      .map((marker) => dialog.indexOf(marker));
+    expect(order.every((index) => index > -1)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    expect(appHtml).toMatch(/\.editor-preview-sticky\s*\{[^}]*position: sticky/);
+    expect(dialog).toContain('id="editorBoundsShow"');
   });
 });
