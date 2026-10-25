@@ -125,6 +125,13 @@ video), opening the current Mass folder, and PDF export through offscreen
 capture. Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
+### `src/windowSecurity.js`
+
+Navigation lock for every Electron window. It cancels navigation outside the
+local app origin (`http` on the app port, on a loopback host or the local
+network address) and denies new windows. The app window allows only the
+`/remote` popup.
+
 ### `src/preload.js`
 
 Context-isolated renderer bridge. Exposes exactly the `window.api` surface
