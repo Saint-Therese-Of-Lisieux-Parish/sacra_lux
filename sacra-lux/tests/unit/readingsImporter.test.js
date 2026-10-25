@@ -319,3 +319,25 @@ describe("pagination cache key", () => {
     });
   });
 });
+
+describe("long single paragraph pagination", () => {
+  test("splits one long source line into pages that fit the box", () => {
+    const sentence = "Behold, I will make those of the assembly of Satan fall prostrate at your feet.";
+    const docs = [{
+      stem: "long",
+      section: "First Reading",
+      passage: "Revelation 3:9",
+      textLines: [Array.from({ length: 12 }, () => sentence).join(" ")],
+      ending: null
+    }];
+    const slides = paginateDocuments(docs, {
+      fontSizePx: 60,
+      readingTextHeightPx: 400,
+      readingTextWidthPx: 1000,
+      readingLineHeight: 1.5
+    });
+
+    expect(slides.length).toBeGreaterThan(1);
+    expect(slides.map((slide) => slide.text).join(" ").replace(/\s+/g, " ")).toBe(docs[0].textLines[0]);
+  });
+});

@@ -3622,10 +3622,11 @@ function startServer(port = 17841, options = {}) {
           psalmRefrainIndex: req.body?.psalmRefrainIndex
         }],
         manualSlides: {},
-        screenSettings: {
-          ...state.screenSettings,
-          ...(overrideSettings || {})
-        }
+        // Normalize so draft text bounds also update the geometry fields that
+        // the paginator reads.
+        screenSettings: overrideSettings && typeof overrideSettings === "object"
+          ? normalizeScreenSettings({ ...state.screenSettings, ...overrideSettings })
+          : state.screenSettings
       });
 
       return res.json({ ok: true, slides: presentation.slides || [] });
