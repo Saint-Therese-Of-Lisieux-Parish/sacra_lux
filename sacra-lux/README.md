@@ -70,8 +70,8 @@ The `Release` GitHub Actions workflow publishes the release files. Push a tag
 that matches the `package.json` version. The current version uses this tag:
 
 ```bash
-git tag v0.0.165-alpha
-git push origin v0.0.165-alpha
+git tag v0.0.167-alpha
+git push origin v0.0.167-alpha
 ```
 
 The workflow builds these files:
@@ -81,6 +81,10 @@ The workflow builds these files:
 - `Sacra-Lux-<version>-mac-x64.zip`
 - `Sacra-Lux-<version>-mac-x64.dmg`
 - `Sacra-Lux-<version>-win-x64.zip`
+- `Sacra-Lux-<version>-<platform>.spdx.json`
+- `Sacra-Lux-<version>-<platform>.cdx.json`
+- `Sacra-Lux-<version>-<platform>.grype.json`
+- `Sacra-Lux-<version>-<platform>.grype.sarif`
 - `SHA256SUMS.txt`
 
 It publishes a GitHub Release with generated release notes. A version with a

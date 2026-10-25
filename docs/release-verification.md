@@ -5,8 +5,8 @@ attestation shows that the file came from this repository and the `Release`
 workflow.
 
 The `attest` job in `.github/workflows/release.yml` creates the attestation.
-The `release` job needs the `attest` job. If the attestation fails, the
-workflow does not publish the release.
+The `release` job needs the `attest` job and the `scan` job. If either job
+fails, the workflow does not publish the release.
 
 ## Release files
 
@@ -21,6 +21,22 @@ The macOS Intel files are:
 - `Sacra-Lux-<version>-mac-x64.dmg`
 
 The Windows Intel file is `Sacra-Lux-<version>-win-x64.zip`.
+
+## Supply-chain scan
+
+The `scan` job extracts `app.asar` from each ZIP. Syft writes an SPDX JSON
+SBOM and a CycloneDX JSON SBOM. Grype scans the SPDX SBOM. The release
+includes these files for each ZIP:
+
+- `Sacra-Lux-<version>-<platform>.spdx.json`
+- `Sacra-Lux-<version>-<platform>.cdx.json`
+- `Sacra-Lux-<version>-<platform>.grype.json`
+- `Sacra-Lux-<version>-<platform>.grype.sarif`
+
+`<platform>` is `mac-arm64`, `mac-x64`, or `win-x64`. If Grype reports a
+vulnerability at high severity or above, the workflow does not publish the
+release. The scan does not check the DMG file. The DMG contains the same
+application as the macOS ZIP.
 
 ## Verify build provenance
 

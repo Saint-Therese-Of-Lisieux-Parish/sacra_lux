@@ -287,14 +287,25 @@ any other tag.
 The Release workflow runs when a tag that matches `v*` is pushed. The tag
 must equal `v` plus the package version, as stated above.
 
-The workflow publishes three ZIP files, two DMG files, and a checksum file:
+The workflow publishes three ZIP files, two DMG files, an SBOM for each ZIP,
+a Grype report for each ZIP, and a checksum file:
 
 - `Sacra-Lux-<version>-mac-arm64.zip`
 - `Sacra-Lux-<version>-mac-x64.zip`
 - `Sacra-Lux-<version>-win-x64.zip`
 - `Sacra-Lux-<version>-mac-arm64.dmg`
 - `Sacra-Lux-<version>-mac-x64.dmg`
-- `SHA256SUMS.txt` (SHA-256 of each ZIP and DMG file)
+- `Sacra-Lux-<version>-<platform>.spdx.json` (SPDX SBOM from Syft)
+- `Sacra-Lux-<version>-<platform>.cdx.json` (CycloneDX SBOM from Syft)
+- `Sacra-Lux-<version>-<platform>.grype.json` (Grype JSON report)
+- `Sacra-Lux-<version>-<platform>.grype.sarif` (Grype SARIF report)
+- `SHA256SUMS.txt` (SHA-256 of each ZIP, DMG, SBOM, and Grype report)
+
+`<platform>` is `mac-arm64`, `mac-x64`, or `win-x64`. The scan job extracts
+`app.asar` from each ZIP. Syft writes the SBOM files. Grype scans each SPDX
+SBOM. If Grype reports a vulnerability at high severity or above, the
+workflow does not publish the release. The scan does not check the DMG file.
+The DMG contains the same application as the macOS ZIP.
 
 A version that contains a hyphen, such as `0.0.146-alpha`, is published as
 a GitHub prerelease. The workflow also attaches a build-provenance
@@ -320,8 +331,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.166-alpha
-git push origin v0.0.166-alpha
+git tag v0.0.167-alpha
+git push origin v0.0.167-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -343,4 +354,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.166-alpha`.
+The current package version is `0.0.167-alpha`.
