@@ -34,6 +34,24 @@ describe("massHistory", () => {
     expect(listed[0].sizeBytes).toBeGreaterThan(0);
   });
 
+  test("syncCurrentMassToArchive shortens an archive id for a very long title", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), JSON.stringify({ presentationTitle: "x" }), "utf8");
+
+    const history = require("../../src/massHistory");
+    const longTitle = "Long title \u00e9 ".repeat(40);
+    const archive = history.syncCurrentMassToArchive({
+      currentArchiveId: null,
+      title: longTitle,
+      startTime: "2026-03-29T10:00"
+    });
+
+    expect(Buffer.byteLength(archive.id, "utf8")).toBeLessThanOrEqual(200);
+    expect(archive.id.startsWith("Long-title")).toBe(true);
+    expect(fs.existsSync(path.join(history.MASS_HISTORY_DIR, archive.id))).toBe(true);
+  });
+
   test("syncCurrentMassToArchive renames the active archive when the title changes", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     fs.mkdirSync(currentMassDir, { recursive: true });
