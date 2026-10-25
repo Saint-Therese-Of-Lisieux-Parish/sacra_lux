@@ -238,6 +238,29 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass keeps the current Mass when the USCCB RSS feed is unreachable", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockRejectedValue(new TypeError("fetch failed"));
+    const snapshot = () => JSON.stringify({
+      organizerSequence: state.organizerSequence,
+      manualSlides: state.manualSlides,
+      readingsSource: state.readingsSource,
+      activeMassArchiveId: state.activeMassArchiveId
+    });
+    const before = snapshot();
+    try {
+      const response = await request(app)
+        .post("/api/new-mass")
+        .send({ useLectionaryRss: true })
+        .expect(500);
+
+      expect(String(response.body.error || "")).toMatch(/fetch failed/i);
+      expect(snapshot()).toBe(before);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("theme endpoints list Catholic themes first", async () => {
     const expectedCatholicIds = [
       "carmelite",
