@@ -33,6 +33,16 @@ describe("public client markup guards", () => {
     expect(appHtml).not.toContain("phaseFolderImportFiles");
   });
 
+  test("slide editor shows Slide Basics before the preview and type panels", () => {
+    const basics = appHtml.indexOf('<div class="modal-panel-title">Slide Basics</div>');
+    expect(basics).toBeGreaterThan(-1);
+    expect(basics).toBeLessThan(appHtml.indexOf('id="editorPreviewSection"'));
+    expect(basics).toBeLessThan(appHtml.indexOf('id="editorSectionReading"'));
+    for (const id of ["editorLabel", "editorType", "editorPhase", "editorBackgroundTheme"]) {
+      expect(appHtml.indexOf(`id="${id}"`)).toBeGreaterThan(basics);
+    }
+  });
+
   test("editor focus trap uses visible controls only", () => {
     expect(appHtml).toContain("function getVisibleFocusableElements(container)");
     expect(appHtml).toContain("const focusable = getVisibleFocusableElements(els.editorDialog);");
