@@ -19,6 +19,8 @@ sacra-lux/node_modules/
 sacra-lux/dist/
 sacra-lux/.jest-localstorage
 sacra-lux/test-results/
+sacra-lux/reports/
+sacra-lux/.stryker-tmp/
 sacra-lux/playwright-report/
 sacra-lux/**/.DS_Store
 *.log
