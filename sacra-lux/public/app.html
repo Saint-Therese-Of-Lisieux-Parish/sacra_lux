@@ -3487,6 +3487,58 @@
 
         <div id="editorEmpty" class="muted-small">Select a slide from the organizer to edit it.</div>
         <div id="editorBody" hidden>
+          <!-- Common: Slide Basics (first panel in the editor) -->
+          <div class="modal-panel">
+            <div class="modal-panel-title">Slide Basics</div>
+            <p class="modal-panel-copy">These settings decide what the slide is, where it appears, and how it is staged.</p>
+            <div class="field-row">
+              <div class="modal-field" style="flex:1 1 14rem">
+                <label>Label
+                  <input id="editorLabel">
+                </label>
+              </div>
+              <div class="modal-field" style="width:11rem">
+                <label>Type
+                  <select id="editorType">
+                    <option value="reading">Reading</option>
+                    <option value="image">Image</option>
+                    <option value="imageSlideshow">Image Slideshow</option>
+                    <option value="movie">Movie</option>
+                    <option value="interstitial">Interstitial</option>
+                    <option value="text">Text</option>
+                    <option value="prayer">Prayer</option>
+                    <option value="hymn">Hymn</option>
+                    <option value="countdown">Countdown</option>
+                  </select>
+                </label>
+              </div>
+              <div class="modal-field" style="width:14rem">
+                <label>Section
+                  <select id="editorPhase">
+                    <option value="pre">Pre-Mass Announcements</option>
+                    <option value="gathering">Gathering</option>
+                    <option value="mass">Mass</option>
+                    <option value="post">Post-Mass Announcements</option>
+                  </select>
+                </label>
+              </div>
+              <div class="modal-field" style="width:7rem" id="editorBackgroundThemeWrap">
+                <label>Background
+                  <select id="editorBackgroundTheme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
+                </label>
+              </div>
+              <div class="modal-field" style="width:8rem" id="editorDurationWrap" hidden>
+                <label>Duration (sec)
+                  <input id="editorDurationSec" type="number" min="1" max="3600" value="10"
+                    title="Stored duration for this slide in seconds">
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div id="editorPreviewSection">
             <div class="editor-section-label">Live Preview</div>
             <div class="editor-help-text">Use this as your confidence check before the slide goes to the projector.</div>
@@ -3628,58 +3680,6 @@
                 <div class="text-bounds-preview-status" id="editorBoundsPreviewStatus" aria-live="polite"></div>
                 <div class="text-bounds-preview-error" id="editorBoundsPreviewError" role="alert" hidden></div>
                 <div class="text-bounds-help">A saved override applies to all pages in this group.</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Common: Label (full width) -->
-          <div class="modal-panel">
-            <div class="modal-panel-title">Slide Basics</div>
-            <p class="modal-panel-copy">These settings decide what the slide is, where it appears, and how it is staged.</p>
-            <div class="field-row">
-              <div class="modal-field" style="flex:1 1 14rem">
-                <label>Label
-                  <input id="editorLabel">
-                </label>
-              </div>
-              <div class="modal-field" style="width:11rem">
-                <label>Type
-                  <select id="editorType">
-                    <option value="reading">Reading</option>
-                    <option value="image">Image</option>
-                    <option value="imageSlideshow">Image Slideshow</option>
-                    <option value="movie">Movie</option>
-                    <option value="interstitial">Interstitial</option>
-                    <option value="text">Text</option>
-                    <option value="prayer">Prayer</option>
-                    <option value="hymn">Hymn</option>
-                    <option value="countdown">Countdown</option>
-                  </select>
-                </label>
-              </div>
-              <div class="modal-field" style="width:14rem">
-                <label>Section
-                  <select id="editorPhase">
-                    <option value="pre">Pre-Mass Announcements</option>
-                    <option value="gathering">Gathering</option>
-                    <option value="mass">Mass</option>
-                    <option value="post">Post-Mass Announcements</option>
-                  </select>
-                </label>
-              </div>
-              <div class="modal-field" style="width:7rem" id="editorBackgroundThemeWrap">
-                <label>Background
-                  <select id="editorBackgroundTheme">
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                  </select>
-                </label>
-              </div>
-              <div class="modal-field" style="width:8rem" id="editorDurationWrap" hidden>
-                <label>Duration (sec)
-                  <input id="editorDurationSec" type="number" min="1" max="3600" value="10"
-                    title="Stored duration for this slide in seconds">
-                </label>
               </div>
             </div>
           </div>
