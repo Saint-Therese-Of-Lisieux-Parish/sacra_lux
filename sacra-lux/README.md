@@ -81,6 +81,10 @@ The workflow builds these files:
 - `Sacra-Lux-<version>-mac-x64.zip`
 - `Sacra-Lux-<version>-mac-x64.dmg`
 - `Sacra-Lux-<version>-win-x64.zip`
+- `Sacra-Lux-<version>-<platform>.spdx.json`
+- `Sacra-Lux-<version>-<platform>.cdx.json`
+- `Sacra-Lux-<version>-<platform>.grype.json`
+- `Sacra-Lux-<version>-<platform>.grype.sarif`
 - `SHA256SUMS.txt`
 
 It publishes a GitHub Release with generated release notes. A version with a
