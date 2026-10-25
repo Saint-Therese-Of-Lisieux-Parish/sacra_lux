@@ -628,6 +628,21 @@ describe("server api integration", () => {
     expect(res.body.slides[0].groupLabel).toBe("Sample Reading");
   });
 
+  test("preview-reading paginates with the unsaved text bounds", async () => {
+    const text = Array.from({ length: 40 }, (_, index) => `Line ${index + 1} of a long reading that needs more than one page.`).join("\n");
+    const preview = async (overrideSettings) => (await request(app)
+      .post("/api/preview-reading")
+      .send({ label: "Sample Reading", passage: "Revelation 3:9", text, overrideSettings })
+      .expect(200)).body.slides;
+
+    const saved = await preview(undefined);
+    const bounds = JSON.parse(JSON.stringify((await request(app).get("/api/state")).body.screenSettings.textBounds));
+    bounds.readingBody.bottom = 500;
+    const tight = await preview({ textBounds: bounds });
+
+    expect(tight.length).toBeGreaterThan(saved.length);
+  });
+
   test("preview-reading returns 404 for an unknown stem", async () => {
     await request(app)
       .post("/api/preview-reading")
