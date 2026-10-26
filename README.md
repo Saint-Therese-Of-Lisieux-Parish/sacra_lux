@@ -82,7 +82,7 @@ release tag commands. Those run from the repository root.
 | `npm run test:unit` | Runs Jest on `tests/unit`. |
 | `npm run test:integration` | Runs Jest on `tests/integration`. |
 | `npm run test:coverage` | Runs unit and integration tests with coverage. |
-| `npm run test:mutation` | Runs StrykerJS mutation tests on `src/security.js`. The run fails below a score of 59. |
+| `npm run test:mutation` | Runs StrykerJS mutation tests on `src/security.js`. The run fails below a score of 76. |
 | `npm run test:e2e` | Runs Playwright. Install the browsers first. |
 | `npm run test:e2e:headed` | Runs Playwright with a visible browser. |
 | `npm run test:e2e:install` | Installs Playwright Chromium and WebKit, plus system dependencies. |
