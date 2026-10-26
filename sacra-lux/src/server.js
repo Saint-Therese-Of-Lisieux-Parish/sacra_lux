@@ -232,17 +232,23 @@ function writeZipMassPackage(zip, destDir, packageDefinition) {
 
 // Copy only the supporting files of a readings folder into the current Mass.
 // Existing files stay: a name that is already in use is not copied again.
+// The folder goes through a staging copy so that all reads of the source use one code path.
 function copyAssetsIntoCurrentMass(srcFolder) {
-  const srcAssets = path.join(srcFolder, "assets");
-  if (!fs.existsSync(srcAssets) || !fs.statSync(srcAssets).isDirectory()) return;
-  const destAssets = path.join(CURRENT_MASS_DIR, "assets");
-  fs.mkdirSync(destAssets, { recursive: true });
-  for (const file of fs.readdirSync(srcAssets)) {
-    const srcPath = path.join(srcAssets, file);
-    const destPath = path.join(destAssets, file);
-    if (fs.statSync(srcPath).isFile() && !fs.existsSync(destPath)) {
-      fs.copyFileSync(srcPath, destPath);
+  const stagingDir = fs.mkdtempSync(path.join(os.tmpdir(), "sacra-lux-insert-"));
+  try {
+    copyFolderFilesInto(srcFolder, stagingDir);
+    const stagedAssets = path.join(stagingDir, "assets");
+    if (!fs.existsSync(stagedAssets)) return;
+    const destAssets = path.join(CURRENT_MASS_DIR, "assets");
+    fs.mkdirSync(destAssets, { recursive: true });
+    for (const file of fs.readdirSync(stagedAssets)) {
+      const destPath = path.join(destAssets, file);
+      if (!fs.existsSync(destPath)) {
+        fs.copyFileSync(path.join(stagedAssets, file), destPath);
+      }
     }
+  } finally {
+    fs.rmSync(stagingDir, { recursive: true, force: true });
   }
 }
 
