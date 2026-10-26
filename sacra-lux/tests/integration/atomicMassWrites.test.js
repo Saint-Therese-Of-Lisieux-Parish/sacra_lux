@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
-const request = require("supertest");
 
 const {
   createTempHome,
+  loadReadingsFolder,
   startIsolatedServer
 } = require("../helpers/testHarness");
 
@@ -31,7 +31,7 @@ describe("atomic Mass file writes", () => {
     fs.mkdirSync(folder, { recursive: true });
     fs.writeFileSync(path.join(folder, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
     fs.writeFileSync(path.join(folder, "Gospel.txt"), "John 1:1\n\nIn the beginning was the Word.", "utf8");
-    await request(app).post("/api/load-readings").send({ folderPath: folder }).expect(200);
+    await loadReadingsFolder(app, folder);
     server.saveCurrentMass();
   });
 

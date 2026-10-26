@@ -3,7 +3,7 @@ const path = require("path");
 const { io: createClient } = require("socket.io-client");
 const { test, expect } = require("@playwright/test");
 
-const { createTempHome, dropLoadedServerModules, startIsolatedServer } = require("../helpers/testHarness");
+const { createTempHome, dropLoadedServerModules, loadReadingsFolderOverHttp, startIsolatedServer } = require("../helpers/testHarness");
 
 const fixture = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "fixtures", "rehearsal-mass.json"), "utf8")
@@ -94,7 +94,7 @@ test("a full Mass runs the same on the operator UI, projector display, and phone
   test.setTimeout(120_000);
   require("../../src/security").clearRateLimitState();
 
-  const loadRes = await request.post(`${baseUrl}/api/load-readings`, { data: { folderPath: fixture.readingsDir } });
+  const loadRes = await loadReadingsFolderOverHttp(request, baseUrl, fixture.readingsDir);
   expect(loadRes.ok()).toBe(true);
   const organizerRes = await request.post(`${baseUrl}/api/organizer`, {
     data: { sequence: fixture.sequence, manualSlides: fixture.manualSlides }

@@ -6,6 +6,7 @@ const { clearRateLimitState } = require("../../src/security");
 
 const {
   createTempHome,
+  loadReadingsFolderOverHttp,
   makeReadingsFolder,
   startIsolatedServer
 } = require("../helpers/testHarness");
@@ -325,7 +326,7 @@ test("Text Area tool shows the group text and the projector page breaks", async 
     `Verse ${index + 1}: They devoted themselves to the teaching of the apostles and to the breaking of the bread.`);
   fs.writeFileSync(path.join(longReadingPath, "Reading_I.txt"), `Acts of the Apostles 2:42-47\n\n${verses.join("\n")}`, "utf8");
   const previousTitle = (await (await request.get(`${baseUrl}/api/state`)).json()).presentation?.title || "";
-  await request.post(`${baseUrl}/api/load-readings`, { data: { folderPath: longReadingPath } });
+  await loadReadingsFolderOverHttp(request, baseUrl, longReadingPath);
 
   const initial = await (await request.get(`${baseUrl}/api/state`)).json();
   const item = initial.organizerSequence.find((entry) => entry.sourceStem === "Reading_I");
@@ -1192,12 +1193,7 @@ test("Sacra Lux can load readings and expose slides in state", async ({ page, re
   expect(unlockRes.ok()).toBeTruthy();
   const { controlToken } = await unlockRes.json();
 
-  const loadRes = await request.post(`${baseUrl}/api/load-readings`, {
-    headers: { "x-sacra-control": controlToken },
-    data: {
-      folderPath: readingsPath
-    }
-  });
+  const loadRes = await loadReadingsFolderOverHttp(request, baseUrl, readingsPath, { "x-sacra-control": controlToken });
   expect(loadRes.ok()).toBeTruthy();
 
   await expect.poll(async () => {
