@@ -845,7 +845,7 @@ test("Image Slideshow editor hides an unavailable preview image", async ({ page,
       }],
       manualSlides: {
         "imageSlideshow:missing-preview": {
-          images: [{ url: "/uploads/does-not-exist.png", name: "Missing.png" }],
+          images: [{ url: "/api/mass-asset/does-not-exist.png", name: "Missing.png" }],
           slideshowDurationSec: 10,
           slideshowLoopCount: 1
         }
