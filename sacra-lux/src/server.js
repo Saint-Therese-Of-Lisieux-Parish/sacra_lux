@@ -2780,8 +2780,14 @@ function startServer(port = 17841, options = {}) {
       if (cleaned.length < 4) {
         return res.status(400).json({ error: "PIN must be 4–6 digits." });
       }
+      const notifiedSockets = [...io.sockets.sockets.values()].filter(socketHasControlSession);
       state.startPinHash = createPinHashRecord(cleaned);
       state.startPin = "";
+      clearControlAccess();
+      for (const socket of notifiedSockets) {
+        socket.data.controlToken = "";
+        socket.emit("control:required", { error: "The PIN changed. Unlock again." });
+      }
       const controlToken = noteControlUnlock(req);
       setControlCookie(res, controlToken);
       touch();
