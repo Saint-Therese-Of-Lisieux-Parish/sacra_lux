@@ -139,4 +139,22 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("editorPreviewAbort.abort()");
     expect(appHtml.match(/signal: editorPreviewSignal/g)).toHaveLength(2);
   });
+
+  test("resolution is the last settings field and defaults to 1080p", () => {
+    const dialog = appHtml.slice(appHtml.indexOf('<dialog id="settingsDialog"'), appHtml.indexOf("</dialog>", appHtml.indexOf('<dialog id="settingsDialog"')));
+    const fieldIds = [...dialog.matchAll(/<(?:input|select|textarea)\b[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);
+    expect(fieldIds[fieldIds.length - 1]).toBe("screenResolution");
+    expect(dialog).toMatch(/<option value="1080p" selected>/);
+    expect(appHtml).toContain('resolution: els.screenResolution.value || "1080p"');
+  });
+
+  test("backgrounds section names slide types and avoids the words Dark and Light", () => {
+    const start = appHtml.indexOf('<div class="settings-section-label">Backgrounds</div>');
+    const section = appHtml.slice(start, appHtml.indexOf("</section>", start));
+    expect(section).toContain("Reading, Text, Hymns, and Prayers Background");
+    expect(section).toContain("Interstitial Background");
+    expect(section).not.toMatch(/>[^<]*\b(Dark|Light)\b[^<]*</);
+    expect(section).toContain('id="darkBgPreset"');
+    expect(section).toContain('id="lightBgPreset"');
+  });
 });

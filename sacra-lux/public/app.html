@@ -2852,17 +2852,6 @@
                     </select>
                   </label>
                 </div>
-                <div class="settings-field settings-span-6">
-                  <label>Resolution
-                    <select id="screenResolution">
-                      <option value="720p">720p (1280×720)</option>
-                      <option value="1080p" selected>1080p (1920×1080)</option>
-                      <option value="1440p">1440p (2560×1440)</option>
-                      <option value="4k">4K (3840×2160)</option>
-                    </select>
-                  </label>
-                  <div class="settings-field-help">Use the projector’s native resolution when possible for the cleanest text.</div>
-                </div>
               </div>
               <div class="settings-toggle-grid">
                 <label class="settings-toggle">
@@ -2879,12 +2868,12 @@
               <div class="settings-section-header">
                 <div>
                   <div class="settings-section-label">Backgrounds</div>
-                  <h3 class="settings-section-title">Dark &amp; Light Presets</h3>
-                  <p class="settings-section-copy">Choose backgrounds by scenario. Dark works well for lyrics and prayers; light works well for imagery and cleaner moments.</p>
+                  <h3 class="settings-section-title">Slide Backgrounds</h3>
+                  <p class="settings-section-copy">The first background shows on Reading, Text, Hymn, and Prayer slides. The second background shows on Interstitial slides.</p>
                 </div>
               </div>
               <div class="settings-upload-card">
-                <div class="settings-subsection-label">Dark Background</div>
+                <div class="settings-subsection-label">Reading, Text, Hymns, and Prayers Background</div>
                 <div class="settings-upload-row">
                   <label style="flex:1 1 260px">Preset
                     <select id="darkBgPreset">
@@ -2898,7 +2887,7 @@
                 </div>
               </div>
               <div class="settings-upload-card">
-                <div class="settings-subsection-label">Light Background</div>
+                <div class="settings-subsection-label">Interstitial Background</div>
                 <div class="settings-upload-row">
                   <label style="flex:1 1 260px">Preset
                     <select id="lightBgPreset">
@@ -3399,6 +3388,28 @@
                     <label>Top<input id="textBoundsTop" type="number" min="0" max="1000" step="1"></label>
                     <label>Bottom<input id="textBoundsBottom" type="number" min="0" max="1000" step="1"></label>
                   </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-section settings-section--span-2">
+              <div class="settings-section-header">
+                <div>
+                  <div class="settings-section-label">Output</div>
+                  <h3 class="settings-section-title">Resolution</h3>
+                </div>
+              </div>
+              <div class="settings-field-grid">
+                <div class="settings-field settings-span-6">
+                  <label>Resolution
+                    <select id="screenResolution">
+                      <option value="720p">720p (1280×720)</option>
+                      <option value="1080p" selected>1080p (1920×1080)</option>
+                      <option value="1440p">1440p (2560×1440)</option>
+                      <option value="4k">4K (3840×2160)</option>
+                    </select>
+                  </label>
+                  <div class="settings-field-help">Use the projector’s native resolution when possible for the cleanest text.</div>
                 </div>
               </div>
             </section>
