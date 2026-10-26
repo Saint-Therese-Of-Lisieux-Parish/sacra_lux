@@ -137,6 +137,23 @@ test("operator UI keeps a hostile image URL out of the organizer markup", async 
   expect(result).toEqual({ fired: 0, probes: 0 });
 });
 
+test("a Mass SVG does not run script when opened directly", async ({ page, request }) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg"><script>${FLAG}</script></svg>`;
+  const upload = await request.post(`${baseUrl}/api/upload-mass-asset`, {
+    data: {
+      filename: "hostile.svg",
+      dataUrl: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`
+    }
+  });
+  expect(upload.ok()).toBe(true);
+
+  await page.addInitScript(() => { window.__xssFired = 0; });
+  await page.goto(`${baseUrl}${(await upload.json()).url}`);
+  await page.waitForTimeout(250);
+
+  expect(await page.evaluate(() => window.__xssFired || 0)).toBe(0);
+});
+
 test("projector display shows hostile slide text as plain text", async ({ page, request }) => {
   await page.addInitScript(() => { window.__xssFired = 0; });
   const problems = watchPage(page);

@@ -414,6 +414,10 @@ const HTML_SECURITY_HEADERS = Object.freeze({
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "SAMEORIGIN"
 });
+const MASS_ASSET_SECURITY_HEADERS = Object.freeze({
+  "Content-Security-Policy": "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+  "X-Content-Type-Options": "nosniff"
+});
 
 const JSON_BODY_LIMIT_DEFAULT = "10mb";
 const JSON_BODY_LIMIT_SINGLE_UPLOAD = `${Math.ceil((MAX_SINGLE_UPLOAD_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
@@ -2552,6 +2556,7 @@ function startServer(port = 17841, options = {}) {
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({ error: "File not found." });
       }
+      for (const [name, value] of Object.entries(MASS_ASSET_SECURITY_HEADERS)) res.setHeader(name, value);
       return res.sendFile(filePath, { dotfiles: "allow" });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to serve asset." });
