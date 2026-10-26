@@ -101,12 +101,20 @@ function createHostGuard({ allowedEntries = process.env[ALLOWED_NETWORKS_ENV], g
     return isHostnameAllowed(parseHostname(origin, { origin: true }));
   }
 
+  // Browsers set Sec-Fetch-Site on every request. A page from another site sets "cross-site".
+  function isCrossSite(req) {
+    return String(req.headers["sec-fetch-site"] || "").toLowerCase() === "cross-site";
+  }
+
   function middleware(req, res, next) {
     if (!isHostAllowed(req.headers.host)) {
       return res.status(403).json({ error: "Host not allowed." });
     }
     if (!SAFE_METHODS.has(req.method) && !isOriginAllowed(req.headers.origin)) {
       return res.status(403).json({ error: "Origin not allowed." });
+    }
+    if (!SAFE_METHODS.has(req.method) && isCrossSite(req)) {
+      return res.status(403).json({ error: "Cross-site request not allowed." });
     }
     return next();
   }
@@ -116,7 +124,7 @@ function createHostGuard({ allowedEntries = process.env[ALLOWED_NETWORKS_ENV], g
     callback(null, isHostAllowed(req.headers.host) && isOriginAllowed(req.headers.origin));
   }
 
-  return { isHostAllowed, isOriginAllowed, middleware, allowRequest };
+  return { isCrossSite, isHostAllowed, isOriginAllowed, middleware, allowRequest };
 }
 
 module.exports = { ALLOWED_NETWORKS_ENV, createHostGuard, parseAllowedEntries };
