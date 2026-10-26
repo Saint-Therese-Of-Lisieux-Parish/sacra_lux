@@ -7,6 +7,7 @@ const { io: createSocket } = require("socket.io-client");
 
 const {
   createTempHome,
+  loadReadingsFolder,
   startIsolatedServer
 } = require("../helpers/testHarness");
 
@@ -380,7 +381,7 @@ describe("server api integration", () => {
     const readingsDir = path.join(handle.homeDir, "path-disclosure-readings");
     fs.mkdirSync(readingsDir, { recursive: true });
     fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
 
     const pinResponse = await request(app).post("/api/start-pin").send({ pin: "1357" }).expect(200);
     const controlToken = pinResponse.body.controlToken;
@@ -672,10 +673,7 @@ describe("server api integration", () => {
       "utf8"
     );
 
-    await request(app)
-      .post("/api/load-readings")
-      .send({ folderPath: readingsDir })
-      .expect(200);
+    await loadReadingsFolder(app, readingsDir);
 
     const res = await request(app)
       .post("/api/preview-reading")
@@ -744,10 +742,7 @@ describe("server api integration", () => {
         .post("/api/screen-settings")
         .send({ textBounds: { ...before, readingBody: narrowBody } })
         .expect(200);
-      await request(app)
-        .post("/api/load-readings")
-        .send({ folderPath: readingsDir })
-        .expect(200);
+      await loadReadingsFolder(app, readingsDir);
 
       const live = (await request(app).get("/api/state").expect(200)).body;
       const doc = live.readingsSource.documents.find((entry) => entry.stem === "Reading_I");
@@ -768,57 +763,6 @@ describe("server api integration", () => {
     }
   });
 
-  test("load-readings asks which alternate to keep and leaves the unused file on disk", async () => {
-    const readingsDir = path.join(handle.homeDir, "alternate-readings");
-    fs.mkdirSync(readingsDir, { recursive: true });
-    fs.writeFileSync(path.join(readingsDir, "Gospel.txt"), "John 1:1-5\n\nIn the beginning was the Word.", "utf8");
-    fs.writeFileSync(
-      path.join(readingsDir, "Gospel-alternate_1.txt"),
-      "John 20:1-9\n\nOn the first day of the week.",
-      "utf8"
-    );
-
-    const ask = await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(409);
-    expect(ask.body.code).toBe("alternate-choice-required");
-    expect(ask.body.alternateGroups).toEqual([
-      { key: "Gospel", options: ["Gospel", "Gospel-alternate_1"] }
-    ]);
-
-    await request(app)
-      .post("/api/load-readings")
-      .send({ folderPath: readingsDir, alternateSelections: { Gospel: "Gospel-alternate_1" } })
-      .expect(200);
-
-    const state = (await request(app).get("/api/state").expect(200)).body;
-    const gospels = state.organizerSequence.filter((item) => item.type === "reading");
-    expect(gospels.map((item) => item.sourceStem)).toEqual(["Gospel-alternate_1"]);
-    expect(state.readingsSource.documents.map((doc) => doc.stem).sort()).toEqual(["Gospel", "Gospel-alternate_1"]);
-  });
-
-  test("load-readings insert keeps organizer item IDs unique", async () => {
-    const readingsDir = path.join(handle.homeDir, "insert-duplicate-stem");
-    fs.mkdirSync(readingsDir, { recursive: true });
-    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
-
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
-    await request(app)
-      .post("/api/load-readings")
-      .send({ folderPath: readingsDir, insertAtIndex: 0 })
-      .expect(200);
-
-    const state = (await request(app).get("/api/state").expect(200)).body;
-    const ids = state.organizerSequence.map((item) => item.id);
-    expect(ids).toHaveLength(2);
-    expect(new Set(ids).size).toBe(ids.length);
-    const slideItemIds = [...new Set(state.presentation.slides.map((slide) => slide.organizerItemId))];
-    expect(slideItemIds.sort()).toEqual([...ids].sort());
-
-    await request(app)
-      .post("/api/organizer")
-      .send({ sequence: state.organizerSequence, manualSlides: state.manualSlides })
-      .expect(200);
-  });
-
   test("save-reading rejects a stem that escapes the current Mass", async () => {
     const readingsDir = path.join(handle.homeDir, "save-reading-guard");
     fs.mkdirSync(readingsDir, { recursive: true });
@@ -827,7 +771,7 @@ describe("server api integration", () => {
       "Genesis 1:1\n\nIn the beginning.",
       "utf8"
     );
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
 
     const outsideFile = path.join(handle.homeDir, ".sacra-lux", "outside.txt");
     const absoluteFile = path.join(handle.homeDir, "absolute-target.txt");
@@ -862,7 +806,7 @@ describe("server api integration", () => {
     const readingsDir = path.join(handle.homeDir, "save-reading-atomic");
     fs.mkdirSync(readingsDir, { recursive: true });
     fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
 
     const readingPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
     await request(app)
@@ -878,7 +822,7 @@ describe("server api integration", () => {
     const readingsDir = path.join(handle.homeDir, "save-reading-failure");
     fs.mkdirSync(readingsDir, { recursive: true });
     fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
 
     const readingPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
     const prior = fs.readFileSync(readingPath, "utf8");
@@ -920,7 +864,7 @@ describe("server api integration", () => {
     fs.mkdirSync(readingsDir, { recursive: true });
     fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
     fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Old Title\n");
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
     await new Promise((resolve) => setTimeout(resolve, 700));
 
     const titleFile = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass_title.txt");
@@ -1033,7 +977,7 @@ describe("server api integration", () => {
     fs.mkdirSync(readingsDir, { recursive: true });
     fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
     fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Keep Me\n");
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
     await new Promise((resolve) => setTimeout(resolve, 700));
 
     const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
@@ -1042,11 +986,6 @@ describe("server api integration", () => {
     const appDir = path.dirname(currentMassDir);
     const stagingEntriesBefore = fs.readdirSync(appDir).filter((name) => name.startsWith(".current_mass-"));
     const titleBefore = (await request(app).get("/api/state").expect(200)).body.presentation.title;
-
-    await request(app)
-      .post("/api/load-readings")
-      .send({ folderPath: path.join(handle.homeDir, "missing-readings-folder") })
-      .expect(400);
 
     const brokenArchive = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Broken-Package", "package");
     fs.mkdirSync(brokenArchive, { recursive: true });
@@ -1082,7 +1021,7 @@ describe("server api integration", () => {
     fs.mkdirSync(replacementDir, { recursive: true });
     fs.writeFileSync(path.join(replacementDir, "Gospel.txt"), "John 1:1\n\nIn the beginning was the Word.");
     fs.writeFileSync(path.join(replacementDir, "mass_title.txt"), "Replacement\n");
-    await request(app).post("/api/load-readings").send({ folderPath: replacementDir }).expect(200);
+    await loadReadingsFolder(app, replacementDir);
     expect(fs.existsSync(path.join(currentMassDir, "canary.txt"))).toBe(false);
     expect(fs.existsSync(path.join(currentMassDir, "Gospel.txt"))).toBe(true);
     expect((await request(app).get("/api/state").expect(200)).body.presentation.title).toBe("Replacement");
@@ -1920,30 +1859,12 @@ describe("server api integration", () => {
       .expect(404);
   });
 
-  test("load-readings failure keeps the current slides", async () => {
-    const readingsDir = path.join(handle.homeDir, "load-readings-failure");
-    fs.mkdirSync(readingsDir, { recursive: true });
-    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.", "utf8");
-
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
-    const before = (await request(app).get("/api/state").expect(200)).body;
-
-    await request(app)
-      .post("/api/load-readings")
-      .send({ folderPath: path.join(handle.homeDir, "does-not-exist") })
-      .expect(400);
-
-    const after = (await request(app).get("/api/state").expect(200)).body;
-    expect(after.presentation.slides).toEqual(before.presentation.slides);
-    expect(after.readingsSource.documents).toEqual(before.readingsSource.documents);
-  });
-
   test("save-reading rebuilds the reading slides", async () => {
     const readingsDir = path.join(handle.homeDir, "save-reading-slides");
     fs.mkdirSync(readingsDir, { recursive: true });
     fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nShort text.", "utf8");
 
-    await request(app).post("/api/load-readings").send({ folderPath: readingsDir }).expect(200);
+    await loadReadingsFolder(app, readingsDir);
     const before = (await request(app).get("/api/state").expect(200)).body.presentation.slides.length;
     const longText = Array.from({ length: 80 }, (_, index) => `Line ${index + 1}`).join("\n");
 

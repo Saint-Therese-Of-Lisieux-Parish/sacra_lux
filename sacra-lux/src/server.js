@@ -28,9 +28,6 @@ const {
 } = require("./massDocument");
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
-  createDefaultOrganizer,
-  dedupeOrganizerIds,
-  findAlternateGroups,
   buildPresentationFromOrganizer,
   createManualSlideRecord,
   normalizeBackgroundTheme,
@@ -230,79 +227,6 @@ function writeZipMassPackage(zip, destDir, packageDefinition) {
 
   fs.writeFileSync(path.join(destDir, "mass.json"), JSON.stringify(packageDefinition, null, 2), "utf8");
   readMassPackageDefinition(destDir, state.screenSettings);
-}
-
-// Copy only the supporting files of a readings folder into the current Mass.
-// Existing files stay: a name that is already in use is not copied again.
-// The folder goes through a staging copy so that all reads of the source use one code path.
-function copyAssetsIntoCurrentMass(srcFolder) {
-  const stagingDir = fs.mkdtempSync(path.join(os.tmpdir(), "sacra-lux-insert-"));
-  try {
-    copyFolderFilesInto(srcFolder, stagingDir);
-    const stagedAssets = path.join(stagingDir, "assets");
-    if (!fs.existsSync(stagedAssets)) return;
-    const destAssets = path.join(CURRENT_MASS_DIR, "assets");
-    fs.mkdirSync(destAssets, { recursive: true });
-    for (const file of fs.readdirSync(stagedAssets)) {
-      const destPath = path.join(destAssets, file);
-      if (!fs.existsSync(destPath)) {
-        fs.copyFileSync(path.join(stagedAssets, file), destPath);
-      }
-    }
-  } finally {
-    fs.rmSync(stagingDir, { recursive: true, force: true });
-  }
-}
-
-// Give each new reading a stem that no existing reading uses.
-function renameCollidingStems(newDocuments, existingDocuments) {
-  const used = new Set(existingDocuments.map((doc) => doc.stem));
-  return newDocuments.map((doc) => {
-    let stem = doc.stem;
-    for (let n = 2; used.has(stem); n += 1) {
-      stem = `${doc.stem}_${n}`;
-    }
-    used.add(stem);
-    return stem === doc.stem ? doc : { ...doc, stem };
-  });
-}
-
-function copyFolderFilesInto(srcFolder, destDir) {
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const file of fs.readdirSync(srcFolder)) {
-    const srcPath = path.join(srcFolder, file);
-    if (fs.statSync(srcPath).isFile()) {
-      fs.copyFileSync(srcPath, path.join(destDir, file));
-    }
-  }
-
-  const srcAssets = path.join(srcFolder, "assets");
-  if (fs.existsSync(srcAssets) && fs.statSync(srcAssets).isDirectory()) {
-    const destAssets = path.join(destDir, "assets");
-    fs.mkdirSync(destAssets, { recursive: true });
-    for (const file of fs.readdirSync(srcAssets)) {
-      const srcPath = path.join(srcAssets, file);
-      if (fs.statSync(srcPath).isFile()) {
-        fs.copyFileSync(srcPath, path.join(destAssets, file));
-      }
-    }
-  }
-}
-
-/**
- * Copy readings into `~/.sacra-lux/current_mass/`.
- * The previous package stays in place until the copy is complete.
- * Return the current_mass path.
- */
-function copyReadingsToCurrentMass(srcFolder) {
-  if (!srcFolder || !fs.existsSync(srcFolder) || !fs.statSync(srcFolder).isDirectory()) {
-    throw new ValidationError("Readings folder was not found.");
-  }
-
-  replaceCurrentMassDir((stagingDir) => {
-    copyFolderFilesInto(srcFolder, stagingDir);
-  });
-  return CURRENT_MASS_DIR;
 }
 
 /**
@@ -3540,102 +3464,6 @@ function startServer(port = 17841, options = {}) {
       });
     } catch (error) {
       return sendApiError(res, error, "Failed to update organizer.");
-    }
-  });
-
-  app.post("/api/load-readings", (req, res) => {
-    try {
-      const { folderPath, insertAtIndex, screenSettings, alternateSelections } = req.body || {};
-      if (!folderPath) {
-        return res.status(400).json({ error: "folderPath is required." });
-      }
-      if (!fs.existsSync(folderPath) || !fs.statSync(folderPath).isDirectory()) {
-        throw new ValidationError("Readings folder was not found.");
-      }
-
-      const nextScreenSettings = screenSettings && typeof screenSettings === "object"
-        ? normalizeScreenSettings(screenSettings)
-        : state.screenSettings;
-      const imported = importReadings(folderPath, {
-        fontSizePx: nextScreenSettings.fontSizePx,
-        fontFamily: nextScreenSettings.fontFamily,
-        readingTextHeightPx: nextScreenSettings.readingTextHeightPx
-      });
-
-      // Ask which text to keep before any file or state changes.
-      const alternateGroups = findAlternateGroups(imported.documents);
-      if (alternateGroups.length > 0 && (!alternateSelections || typeof alternateSelections !== "object")) {
-        return res.status(409).json({
-          error: "Choose which reading to project.",
-          code: "alternate-choice-required",
-          alternateGroups
-        });
-      }
-
-      // An insert adds to the current Mass. It keeps the readings and media that the Mass has.
-      const isInsert = state.organizerSequence.length > 0 && insertAtIndex !== undefined;
-      const existingDocuments = state.readingsSource?.documents || [];
-      const newDocuments = isInsert
-        ? renameCollidingStems(imported.documents || [], existingDocuments)
-        : imported.documents || [];
-
-      // Copy readings into the standard current_mass directory only after the source can be read.
-      let currentMassPath = CURRENT_MASS_DIR;
-      if (isInsert) {
-        copyAssetsIntoCurrentMass(folderPath);
-      } else {
-        currentMassPath = copyReadingsToCurrentMass(folderPath);
-      }
-      state.screenSettings = nextScreenSettings;
-
-      state.readingsSource = {
-        folderPath: currentMassPath,
-        documents: isInsert ? [...existingDocuments, ...newDocuments] : newDocuments
-      };
-      state.startupPrompt = null;
-
-      const defaults = createDefaultOrganizer(newDocuments, { alternateSelections });
-
-      if (!isInsert) {
-        state.organizerSequence = defaults.sequence;
-        state.manualSlides = defaults.manualSlides;
-      } else {
-        const targetSlide = state.presentation.slides[Math.min(insertAtIndex, state.presentation.slides.length - 1)];
-        const organizerIndex = state.organizerSequence.findIndex(
-          (item) => item.id === targetSlide?.organizerItemId
-        );
-        const insertOrganizerAt = organizerIndex >= 0 ? organizerIndex + 1 : state.organizerSequence.length;
-        const inserted = dedupeOrganizerIds(
-          defaults.sequence,
-          defaults.manualSlides,
-          state.organizerSequence.map((item) => item.id)
-        );
-        state.organizerSequence.splice(insertOrganizerAt, 0, ...inserted.sequence);
-        state.manualSlides = {
-          ...state.manualSlides,
-          ...inserted.manualSlides
-        };
-      }
-
-      state.presentation = buildPresentationFromOrganizer({
-        title: imported.title || path.basename(folderPath),
-        documents: state.readingsSource.documents,
-        sequence: state.organizerSequence,
-        manualSlides: state.manualSlides,
-        screenSettings: state.screenSettings
-      });
-
-      touch();
-      io.emit("state:update", getStateSnapshot());
-      scheduleSave(true);
-
-      return res.json({
-        ok: true,
-        injectedSlides: imported.slides.length,
-        totalSlides: state.presentation.slides.length
-      });
-    } catch (error) {
-      return sendApiError(res, error, "Failed to load readings.");
     }
   });
 

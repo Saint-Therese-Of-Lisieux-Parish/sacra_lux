@@ -9,8 +9,8 @@ sequenceDiagram
     participant Importer as "readingsImporter.js"
     participant Organizer as "organizer.js"
 
-    App->>Server: POST /api/load-readings
-    Server->>Server: copy readings into current_mass
+    App->>Server: POST /api/import-mass-zip
+    Server->>Server: write the ZIP files into current_mass
     Server->>Importer: importReadings(current_mass)
     Importer-->>Server: title and documents
     Server->>Organizer: createDefaultOrganizer(documents)

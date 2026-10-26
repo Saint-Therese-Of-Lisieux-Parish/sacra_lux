@@ -152,7 +152,7 @@ High-value routes:
 
 - `GET /api/state`
 - `POST /api/organizer`
-- `POST /api/load-readings`
+- `POST /api/import-mass-zip`
 - `POST /api/screen-settings`
 - `POST /api/start-pin`
 - `POST /api/verify-pin`
