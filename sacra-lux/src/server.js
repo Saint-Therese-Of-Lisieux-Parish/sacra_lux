@@ -6,6 +6,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const { rateLimit } = require("express-rate-limit");
+const { itemRuntimeSeconds } = require("../public/client/shared.js");
 // Load adm-zip lazily.
 let _AdmZip;
 function getAdmZip() {
@@ -1533,27 +1534,22 @@ function stopGatheringTimer() {
 
 /**
  * Compute the total duration of all gathering slides in milliseconds.
- * Each organizer item with phase "gathering" contributes durationSec * slideCount,
- * where slideCount is how many presentation slides that item produced.
+ * Uses the same per-item calculation as the organizer list. An item with an
+ * unknown length (a movie) adds no time.
  */
 function getGatheringDurationMs() {
   const slides = state.presentation?.slides || [];
-  let totalMs = 0;
+  let totalSec = 0;
   for (const item of state.organizerSequence) {
     if (item.phase !== "gathering") continue;
-    const slideCount = slides.filter((s) => s.organizerItemId === item.id).length;
-    if (slideCount === 0) continue;
-    if (item.type === "imageSlideshow") {
-      const playableCount = slides.filter((slide) =>
-        slide.organizerItemId === item.id && isPlayableImageSlideshowSlide(slide)
-      ).length;
-      totalMs += playableCount * normalizeSlideshowDurationSec(state.manualSlides[item.id]?.slideshowDurationSec) *
-        normalizeSlideshowLoopCount(state.manualSlides[item.id]?.slideshowLoopCount) * 1000;
-    } else {
-      totalMs += slideCount * Math.max(1000, (Number(item.durationSec) || 10) * 1000);
-    }
+    const itemSlides = slides.filter((s) => s.organizerItemId === item.id);
+    if (itemSlides.length === 0) continue;
+    const playableCount = item.type === "imageSlideshow"
+      ? itemSlides.filter(isPlayableImageSlideshowSlide).length
+      : undefined;
+    totalSec += itemRuntimeSeconds(item, state.manualSlides[item.id], itemSlides.length, playableCount) || 0;
   }
-  return totalMs;
+  return totalSec * 1000;
 }
 
 /**

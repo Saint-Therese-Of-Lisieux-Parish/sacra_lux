@@ -1,3 +1,4 @@
+const { slideshowRuntimeSeconds } = require("../public/client/shared.js");
 const { paginateDocuments } = require("./readingsImporter");
 const {
   boundsToRect,
@@ -157,12 +158,9 @@ const IMAGE_SLIDESHOW_FADE_MS = 700;
  * Total play time of an Image Slideshow. Crossfades run inside each image
  * interval and do not add time to the slideshow.
  */
-function imageSlideshowRuntimeMs(manualSlide, transition) {
+function imageSlideshowRuntimeMs(manualSlide) {
   const imageCount = normalizeSlideshowImages(manualSlide?.images).filter((image) => image.url).length;
-  const shownCount = imageCount * normalizeSlideshowLoopCount(manualSlide?.slideshowLoopCount);
-  // Keep the transition argument for callers that still pass screen settings.
-  void transition;
-  return shownCount * normalizeSlideshowDurationSec(manualSlide?.slideshowDurationSec) * 1000;
+  return slideshowRuntimeSeconds(imageCount, manualSlide?.slideshowDurationSec, manualSlide?.slideshowLoopCount) * 1000;
 }
 
 function normalizeStyleOverrides(input) {

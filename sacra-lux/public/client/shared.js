@@ -47,6 +47,41 @@
   }
 
   /**
+   * Play time of one Pre-Mass, Gathering, or Post-Mass organizer item, in
+   * seconds. The organizer list, the start preview, the slideshow editor, and
+   * the server lead-in all use this one calculation.
+   *
+   * Crossfades run inside each image interval and add no time. Returns null
+   * when the time is not known (a movie).
+   *   item: organizer item ({ type, durationSec })
+   *   manual: the item's manual slide content, or undefined
+   *   slideCount: slides the item produced
+   *   playableImageCount: slideshow images that can play; counted from
+   *     `manual.images` when omitted
+   */
+  function itemRuntimeSeconds(item, manual, slideCount, playableImageCount) {
+    const type = item?.type;
+    if (type === "movie") return null;
+    if (type === "imageSlideshow") {
+      const imageCount = playableImageCount ?? (Array.isArray(manual?.images)
+        ? manual.images.filter((image) => image?.url || typeof image === "string").length
+        : 0);
+      return slideshowRuntimeSeconds(imageCount, manual?.slideshowDurationSec, manual?.slideshowLoopCount);
+    }
+    if (type === "countdown") {
+      return Math.max(1, Math.min(3600, Number(manual?.countdownSec) || 60));
+    }
+    return (Number(slideCount) || 0) * Math.max(1, Number(item?.durationSec) || 10);
+  }
+
+  /** Play time of an image slideshow: images x seconds per image x loops. */
+  function slideshowRuntimeSeconds(imageCount, durationSec, loopCount) {
+    const seconds = Math.max(1, Math.min(3600, Math.round(Number(durationSec) || 10)));
+    const loops = Math.max(1, Math.min(1000, Math.round(Number(loopCount) || 1)));
+    return Math.max(0, Number(imageCount) || 0) * loops * seconds;
+  }
+
+  /**
    * Reduce a file name or URL to a human title: take the last path segment,
    * drop any query/hash and file extension, and decode percent-encoding.
    * Returns "" when no usable name is present.
@@ -106,6 +141,8 @@
     knownFontName,
     formatCountdownTime,
     formatDurationTime,
+    itemRuntimeSeconds,
+    slideshowRuntimeSeconds,
     imageFileNameLabel,
     slideshowLabelFromFileNames
   };

@@ -6006,15 +6006,21 @@
       const formatRuntime = (totalSeconds) => {
         return SacraLuxShared.formatDurationTime(totalSeconds);
       };
-      const itemRuntimeSeconds = (item, slideCount) => {
-        if (item.type === "imageSlideshow") {
-          const manual = manualSlides[item.id] || {};
-          const validImageCount = Array.isArray(manual.images) ? manual.images.filter((image) => image?.url || typeof image === "string").length : 0;
-          const shownCount = validImageCount * Math.max(1, Number(manual.slideshowLoopCount) || 1);
-          const fadeSec = screenSettings.transition === "none" ? 0 : 0.7;
-          return Math.round(shownCount * Math.max(1, Number(manual.slideshowDurationSec) || 10) + Math.max(0, shownCount - 1) * fadeSec);
+      // Seconds the item plays, or null when unknown (a movie).
+      const itemRuntimeSeconds = (item, slideCount) =>
+        SacraLuxShared.itemRuntimeSeconds(item, manualSlides[item.id], slideCount);
+      // Sum of the known item times in a phase; `hasUnknown` marks a movie.
+      const phaseRuntime = (phase) => {
+        let totalSec = 0;
+        let hasUnknown = false;
+        for (const seqItem of sequence) {
+          if (seqItem.phase !== phase) continue;
+          const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
+          const sec = itemRuntimeSeconds(seqItem, sc);
+          if (sec === null) hasUnknown = true;
+          else totalSec += sec;
         }
-        return slideCount * (item.durationSec || 10);
+        return { totalSec, hasUnknown };
       };
 
       const darkBg = screenSettings.darkBackgroundUrl || "/static/assets/default-text-background.avif";
@@ -6041,11 +6047,14 @@
           ? slideshowImageCount
           : (counts[item.id] || (item.type === "reading" ? 0 : 1));
         const isMovie = item.type === "movie";
-        const durationMeta = item.type === "imageSlideshow"
-          ? ` · \u23F1 ${formatRuntime(itemRuntimeSeconds(item, pageCount))}`
-          : (!isMovie && (item.phase === "pre" || item.phase === "gathering" || item.phase === "post"))
-          ? ` · \u23F1 ${formatRuntime(item.durationSec || 10)}`
-          : "";
+        const isTimedPhase = item.phase === "pre" || item.phase === "gathering" || item.phase === "post";
+        let durationMeta = "";
+        if (item.type === "imageSlideshow" || isTimedPhase) {
+          const runtimeSec = itemRuntimeSeconds(item, pageCount);
+          durationMeta = runtimeSec === null
+            ? " · \u23F1 length unknown"
+            : ` · \u23F1 ${formatRuntime(runtimeSec)}`;
+        }
 
         const repSlide = getRepresentativeSlide(item, slides);
         const manualSlide = manualSlides[item.id] || null;
@@ -6090,47 +6099,29 @@
           const slidesWord = phaseTotal === 1 ? "slide" : "slides";
           let durationPill = "";
           if (item.phase === "pre") {
-            let totalSec = 0;
-            for (const seqItem of sequence) {
-              if (seqItem.phase !== "pre") continue;
-              const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
-              if (seqItem.type === "movie") continue;
-              totalSec += itemRuntimeSeconds(seqItem, sc);
-            }
+            const { totalSec, hasUnknown } = phaseRuntime("pre");
             if (totalSec > 0) {
               const mins = Math.floor(totalSec / 60);
               const secs = totalSec % 60;
-              const durStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+              const durStr = (mins > 0 ? `${mins}m ${secs}s` : `${secs}s`) + (hasUnknown ? "+" : "");
               durationPill = `<span class="phase-slide-count">\u23F1 ${durStr}</span>`;
             }
           }
           if (item.phase === "post") {
-            let totalSec = 0;
-            for (const seqItem of sequence) {
-              if (seqItem.phase !== "post") continue;
-              const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
-              if (seqItem.type === "movie") continue;
-              totalSec += itemRuntimeSeconds(seqItem, sc);
-            }
+            const { totalSec, hasUnknown } = phaseRuntime("post");
             if (totalSec > 0) {
               const mins = Math.floor(totalSec / 60);
               const secs = totalSec % 60;
-              const durStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+              const durStr = (mins > 0 ? `${mins}m ${secs}s` : `${secs}s`) + (hasUnknown ? "+" : "");
               durationPill = `<span class="phase-slide-count">\u23F1 ${durStr}</span>`;
             }
           }
           if (item.phase === "gathering") {
-            let totalSec = 0;
-            for (const seqItem of sequence) {
-              if (seqItem.phase !== "gathering") continue;
-              const sc = counts[seqItem.id] || (seqItem.type === "reading" ? 0 : 1);
-              if (seqItem.type === "movie") continue;
-              totalSec += itemRuntimeSeconds(seqItem, sc);
-            }
+            const { totalSec, hasUnknown } = phaseRuntime("gathering");
             if (totalSec > 0) {
               const mins = Math.floor(totalSec / 60);
               const secs = totalSec % 60;
-              const durStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+              const durStr = (mins > 0 ? `${mins}m ${secs}s` : `${secs}s`) + (hasUnknown ? "+" : "");
               durationPill = `<span class="phase-slide-count">\u23F1 ${durStr}</span>`;
             }
             const mst = uiState.data?.massStartTime;
@@ -6577,7 +6568,14 @@
             if (seqItem.phase !== "gathering") continue;
             const sc = allSlides.filter((s) => s.organizerItemId === seqItem.id).length;
             if (sc === 0) continue;
-            gatheringSec += sc * (seqItem.durationSec || 10);
+            gatheringSec += SacraLuxShared.itemRuntimeSeconds(
+              seqItem,
+              data.manualSlides?.[seqItem.id],
+              sc,
+              seqItem.type === "imageSlideshow"
+                ? allSlides.filter((s) => s.organizerItemId === seqItem.id && s.imageUrl && !s.slideshowEmpty).length
+                : undefined
+            ) || 0;
           }
 
           const mins = Math.ceil(diff / 60000);
@@ -7168,9 +7166,7 @@
       const imageCount = validCount == null ? getEditorSlideshowImages().length : Math.max(0, Number(validCount) || 0);
       const durationSec = Math.max(1, Math.min(3600, parseInt(els.editorSlideshowDurationSec?.value, 10) || 10));
       const loopCount = Math.max(1, Math.min(1000, parseInt(els.editorSlideshowLoopCount?.value, 10) || 1));
-      const frameCount = imageCount * loopCount;
-      const transitionSec = uiState.data?.screenSettings?.transition === "none" ? 0 : 0.7;
-      const totalSec = (frameCount * durationSec) + (Math.max(0, frameCount - 1) * transitionSec);
+      const totalSec = SacraLuxShared.slideshowRuntimeSeconds(imageCount, durationSec, loopCount);
       if (els.slideshowRuntimePreview) els.slideshowRuntimePreview.textContent = formatRuntimeSeconds(totalSec);
       if (els.slideshowImageCount) els.slideshowImageCount.textContent = `${imageCount} valid image${imageCount === 1 ? "" : "s"}`;
     }

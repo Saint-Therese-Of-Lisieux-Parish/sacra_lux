@@ -624,7 +624,7 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
 
   await page.locator("#editorSlideshowDurationSec").fill("2");
   await page.locator("#editorSlideshowLoopCount").fill("2");
-  await expect(page.locator("#slideshowRuntimePreview")).toHaveText("00:10");
+  await expect(page.locator("#slideshowRuntimePreview")).toHaveText("00:08");
 
   await page.locator("#reverseSlideshowBtn").click();
   await expect(rows.locator(".slideshow-image-name")).toHaveText(["1. Zeta.png", "2. Alpha.png"]);
