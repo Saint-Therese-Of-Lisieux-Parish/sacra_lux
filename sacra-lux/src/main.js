@@ -21,6 +21,8 @@ const PRELOAD_PATH = path.join(__dirname, "preload.js");
 
 const pkg = require("../package.json");
 
+const SITE_URL = "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/";
+
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 
 let appWindow;
@@ -620,6 +622,10 @@ function buildAppMenu(ioRef) {
       click: () => shell.openExternal(pkg.homepage)
     },
     {
+      label: "Documentation Website",
+      click: () => shell.openExternal(SITE_URL)
+    },
+    {
       label: "Report an Issue",
       click: () => shell.openExternal(pkg.bugs.url)
     }
@@ -752,7 +758,7 @@ function buildAppMenu(ioRef) {
           submenu: [
             {
               label: "About Sacra Lux",
-              click: () => { createSplash(); }
+              click: () => { createSplash({ linkToSite: true }); }
             },
             { type: "separator" },
             { role: "services" },
@@ -789,7 +795,7 @@ function buildAppMenu(ioRef) {
       submenu: [
         {
           label: "About Sacra Lux",
-          click: () => { createSplash(); }
+          click: () => { createSplash({ linkToSite: true }); }
         },
         { type: "separator" },
         ...helpSubmenu
@@ -803,12 +809,13 @@ function buildAppMenu(ioRef) {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
-function createSplash() {
+// The start window closes on a click. The About window also opens the website.
+function createSplash({ linkToSite = false } = {}) {
   splashWindow = new BrowserWindow({
     width: 430,
     height: 330,
     frame: false,
-    transparent: true,
+    backgroundColor: "#fffcf5",
     resizable: false,
     alwaysOnTop: true,
     center: true,
@@ -833,12 +840,10 @@ function createSplash() {
 <style>
   body {
     margin: 0; display: flex; align-items: center; justify-content: center;
-    height: 100vh; background: transparent; font-family: -apple-system, sans-serif;
+    height: 100vh; background: #fffcf5; font-family: -apple-system, sans-serif;
     -webkit-app-region: drag; user-select: none;
   }
   .card {
-    background: rgba(255, 252, 245, 0.98); border: 1px solid rgba(183, 132, 33, 0.45);
-    border-radius: 18px; box-shadow: 0 14px 36px rgba(5, 31, 73, 0.32);
     padding: 18px 28px 20px; text-align: center;
   }
   .icon { display: block; width: 290px; max-width: 100%; margin: 0 auto 8px; }
@@ -854,10 +859,19 @@ function createSplash() {
   splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 
   // Close splash on click or when it loses focus (blur only after main window is visible)
+  const clickScript = linkToSite
+    ? `document.addEventListener('click', () => { location.href = ${JSON.stringify(SITE_URL)}; })`
+    : "document.addEventListener('click', () => window.close())";
+  if (linkToSite) {
+    const aboutWindow = splashWindow;
+    aboutWindow.webContents.on("will-navigate", (event, url) => {
+      if (url !== SITE_URL) return;
+      shell.openExternal(SITE_URL);
+      aboutWindow.close();
+    });
+  }
   splashWindow.webContents.on("did-finish-load", () => {
-    splashWindow.webContents.executeJavaScript(
-      "document.addEventListener('click', () => window.close())"
-    );
+    splashWindow.webContents.executeJavaScript(clickScript);
   });
   splashWindow.on("blur", () => {
     if (splashWindow && !splashWindow.isDestroyed() && appWindow && appWindow.isVisible()) {

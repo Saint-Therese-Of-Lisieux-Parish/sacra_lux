@@ -57,7 +57,7 @@ async function startMain() {
     ipcMain: { handle: jest.fn(), on: jest.fn() },
     dialog: { showErrorBox: jest.fn() },
     screen: { getAllDisplays: jest.fn(() => []), getPrimaryDisplay: jest.fn(() => ({ id: 1 })) },
-    shell: {}
+    shell: { openExternal: jest.fn() }
   };
   const server = {
     once: jest.fn((name, handler) => {
@@ -85,6 +85,7 @@ async function startMain() {
   require("../../src/main");
   resolveReady();
   await new Promise((resolve) => setTimeout(resolve, 50));
+  windows.electron = electron;
   return windows;
 }
 
@@ -98,6 +99,51 @@ describe("Electron window security settings", () => {
       expect(win.options.webPreferences.contextIsolation).toBe(true);
       expect(win.options.webPreferences.nodeIntegration).not.toBe(true);
     }
+  });
+
+  test("the start window has no transparent area and a click only closes it", async () => {
+    const windows = await startMain();
+    const splash = windows.find((win) => !win.options.title);
+
+    expect(splash.options.transparent).toBeUndefined();
+    expect(splash.options.backgroundColor).toBeTruthy();
+    splash.listeners["did-finish-load"]();
+    const script = splash.webContents.executeJavaScript.mock.calls[0][0];
+    expect(script).toContain("window.close()");
+    expect(script).not.toContain("location.href");
+    expect(windows.electron.shell.openExternal).not.toHaveBeenCalled();
+  });
+
+  test("the Help menu has a Documentation Website item for the site", async () => {
+    const windows = await startMain();
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const help = template.find((item) => item.role === "help");
+    const item = help.submenu.find((entry) => entry.label === "Documentation Website");
+
+    item.click();
+    expect(windows.electron.shell.openExternal).toHaveBeenCalledWith(
+      "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/"
+    );
+  });
+
+  test("a click on the About window opens the site and closes the window", async () => {
+    const windows = await startMain();
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const help = template.find((item) => item.role === "help");
+    help.submenu.find((entry) => entry.label === "About Sacra Lux").click();
+    const about = windows[windows.length - 1];
+    about.close = jest.fn();
+
+    about.listeners["did-finish-load"]();
+    const script = about.webContents.executeJavaScript.mock.calls[0][0];
+    expect(script).toContain("https://saint-therese-of-lisieux-parish.github.io/sacra_lux/");
+    expect(about.options.transparent).toBeUndefined();
+
+    about.listeners["will-navigate"]({ preventDefault: jest.fn() }, "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/");
+    expect(windows.electron.shell.openExternal).toHaveBeenCalledWith(
+      "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/"
+    );
+    expect(about.close).toHaveBeenCalled();
   });
 
   test("main.js creates only windows with contextIsolation set to true", () => {
