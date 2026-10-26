@@ -10,6 +10,15 @@ const {
   startIsolatedServer
 } = require("../helpers/testHarness");
 
+// The slide type tab that selects each bounds layout.
+const SETTINGS_TAB_FOR_LAYOUT = {
+  readingBody: "reading-body",
+  readingPassage: "reading-ref",
+  hymn: "hymn",
+  prayer: "prayer",
+  text: "text"
+};
+
 let handle;
 let baseUrl;
 let readingsPath;
@@ -84,14 +93,14 @@ test("Screen Settings edits global text bounds with pointer and keyboard control
     .toContainText(/Behold, I will make those of the assembly of Satan/);
 
   for (const layout of ["readingBody", "readingPassage", "hymn", "prayer", "text"]) {
-    await page.locator("#textBoundsLayout").selectOption(layout);
+    await page.locator(`[data-settings-tab="${SETTINGS_TAB_FOR_LAYOUT[layout]}"]`).click();
     await expect(page.locator("#textBoundsBox")).toBeVisible();
     for (const edge of ["Left", "Right", "Top", "Bottom"]) {
       await expect(page.locator(`#textBounds${edge}`)).toBeVisible();
     }
   }
 
-  await page.locator("#textBoundsLayout").selectOption("readingBody");
+  await page.locator('[data-settings-tab="reading-body"]').click();
   await page.locator("#textBoundsLeft").fill("240");
   await page.locator("#textBoundsLeft").press("Tab");
   await expect.poll(async () => {
@@ -211,7 +220,7 @@ test("Text Area tool draws its handles over the projector renderer", async ({ pa
   expect(boundsBox.x + boundsBox.width).toBeLessThanOrEqual(frameBox.x + frameBox.width + 1);
 
   // A number field change shows in the real preview within 100 ms.
-  await page.locator("#textBoundsLayout").selectOption("readingBody");
+  await page.locator('[data-settings-tab="reading-body"]').click();
   const startLeft = Number(await page.locator("#textBoundsLeft").inputValue());
   await expect.poll(() => previewReadingLeft(page, "textBoundsPreviewFrame")).toBe(startLeft);
   const elapsed = await page.evaluate(async () => {
@@ -314,7 +323,7 @@ test("Text Area tool keeps the number fields usable when the preview fails", asy
   await expect(page.locator("#textBoundsPreviewError")).toBeVisible();
   await expect(page.locator("#textBoundsPreviewError")).toContainText("The slide preview is not available");
 
-  await page.locator("#textBoundsLayout").selectOption("readingBody");
+  await page.locator('[data-settings-tab="reading-body"]').click();
   await page.locator("#textBoundsTop").fill("150");
   await page.locator("#textBoundsTop").press("Tab");
   await expect.poll(async () => {
