@@ -7,6 +7,19 @@ const WORDMARK_LINES = [
   "|___/_/ \\_\\___|_|_\\/_/ \\_\\ |____\\___//_/\\_\\"
 ];
 
+const GOLD = [
+  [136, 178, 136],
+  [172, 214, 172],
+  [178, 220, 178],
+  [214, 220, 172]
+];
+const GOLD_FIRST = GOLD.map((tones) => `\u001b[38;5;${tones[0]}m`);
+const BLUES = [27, 33, 39, 45, 81];
+
+function stripCodes(text) {
+  return text.replace(/\u001b\[[0-9;]*m/g, "");
+}
+
 function loadBanner() {
   return require("../../src/cliBanner");
 }
@@ -29,7 +42,7 @@ describe("startup banner", () => {
     expect(text).toContain(pkg.version);
   });
 
-  test("keeps each line within 80 characters", () => {
+  test("keeps each line within 80 visible characters", () => {
     const { buildStartupBanner } = loadBanner();
     const plain = buildStartupBanner({
       version: pkg.version,
@@ -42,25 +55,36 @@ describe("startup banner", () => {
 
     for (const text of [plain, colored]) {
       for (const line of text.split("\n")) {
-        expect(line.length).toBeLessThanOrEqual(80);
+        expect(stripCodes(line).length).toBeLessThanOrEqual(80);
       }
     }
   });
 
-  test("paints each wordmark line with three gold tones", () => {
+  test("paints Sacra with a blue gradient and Lux with gold on each line", () => {
     const { buildStartupBanner } = loadBanner();
     const lines = buildStartupBanner({
       version: pkg.version,
       env: {}
     }).split("\n");
 
-    for (const line of lines.slice(0, 4)) {
-      const codes = line.match(/\u001b\[38;5;\d+m/g);
-      expect(codes).toHaveLength(3);
-      expect(new Set(codes).size).toBeGreaterThanOrEqual(2);
+    lines.slice(0, 4).forEach((line, index) => {
+      const luxStart = line.indexOf(GOLD_FIRST[index]);
+      expect(luxStart).toBeGreaterThan(0);
+
+      const sacraCodes = line.slice(0, luxStart).match(/\u001b\[38;5;\d+m/g);
+      expect(new Set(sacraCodes).size).toBeGreaterThanOrEqual(3);
+      for (const code of new Set(sacraCodes)) {
+        expect(BLUES).toContain(Number(code.match(/(\d+)m$/)[1]));
+      }
+
+      const luxCodes = line.slice(luxStart).match(/\u001b\[38;5;\d+m/g);
+      expect(luxCodes).toHaveLength(3);
+      expect(luxCodes.map((code) => Number(code.match(/(\d+)m$/)[1]))).toEqual(
+        GOLD[index]
+      );
       expect(line.endsWith("\u001b[0m")).toBe(true);
-      expect(line.length).toBeLessThanOrEqual(80);
-    }
+      expect(stripCodes(line)).toBe(WORDMARK_LINES[index]);
+    });
     expect(lines[4]).toContain("\u001b[38;5;74m");
     expect(lines[4]).toContain(pkg.version);
   });
