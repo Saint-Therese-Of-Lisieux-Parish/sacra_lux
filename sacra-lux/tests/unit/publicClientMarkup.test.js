@@ -57,6 +57,20 @@ describe("public client markup guards", () => {
     expect(screenHtml).toContain("groupSettings.readingShowEnding !== false");
   });
 
+  test("slide type tabs pick the bounds layout and no Layout dropdown shows", () => {
+    const tabs = [...appHtml.matchAll(/class="settings-tab[^"]*" data-settings-tab="([^"]+)"[^>]*>([^<]+)</g)]
+      .map((match) => [match[1], match[2]]);
+    expect(tabs).toEqual([
+      ["reading-body", "Reading Body"],
+      ["reading-ref", "Reading Reference &amp; Passage"],
+      ["text", "Text"],
+      ["hymn", "Hymn"],
+      ["prayer", "Prayer"]
+    ]);
+    expect(appHtml).toMatch(/<input type="hidden" id="textBoundsLayout"/);
+    expect(appHtml).not.toMatch(/<select id="textBoundsLayout"/);
+  });
+
   test("text bounds editors expose global and group controls", () => {
     expect(appHtml).toContain('id="textBoundsLayout"');
     expect(appHtml).toContain('id="textBoundsBox"');

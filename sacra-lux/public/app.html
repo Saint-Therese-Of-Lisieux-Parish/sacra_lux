@@ -2924,7 +2924,9 @@
               <div class="settings-tabs" role="tablist" aria-label="Slide type">
                 <button type="button" role="tab" class="settings-tab is-active" data-settings-tab="reading-body" aria-selected="true">Reading Body</button>
                 <button type="button" role="tab" class="settings-tab" data-settings-tab="reading-ref" aria-selected="false">Reading Reference &amp; Passage</button>
-                <button type="button" role="tab" class="settings-tab" data-settings-tab="text" aria-selected="false">Text, Prayer &amp; Hymn</button>
+                <button type="button" role="tab" class="settings-tab" data-settings-tab="text" aria-selected="false">Text</button>
+                <button type="button" role="tab" class="settings-tab" data-settings-tab="hymn" aria-selected="false">Hymn</button>
+                <button type="button" role="tab" class="settings-tab" data-settings-tab="prayer" aria-selected="false">Prayer</button>
               </div>
               <div id="textBoundsSettings">
                 <div class="text-bounds-preview" id="textBoundsPreview">
@@ -3267,7 +3269,7 @@
                 </div>
               </div>
 
-              <div class="settings-subsection" data-settings-panel="text" hidden>
+              <div class="settings-subsection" data-settings-panel="text hymn prayer" hidden>
                 <div>
                   <div class="settings-subsection-label">Slide Text</div>
                   <p class="settings-subsection-copy">These settings control the main text on text, prayer, and hymn slides.</p>
@@ -3387,16 +3389,9 @@
               <div data-control-pane="position" hidden>
                 <div class="bounds-line">
                   <div class="text-bounds-toolbar">
-                    <label style="grid-column:span 3">Layout
-                      <select id="textBoundsLayout">
-                        <option value="readingBody">Reading body</option>
-                        <option value="readingPassage">Passage reference</option>
-                        <option value="hymn">Hymn</option>
-                        <option value="prayer">Prayer</option>
-                        <option value="text">Text slide</option>
-                      </select>
-                    </label>
-                    <button id="textBoundsReset" type="button" style="grid-column:span 2">Reset to Default</button>
+                    <!-- The slide type tab above the preview sets this value. -->
+                    <input type="hidden" id="textBoundsLayout" value="readingBody">
+                    <button id="textBoundsReset" type="button" style="grid-column:span 5">Reset to Default</button>
                   </div>
                   <div class="text-bounds-fields">
                     <label>Left<input id="textBoundsLeft" type="number" min="0" max="1800" step="1"></label>
@@ -8335,9 +8330,19 @@
       });
     });
 
+    // Window Position edits the bounds of the active slide type tab.
+    const SETTINGS_TAB_BOUNDS_KEY = {
+      "reading-body": "readingBody",
+      "reading-ref": "readingPassage",
+      text: "text",
+      hymn: "hymn",
+      prayer: "prayer"
+    };
     document.querySelectorAll("[data-settings-tab]").forEach((tab) => {
       tab.addEventListener("click", () => {
         const name = tab.dataset.settingsTab;
+        els.textBoundsLayout.value = SETTINGS_TAB_BOUNDS_KEY[name] || "readingBody";
+        renderBoundsEditor("global");
         document.querySelectorAll("[data-settings-tab]").forEach((other) => {
           const active = other === tab;
           other.classList.toggle("is-active", active);
