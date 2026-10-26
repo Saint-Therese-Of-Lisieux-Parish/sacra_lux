@@ -1406,6 +1406,11 @@
       });
     }
 
+    if (window.location.hash === "#start-pre-mass") {
+      window.history.replaceState(null, "", "/remote");
+      fetch("/api/pre-mass/start", { method: "POST" }).catch(() => { });
+    }
+
     fetch("/api/state")
       .then((r) => r.json())
       .then((state) => {

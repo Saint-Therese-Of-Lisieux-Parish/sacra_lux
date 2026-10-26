@@ -492,7 +492,7 @@ describe("server api integration", () => {
     await request(app)
       .get(`/api/start-redirect?token=${token}`)
       .expect(302)
-      .expect("Location", "/remote");
+      .expect("Location", "/remote#start-pre-mass");
     await request(app)
       .get(`/api/start-redirect?token=${token}`)
       .expect(302)
@@ -530,7 +530,7 @@ describe("server api integration", () => {
     await request(app)
       .get("/api/start-redirect")
       .expect(302)
-      .expect("Location", "/remote");
+      .expect("Location", "/remote#start-pre-mass");
 
     const after = await request(app).get("/api/state").expect(200);
     expect(after.body.currentSlideIndex).toBe(1);
@@ -609,22 +609,23 @@ describe("server api integration", () => {
       expect(after.body.preMassRunning).toBe(false);
     });
 
-    test("a loopback client starts pre-Mass", async () => {
+    test("a GET start redirect does not start pre-Mass", async () => {
       await seedPreMassSlides();
 
-      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote");
+      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote#start-pre-mass");
 
       const after = await request(app).get("/api/state").expect(200);
-      expect(after.body.currentSlideIndex).toBe(0);
-      expect(after.body.preMassRunning).toBe(true);
+      expect(after.body.currentSlideIndex).toBe(1);
+      expect(after.body.preMassRunning).toBe(false);
     });
 
-    test("a non-loopback client starts pre-Mass in trusted-lan mode", async () => {
+    test("the QR flow starts pre-Mass with a POST", async () => {
       await seedPreMassSlides();
       state.controlMode = "trusted-lan";
       useLanClient();
 
-      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote");
+      await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote#start-pre-mass");
+      await request(app).post("/api/pre-mass/start").expect(200);
 
       const after = await request(app).get("/api/state").expect(200);
       expect(after.body.currentSlideIndex).toBe(0);

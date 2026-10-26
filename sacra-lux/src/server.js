@@ -2868,6 +2868,7 @@ function startServer(port = 17841, options = {}) {
   app.get("/api/start-redirect", authRateLimit, (req, res) => {
     try {
       const providedToken = String(req.query.token || "");
+      let startAuthorized = false;
 
       // Send the request to the PIN page when no valid token is present.
       if (hasPinConfigured()) {
@@ -2883,36 +2884,16 @@ function startServer(port = 17841, options = {}) {
         }
         const controlToken = noteControlUnlock(req);
         setControlCookie(res, controlToken);
+        startAuthorized = true;
       }
 
       // Clear only this link so links for other phones stay valid.
       clearStartToken(providedToken);
 
-      const slides = state.presentation?.slides || [];
-      const now = Date.now();
-      const massTime = state.massStartTime ? new Date(state.massStartTime).getTime() : null;
-      const massHasBegun = Number.isFinite(massTime) && now >= massTime;
-      const phaseAlreadyRunning = state.preMassRunning || state.gatheringRunning || state.postMassRunning;
-
-      // The first start before Mass may open the pre-Mass loop.
-      // A phone that joins after Mass has begun, or while a phase is already
-      // running, only attaches. It must not rewind the projector.
-      // A client without control permission (no PIN, non-loopback, control
-      // mode unset) only attaches.
-      // A link from another site only attaches. A GET must not start a phase for it.
-      if (!massHasBegun && !phaseAlreadyRunning && !hostGuard.isCrossSite(req) && clientMayControl(req)) {
-        const firstPreIdx = slides.findIndex((s) => s.phase === "pre");
-        if (firstPreIdx >= 0) {
-          stopGatheringTimer();
-          state.currentSlideIndex = getSafeSlideIndex(firstPreIdx);
-          state.preMassRunning = true;
-          scheduleNextPreMassSlide(io);
-          touch();
-          io.emit("state:update", getStateSnapshot());
-          scheduleSave();
-        }
-      }
-      return res.redirect("/remote");
+      // A GET only finishes the QR entry flow. The remote page starts pre-Mass
+      // with its normal authorized POST request after it loads.
+      if (!startAuthorized && (hostGuard.isCrossSite(req) || !clientMayControl(req))) return res.redirect("/remote");
+      return res.redirect("/remote#start-pre-mass");
     } catch (_error) {
       return res.redirect("/remote");
     }
