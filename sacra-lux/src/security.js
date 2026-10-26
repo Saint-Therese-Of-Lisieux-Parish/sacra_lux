@@ -277,9 +277,29 @@ function evaluateRateLimit({ bucket, key, windowMs, max, now = Date.now() }) {
   };
 }
 
-function logRateLimitExceeded(label, key, details = "") {
+// Log one warning for each limit window. Later blocked requests with the same
+// label, client, and request add to a count that the next warning reports.
+const RATE_LIMIT_LOG_WINDOW_MS = 60 * 1000;
+const rateLimitLogState = new Map();
+
+function logRateLimitExceeded(label, key, details = "", windowMs = RATE_LIMIT_LOG_WINDOW_MS) {
+  const now = Date.now();
+  const logKey = `${label}|${key}|${details.replace(/\s*retry-after=\S+/, "")}`;
+  const entry = rateLimitLogState.get(logKey);
+  if (entry && entry.nextLogAt > now) {
+    entry.suppressed += 1;
+    return;
+  }
+
+  if (rateLimitLogState.size >= 500) {
+    for (const [staleKey, staleEntry] of rateLimitLogState) {
+      if (staleEntry.nextLogAt <= now) rateLimitLogState.delete(staleKey);
+    }
+  }
+  const suppressedNote = entry && entry.suppressed ? ` (${entry.suppressed} similar requests throttled since the last warning)` : "";
+  rateLimitLogState.set(logKey, { nextLogAt: now + windowMs, suppressed: 0 });
   const suffix = details ? ` ${details}` : "";
-  logger.warn(`[rate-limit] ${label} throttled for ${key}.${suffix}`);
+  logger.warn(`[rate-limit] ${label} throttled for ${key}.${suffix}${suppressedNote}`);
 }
 
 function createRateLimitMiddleware({ bucket, windowMs, max, label, keyFn = getClientIp }) {
@@ -291,7 +311,7 @@ function createRateLimitMiddleware({ bucket, windowMs, max, label, keyFn = getCl
       return;
     }
 
-    logRateLimitExceeded(label, key, `${req.method} ${req.originalUrl || req.path} retry-after=${result.retryAfterSec}s`);
+    logRateLimitExceeded(label, key, `${req.method} ${req.originalUrl || req.path} retry-after=${result.retryAfterSec}s`, windowMs);
     res.set("Retry-After", String(result.retryAfterSec));
     res.status(429).json({ error: "Too many requests. Please try again later." });
   };
@@ -353,7 +373,7 @@ function createSocketRateLimitGuard({ bucket, windowMs, max, maxConcurrent = 0, 
     const key = getSocketClientIp(socket);
     const result = evaluateRateLimit({ bucket, key, windowMs, max });
     if (!result.allowed) {
-      logRateLimitExceeded(label, key, `socket retry-after=${result.retryAfterSec}s`);
+      logRateLimitExceeded(label, key, `socket retry-after=${result.retryAfterSec}s`, windowMs);
       return {
         allowed: false,
         retryAfterSec: result.retryAfterSec,
@@ -412,6 +432,7 @@ function cleanupSecurityState(now = Date.now()) {
 }
 
 function clearRateLimitState() {
+  rateLimitLogState.clear();
   for (const store of Object.values(rateLimitBuckets)) {
     store.clear();
   }

@@ -134,6 +134,12 @@ describe("public client markup guards", () => {
     expect(dialog).toContain('id="editorBoundsShow"');
   });
 
+  test("editor preview requests are debounced and cancel the request still in flight", () => {
+    expect(appHtml).toContain("const EDITOR_PREVIEW_DEBOUNCE_MS");
+    expect(appHtml).toContain("editorPreviewAbort.abort()");
+    expect(appHtml.match(/signal: editorPreviewSignal/g)).toHaveLength(2);
+  });
+
   test("resolution is the last settings field and defaults to 1080p", () => {
     const dialog = appHtml.slice(appHtml.indexOf('<dialog id="settingsDialog"'), appHtml.indexOf("</dialog>", appHtml.indexOf('<dialog id="settingsDialog"')));
     const fieldIds = [...dialog.matchAll(/<(?:input|select|textarea)\b[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);

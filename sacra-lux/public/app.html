@@ -5267,6 +5267,7 @@
 
       const res = await fetch("/api/preview-reading", {
         method: "POST",
+        signal: editorPreviewSignal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
@@ -5303,6 +5304,7 @@
 
       const response = await fetch("/api/preview-manual-slide", {
         method: "POST",
+        signal: editorPreviewSignal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: item.type,
@@ -5342,7 +5344,34 @@
       }
     }
 
-    async function updateEditorPreview() {
+    // Wait for a short pause in edits, and cancel a request that is still
+    // running, so typing does not send one preview request per keystroke.
+    const EDITOR_PREVIEW_DEBOUNCE_MS = 150;
+    let editorPreviewTimer = null;
+    let editorPreviewAbort = null;
+    let editorPreviewSignal;
+    let editorPreviewSettlePrevious = null;
+
+    function updateEditorPreview() {
+      clearTimeout(editorPreviewTimer);
+      if (editorPreviewSettlePrevious) editorPreviewSettlePrevious();
+      return new Promise((resolve, reject) => {
+        editorPreviewSettlePrevious = resolve;
+        editorPreviewTimer = setTimeout(() => {
+          editorPreviewSettlePrevious = null;
+          if (editorPreviewAbort) editorPreviewAbort.abort();
+          const controller = new AbortController();
+          editorPreviewAbort = controller;
+          editorPreviewSignal = controller.signal;
+          runEditorPreview().then(resolve, (err) => {
+            if (err?.name === "AbortError") resolve();
+            else reject(err);
+          });
+        }, EDITOR_PREVIEW_DEBOUNCE_MS);
+      });
+    }
+
+    async function runEditorPreview() {
       const item = getEditorPreviewItem();
       if (!item) {
         editorPreviewSlides = [];

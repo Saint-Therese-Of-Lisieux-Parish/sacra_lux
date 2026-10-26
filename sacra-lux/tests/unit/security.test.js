@@ -567,6 +567,28 @@ describe("security", () => {
     expect(thirdNext).toHaveBeenCalled();
   });
 
+  test("repeated throttles of the same request log one warning for each window", () => {
+    const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1000000);
+    const middleware = security.createRateLimitMiddleware({ bucket: "global", windowMs: 60000, max: 1, label: "global-api", keyFn: () => "k1" });
+    const makeRes = () => ({ set: jest.fn(), status: jest.fn().mockReturnThis(), json: jest.fn() });
+    const req = { method: "POST", originalUrl: "/api/preview-reading" };
+    middleware(req, makeRes(), jest.fn());
+    for (let i = 0; i < 4; i += 1) {
+      const res = makeRes();
+      middleware(req, res, jest.fn());
+      expect(res.status).toHaveBeenCalledWith(429);
+    }
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    nowSpy.mockReturnValue(1000000 + 60001);
+    middleware(req, makeRes(), jest.fn());
+    middleware(req, makeRes(), jest.fn());
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenLastCalledWith(expect.stringContaining("(3 similar requests throttled since the last warning)"));
+    nowSpy.mockRestore();
+  });
+
   test("log line for a socket throttle carries the retry detail", () => {
     const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {});
     const guard = security.createSocketRateLimitGuard({ bucket: "auth", windowMs: 1000, max: 1, label: "auth-api" });
