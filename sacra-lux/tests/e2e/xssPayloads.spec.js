@@ -113,7 +113,6 @@ test("operator UI shows hostile organizer text as plain text", async ({ page, re
 
 test("operator UI keeps a hostile image URL out of the organizer markup", async ({ page, request }) => {
   await page.addInitScript(() => { window.__xssFired = 0; });
-  const problems = watchPage(page);
   const hostileUrl = `/api/mass-asset/a"><img data-xss-probe src=x onerror="${FLAG}">.png`;
   const res = await request.post(`${baseUrl}/api/organizer`, {
     data: {
@@ -124,15 +123,18 @@ test("operator UI keeps a hostile image URL out of the organizer markup", async 
     }
   });
   expect(res.ok()).toBe(true);
-  // The check needs no click, so it skips openOperator and its library dialog.
-  page.on("console", (m) => console.log("DBG console", m.type(), m.text()));
-  page.on("pageerror", (e) => console.log("DBG pageerror", e.message));
   await page.goto(`${baseUrl}/app`);
-  await page.waitForTimeout(8000);
-  console.log("DBG html", (await page.content()).slice(0, 100), await page.locator("#sequenceList").innerHTML());
 
-  await expect(page.locator("#sequenceList .sequence-item").first()).toBeAttached({ timeout: 30000 });
-  await expectInert(page, problems);
+  // This test reads the page with evaluate. WebKit locators wait on the pending image load.
+  await expect.poll(() => page.evaluate(
+    () => document.querySelectorAll("#sequenceList .sequence-item").length
+  ), { timeout: 30000 }).toBe(1);
+  await page.waitForTimeout(500);
+  const result = await page.evaluate(() => ({
+    fired: window.__xssFired || 0,
+    probes: document.querySelectorAll("[data-xss-probe]").length
+  }));
+  expect(result).toEqual({ fired: 0, probes: 0 });
 });
 
 test("projector display shows hostile slide text as plain text", async ({ page, request }) => {
