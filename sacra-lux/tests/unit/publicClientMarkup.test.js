@@ -133,4 +133,14 @@ describe("public client markup guards", () => {
     expect(appHtml).toMatch(/\.editor-preview-sticky\s*\{[^}]*position: sticky/);
     expect(dialog).toContain('id="editorBoundsShow"');
   });
+
+  test("backgrounds section names slide types and avoids the words Dark and Light", () => {
+    const start = appHtml.indexOf('<div class="settings-section-label">Backgrounds</div>');
+    const section = appHtml.slice(start, appHtml.indexOf("</section>", start));
+    expect(section).toContain("Reading, Text, Hymns, and Prayers Background");
+    expect(section).toContain("Interstitial Background");
+    expect(section).not.toMatch(/>[^<]*\b(Dark|Light)\b[^<]*</);
+    expect(section).toContain('id="darkBgPreset"');
+    expect(section).toContain('id="lightBgPreset"');
+  });
 });
