@@ -124,7 +124,7 @@ function openOrFocusRemoteWindow(url) {
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -194,7 +194,7 @@ function createAppWindow() {
     show: false,
     webPreferences: {
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
       preload: PRELOAD_PATH
     }
   });
@@ -211,7 +211,7 @@ function createScreenWindow(targetScreenId = null) {
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
-      sandbox: false
+      sandbox: true
     }
   });
 
@@ -329,7 +329,7 @@ async function createCaptureWindow() {
     height: 1080,
     show: false,
     frame: false,
-    webPreferences: { contextIsolation: true, sandbox: false, offscreen: true }
+    webPreferences: { contextIsolation: true, sandbox: true, offscreen: true }
   });
   lockWindow(win);
   win.webContents.setFrameRate(30);
@@ -819,7 +819,7 @@ function createSplash({ linkToSite = false } = {}) {
     resizable: false,
     alwaysOnTop: true,
     center: true,
-    webPreferences: { contextIsolation: true }
+    webPreferences: { contextIsolation: true, sandbox: true }
   });
   lockWindow(splashWindow);
 

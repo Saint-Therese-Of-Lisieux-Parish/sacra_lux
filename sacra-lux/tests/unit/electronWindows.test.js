@@ -153,22 +153,19 @@ describe("Electron window security settings", () => {
     expect(constructors).toHaveLength(5);
     for (const block of constructors) {
       expect(block).toMatch(/contextIsolation: true/);
+      expect(block).toMatch(/sandbox: true/);
       expect(block).not.toMatch(/nodeIntegration: true/);
       expect(block).not.toMatch(/contextIsolation: false/);
     }
   });
 
-  // Sandbox stays off because the app and screen windows load local pages with the
-  // preload bridge, and the offscreen capture window renders local slides only. All of
-  // them are limited by contextIsolation and the navigation lock. The splash window has
-  // no preload and uses the default sandbox setting.
-  test("records the sandbox setting of each window", async () => {
+  test("enables the sandbox for each window", async () => {
     const windows = await startMain();
     const byTitle = Object.fromEntries(windows.map((win) => [win.options.title || "splash", win]));
 
-    expect(byTitle["Sacra Lux"].options.webPreferences.sandbox).toBe(false);
-    expect(byTitle["Sacra Lux Screen"].options.webPreferences.sandbox).toBe(false);
-    expect(byTitle.splash.options.webPreferences.sandbox).toBeUndefined();
+    expect(byTitle["Sacra Lux"].options.webPreferences.sandbox).toBe(true);
+    expect(byTitle["Sacra Lux Screen"].options.webPreferences.sandbox).toBe(true);
+    expect(byTitle.splash.options.webPreferences.sandbox).toBe(true);
   });
 
   test("the app window denies external windows and opens only the remote popup", async () => {
@@ -181,6 +178,7 @@ describe("Electron window security settings", () => {
     const remote = windows.find((win) => win.options.title === "Sacra Lux — Remote");
     expect(remote.options.webPreferences.contextIsolation).toBe(true);
     expect(remote.options.webPreferences.nodeIntegration).not.toBe(true);
+    expect(remote.options.webPreferences.sandbox).toBe(true);
     expect(remote.openHandler({ url: "https://evil.example/" })).toEqual({ action: "deny" });
   });
 
