@@ -95,12 +95,14 @@ edit back to the source `.txt` in the Mass package.
 
 ## Screen Settings
 
-**⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections:
+**⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections.
 
-1. **Typography & Output** sets the primary font, the base size, the transition, the resolution, and bold global text.
-2. **Slide Backgrounds** sets the background image for Reading, Text, Hymn, and Prayer slides and the background image for Interstitial slides.
-3. **Text Styles** shows one slide type at a time. The tabs are **Reading Body**, **Reading Reference & Passage**, and **Text, Prayer & Hymn**. The reference tab also sets the section title, such as First Reading.
-4. **Visual Bounds Editor** moves one layout box. The choices are Reading body, Passage reference, Hymn, Prayer, and Text slide.
+1. **Typography & Output** sets the primary font, the base size, the transition, and bold global text.
+2. **Slide Backgrounds** sets two images. The first image is the background for Reading, Text, Hymn, and Prayer slides. The second image is the background for Interstitial slides. Each image can use a preset or an uploaded file.
+3. **Text Styles** has five tabs: **Reading Body**, **Reading Reference & Passage**, **Text**, **Hymn**, and **Prayer**. A slide preview shows the selected text area. **Font** sets the type style for that tab. **Window Position** moves that text area. Font, size, bold, and italic are separate for Text, Hymn, and Prayer. The other Text, Hymn, and Prayer settings are shared. The reference tab also sets the section title, such as First Reading. It can show the slide number, the reading label, and the spoken ending. The spoken ending is its own slide. The text is `The Word of the Lord.` or `The Gospel of the Lord.`
+4. **Resolution** is the last section. The choices are 720p, 1080p, 1440p, and 4K. The default is 1080p.
+
+Most changes apply as you edit. **Apply Changes & Close** saves the changes and closes the dialog.
 
 **🎨 Select Theme** opens the theme list. It does not change the projector text.
 
