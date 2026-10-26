@@ -73,20 +73,18 @@ describe("public html integration", () => {
     expect(res.text).toContain("Tap anywhere to open the remote.");
   });
 
-  test("remote markup includes a blackout control", async () => {
+  test("remote markup has no Blackout, Start Mass, or Interstitial Slide quick actions", async () => {
     const res = await request(app).get("/remote").expect(200);
 
-    expect(res.text).toContain('id="blackoutBtn"');
-    expect(res.text).toContain('socket.emit("screen:black"');
-  });
-
-  test("remote markup returns a hold to a chosen cue", async () => {
-    const res = await request(app).get("/remote").expect(200);
-
-    expect(res.text).toContain("function setInterstitialReturnChoice(index)");
-    expect(res.text).toContain("explicitReturn: true");
-    expect(res.text).toContain("setInterstitialReturnChoice(index);");
-    expect(res.text).not.toContain("getCarouselCenterSlideIndex");
+    for (const id of ["blackoutBtn", "interstitialBtn", "nextSectionBtn", "blackSection"]) {
+      expect(res.text).not.toContain(`id="${id}"`);
+    }
+    expect(res.text).not.toContain('socket.emit("screen:black"');
+    expect(res.text).not.toContain(">Blackout<");
+    expect(res.text).not.toContain(">Interstitial Slide<");
+    expect(res.text).not.toContain("Start Mass");
+    expect(res.text).toContain('id="screenFrame"');
+    expect(res.text).toContain('id="cueList"');
   });
 
   test("remote markup dismisses the splash and keeps preview-pinning helpers", async () => {

@@ -1001,65 +1001,6 @@ test("remote selecting a post-mass slide starts the post-mass loop from that sli
   expect(stopRes.ok()).toBeTruthy();
 });
 
-test("remote primary button starts Mass before Mass and stays in post-Mass after Mass", async ({ page, request }) => {
-  const organizerRes = await request.post(`${baseUrl}/api/organizer`, {
-    data: {
-      sequence: [
-        { id: "text:pre", type: "text", label: "Welcome", phase: "pre", backgroundTheme: "dark" },
-        { id: "text:mass-one", type: "text", label: "Homily Notes", phase: "mass", backgroundTheme: "dark" },
-        { id: "text:post-one", type: "text", label: "Post One", phase: "post", backgroundTheme: "dark", durationSec: 300 },
-        { id: "text:mass-two", type: "text", label: "Communion", phase: "mass", backgroundTheme: "dark" },
-        { id: "text:post-two", type: "text", label: "Post Two", phase: "post", backgroundTheme: "dark", durationSec: 300 }
-      ],
-      manualSlides: {
-        "text:pre": { text: "Welcome", notes: "", textVAlign: "middle", imageUrl: null },
-        "text:mass-one": { text: "Mass Slide One", notes: "", textVAlign: "middle", imageUrl: null },
-        "text:post-one": { text: "Post Slide One", notes: "", textVAlign: "middle", imageUrl: null },
-        "text:mass-two": { text: "Mass Slide Two", notes: "", textVAlign: "middle", imageUrl: null },
-        "text:post-two": { text: "Post Slide Two", notes: "", textVAlign: "middle", imageUrl: null }
-      }
-    }
-  });
-  expect(organizerRes.ok()).toBeTruthy();
-
-  await page.goto(`${baseUrl}/remote`);
-  await dismissRemoteSplash(page);
-
-  const readState = async () => {
-    const res = await request.get(`${baseUrl}/api/state`);
-    return res.json();
-  };
-  const clickCue = (label) =>
-    page.evaluate((cueLabel) => {
-      const button = [...document.querySelectorAll(".cue-btn")].find((el) => el.textContent === cueLabel);
-      if (!button) throw new Error(`Cue button not found: ${cueLabel}`);
-      button.click();
-    }, label);
-  const clickPrimary = () => page.locator("#nextSectionBtn").evaluate((button) => button.click());
-  const currentSlide = async () => {
-    const json = await readState();
-    return { index: json.currentSlideIndex, phase: json.presentation.slides[json.currentSlideIndex]?.phase };
-  };
-
-  // Before Mass: the button shows "Start Mass" and selects the first Mass slide.
-  await clickCue("Welcome");
-  await expect(page.locator("#nextSectionBtn")).toHaveText("Start Mass");
-  await clickPrimary();
-  await expect.poll(currentSlide).toEqual({ index: 1, phase: "mass" });
-
-  // After Mass: the button moves within the post-Mass sequence. It skips the
-  // Mass slide at index 3, so it does not restart or rewind the Mass.
-  await clickCue("Post One");
-  await expect(page.locator("#nextSectionBtn")).toHaveText("Next Slide Group");
-  await expect.poll(async () => (await readState()).currentSlideIndex).toBe(2);
-
-  await clickPrimary();
-  await expect.poll(currentSlide).toEqual({ index: 4, phase: "post" });
-
-  const stopRes = await request.post(`${baseUrl}/api/post-mass/stop`);
-  expect(stopRes.ok()).toBeTruthy();
-});
-
 test("remote preview interaction keeps the large preview pinned at the top", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {
@@ -1145,10 +1086,8 @@ test("controls show a focus ring and a clear disabled state", async ({ page }) =
 test("remote controls keep a 44 px touch target", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${baseUrl}/remote`);
-  await expect(page.locator("#nextSectionBtn")).toBeVisible();
   for (const selector of ["#blackoutBtn", "#interstitialBtn", "#nextSectionBtn"]) {
-    const box = await page.locator(selector).boundingBox();
-    expect(box.height, `${selector} height`).toBeGreaterThanOrEqual(44);
+    await expect(page.locator(selector)).toHaveCount(0);
   }
   const cue = page.locator(".cue-btn").first();
   if (await cue.count()) {
