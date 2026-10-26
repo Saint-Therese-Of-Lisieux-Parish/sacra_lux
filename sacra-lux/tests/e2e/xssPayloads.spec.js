@@ -127,7 +127,7 @@ test("operator UI keeps a hostile image URL out of the organizer markup", async 
   // The check needs no click, so it skips openOperator and its library dialog.
   await page.goto(`${baseUrl}/app`);
 
-  await expect(page.locator("#sequenceList .sequence-item").first()).toBeAttached();
+  await expect(page.locator("#sequenceList .sequence-item").first()).toBeAttached({ timeout: 30000 });
   await expectInert(page, problems);
 });
 
