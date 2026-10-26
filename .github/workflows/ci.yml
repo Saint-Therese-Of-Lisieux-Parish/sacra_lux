@@ -40,7 +40,15 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium webkit
+        # The download has stalled for more than 10 minutes on some runs (#442).
+        # Stop each try after 4 minutes and try up to 3 times.
+        timeout-minutes: 15
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 240 npx playwright install --with-deps chromium webkit; then exit 0; fi
+            echo "Playwright install attempt $attempt failed or timed out."
+          done
+          exit 1
 
       - name: Lint
         run: npm run lint
