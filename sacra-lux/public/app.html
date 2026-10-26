@@ -3272,7 +3272,7 @@
               <div class="settings-subsection" data-settings-panel="text hymn prayer" hidden>
                 <div>
                   <div class="settings-subsection-label">Slide Text</div>
-                  <p class="settings-subsection-copy">These settings control the main text on text, prayer, and hymn slides.</p>
+                  <p class="settings-subsection-copy">Font, size, bold, and italic are separate for each tab. The other settings are shared by Text, Hymn, and Prayer.</p>
                 </div>
                 <div class="format-bar" role="toolbar" aria-label="Slide text formatting">
                   <div class="settings-field settings-span-4">
@@ -5016,6 +5016,65 @@
       return {};
     }
 
+    // Font, size, bold, and italic are separate for the Text, Hymn, and Prayer tabs.
+    // The controls show the active tab; the draft keeps the other two tabs.
+    const TYPE_FONT_PREFIX = { text: "textSlide", hymn: "hymn", prayer: "prayer" };
+    const typeFontDraft = {
+      text: { font: "", size: 0, bold: false, italic: false },
+      hymn: { font: "", size: 0, bold: false, italic: false },
+      prayer: { font: "", size: 0, bold: false, italic: false }
+    };
+    let activeTypeFont = "text";
+
+    function stashTypeFontInputs() {
+      typeFontDraft[activeTypeFont] = {
+        font: els.textSlideTextFont.value,
+        size: Number(els.textSlideTextSizePx.value) || 0,
+        bold: Boolean(els.textSlideTextBold.checked),
+        italic: Boolean(els.textSlideTextItalic.checked)
+      };
+    }
+
+    function showTypeFontInputs() {
+      const choice = typeFontDraft[activeTypeFont];
+      els.textSlideTextFont.value = choice.font || "";
+      els.textSlideTextSizePx.value = choice.size || "";
+      els.textSlideTextBold.checked = choice.bold;
+      els.textSlideTextItalic.checked = choice.italic;
+    }
+
+    function selectTypeFont(type) {
+      if (!typeFontDraft[type] || type === activeTypeFont) return;
+      stashTypeFontInputs();
+      activeTypeFont = type;
+      showTypeFontInputs();
+    }
+
+    function loadTypeFontDraft(screen) {
+      for (const [type, prefix] of Object.entries(TYPE_FONT_PREFIX)) {
+        typeFontDraft[type] = {
+          font: screen[`${prefix}TextFont`] || "",
+          size: Number(screen[`${prefix}TextSizePx`]) || 0,
+          bold: Boolean(screen[`${prefix}TextBold`]),
+          italic: Boolean(screen[`${prefix}TextItalic`])
+        };
+      }
+      showTypeFontInputs();
+    }
+
+    function typeFontPayload() {
+      stashTypeFontInputs();
+      const payload = {};
+      for (const [type, prefix] of Object.entries(TYPE_FONT_PREFIX)) {
+        const choice = typeFontDraft[type];
+        payload[`${prefix}TextFont`] = choice.font;
+        payload[`${prefix}TextSizePx`] = choice.size;
+        payload[`${prefix}TextBold`] = choice.bold;
+        payload[`${prefix}TextItalic`] = choice.italic;
+      }
+      return payload;
+    }
+
     // Show the real global font and size where a slide type inherits them.
     function refreshGlobalDefaultLabels() {
       const font = els.fontFamily?.value || "";
@@ -5044,7 +5103,7 @@
 
     // Show the Screen Settings values that apply when a slide has no override.
     function refreshEditorStyleDefaults(type) {
-      const s = uiState.data?.screenSettings || {};
+      const s = SacraLuxShared.withSlideTypeFont(uiState.data?.screenSettings || {}, type);
       const isReading = type === "reading";
       const prefix = isReading ? "editorReadingStyle" : "editorTextStyle";
       const font = (isReading ? s.readingTextFont : s.textSlideTextFont) || s.fontFamily || "";
@@ -5087,13 +5146,13 @@
         writeTriStateSelect(els.editorTextStyleItalic, overrides.italic);
         writeTriStateSelect(els.editorTextStyleOutline, overrides.outline);
         writeTriStateSelect(els.editorTextStyleShadow, overrides.shadow);
-        refreshEditorStyleDefaults("text");
+        refreshEditorStyleDefaults(type);
         renderBoundsEditor("group");
       }
     }
 
     function getEffectiveScreenSettingsForSlideLike(type, styleOverrides = {}) {
-      const base = uiState.data?.screenSettings || {};
+      const base = SacraLuxShared.withSlideTypeFont(uiState.data?.screenSettings || {}, type);
       const overrides = normalizeEditorStyleOverrides(styleOverrides);
       if (!Object.keys(overrides).length) return base;
 
@@ -5492,14 +5551,11 @@
         readingTextOutlineWidthPx: Number(els.readingTextOutlineWidthPx.value) || 1,
         textSlideTextAlign: els.textSlideTextAlign.value,
         textSlideTextVAlign: els.textSlideTextVAlign.value,
-        textSlideTextFont: els.textSlideTextFont.value,
-        textSlideTextSizePx: Number(els.textSlideTextSizePx.value) || 0,
-        textSlideTextBold: Boolean(els.textSlideTextBold.checked),
+        ...typeFontPayload(),
         textSlideTextColor: colorCodeValue(els.textSlideTextColor),
         textSlideLineHeight: Number(els.textSlideLineHeight.value) || 1.55,
         textSlideLetterSpacingPx: Number(els.textSlideLetterSpacingPx.value) || 0,
         textSlideShowPageNumber: Boolean(els.textSlideShowPageNumber.checked),
-        textSlideTextItalic: Boolean(els.textSlideTextItalic.checked),
         textSlideTextShadow: Boolean(els.textSlideTextShadow.checked),
         textSlideTextOutline: Boolean(els.textSlideTextOutline.checked),
         textSlideTextOutlineColor: colorCodeValue(els.textSlideTextOutlineColor),
@@ -6512,13 +6568,7 @@
         if (screen.textSlideTextVAlign) {
           els.textSlideTextVAlign.value = screen.textSlideTextVAlign;
         }
-        if (screen.textSlideTextFont !== undefined) {
-          els.textSlideTextFont.value = screen.textSlideTextFont || "";
-        }
-        if (screen.textSlideTextSizePx !== undefined) {
-          els.textSlideTextSizePx.value = screen.textSlideTextSizePx || "";
-        }
-        els.textSlideTextBold.checked = Boolean(screen.textSlideTextBold);
+        loadTypeFontDraft(screen);
         if (screen.textSlideTextColor) {
           els.textSlideTextColor.value = screen.textSlideTextColor;
         }
@@ -6529,7 +6579,6 @@
           els.textSlideLetterSpacingPx.value = String(screen.textSlideLetterSpacingPx || 0);
         }
         els.textSlideShowPageNumber.checked = screen.textSlideShowPageNumber !== false;
-        els.textSlideTextItalic.checked = Boolean(screen.textSlideTextItalic);
         els.textSlideTextShadow.checked = screen.textSlideTextShadow !== false;
         els.textSlideTextOutline.checked = Boolean(screen.textSlideTextOutline);
         if (screen.textSlideTextOutlineColor) {
@@ -8342,6 +8391,7 @@
       tab.addEventListener("click", () => {
         const name = tab.dataset.settingsTab;
         els.textBoundsLayout.value = SETTINGS_TAB_BOUNDS_KEY[name] || "readingBody";
+        selectTypeFont(els.textBoundsLayout.value);
         renderBoundsEditor("global");
         document.querySelectorAll("[data-settings-tab]").forEach((other) => {
           const active = other === tab;

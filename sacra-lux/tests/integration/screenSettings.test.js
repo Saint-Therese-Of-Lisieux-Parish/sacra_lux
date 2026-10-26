@@ -86,6 +86,46 @@ describe("screen settings normalization", () => {
     if (handle) await handle.stop();
   });
 
+  test("hymn and prayer keep their own font choices", async () => {
+    const settings = await post({
+      textSlideTextFont: "Lora",
+      textSlideTextSizePx: 60,
+      hymnTextFont: "Inter",
+      hymnTextSizePx: 70,
+      hymnTextBold: true,
+      prayerTextFont: "Raleway",
+      prayerTextItalic: true
+    });
+    expect(settings).toMatchObject({
+      textSlideTextFont: "Lora",
+      textSlideTextSizePx: 60,
+      hymnTextFont: "Inter",
+      hymnTextSizePx: 70,
+      hymnTextBold: true,
+      prayerTextFont: "Raleway",
+      prayerTextItalic: true,
+      prayerTextBold: false
+    });
+    // Changing the Text choice leaves hymn and prayer as they are.
+    const next = await post({ textSlideTextFont: "Poppins", textSlideTextSizePx: 40 });
+    expect(next).toMatchObject({ hymnTextFont: "Inter", hymnTextSizePx: 70, prayerTextFont: "Raleway" });
+  });
+
+  test("a hymn or prayer with no saved font choice starts from the Text choice", async () => {
+    // Settings saved before the split have no hymn or prayer keys.
+    for (const key of Object.keys(state.screenSettings)) {
+      if (/^(hymn|prayer)Text/.test(key)) delete state.screenSettings[key];
+    }
+    const result = await post({ textSlideTextFont: "Lora", textSlideTextSizePx: 64, textSlideTextBold: true });
+    expect(result).toMatchObject({
+      hymnTextFont: "Lora",
+      hymnTextSizePx: 64,
+      hymnTextBold: true,
+      prayerTextFont: "Lora",
+      prayerTextSizePx: 64
+    });
+  });
+
   test("accepts every valid field and keeps the values", async () => {
     const settings = await post(fullInput);
 

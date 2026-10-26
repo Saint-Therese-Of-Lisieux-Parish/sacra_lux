@@ -1397,7 +1397,8 @@
       return normalized;
     }
 
-    function getEffectiveScreenSettings(baseSettings = {}, slide) {
+    function getEffectiveScreenSettings(rawSettings = {}, slide) {
+      const baseSettings = SacraLuxShared.withSlideTypeFont(rawSettings, slide?.type);
       const overrides = normalizeStyleOverrides(slide?.styleOverrides);
       if (!Object.keys(overrides).length) {
         return baseSettings;

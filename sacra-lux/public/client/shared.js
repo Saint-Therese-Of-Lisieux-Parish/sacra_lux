@@ -74,6 +74,21 @@
     return (Number(slideCount) || 0) * Math.max(1, Number(item?.durationSec) || 10);
   }
 
+  /**
+   * Settings with the Text-slide font choices (font, size, bold, italic)
+   * replaced by the hymn or prayer choices when the slide is one of those.
+   */
+  function withSlideTypeFont(settings, type) {
+    if (!settings || (type !== "hymn" && type !== "prayer")) return settings;
+    return {
+      ...settings,
+      textSlideTextFont: settings[`${type}TextFont`] ?? settings.textSlideTextFont,
+      textSlideTextSizePx: settings[`${type}TextSizePx`] ?? settings.textSlideTextSizePx,
+      textSlideTextBold: settings[`${type}TextBold`] ?? settings.textSlideTextBold,
+      textSlideTextItalic: settings[`${type}TextItalic`] ?? settings.textSlideTextItalic
+    };
+  }
+
   /** Play time of an image slideshow: images x seconds per image x loops. */
   function slideshowRuntimeSeconds(imageCount, durationSec, loopCount) {
     const seconds = Math.max(1, Math.min(3600, Math.round(Number(durationSec) || 10)));
@@ -143,6 +158,7 @@
     formatDurationTime,
     itemRuntimeSeconds,
     slideshowRuntimeSeconds,
+    withSlideTypeFont,
     imageFileNameLabel,
     slideshowLabelFromFileNames
   };

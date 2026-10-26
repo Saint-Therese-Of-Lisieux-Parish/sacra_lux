@@ -8,6 +8,7 @@ const {
   itemRuntimeSeconds,
   knownFontName,
   slideshowRuntimeSeconds,
+  withSlideTypeFont,
   slideshowLabelFromFileNames
 } = require("../../public/client/shared.js");
 
@@ -110,6 +111,35 @@ describe("shared client helpers", () => {
       ];
       const total = items.reduce((sum, args) => sum + itemRuntimeSeconds(...args), 0);
       expect(total).toBe(30 + 30 + 45);
+    });
+  });
+
+  describe("withSlideTypeFont", () => {
+    const settings = {
+      textSlideTextFont: "Lora",
+      textSlideTextSizePx: 60,
+      textSlideTextBold: false,
+      textSlideTextItalic: false,
+      hymnTextFont: "Inter",
+      hymnTextSizePx: 70,
+      hymnTextBold: true,
+      prayerTextFont: "Raleway",
+      prayerTextSizePx: 0,
+      prayerTextItalic: true
+    };
+
+    test("hymn and prayer slides use their own font choices", () => {
+      expect(withSlideTypeFont(settings, "hymn")).toMatchObject({
+        textSlideTextFont: "Inter", textSlideTextSizePx: 70, textSlideTextBold: true
+      });
+      expect(withSlideTypeFont(settings, "prayer")).toMatchObject({
+        textSlideTextFont: "Raleway", textSlideTextItalic: true
+      });
+    });
+
+    test("text and other slides keep the Text choice", () => {
+      expect(withSlideTypeFont(settings, "text")).toBe(settings);
+      expect(withSlideTypeFont(settings, "reading")).toBe(settings);
     });
   });
 
