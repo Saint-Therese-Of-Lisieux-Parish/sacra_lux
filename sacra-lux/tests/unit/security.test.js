@@ -589,6 +589,17 @@ describe("security", () => {
     nowSpy.mockRestore();
   });
 
+  test("throttle warnings strip line breaks from client input", () => {
+    const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    const middleware = security.createRateLimitMiddleware({ bucket: "global", windowMs: 60000, max: 1, label: "global-api", keyFn: () => "k1" });
+    const makeRes = () => ({ set: jest.fn(), status: jest.fn().mockReturnThis(), json: jest.fn() });
+    const req = { method: "GET", originalUrl: "/a\r\n[fake] forged line" };
+    middleware(req, makeRes(), jest.fn());
+    middleware(req, makeRes(), jest.fn());
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).not.toMatch(/[\r\n]/);
+  });
+
   test("log line for a socket throttle carries the retry detail", () => {
     const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {});
     const guard = security.createSocketRateLimitGuard({ bucket: "auth", windowMs: 1000, max: 1, label: "auth-api" });

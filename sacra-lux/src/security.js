@@ -282,9 +282,11 @@ function evaluateRateLimit({ bucket, key, windowMs, max, now = Date.now() }) {
 const RATE_LIMIT_LOG_WINDOW_MS = 60 * 1000;
 const rateLimitLogState = new Map();
 
-function logRateLimitExceeded(label, key, details = "", windowMs = RATE_LIMIT_LOG_WINDOW_MS) {
+function logRateLimitExceeded(rawLabel, rawKey, rawDetails = "", windowMs = RATE_LIMIT_LOG_WINDOW_MS) {
+  // Client input reaches the log line, so strip line breaks to stop log forging.
+  const [label, key, details] = [rawLabel, rawKey, rawDetails].map((value) => String(value).replace(/[\r\n]/g, " "));
   const now = Date.now();
-  const logKey = `${label}|${key}|${details.replace(/\s*retry-after=\S+/, "")}`;
+  const logKey = `${label}|${key}|${details.split(" retry-after=")[0]}`;
   const entry = rateLimitLogState.get(logKey);
   if (entry && entry.nextLogAt > now) {
     entry.suppressed += 1;
