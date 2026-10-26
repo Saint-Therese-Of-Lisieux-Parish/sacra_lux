@@ -4562,6 +4562,10 @@
       movieDropZone: document.getElementById("movieDropZone")
     };
 
+    document.addEventListener("desktop-status", (event) => {
+      els.status.textContent = String(event.detail || "");
+    });
+
     let editorPreviewSlides = [];
     let editorPreviewIndex = 0;
     let editorPreviewCountdownEndsAt = null;
