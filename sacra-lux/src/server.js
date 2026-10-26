@@ -445,6 +445,28 @@ function rewriteLegacyUploadRefs(value) {
   return value;
 }
 
+const ALLOWED_MEDIA_URL_PREFIXES = ["/api/mass-asset/", "/static/assets/", "/static/backgrounds/"];
+
+function isAllowedMediaUrl(value) {
+  return ALLOWED_MEDIA_URL_PREFIXES.some((prefix) => value.startsWith(prefix));
+}
+
+/** Return an error message for the first image URL in the organizer payload that has a bad prefix. */
+function manualSlideUrlError(manualSlides) {
+  for (const manual of Object.values(manualSlides && typeof manualSlides === "object" ? manualSlides : {})) {
+    const urls = [manual?.imageUrl];
+    if (Array.isArray(manual?.images)) {
+      urls.push(...manual.images.map((entry) => (typeof entry === "string" ? entry : entry?.url)));
+    }
+    for (const url of urls) {
+      if (typeof url === "string" && url.trim() && !isAllowedMediaUrl(url.trim())) {
+        return "Image URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.";
+      }
+    }
+  }
+  return "";
+}
+
 function parseMassZipDefinition(definitionEntry) {
   const text = readZipEntryData(definitionEntry).toString("utf8");
   let definition;
@@ -2587,7 +2609,15 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/screen-settings", (req, res) => {
     try {
-      state.screenSettings = normalizeScreenSettings(req.body || {});
+      const body = req.body || {};
+      for (const key of ["darkBackgroundUrl", "lightBackgroundUrl", "colorBackgroundUrl", "imageBackgroundUrl", "wordBackgroundUrl", "graphicBackgroundUrl"]) {
+        if (typeof body[key] === "string" && body[key] && !isAllowedMediaUrl(body[key])) {
+          return res.status(400).json({
+            error: "Background URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/."
+          });
+        }
+      }
+      state.screenSettings = normalizeScreenSettings(body);
       repaginateReadingSlidesIfNeeded();
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -3414,6 +3444,11 @@ function startServer(port = 17841, options = {}) {
       const { sequence, manualSlides } = req.body || {};
       if (!Array.isArray(sequence)) {
         return res.status(400).json({ error: "sequence array is required." });
+      }
+
+      const urlError = manualSlideUrlError(manualSlides);
+      if (urlError) {
+        return res.status(400).json({ error: urlError });
       }
 
       for (const manual of Object.values(manualSlides && typeof manualSlides === "object" ? manualSlides : {})) {

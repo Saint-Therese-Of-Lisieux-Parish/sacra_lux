@@ -11,8 +11,8 @@ describe("screen settings normalization", () => {
   let state;
 
   const fullInput = {
-    colorBackgroundUrl: "/static/dark.png",
-    graphicBackgroundUrl: "/static/light.png",
+    colorBackgroundUrl: "/static/assets/dark.png",
+    graphicBackgroundUrl: "/static/assets/light.png",
     fontFamily: "Lora",
     fontSizePx: 72,
     boldText: true,
@@ -130,8 +130,8 @@ describe("screen settings normalization", () => {
     const settings = await post(fullInput);
 
     expect(settings).toMatchObject({
-      darkBackgroundUrl: "/static/dark.png",
-      lightBackgroundUrl: "/static/light.png",
+      darkBackgroundUrl: "/static/assets/dark.png",
+      lightBackgroundUrl: "/static/assets/light.png",
       fontFamily: "Lora",
       fontSizePx: 72,
       resolution: "4k",
@@ -308,5 +308,42 @@ describe("screen settings normalization", () => {
     expect(settings.textSlideMarginXPx).toBe(150);
     expect(settings.textSlideMarginYPx).toBe(80);
     expect(settings.textSlideTextHeightPx).toBe(900);
+  });
+  test("rejects a background URL with an unknown prefix (R2)", async () => {
+    const before = { ...state.screenSettings };
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      await request(app)
+        .post("/api/screen-settings")
+        .send({ [key]: "javascript:alert(1)" })
+        .expect(400);
+    }
+    expect(state.screenSettings).toEqual(before);
+  });
+
+  test("accepts the default and Mass asset background URLs (R2)", async () => {
+    await request(app)
+      .post("/api/screen-settings")
+      .send({
+        darkBackgroundUrl: "/static/assets/default-text-background.avif",
+        lightBackgroundUrl: "/api/mass-asset/light.png"
+      })
+      .expect(200);
+  });
+
+  test("rejects an organizer image URL with an unknown prefix (R1)", async () => {
+    const sequence = [{ id: "img-1", type: "image", label: "Image", phase: "mass" }];
+    for (const manual of [
+      { imageUrl: "javascript:alert(1)" },
+      { images: [{ url: "https://example.com/a.png", name: "a.png" }] }
+    ]) {
+      await request(app)
+        .post("/api/organizer")
+        .send({ sequence, manualSlides: { "img-1": manual } })
+        .expect(400);
+    }
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "img-1": { imageUrl: "/api/mass-asset/a.png" } } })
+      .expect(200);
   });
 });
