@@ -104,6 +104,21 @@ Durable session fields:
 `MAX_SINGLE_UPLOAD_BYTES` is 140 MB. The HTTP upload routes and the Electron
 file pickers share this limit.
 
+### `src/hostGuard.js`
+
+`createHostGuard()` checks the `Host` and `Origin` headers. It blocks DNS
+rebinding and cross-site requests to the local server. It gives an Express
+middleware and a Socket.IO `allowRequest` callback. Allowed hosts are
+loopback addresses, addresses of local network interfaces, and the networks
+and host names in `SACRA_LUX_ALLOWED_NETWORKS`. A request with a host that is
+not allowed gets HTTP 403.
+
+### `src/readingEndings.js`
+
+`endingForSection()` returns the spoken ending for a reading section, for
+example "The Word of the Lord." or "The Gospel of the Lord.". It returns
+`null` when the section has no ending.
+
 ### `src/security.js`
 
 Security primitives:
