@@ -136,7 +136,8 @@ Sacra Lux stores mutable runtime data in `~/.sacra-lux/`:
 - `session.json` — persisted session (version 2)
 - `current_mass/` — active Mass package (`mass.json`, readings, `assets/`)
 - `mass_history/` — archived Mass folders and compressed ZIPs
-- `prayers/` — prayer text storage
+
+Prayer texts ship in `prayers/` next to this package. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
 
 `current_mass/` is treated as the active self-contained Mass package and is
 preferred during restore. Its `mass.json` is a version 3 Mass Document; see

@@ -218,6 +218,7 @@ Sacra Lux keeps runtime files under `~/.sacra-lux/`:
 - `session.json` — the saved session
 - `current_mass/` — the active Mass package (`mass.json`, readings, `assets/`)
 - `mass_history/` — archived Masses
-- `prayers/` — the prayer library
+
+Prayer texts ship in `sacra-lux/prayers/`. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
 
 Use **📁 Open Mass Folder** (Electron) to open `current_mass/`.
