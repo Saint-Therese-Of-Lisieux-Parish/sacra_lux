@@ -7,7 +7,7 @@ harness. Every source file has an entry.
 
 ### `src/server.js`
 
-HTTP and Socket.IO composition root, 4169 lines. Owns:
+HTTP and Socket.IO composition root, 4195 lines. Owns:
 
 - route registration and the control-auth `/api` middleware
 - socket event handling and the `withControl()` guard
@@ -45,6 +45,10 @@ Pure organizer logic (no I/O):
 - derive presentation slides per type, including text hard-break splitting and
   image-slideshow expansion
 - compute image-slideshow runtime as image count times seconds per image times loop count. A crossfade does not add time.
+
+### `src/readingEndings.js`
+
+`endingForSection()` returns the spoken ending for a section name or a display label. Readings I through VII, the Epistle, the psalm, and the matching display labels use `The Word of the Lord.` The Gospel uses `The Gospel of the Lord.` Verse Before the Gospel has no ending. A suffix such as ` (Alternate 1)` does not change the ending.
 
 ### `src/readingsImporter.js`
 
@@ -155,7 +159,8 @@ Small runtime logging wrapper with `info` and `warn`.
 
 Writes the SACRA LUX startup banner once. `npm start` and `npm run web` call
 `writeStartupBanner()`. The banner is skipped when stdout is not a TTY or when
-logs are quiet. Color is omitted when `NO_COLOR` is set.
+logs are quiet. When color is on, SACRA uses a blue gradient and LUX uses gold.
+The version line is blue. Color is omitted when `NO_COLOR` is set.
 
 ### `src/ipcHandlers.js`
 
@@ -237,16 +242,29 @@ All suites isolate `HOME` through this helper; tests never touch the real
 
 ### `tests/unit/`
 
-Pure-module tests: `lectionaryRss`, `logger`, `massDocument`, `massHistory`,
-`movieAdvance`, `organizer`, `persistence`, `preload`, `publicClientMarkup`,
-`readingsImporter`, `security`, `sharedClient`, `state`, `themes`, `web`.
+Unit test files:
+
+`atomicWrite`, `buildDefaultBackground`, `checkVersionBump`, `checkVersionSync`,
+`cliBanner`, `electronWindows`, `hostGuard`, `ipcHandlers`, `lectionaryRss`,
+`logger`, `massDocument`, `massDocumentFuzz`, `massDocumentValidation`,
+`massHistory`, `movieAdvance`, `organizer`, `paginationGolden`, `persistence`,
+`preload`, `publicClientMarkup`, `readingEndings`, `readingsImporter`,
+`readingsImporterErrors`, `scanReleaseZips`, `security`, `sharedClient`,
+`startupListenLog`, `state`, `textBounds`, `themeContrast`, `themes`, `web`,
+`windowSecurity`.
 
 ### `tests/integration/`
 
-Full server tests against isolated state: `server.api`, `massStartClock`,
-`movieAdvance`, `publicHtml`.
+Integration test files:
+
+`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`,
+`hostOriginGuard`, `importSettings`, `interstitialHold`, `longTitleSave`,
+`massStartClock`, `mediaTiming`, `migrationFixtures`, `movieAdvance`,
+`phaseTimers`, `publicHtml`, `remoteBlackout`, `screenSettings`,
+`securityHeaders`, `server.api`, `socketHandlers`, `zipImportFuzz`.
 
 ### `tests/e2e/`
 
-Playwright browser flows in `workflows.spec.js` covering themes, image
-slideshows, remote interactions, the PIN start flow, and loading readings.
+Playwright spec files: `accessibility.spec.js`, `massRehearsal.spec.js`,
+`offline.spec.js`, `screenshots.spec.js`, `workflows.spec.js`, and
+`xssPayloads.spec.js`.
