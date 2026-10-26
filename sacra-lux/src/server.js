@@ -3377,11 +3377,11 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/mass-history/:archiveId/compress", heavyRateLimit, async (req, res) => {
     try {
-      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const archivePaths = getArchivePaths(path.basename(String(req.params.archiveId || "")));
+      const { archiveId } = archivePaths;
       if (archiveId === state.activeMassArchiveId) {
         return res.status(400).json({ error: "The active Mass cannot be compressed." });
       }
-      const archivePaths = getArchivePaths(archiveId);
       if (!fs.existsSync(archivePaths.packageDir)) {
         return res.status(404).json({ error: "Mass archive package not found." });
       }
@@ -3404,7 +3404,7 @@ function startServer(port = 17841, options = {}) {
 
   app.delete("/api/mass-history/:archiveId", (req, res) => {
     try {
-      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const { archiveId } = getArchivePaths(path.basename(String(req.params.archiveId || "")));
       if (archiveId === state.activeMassArchiveId) {
         return res.status(400).json({ error: "The active Mass archive cannot be deleted." });
       }
