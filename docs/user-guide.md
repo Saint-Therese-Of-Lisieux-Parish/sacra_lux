@@ -66,7 +66,7 @@ Add slides with **➕ New Slide** and choose a type:
 | Image Slideshow | several images that cycle automatically |
 | Movie | a video file |
 | Countdown | a visual countdown timer |
-| Interstitial | a holding slide used by the remote |
+| Interstitial | an image slide used as a pause between other slides |
 
 Reorder rows with **▲ Up** and **▼ Down**, duplicate with **Duplicate**, and
 remove with **Delete**. Assign each item a section: **Pre-Mass**, **Gathering**,
@@ -136,14 +136,13 @@ The operator page does not show Prev, Next, or Black Screen buttons. Use the key
 ## The Phone Remote
 
 Open `/remote` on a phone on the same network, or scan the QR code shown on the
-idle projector. The remote is preview-first: a live projector preview sits at
-the top, with:
+idle projector. The remote shows a live projector preview at the top.
 
-- **Prev** / **Next**
-- a grouped list of slides for quick jumping
-- next-section advance
-- **Hold on interstitial** to pin the projector to an interstitial slide while
-  you navigate elsewhere, then release to resume the prior slide
+- Swipe left or right on the preview to move one slide.
+- Use the carousel under the preview. Double-tap a card to show that slide.
+- Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements.
+
+The remote has no Blackout, Start Mass, or Interstitial button. It does not send `screen:interstitial-hold`.
 
 ## Starting the Remote with a PIN
 

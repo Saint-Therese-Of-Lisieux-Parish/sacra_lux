@@ -17,7 +17,7 @@ operator app, projector screen, and phone remote synchronized in real time.
 - edit slides with live preview in the Slide Editor dialog
 - use volunteer-friendly organizer controls, keyboard navigation, and grouped remote controls
 - run pre-mass, gathering, and post-mass automation
-- hold the display on an interstitial slide from the phone remote and resume the previous slide cleanly
+- show the projector, a slide carousel, and a phase-grouped slide list on the phone remote
 - choose from twelve app UI themes, including liturgical seasons
 - manage Mass-local assets, background presets, and image-slideshow batches
 - archive, duplicate, load, compress, import, and export Mass packages

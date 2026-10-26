@@ -205,9 +205,9 @@ an idle QR/start overlay.
 
 ### `public/remote.html`
 
-Phone remote: prev/next, grouped slide jump list, next-section advance,
-interstitial hold toggle, PIN entry handoff, and a live embedded screen
-preview.
+Phone remote: a live screen preview, swipe and arrow-key slide changes, a
+slide carousel, and a phase-grouped jump list. It does not send
+`screen:interstitial-hold`. PIN entry is the `/start` page.
 
 ### `public/start.html`
 

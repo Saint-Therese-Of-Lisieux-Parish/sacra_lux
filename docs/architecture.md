@@ -128,9 +128,10 @@ via `image-slideshow:preload-error`, which drops the image from playable
 entries.
 
 Countdown slides temporarily take over auto-advance from the active phase
-timer. The remote interstitial-hold feature pauses active slide timers, swaps
-the rendered display to a chosen interstitial slide, then restores the previous
-slide and restarts timing as if the slide had just been selected.
+timer. A control client can send `screen:interstitial-hold`. The server then
+pauses active slide timers, swaps the rendered display to a chosen interstitial
+slide, and restores the previous slide on the next event. The current phone
+remote page does not send this event.
 
 ## Display Override Model
 
