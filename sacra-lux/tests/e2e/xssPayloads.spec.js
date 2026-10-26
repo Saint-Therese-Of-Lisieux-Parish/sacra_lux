@@ -125,7 +125,11 @@ test("operator UI keeps a hostile image URL out of the organizer markup", async 
   });
   expect(res.ok()).toBe(true);
   // The check needs no click, so it skips openOperator and its library dialog.
+  page.on("console", (m) => console.log("DBG console", m.type(), m.text()));
+  page.on("pageerror", (e) => console.log("DBG pageerror", e.message));
   await page.goto(`${baseUrl}/app`);
+  await page.waitForTimeout(8000);
+  console.log("DBG html", (await page.content()).slice(0, 100), await page.locator("#sequenceList").innerHTML());
 
   await expect(page.locator("#sequenceList .sequence-item").first()).toBeAttached({ timeout: 30000 });
   await expectInert(page, problems);
