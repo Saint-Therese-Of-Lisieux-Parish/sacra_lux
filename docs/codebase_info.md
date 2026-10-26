@@ -4,7 +4,7 @@
 
 - name: Sacra Lux
 - package: `sacra-lux`
-- version: `0.0.227-alpha`
+- version: `0.0.228-alpha`
 - author: Robert Toups
 - license: ISC
 - repository: `https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux.git`
@@ -57,7 +57,8 @@ Sacra Lux writes runtime data under `~/.sacra-lux/`:
 | `session.json.bak` | prior session snapshot for recovery after damage |
 | `current_mass/` | active Mass package: readings `.txt`, `mass.json`, and `assets/` |
 | `mass_history/<id>/` | archived Mass package, `metadata.json`, and optional `archive-avif.zip` |
-| `prayers/` | prayer text storage |
+
+Prayer texts ship in `sacra-lux/prayers/`. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
 
 `current_mass/` is a self-contained package and is preferred over
 `session.json` during restore. Tests redirect `HOME` to a temp directory so
