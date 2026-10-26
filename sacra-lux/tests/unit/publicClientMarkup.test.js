@@ -53,8 +53,8 @@ describe("public client markup guards", () => {
 
     expect(appHtml).toContain('id="readingShowEnding"');
     expect(appHtml).toContain("readingShowEnding: Boolean(els.readingShowEnding.checked)");
-    expect(screenHtml).toContain("settings.readingShowEnding !== false");
-    expect(screenHtml).toContain("groupSettings.readingShowEnding !== false");
+    expect(appHtml).toContain("on its own slide after the last page");
+    expect(screenHtml).toContain("slide.isEndingSlide");
   });
 
   test("slide type tabs pick the bounds layout and no Layout dropdown shows", () => {

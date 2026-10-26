@@ -90,11 +90,11 @@ describe("readingsImporter error paths", () => {
     expect(narrow.length).toBeGreaterThan(wide.length);
   });
 
-  test("moves overflow ahead of the last page when the ending needs room", () => {
+  test("keeps the scripture text whole when the ending has its own slide", () => {
     const lines = Array.from({ length: 12 }, (_, i) => `Line ${i} of a short reading.`);
     const docs = [{ stem: "R", section: "Gospel", passage: "P", textLines: lines, ending: "The Gospel of the Lord." }];
     const slides = paginateDocuments(docs, { fontSizePx: 60, readingTextHeightPx: 840 });
-    const text = slides.map((s) => s.text).join("\n").split("\n");
+    const text = slides.filter((s) => !s.isEndingSlide).map((s) => s.text).join("\n").split("\n");
     expect(text).toEqual(lines);
     expect(slides[slides.length - 1].ending).toBe("The Gospel of the Lord.");
   });

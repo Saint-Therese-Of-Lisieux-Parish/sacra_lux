@@ -230,7 +230,7 @@ A section title setting that is not saved starts at the matching reference value
 - `readingSectionOutlineWidthPx` — clamped 0.5–20
 - `readingShowPageNumber`
 - `readingShowLabel`
-- `readingShowEnding` — show the spoken ending on the last page
+- `readingShowEnding` — show the spoken ending on its own slide after the last page
 
 ### Text, prayer, and hymn fields
 

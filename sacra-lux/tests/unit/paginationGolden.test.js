@@ -115,16 +115,15 @@ describe("reading pagination golden tests", () => {
     }
   });
 
-  test("a liturgical ending reserves room on the last page", () => {
+  test("a liturgical ending adds its own slide without moving scripture pages", () => {
     const withEnding = { ...READING, ending: "The word of the Lord." };
 
-    // Without the ending, 1440p at 60 px fits the text on 6 pages. The ending
-    // block needs room, so the last lines move to a 7th page.
     expect(paginate(READING, "1440p", 60)).toHaveLength(6);
-    // The cache key ignores the ending (see issue #168), so clear it first.
+    // The cache key ignores the ending text change risk (see issue #168), so clear it first.
     clearPaginationCache();
     const ended = paginate(withEnding, "1440p", 60);
     expect(ended).toHaveLength(7);
+    expect(ended[ended.length - 1].isEndingSlide).toBe(true);
     expect(ended[ended.length - 1].isLastPage).toBe(true);
   });
 });

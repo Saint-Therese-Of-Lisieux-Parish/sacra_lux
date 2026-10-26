@@ -43,7 +43,8 @@ function _createPaginationCacheKey(documents, options) {
     readingTextBold: options.readingTextBold,
     readingTextItalic: options.readingTextItalic,
     readingLetterSpacingPx: options.readingLetterSpacingPx,
-    psalmRefrainIndex: options.psalmRefrainIndex
+    psalmRefrainIndex: options.psalmRefrainIndex,
+    readingShowEnding: options.readingShowEnding !== false
   }));
   return hash.digest("hex").slice(0, 24);
 }
@@ -163,17 +164,6 @@ function clamp(num, min, max) {
 // Match the default CSS reading line-height.
 const DEFAULT_LINE_HEIGHT = 1.58;
 
-// The .reading-ending block (shown only on the last page) uses font-size: 0.78em,
-// so its em-based properties resolve against 0.78 × parentFontSize:
-//   margin-top: 1.4em × 0.78 + padding-top: 0.6em × 0.78 + one text line: 0.78 × lineHeight
-// = (1.4 + 0.6 + lineHeight) × 0.78
-// We add a small buffer (0.2 ems) for rounding safety.
-const ENDING_FONT_SCALE = 0.78;
-
-function endingOverheadEms(lineHeight) {
-  return (1.4 + 0.6 + lineHeight) * ENDING_FONT_SCALE + 0.2;
-}
-
 // Use a conservative average character-width ratio for common serif fonts.
 const AVG_CHAR_WIDTH_RATIO = 0.55;
 
@@ -222,18 +212,6 @@ function estimateLinesPerPage(fontSizePx, readingTextHeightPx, lineHeight) {
   const lh = Number(lineHeight) || DEFAULT_LINE_HEIGHT;
   const lineHeightPx = size * lh;
   return clamp(Math.floor(boxHeight / lineHeightPx), 1, 20);
-}
-
-/**
- * Return the maximum line count that fits on a slide with an ending block.
- */
-function estimateEndingPageLines(fontSizePx, readingTextHeightPx, lineHeight) {
-  const size = clamp(Number(fontSizePx) || 60, 24, 200);
-  const boxHeight = clamp(Number(readingTextHeightPx) || 840, 120, 980);
-  const lh = Number(lineHeight) || DEFAULT_LINE_HEIGHT;
-  const lineHeightPx = size * lh;
-  const endingPx = size * endingOverheadEms(lh);
-  return clamp(Math.floor((boxHeight - endingPx) / lineHeightPx), 1, 20);
 }
 
 function isOrMarker(line) {
@@ -536,7 +514,6 @@ function paginateDocuments(documents, options = {}) {
   const slides = [];
 
   for (const doc of documents) {
-    const hasEnding = doc.ending != null;
     const visualLimit = estimateLinesPerPage(fontSizePx, options.readingTextHeightPx, lineHeight);
     const isPsalm = /psalm|responsorial/i.test(doc.section);
 
@@ -552,48 +529,15 @@ function paginateDocuments(documents, options = {}) {
       pages.push(...segPages);
     }
 
-    // For readings with a liturgical ending, ensure the last page has few
-    // enough visual lines for the ending block to fit without overflow.
-    if (hasEnding && pages.length > 0) {
-      const endingLimit = estimateEndingPageLines(fontSizePx, options.readingTextHeightPx, lineHeight);
-      if (endingLimit < visualLimit) {
-        const lastIdx = pages.length - 1;
-        const lastLines = pages[lastIdx].split("\n");
-        const lastVisualLines = countVisualLines(lastLines, fontSizePx, boxWidthPx);
-        if (lastVisualLines > endingLimit) {
-          // Trim source lines from the end of the last page until visual lines fit.
-          // Push overflow into new page(s) inserted just before it.
-          let keepCount = lastLines.length;
-          while (keepCount > 1 && countVisualLines(lastLines.slice(lastLines.length - keepCount), fontSizePx, boxWidthPx) > endingLimit) {
-            keepCount--;
-          }
-          const overflowLines = lastLines.slice(0, lastLines.length - keepCount);
-          pages[lastIdx] = lastLines.slice(lastLines.length - keepCount).join("\n");
-          // Chunk overflow at normal capacity and insert before the last page.
-          while (overflowLines.length > 0) {
-            // Take lines until we hit the visual limit.
-            let chunkEnd = 0;
-            let vCount = 0;
-            while (chunkEnd < overflowLines.length) {
-              const lv = estimateVisualLines(overflowLines[chunkEnd], fontSizePx, boxWidthPx);
-              if (vCount + lv > visualLimit && chunkEnd > 0) break;
-              vCount += lv;
-              chunkEnd++;
-            }
-            const chunk = overflowLines.splice(0, chunkEnd);
-            pages.splice(pages.length - 1, 0, chunk.join("\n"));
-          }
-        }
-      }
-    }
-
     if (pages.length === 0) continue;
+
+    const showEnding = options.readingShowEnding !== false && doc.ending != null;
 
     const totalPages = pages.length;
 
     for (let i = 0; i < pages.length; i++) {
       const pageNumber = i + 1;
-      const isLastPage = i === pages.length - 1;
+      const isLastPage = i === pages.length - 1 && !showEnding;
 
       const title =
         totalPages > 1
@@ -611,7 +555,26 @@ function paginateDocuments(documents, options = {}) {
         totalPages,
         isFirstPage: i === 0,
         isLastPage,
-        ending: isLastPage ? doc.ending : null,
+        ending: null,
+        notes: ""
+      });
+    }
+
+    // The spoken ending gets its own slide after the last scripture slide.
+    if (showEnding) {
+      slides.push({
+        id: `reading-${doc.stem}-ending`,
+        type: "reading",
+        title: `${doc.section} — ${doc.passage} (Ending)`,
+        text: "",
+        readingSection: doc.section,
+        passage: doc.passage,
+        pageNumber: totalPages,
+        totalPages,
+        isFirstPage: false,
+        isLastPage: true,
+        isEndingSlide: true,
+        ending: doc.ending,
         notes: ""
       });
     }
