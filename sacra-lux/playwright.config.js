@@ -11,6 +11,8 @@ module.exports = defineConfig({
   snapshotPathTemplate: "{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{-snapshotSuffix}{ext}",
   fullyParallel: false,
   workers: 1,
+  // One retry on CI absorbs a slow runner. A test that passes on retry shows as flaky in the report.
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     trace: "retain-on-failure",
