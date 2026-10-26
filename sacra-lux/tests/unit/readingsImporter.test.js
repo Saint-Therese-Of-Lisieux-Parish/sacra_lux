@@ -242,6 +242,15 @@ describe("spoken reading endings", () => {
     expect(endings.Gospel).toBe("The Gospel of the Lord.");
   });
 
+  test("assigns the spoken ending to a Gospel alternate", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "mass-endings-alt-"));
+    fs.writeFileSync(path.join(root, "Gospel-alternate_1.txt"), "John 1:1-5\n\nIn the beginning was the Word.", "utf8");
+    const result = importReadings(root, { fontSizePx: 60, fontFamily: "Merriweather", readingTextHeightPx: 840 });
+
+    expect(result.documents[0].section).toBe("Gospel (Alternate 1)");
+    expect(result.documents[0].ending).toBe("The Gospel of the Lord.");
+  });
+
   test("shows the spoken ending only on the last page", () => {
     const longText = Array.from({ length: 24 }, (_, index) => `Line ${index + 1} of the reading.`);
     const slides = paginateDocuments([
