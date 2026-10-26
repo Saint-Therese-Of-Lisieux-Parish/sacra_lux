@@ -4645,6 +4645,7 @@
     function boundsPreviewSettings() {
       return {
         ...(uiState.data?.screenSettings || {}),
+        ...getScreenSettingsPayload(),
         textBounds: normalizeAllTextBounds(globalTextBoundsDraft)
       };
     }
@@ -4709,7 +4710,8 @@
           label: "Sample",
           phase: "mass",
           backgroundTheme: "dark",
-          manualSlide: { text: TEXT_BOUNDS_SAMPLE }
+          manualSlide: { text: TEXT_BOUNDS_SAMPLE },
+          overrideSettings: boundsPreviewSettings()
         };
       const requestKey = JSON.stringify(body);
       if (requestKey === preview.requestKey && !preview.fetchError) return;
@@ -6732,6 +6734,8 @@
     }
 
     function scheduleAutoApply() {
+      // Repaginate the settings preview with the draft values before the save lands.
+      if (typeof scheduleBoundsPreviewRefresh === "function") scheduleBoundsPreviewRefresh("global");
       clearTimeout(window.__autoApplyTimer);
       window.__autoApplyTimer = setTimeout(() => {
         window.__autoApplyTimer = null;
