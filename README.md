@@ -219,7 +219,6 @@ Supported import and export paths:
 
 | Action | Path |
 | --- | --- |
-| Load a readings folder | `POST /api/load-readings` copies the folder into `current_mass`. |
 | New Mass from the USCCB feed | The new-Mass flow reads the Daily Readings RSS feed at [bible.usccb.org/readings.rss](https://bible.usccb.org/readings.rss). |
 | Import a Mass ZIP | `POST /api/import-mass-zip`. The ZIP layout is in [docs/zip-import.md](./docs/zip-import.md). |
 | Import settings JSON | `POST /api/import-settings`. |

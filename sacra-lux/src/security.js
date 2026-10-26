@@ -475,7 +475,6 @@ module.exports = {
   createSocketRateLimitGuard,
   getActiveLock,
   getClientIp,
-  getRequestAddress,
   getValidControlSessionToken,
   hasPinConfigured,
   isLoopbackAddress,
