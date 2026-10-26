@@ -146,16 +146,8 @@
       backdrop-filter: blur(10px);
     }
 
-    .controls-row button,
     .cue-btn {
       min-height: 44px;
-    }
-
-    .controls-row {
-      padding: 0 0.72rem var(--remote-stack-gap);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.45rem;
     }
 
     .remote-status {
@@ -512,11 +504,6 @@
 
     </section>
 
-    <section id="blackSection" class="controls-row">
-      <button id="blackoutBtn" class="danger" style="font-size:0.82rem" aria-pressed="false">Blackout</button>
-      <button id="interstitialBtn" class="danger" style="font-size:0.82rem">Interstitial Slide</button>
-      <button id="nextSectionBtn" class="primary" style="font-size:0.82rem">Next Slide Group</button>
-    </section>
     <p id="remoteStatus" class="remote-status" role="status" aria-live="polite"></p>
 
     <section class="card" style="padding: 0.35rem 0.35rem 0.12rem">
@@ -535,9 +522,6 @@
       splashMassStart: document.getElementById("splashMassStart"),
       splashSlideCount: document.getElementById("splashSlideCount"),
       cueList: document.getElementById("cueList"),
-      blackoutBtn: document.getElementById("blackoutBtn"),
-      interstitialBtn: document.getElementById("interstitialBtn"),
-      nextSectionBtn: document.getElementById("nextSectionBtn"),
       remoteStatus: document.getElementById("remoteStatus"),
       previewDock: document.getElementById("previewDock"),
       previewCarousel: document.getElementById("previewCarousel"),
@@ -607,8 +591,6 @@
       }
     });
 
-    let interstitialHoldActive = false;
-    let interstitialReturnChoice = null;
     let currentSlides = [];
     let currentActive = 0;
     let carouselFocusIndex = 0;
@@ -628,8 +610,6 @@
     let carouselAnimationTimeout = null;
     let previewSwipeStartX = null;
     let previewSwipeStartY = null;
-    let _preMassRunning = false;
-    let _currentPhase = null;
     let carouselSlots = [];
     let previewPinFrame = null;
     let suppressNextCarouselAnimation = false;
@@ -945,32 +925,14 @@
       const hadSlides = currentSlides.length > 0;
       latestState = state;
       applyRemoteTheme(state.appSettings?.theme || "carmelite");
-      const holdWasActive = interstitialHoldActive;
-      interstitialHoldActive = Boolean(state.interstitialHoldActive);
-      if (holdWasActive && !interstitialHoldActive) {
-        interstitialReturnChoice = null;
-      }
       currentSlides = state.presentation?.slides || [];
       currentActive = Number(state.currentSlideIndex) || 0;
       ensureCarouselWindow(currentActive);
-      _preMassRunning = Boolean(state.preMassRunning);
-      _currentPhase = currentSlides[currentActive]?.phase || null;
       const cues = currentSlides;
       const active = currentActive;
-      const hasInterstitial = currentSlides.some((slide) => slide.type === "interstitial");
 
       updateSplash(state);
       els.remoteStatus.textContent = "";
-      els.interstitialBtn.textContent = interstitialHoldActive ? "Return to Slide" : "Interstitial Slide";
-      els.interstitialBtn.disabled = !hasInterstitial;
-      const isBlack = Boolean(state.isBlack);
-      els.blackoutBtn.textContent = isBlack ? "Show Slide" : "Blackout";
-      els.blackoutBtn.setAttribute("aria-pressed", String(isBlack));
-
-      // Update the primary button. It becomes "Start Mass" only before Mass.
-      // After Mass the button stays "Next Slide Group" so it moves within post-Mass.
-      const isBeforeMass = _preMassRunning || _currentPhase === "pre";
-      els.nextSectionBtn.textContent = isBeforeMass ? "Start Mass" : "Next Slide Group";
 
       const shouldAnimateCarousel =
         hadSlides &&
@@ -1161,69 +1123,12 @@
       return tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
     }
 
-    // Store a cue the operator picks during a hold.
-    // Release then uses that cue. Next and previous do not store a cue.
-    function setInterstitialReturnChoice(index) {
-      if (!interstitialHoldActive) {
-        return;
-      }
-      interstitialReturnChoice = Number.isFinite(Number(index)) ? Number(index) : null;
-    }
-
-    els.blackoutBtn.addEventListener("click", () => {
-      socket.emit("screen:black", !(latestState && latestState.isBlack));
-    });
-    els.interstitialBtn.addEventListener("click", () => {
-      if (interstitialHoldActive) {
-        if (interstitialReturnChoice === null) {
-          socket.emit("screen:interstitial-hold");
-        } else {
-          socket.emit("screen:interstitial-hold", {
-            returnSlideIndex: interstitialReturnChoice,
-            explicitReturn: true
-          });
-        }
-        interstitialReturnChoice = null;
-        return;
-      }
-      interstitialReturnChoice = null;
-      socket.emit("screen:interstitial-hold");
-    });
-    els.nextSectionBtn.addEventListener("click", () => {
-      const isBeforeMass = _preMassRunning || _currentPhase === "pre";
-      if (isBeforeMass) {
-        // Before Mass: jump to the first Mass section slide.
-        const firstMass = currentSlides.find((s) => s.phase === "mass");
-        if (firstMass) {
-          goToRemoteSlide(firstMass.index);
-          scrollToPreview();
-        }
-        return;
-      }
-      // Otherwise advance to the next organizer group. During post-Mass the
-      // search stays in the post phase, so the Mass slides do not change.
-      const isPostMass = _currentPhase === "post";
-      const currentGroupId = currentSlides[currentActive]?.organizerItemId || currentSlides[currentActive]?.id;
-      const nextSlide = currentSlides.find((s) => {
-        if (isPostMass && s.phase !== "post") {
-          return false;
-        }
-        const gid = s.organizerItemId || s.id;
-        return s.index > currentActive && gid !== currentGroupId;
-      });
-      if (nextSlide) {
-        goToRemoteSlide(nextSlide.index);
-        scrollToPreview();
-      }
-    });
-
     els.cueList.addEventListener("click", (event) => {
       const btn = event.target.closest(".cue-btn");
       if (!btn) {
         return;
       }
       const index = Number(btn.dataset.index);
-      setInterstitialReturnChoice(index);
       goToRemoteSlide(index);
       scrollToPreview();
     });
@@ -1239,8 +1144,7 @@
       if (!Number.isFinite(index)) return;
       const now = Date.now();
       if (lastCarouselTap.index === index && now - lastCarouselTap.at < 350) {
-        setInterstitialReturnChoice(index);
-        goToRemoteSlide(index);
+          goToRemoteSlide(index);
         scrollToPreview();
         carouselSelectedIndex = index;
         carouselFocusIndex = index;
