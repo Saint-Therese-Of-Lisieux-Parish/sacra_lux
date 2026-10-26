@@ -6477,7 +6477,7 @@
 
       // Show where uploads will be saved in the image editor
       if (els.assetFolderHint) {
-        const folder = uiState.data?.readingsSource?.folderPath;
+        const folder = uiState.data?.readingsSource?.hasFolder;
         els.assetFolderHint.textContent = folder
           ? "Uploads saved to Mass assets folder"
           : "No Mass folder loaded \u2014 load readings first to save images alongside them.";
@@ -8806,7 +8806,7 @@
           editorPreviewIndex = 0;
           updateEditorPreview().catch(() => { });
           scheduleEditorSave();
-          const dest = uiState.data?.readingsSource?.folderPath
+          const dest = uiState.data?.readingsSource?.hasFolder
             ? "Mass assets folder"
             : "uploads folder";
           els.status.textContent = `Image saved to ${dest}.`;

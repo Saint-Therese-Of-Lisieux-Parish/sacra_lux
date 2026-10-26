@@ -89,6 +89,19 @@ describe("client state has no secrets or paths", () => {
     expectClean(snapshot);
   });
 
+  test("snapshot omits the Mass folder path but keeps a loaded flag (R1, R2)", () => {
+    const previous = state.readingsSource;
+    state.readingsSource = { folderPath: "/var/folders/xx/T/sacra-lux/.sacra-lux/current_mass", documents: [] };
+    try {
+      const snapshot = getStateSnapshot();
+      expect(snapshot.readingsSource.folderPath).toBeUndefined();
+      expect(snapshot.readingsSource.hasFolder).toBe(true);
+      expectClean(snapshot);
+    } finally {
+      state.readingsSource = previous;
+    }
+  });
+
   test("snapshot omits a legacy plain PIN (R1)", () => {
     state.startPin = PIN;
     try {

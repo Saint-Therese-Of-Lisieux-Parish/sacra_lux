@@ -115,6 +115,11 @@ function getStateSnapshot() {
   snap.controlMode = state.controlMode === "trusted-lan" ? "trusted-lan" : "unset";
   delete snap.startPin;
   delete snap.startPinHash;
+  // Expose only whether a Mass folder is loaded, not its absolute path.
+  if (snap.readingsSource) {
+    snap.readingsSource.hasFolder = Boolean(state.readingsSource?.folderPath);
+    delete snap.readingsSource.folderPath;
+  }
   delete snap.interstitialHoldReturnSlideIndex;
   delete snap.interstitialHoldResumeState;
   return snap;
