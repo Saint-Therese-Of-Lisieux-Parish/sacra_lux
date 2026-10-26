@@ -134,6 +134,14 @@ describe("public client markup guards", () => {
     expect(dialog).toContain('id="editorBoundsShow"');
   });
 
+  test("resolution is the last settings field and defaults to 1080p", () => {
+    const dialog = appHtml.slice(appHtml.indexOf('<dialog id="settingsDialog"'), appHtml.indexOf("</dialog>", appHtml.indexOf('<dialog id="settingsDialog"')));
+    const fieldIds = [...dialog.matchAll(/<(?:input|select|textarea)\b[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);
+    expect(fieldIds[fieldIds.length - 1]).toBe("screenResolution");
+    expect(dialog).toMatch(/<option value="1080p" selected>/);
+    expect(appHtml).toContain('resolution: els.screenResolution.value || "1080p"');
+  });
+
   test("backgrounds section names slide types and avoids the words Dark and Light", () => {
     const start = appHtml.indexOf('<div class="settings-section-label">Backgrounds</div>');
     const section = appHtml.slice(start, appHtml.indexOf("</section>", start));
