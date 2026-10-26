@@ -9192,16 +9192,8 @@
       const currentTitle = uiState.data?.presentation?.title || "";
       els.duplicateTitle.value = currentTitle;
 
-      const currentStart = uiState.data?.massStartTime;
-      if (currentStart) {
-        const next = new Date(new Date(currentStart).getTime() + 7 * 24 * 60 * 60 * 1000);
-        // Format as YYYY-MM-DDTHH:MM for datetime-local input
-        const pad = (n) => String(n).padStart(2, "0");
-        els.duplicateStartTime.value =
-          `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}T${pad(next.getHours())}:${pad(next.getMinutes())}`;
-      } else {
-        els.duplicateStartTime.value = "";
-      }
+      // Use calendar days so a daylight saving time change keeps the clock time.
+      els.duplicateStartTime.value = SacraLuxShared.addLocalDays(uiState.data?.massStartTime, 7);
       els.duplicateDialog.showModal();
     });
 

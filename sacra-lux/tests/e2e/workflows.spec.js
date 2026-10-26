@@ -1136,6 +1136,37 @@ test("remote controls keep a 44 px touch target", async ({ page }) => {
   }
 });
 
+test("Duplicate Mass keeps the start clock time across a daylight saving time change", async ({ browser, request }) => {
+  const created = await request.post(`${baseUrl}/api/new-mass`, { data: { title: "Daylight Saving Mass" } });
+  expect(created.ok()).toBeTruthy();
+
+  const context = await browser.newContext({ timezoneId: "America/Chicago" });
+  const page = await context.newPage();
+  const cases = [
+    ["2026-10-25T10:00", "2026-11-01T10:00"],
+    ["2026-03-01T10:00", "2026-03-08T10:00"],
+    ["2026-06-07T09:30", "2026-06-14T09:30"]
+  ];
+  try {
+    for (const [startTime, expectedTime] of cases) {
+      const setTime = await request.post(`${baseUrl}/api/start-time`, { data: { time: startTime } });
+      expect(setTime.ok()).toBeTruthy();
+
+      await page.goto(`${baseUrl}/`);
+      if (await page.locator("#massLibraryDialog").isVisible()) {
+        await page.locator("#massLibraryCloseBtn").click();
+      }
+      await page.locator("#duplicateMassBtn").click();
+      await expect(page.locator("#duplicateDialog")).toBeVisible();
+      await expect(page.locator("#duplicateStartTime")).toHaveValue(expectedTime);
+      await page.locator("#duplicateCancelBtn").click();
+    }
+  } finally {
+    await context.close();
+    await request.post(`${baseUrl}/api/start-time`, { data: { time: "" } });
+  }
+});
+
 test("start page validates PIN-gated mass start flow", async ({ page, request }) => {
   const setPin = await request.post(`${baseUrl}/api/start-pin`, {
     data: { pin: "1234" }
