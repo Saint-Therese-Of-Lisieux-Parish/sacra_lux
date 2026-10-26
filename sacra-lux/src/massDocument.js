@@ -140,6 +140,10 @@ function assetUrlFromRef(ref) {
   if (!match) {
     throw new ValidationError(`Unsupported asset ref "${normalized}".`);
   }
+  // Markup and control characters in a name can break out of HTML in a client.
+  if (/[\u0000-\u001f\u007f"<>`\\]/.test(match[1])) {
+    throw new ValidationError("Asset ref contains a character that is not allowed.");
+  }
   return assetUrlFromName(match[1]);
 }
 
