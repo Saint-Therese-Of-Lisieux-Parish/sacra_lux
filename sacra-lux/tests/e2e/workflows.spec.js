@@ -80,6 +80,46 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("Interstitial editor shows the built-in default image and offers it first in the asset list", async ({ page, request }) => {
+  const organizerRes = await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [
+        { id: "interstitial:default", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "light" }
+      ],
+      manualSlides: {
+        "interstitial:default": { text: "", notes: "", imageUrl: null }
+      }
+    }
+  });
+  expect(organizerRes.ok()).toBeTruthy();
+
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator('[data-edit-id="interstitial:default"]').click();
+
+  // R1: the preview shows the default image, not a broken image icon.
+  const preview = page.locator("#imagePreview");
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveAttribute("src", /\/static\/assets\/default-interstitial\.png$/);
+  await expect.poll(() => preview.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+
+  // R2: the built-in default is the first entry after the placeholder.
+  const options = page.locator("#editorAssetPicker option");
+  await expect(options.nth(1)).toHaveText("Default (built-in)");
+  await expect(options.nth(1)).toHaveAttribute("value", "/static/assets/default-interstitial.png");
+
+  // R3: selecting the default sets the Interstitial image to the default image.
+  await page.locator("#editorAssetPicker").selectOption("/static/assets/default-interstitial.png");
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.manualSlides["interstitial:default"]?.imageUrl;
+  }).toBe("/static/assets/default-interstitial.png");
+  await expect(preview).toHaveAttribute("src", /default-interstitial\.png$/);
+});
+
 test("Screen Settings Apply Changes & Close saves the settings and closes the dialog", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
