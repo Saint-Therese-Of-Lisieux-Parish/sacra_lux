@@ -247,7 +247,7 @@ Unit test files:
 `atomicWrite`, `buildDefaultBackground`, `checkVersionBump`, `checkVersionSync`,
 `cliBanner`, `electronWindows`, `hostGuard`, `ipcHandlers`, `lectionaryRss`,
 `logger`, `massDocument`, `massDocumentFuzz`, `massDocumentValidation`,
-`massHistory`, `movieAdvance`, `organizer`, `paginationGolden`, `persistence`,
+`massHistory`, `movieAdvance`, `organizer`, `paginationGolden`, `pdfFileName`, `persistence`,
 `preload`, `publicClientMarkup`, `readingEndings`, `readingsImporter`,
 `readingsImporterErrors`, `scanReleaseZips`, `security`, `sharedClient`,
 `startupListenLog`, `state`, `textBounds`, `themeContrast`, `themes`, `web`,
@@ -257,11 +257,13 @@ Unit test files:
 
 Integration test files:
 
-`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`,
-`hostOriginGuard`, `importSettings`, `interstitialHold`, `longTitleSave`,
-`massStartClock`, `mediaTiming`, `migrationFixtures`, `movieAdvance`,
-`phaseTimers`, `publicHtml`, `remoteBlackout`, `screenSettings`,
-`securityHeaders`, `server.api`, `socketHandlers`, `zipImportFuzz`.
+`activeArchiveGuard`, `archiveRestart`, `assetUrlEncoding`, `atomicMassWrites`,
+`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`, `flushOnQuit`,
+`flushPendingSave`, `hostOriginGuard`, `importSettings`, `interstitialHold`,
+`longTitleSave`, `massStartClock`, `mediaTiming`, `migrationFixtures`,
+`movieAdvance`, `phaseTimers`, `publicHtml`, `remoteBlackout`,
+`screenSettings`, `securityHeaders`, `server.api`, `socketHandlers`,
+`startPinLockout`, `zipImportFuzz`.
 
 ### `tests/e2e/`
 
