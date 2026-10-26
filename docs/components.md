@@ -111,7 +111,8 @@ rebinding and cross-site requests to the local server. It gives an Express
 middleware and a Socket.IO `allowRequest` callback. Allowed hosts are
 loopback addresses, addresses of local network interfaces, and the networks
 and host names in `SACRA_LUX_ALLOWED_NETWORKS`. A request with a host that is
-not allowed gets HTTP 403.
+not allowed gets HTTP 403. A state-changing request with
+`Sec-Fetch-Site: cross-site` also gets HTTP 403.
 
 ### `src/readingEndings.js`
 

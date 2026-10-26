@@ -50,6 +50,22 @@ describe("Host and Origin guard", () => {
     expect(after).toBe(before);
   });
 
+  test("R3: a POST with Sec-Fetch-Site cross-site returns 403", async () => {
+    const res = await request(handle.app)
+      .post("/api/update-title")
+      .set("Sec-Fetch-Site", "cross-site")
+      .send({ title: "Evil title" });
+    expect(res.status).toBe(403);
+  });
+
+  test("R3: a POST with Sec-Fetch-Site same-origin is not blocked by the site check", async () => {
+    const res = await request(handle.app)
+      .post("/api/update-title")
+      .set("Sec-Fetch-Site", "same-origin")
+      .send({ title: "Fine title" });
+    expect(res.status).not.toBe(403);
+  });
+
   test("R2: a socket handshake with a foreign Origin fails", async () => {
     const client = createClient(`http://127.0.0.1:${port}`, {
       transports: ["websocket"],

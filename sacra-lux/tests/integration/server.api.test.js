@@ -579,6 +579,20 @@ describe("server api integration", () => {
       expect(after.body.preMassRunning).toBe(false);
     });
 
+    test("a link from another site does not start pre-Mass", async () => {
+      await seedPreMassSlides();
+
+      await request(app)
+        .get("/api/start-redirect")
+        .set("Sec-Fetch-Site", "cross-site")
+        .expect(302)
+        .expect("Location", "/remote");
+
+      const after = await request(app).get("/api/state").expect(200);
+      expect(after.body.currentSlideIndex).toBe(1);
+      expect(after.body.preMassRunning).toBe(false);
+    });
+
     test("a loopback client starts pre-Mass", async () => {
       await seedPreMassSlides();
 

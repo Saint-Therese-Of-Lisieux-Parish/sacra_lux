@@ -2847,7 +2847,8 @@ function startServer(port = 17841, options = {}) {
       // running, only attaches. It must not rewind the projector.
       // A client without control permission (no PIN, non-loopback, control
       // mode unset) only attaches.
-      if (!massHasBegun && !phaseAlreadyRunning && clientMayControl(req)) {
+      // A link from another site only attaches. A GET must not start a phase for it.
+      if (!massHasBegun && !phaseAlreadyRunning && !hostGuard.isCrossSite(req) && clientMayControl(req)) {
         const firstPreIdx = slides.findIndex((s) => s.phase === "pre");
         if (firstPreIdx >= 0) {
           stopGatheringTimer();
