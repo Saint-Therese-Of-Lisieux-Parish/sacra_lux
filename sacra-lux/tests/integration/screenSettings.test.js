@@ -1,3 +1,4 @@
+const fc = require("fast-check");
 const request = require("supertest");
 
 const {
@@ -345,5 +346,34 @@ describe("screen settings normalization", () => {
       .post("/api/organizer")
       .send({ sequence, manualSlides: { "img-1": { imageUrl: "/api/mass-asset/a.png" } } })
       .expect(200);
+  });
+  test("keeps the current value when a numeric field is not a number (R1)", async () => {
+    await post({ readingTextSizePx: 0, readingLetterSpacingPx: 1.5, textSlideTextOutlineWidthPx: 4 });
+    const settings = await post({
+      readingTextSizePx: "abc",
+      readingLetterSpacingPx: "x",
+      textSlideTextOutlineWidthPx: "y"
+    });
+    expect(settings.readingTextSizePx).toBe(0);
+    expect(settings.readingLetterSpacingPx).toBe(1.5);
+    expect(settings.textSlideTextOutlineWidthPx).toBe(4);
+  });
+
+  test("stores only finite numbers for every numeric field (R2)", async () => {
+    const numericKeys = Object.entries(await post({}))
+      .filter(([, value]) => typeof value === "number")
+      .map(([key]) => key);
+    expect(numericKeys.length).toBeGreaterThan(10);
+
+    await fc.assert(
+      fc.asyncProperty(fc.array(fc.string(), { minLength: numericKeys.length, maxLength: numericKeys.length }), async (values) => {
+        const body = Object.fromEntries(numericKeys.map((key, index) => [key, values[index]]));
+        const settings = await post(body);
+        for (const key of numericKeys) {
+          expect(Number.isFinite(settings[key])).toBe(true);
+        }
+      }),
+      { numRuns: 25 }
+    );
   });
 });

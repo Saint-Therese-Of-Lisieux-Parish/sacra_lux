@@ -882,6 +882,13 @@ function restoreCurrentMassOrPrompt(ioRef, savedArchiveId = null) {
   }
 }
 
+/** Return `value` as a number when it is finite, otherwise `fallback`. A null value counts as missing. */
+function finiteOr(value, fallback) {
+  if (value == null) return fallback;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function normalizeScreenSettings(input = {}) {
   const current = state.screenSettings;
   const darkBackgroundUrl = input.darkBackgroundUrl ?? input.colorBackgroundUrl ?? input.wordBackgroundUrl;
@@ -896,7 +903,7 @@ function normalizeScreenSettings(input = {}) {
     : "middle";
   const readingTextFontRaw = String(input.readingTextFont ?? current.readingTextFont ?? "");
   const readingTextFont = GOOGLE_FONTS.has(readingTextFontRaw) ? readingTextFontRaw : "";
-  const readingTextSizePx = Math.min(200, Math.max(0, Number(input.readingTextSizePx ?? current.readingTextSizePx ?? 0)));
+  const readingTextSizePx = Math.min(200, Math.max(0, finiteOr(input.readingTextSizePx, finiteOr(current.readingTextSizePx, 0))));
   const readingPassageFontRaw = String(input.readingPassageFont ?? current.readingPassageFont ?? "Source Sans 3");
   const readingPassageFont = GOOGLE_FONTS.has(readingPassageFontRaw) ? readingPassageFontRaw : "Source Sans 3";
   const readingPassagePosition = ["top", "bottom"].includes(String(input.readingPassagePosition || current.readingPassagePosition || "top"))
@@ -949,9 +956,7 @@ function normalizeScreenSettings(input = {}) {
     readingPassageItalic: passageItalic,
     readingPassageShadow: passageShadow,
     readingPassageLineHeight: Math.round(Math.min(3, Math.max(1, Number(input.readingPassageLineHeight) || current.readingPassageLineHeight || 1.15)) * 100) / 100,
-    readingPassageLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, Number(
-      input.readingPassageLetterSpacingPx ?? current.readingPassageLetterSpacingPx ?? passageSizePx * 0.03
-    ))) * 10) / 10,
+    readingPassageLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, finiteOr(input.readingPassageLetterSpacingPx, finiteOr(current.readingPassageLetterSpacingPx, passageSizePx * 0.03)))) * 10) / 10,
     readingSectionFont: GOOGLE_FONTS.has(sectionFontRaw)
       ? sectionFontRaw
       : (GOOGLE_FONTS.has(current.readingSectionFont) ? current.readingSectionFont : readingPassageFont),
@@ -989,10 +994,10 @@ function normalizeScreenSettings(input = {}) {
     readingPassageColor: /^#[0-9a-fA-F]{6}$/.test(String(input.readingPassageColor || "")) ? String(input.readingPassageColor) : (current.readingPassageColor || "#e8d5a0"),
     readingPassageOutline: Boolean(input.readingPassageOutline ?? current.readingPassageOutline ?? false),
     readingPassageOutlineColor: /^#[0-9a-fA-F]{6}$/.test(String(input.readingPassageOutlineColor || "")) ? String(input.readingPassageOutlineColor) : (current.readingPassageOutlineColor || "#000000"),
-    readingPassageOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.readingPassageOutlineWidthPx ?? current.readingPassageOutlineWidthPx ?? 1))) * 10) / 10,
+    readingPassageOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, finiteOr(input.readingPassageOutlineWidthPx, finiteOr(current.readingPassageOutlineWidthPx, 1)))) * 10) / 10,
     readingSectionOutline: Boolean(input.readingSectionOutline ?? current.readingSectionOutline ?? false),
     readingSectionOutlineColor: /^#[0-9a-fA-F]{6}$/.test(String(input.readingSectionOutlineColor || "")) ? String(input.readingSectionOutlineColor) : (current.readingSectionOutlineColor || "#000000"),
-    readingSectionOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.readingSectionOutlineWidthPx ?? current.readingSectionOutlineWidthPx ?? 1))) * 10) / 10,
+    readingSectionOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, finiteOr(input.readingSectionOutlineWidthPx, finiteOr(current.readingSectionOutlineWidthPx, 1)))) * 10) / 10,
     readingShowPageNumber: Boolean(input.readingShowPageNumber ?? current.readingShowPageNumber ?? true),
     readingShowLabel: Boolean(input.readingShowLabel ?? current.readingShowLabel ?? true),
     readingShowEnding: Boolean(input.readingShowEnding ?? current.readingShowEnding ?? true),
@@ -1002,11 +1007,11 @@ function normalizeScreenSettings(input = {}) {
     readingPassageYPx: legacyGeometry.readingPassageYPx,
     readingPassageWidthPx: legacyGeometry.readingPassageWidthPx,
     readingLineHeight: Math.round(Math.min(3.0, Math.max(1.0, Number(input.readingLineHeight) || current.readingLineHeight || 1.58)) * 100) / 100,
-    readingLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, Number(input.readingLetterSpacingPx ?? current.readingLetterSpacingPx ?? 0))) * 10) / 10,
+    readingLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, finiteOr(input.readingLetterSpacingPx, finiteOr(current.readingLetterSpacingPx, 0)))) * 10) / 10,
     readingTextItalic: Boolean(input.readingTextItalic ?? current.readingTextItalic ?? false),
     readingTextOutline: Boolean(input.readingTextOutline ?? current.readingTextOutline ?? false),
     readingTextOutlineColor: /^#[0-9a-fA-F]{6}$/.test(String(input.readingTextOutlineColor || "")) ? String(input.readingTextOutlineColor) : (current.readingTextOutlineColor || "#000000"),
-    readingTextOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.readingTextOutlineWidthPx ?? current.readingTextOutlineWidthPx ?? 1))) * 10) / 10,
+    readingTextOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, finiteOr(input.readingTextOutlineWidthPx, finiteOr(current.readingTextOutlineWidthPx, 1)))) * 10) / 10,
     readingTextShadow: Boolean(input.readingTextShadow ?? current.readingTextShadow ?? true),
     // Text/Prayer/Hymn slide layout
     textSlideTextAlign: ["left", "center", "right"].includes(String(input.textSlideTextAlign || current.textSlideTextAlign || "center"))
@@ -1015,15 +1020,15 @@ function normalizeScreenSettings(input = {}) {
       ? String(input.textSlideTextVAlign || current.textSlideTextVAlign || "middle") : "middle",
     textSlideTextFont: GOOGLE_FONTS.has(String(input.textSlideTextFont ?? current.textSlideTextFont ?? ""))
       ? String(input.textSlideTextFont ?? current.textSlideTextFont ?? "") : "",
-    textSlideTextSizePx: Math.min(200, Math.max(0, Number(input.textSlideTextSizePx ?? current.textSlideTextSizePx ?? 0))),
+    textSlideTextSizePx: Math.min(200, Math.max(0, finiteOr(input.textSlideTextSizePx, finiteOr(current.textSlideTextSizePx, 0)))),
     textSlideTextBold: Boolean(input.textSlideTextBold ?? current.textSlideTextBold ?? false),
     textSlideTextItalic: Boolean(input.textSlideTextItalic ?? current.textSlideTextItalic ?? false),
     textSlideTextColor: /^#[0-9a-fA-F]{6}$/.test(String(input.textSlideTextColor || "")) ? String(input.textSlideTextColor) : (current.textSlideTextColor || "#f8f8f8"),
     textSlideLineHeight: Math.round(Math.min(3.0, Math.max(1.0, Number(input.textSlideLineHeight) || current.textSlideLineHeight || 1.55)) * 100) / 100,
-    textSlideLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, Number(input.textSlideLetterSpacingPx ?? current.textSlideLetterSpacingPx ?? 0))) * 10) / 10,
+    textSlideLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, finiteOr(input.textSlideLetterSpacingPx, finiteOr(current.textSlideLetterSpacingPx, 0)))) * 10) / 10,
     textSlideTextOutline: Boolean(input.textSlideTextOutline ?? current.textSlideTextOutline ?? false),
     textSlideTextOutlineColor: /^#[0-9a-fA-F]{6}$/.test(String(input.textSlideTextOutlineColor || "")) ? String(input.textSlideTextOutlineColor) : (current.textSlideTextOutlineColor || "#000000"),
-    textSlideTextOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, Number(input.textSlideTextOutlineWidthPx ?? current.textSlideTextOutlineWidthPx ?? 1))) * 10) / 10,
+    textSlideTextOutlineWidthPx: Math.round(Math.min(20, Math.max(0.5, finiteOr(input.textSlideTextOutlineWidthPx, finiteOr(current.textSlideTextOutlineWidthPx, 1)))) * 10) / 10,
     textSlideTextShadow: Boolean(input.textSlideTextShadow ?? current.textSlideTextShadow ?? true),
     textSlideShowPageNumber: Boolean(input.textSlideShowPageNumber ?? current.textSlideShowPageNumber ?? true),
     textSlideMarginXPx: legacyGeometry.textSlideMarginXPx,
