@@ -80,6 +80,25 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("Screen Settings Apply Changes & Close saves the settings and closes the dialog", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+  const applyButton = page.getByRole("button", { name: "Apply Changes & Close" });
+  await expect(applyButton).toBeVisible();
+
+  await page.locator("#fontSizePx").fill("64");
+  await applyButton.click();
+  await expect(page.locator("#settingsDialog")).not.toBeVisible();
+  await expect.poll(async () => {
+    const state = await (await request.get(`${baseUrl}/api/state`)).json();
+    return state.screenSettings.fontSizePx;
+  }).toBe(64);
+});
+
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
