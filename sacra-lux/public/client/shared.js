@@ -47,6 +47,21 @@
   }
 
   /**
+   * Add calendar days to a start time and keep the same local clock time.
+   * A local week is not always 168 hours: a daylight saving time change adds
+   * or removes one hour. Returns a datetime-local value (YYYY-MM-DDTHH:MM),
+   * or "" when the start time is not a valid date.
+   */
+  function addLocalDays(value, days) {
+    const date = new Date(String(value ?? ""));
+    if (Number.isNaN(date.getTime())) return "";
+    date.setDate(date.getDate() + (Number(days) || 0));
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+      `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  /**
    * Play time of one Pre-Mass, Gathering, or Post-Mass organizer item, in
    * seconds. The organizer list, the start preview, the slideshow editor, and
    * the server lead-in all use this one calculation.
@@ -156,6 +171,7 @@
     knownFontName,
     formatCountdownTime,
     formatDurationTime,
+    addLocalDays,
     itemRuntimeSeconds,
     slideshowRuntimeSeconds,
     withSlideTypeFont,

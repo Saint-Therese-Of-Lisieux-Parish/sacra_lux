@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
+  addLocalDays,
   escapeHtml,
   formatCountdownTime,
   formatDurationTime,
@@ -68,6 +69,39 @@ describe("shared client helpers", () => {
       expect(formatDurationTime(10.6)).toBe("00:11");
       expect(formatDurationTime(-5)).toBe("00:00");
       expect(formatDurationTime("abc")).toBe("00:00");
+    });
+  });
+
+  describe("addLocalDays", () => {
+    const originalTimeZone = process.env.TZ;
+
+    beforeEach(() => {
+      process.env.TZ = "America/Chicago";
+    });
+
+    afterEach(() => {
+      if (originalTimeZone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimeZone;
+    });
+
+    test("keeps the clock time when daylight saving time ends in the week", () => {
+      expect(addLocalDays("2026-10-25T10:00", 7)).toBe("2026-11-01T10:00");
+    });
+
+    test("keeps the clock time when daylight saving time starts in the week", () => {
+      expect(addLocalDays("2026-03-01T10:00", 7)).toBe("2026-03-08T10:00");
+    });
+
+    test("adds seven days when no daylight saving time change is in the week", () => {
+      expect(addLocalDays("2026-06-07T09:30", 7)).toBe("2026-06-14T09:30");
+      expect(addLocalDays("2026-12-27T17:00", 7)).toBe("2027-01-03T17:00");
+    });
+
+    test("returns an empty value for a missing or invalid start time", () => {
+      expect(addLocalDays(null, 7)).toBe("");
+      expect(addLocalDays(undefined, 7)).toBe("");
+      expect(addLocalDays("", 7)).toBe("");
+      expect(addLocalDays("not a date", 7)).toBe("");
     });
   });
 
