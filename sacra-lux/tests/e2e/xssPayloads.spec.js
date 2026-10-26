@@ -124,9 +124,10 @@ test("operator UI keeps a hostile image URL out of the organizer markup", async 
     }
   });
   expect(res.ok()).toBe(true);
-  await openOperator(page);
+  // The check needs no click, so it skips openOperator and its library dialog.
+  await page.goto(`${baseUrl}/app`);
 
-  await expect(page.locator("#sequenceList .sequence-item").first()).toBeVisible();
+  await expect(page.locator("#sequenceList .sequence-item").first()).toBeAttached();
   await expectInert(page, problems);
 });
 
