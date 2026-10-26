@@ -18,9 +18,11 @@ const { importReadings } = require("./readingsImporter");
 const { fetchUsccbDailyReadings } = require("./lectionaryRss");
 const {
   ValidationError,
+  assetUrlFromName,
   buildMassDocumentFromLegacyPackage,
   buildMassDocumentFromState,
   buildRuntimeStateFromMassDocument,
+  decodeAssetName,
   isMassDocumentV3,
   serializeReadingDocument
 } = require("./massDocument");
@@ -510,7 +512,7 @@ const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
 function rewriteLegacyUploadRefs(value) {
   if (typeof value === "string") {
     const match = value.match(/^\/static\/uploads\/([^/]+)$/);
-    return match ? `/api/mass-asset/${match[1]}` : value;
+    return match ? assetUrlFromName(match[1]) : value;
   }
   if (Array.isArray(value)) return value.map(rewriteLegacyUploadRefs);
   if (value && typeof value === "object") {
@@ -618,7 +620,7 @@ function saveMassAssetUpload(upload) {
     }
   }
   return {
-    url: `/api/mass-asset/${safeName}`,
+    url: assetUrlFromName(safeName),
     name: path.basename(String(upload.filename || safeName)).slice(0, 200),
     sha256: crypto.createHash("sha256").update(upload.bytes).digest("hex")
   };
@@ -747,7 +749,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
     }
     const assetMatch = String(ref).match(/\/api\/mass-asset\/([^/]+)$/);
     if (assetMatch) {
-      originalName = assetMatch[1];
+      originalName = decodeAssetName(assetMatch[1]);
       filePath = path.join(packageDir, "assets", originalName);
     }
     const uploadMatch = String(ref).match(/\/static\/uploads\/([^/]+)$/);
@@ -1315,10 +1317,17 @@ function stopImageSlideshowTimer({ resetProgress = true, clearError = false } = 
   if (clearError) state.imageSlideshowError = null;
 }
 
+function removeSavedMassAssets(savedAssets) {
+  const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+  for (const asset of savedAssets) {
+    fs.rmSync(path.join(assetsDir, path.basename(decodeAssetName(asset.url))), { force: true });
+  }
+}
+
 function slideshowAssetPathFromUrl(url) {
   const match = String(url || "").match(/^\/api\/mass-asset\/([^/]+)$/);
   if (!match) return null;
-  const filename = path.basename(match[1]);
+  const filename = path.basename(decodeAssetName(match[1]));
   const filePath = path.join(CURRENT_MASS_DIR, "assets", filename);
   if (!filePath.startsWith(path.join(CURRENT_MASS_DIR, "assets") + path.sep)) return null;
   return filePath;
@@ -2454,10 +2463,7 @@ function startServer(port = 17841, options = {}) {
           imported.push(saveMassAssetUpload(upload));
         }
       } catch (error) {
-        const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
-        for (const asset of imported) {
-          fs.rmSync(path.join(assetsDir, path.basename(asset.url)), { force: true });
-        }
+        removeSavedMassAssets(imported);
         throw error;
       }
       return res.json({ ok: true, images: imported });
@@ -2485,7 +2491,7 @@ function startServer(port = 17841, options = {}) {
         .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
       const assets = files.map((f) => ({
         name: f,
-        url: `/api/mass-asset/${f}`,
+        url: assetUrlFromName(f),
         mediaType: VIDEO_ASSET_EXT.has(path.extname(f).toLowerCase()) ? "video" : "image"
       }));
       return res.json({ assets });
@@ -4104,7 +4110,7 @@ function startServer(port = 17841, options = {}) {
 
           const assetMatch = url.match(/\/api\/mass-asset\/([^/]+)$/);
           if (assetMatch) {
-            originalName = assetMatch[1];
+            originalName = decodeAssetName(assetMatch[1]);
             filePath = path.join(assetsDir, originalName);
           }
           if (url.startsWith("/static/assets/")) continue;
@@ -4141,14 +4147,14 @@ function startServer(port = 17841, options = {}) {
         const massDocument = buildMassDocumentFromState(state);
         for (const item of massDocument.items || []) {
           if (item.asset?.ref) {
-            const url = `/api/mass-asset/${path.basename(item.asset.ref)}`;
+            const url = assetUrlFromName(path.basename(item.asset.ref));
             if (urlRemap.has(url)) {
               item.asset.ref = urlRemap.get(url);
             }
           }
           for (const asset of item.assets || []) {
             if (!asset?.ref) continue;
-            const url = `/api/mass-asset/${path.basename(asset.ref)}`;
+            const url = assetUrlFromName(path.basename(asset.ref));
             if (urlRemap.has(url)) {
               asset.ref = urlRemap.get(url);
             }
@@ -4159,7 +4165,7 @@ function startServer(port = 17841, options = {}) {
           if (ref && !String(ref).startsWith("assets/")) {
             continue;
           }
-          const url = ref ? `/api/mass-asset/${path.basename(ref)}` : null;
+          const url = ref ? assetUrlFromName(path.basename(ref)) : null;
           if (url && urlRemap.has(url)) {
             massDocument.presentationDefaults[key] = urlRemap.get(url);
           }

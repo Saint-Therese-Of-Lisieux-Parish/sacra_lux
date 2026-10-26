@@ -26,13 +26,13 @@ describe("Mass archive across restarts", () => {
   });
 
   test("three restarts with a save after each keep one archive active", async () => {
-    let { handle, server } = await boot();
-    await request(handle.app).post("/api/new-mass").send({ title: "Sunday Mass", startTime: "2026-04-01T09:00" }).expect(200);
+    const first = await boot();
+    await request(first.handle.app).post("/api/new-mass").send({ title: "Sunday Mass", startTime: "2026-04-01T09:00" }).expect(200);
     await new Promise((resolve) => setTimeout(resolve, 700));
-    await handle.stop();
+    await first.handle.stop();
 
     for (let run = 0; run < 3; run += 1) {
-      ({ handle, server } = await boot());
+      const { handle, server } = await boot();
       expect(await archiveIds(handle)).toEqual({ ids: ["Sunday-Mass"], active: "Sunday-Mass" });
       server.saveCurrentMass();
       expect(await archiveIds(handle)).toEqual({ ids: ["Sunday-Mass"], active: "Sunday-Mass" });
@@ -41,10 +41,10 @@ describe("Mass archive across restarts", () => {
   });
 
   test("a saved archive ID that is not on disk gives one new archive", async () => {
-    let { handle } = await boot();
-    await request(handle.app).post("/api/new-mass").send({ title: "Sunday Mass", startTime: "2026-04-01T09:00" }).expect(200);
+    const first = await boot();
+    await request(first.handle.app).post("/api/new-mass").send({ title: "Sunday Mass", startTime: "2026-04-01T09:00" }).expect(200);
     await new Promise((resolve) => setTimeout(resolve, 700));
-    await handle.stop();
+    await first.handle.stop();
 
     const sessionPath = path.join(homeDir, ".sacra-lux", "session.json");
     const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
@@ -53,7 +53,7 @@ describe("Mass archive across restarts", () => {
     fs.rmSync(path.join(homeDir, ".sacra-lux", "mass_history", "Sunday-Mass"), { recursive: true, force: true });
 
     const restarted = await boot();
-    handle = restarted.handle;
+    const { handle } = restarted;
     expect((await archiveIds(handle)).active).toBeNull();
     restarted.server.saveCurrentMass();
     expect((await archiveIds(handle)).ids).toHaveLength(1);

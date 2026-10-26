@@ -1437,7 +1437,7 @@ describe("server api integration", () => {
       .send({ filename: "Sanctuary Lamp.png", dataUrl: tinyPngDataUrl })
       .expect(200);
 
-    const storedName = String(res.body.url || "").split("/").pop();
+    const storedName = decodeURIComponent(String(res.body.url || "").split("/").pop());
     expect(storedName).toBe("Sanctuary Lamp.png");
     expect(res.body.name).toBe("Sanctuary Lamp.png");
 
@@ -1456,7 +1456,7 @@ describe("server api integration", () => {
       .expect(200);
 
     expect(first.body.url).toMatch(/unsafe?script\.png$/);
-    expect(second.body.url).toMatch(/unsafe?script \(1\)\.png$/);
+    expect(second.body.url).toMatch(/unsafe?script%20\(1\)\.png$/);
     expect(first.body.url).not.toBe(second.body.url);
   });
 
@@ -1488,7 +1488,7 @@ describe("server api integration", () => {
 
     expect(hidden).toBe(true);
     expect(fs.readFileSync(racedPath, "utf8")).toBe("earlier upload bytes");
-    expect(res.body.url).toBe("/api/mass-asset/Raced (1).png");
+    expect(res.body.url).toBe("/api/mass-asset/Raced%20(1).png");
     expect(fs.existsSync(path.join(assetsDir, "Raced (1).png"))).toBe(true);
   });
 
@@ -1507,7 +1507,7 @@ describe("server api integration", () => {
     expect(new Set(urls).size).toBe(2);
     const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
     responses.forEach((res, index) => {
-      const stored = fs.readFileSync(path.join(assetsDir, res.body.url.split("/").pop()));
+      const stored = fs.readFileSync(path.join(assetsDir, decodeURIComponent(res.body.url.split("/").pop())));
       expect(stored.equals(Buffer.from(dataUrls[index].split(",")[1], "base64"))).toBe(true);
     });
   });
@@ -1524,8 +1524,8 @@ describe("server api integration", () => {
       .expect(200);
 
     expect(res.body.images).toEqual([
-      expect.objectContaining({ url: "/api/mass-asset/Photo 2.png", name: "Photo 2.png" }),
-      expect.objectContaining({ url: "/api/mass-asset/Photo 10.png", name: "Photo 10.png" })
+      expect.objectContaining({ url: "/api/mass-asset/Photo%202.png", name: "Photo 2.png" }),
+      expect.objectContaining({ url: "/api/mass-asset/Photo%2010.png", name: "Photo 10.png" })
     ]);
     const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
     expect(fs.existsSync(path.join(assetsDir, "Photo 2.png"))).toBe(true);
