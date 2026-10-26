@@ -70,9 +70,11 @@ async function startMain() {
 
   jest.doMock("electron", () => electron, { virtual: true });
   const saveCurrentMass = jest.fn();
+  const flushPendingSave = jest.fn();
   jest.doMock("../../src/server", () => ({
     startServer: jest.fn(() => ({ io: { on: jest.fn(), emit: jest.fn() }, server })),
-    saveCurrentMass
+    saveCurrentMass,
+    flushPendingSave
   }));
   jest.doMock("../../src/persistence", () => ({ saveSession: jest.fn() }));
   jest.doMock("../../src/cliBanner", () => ({ writeStartupBanner: jest.fn() }));
@@ -88,6 +90,7 @@ async function startMain() {
   await new Promise((resolve) => setTimeout(resolve, 50));
   windows.electron = electron;
   windows.saveCurrentMass = saveCurrentMass;
+  windows.flushPendingSave = flushPendingSave;
   return windows;
 }
 
@@ -126,6 +129,16 @@ describe("Electron window security settings", () => {
     expect(windows.electron.shell.openExternal).toHaveBeenCalledWith(
       "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/"
     );
+  });
+
+  test("a pending save is written when the app starts to quit", async () => {
+    const windows = await startMain();
+    const beforeQuit = windows.electron.app.on.mock.calls.find(([name]) => name === "before-quit");
+
+    expect(beforeQuit).toBeDefined();
+    beforeQuit[1]();
+
+    expect(windows.flushPendingSave).toHaveBeenCalledTimes(1);
   });
 
   test("the Save menu item shows a success status", async () => {

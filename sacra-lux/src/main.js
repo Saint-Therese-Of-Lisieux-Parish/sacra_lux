@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
-const { startServer, saveCurrentMass } = require("./server");
+const { startServer, saveCurrentMass, flushPendingSave } = require("./server");
 const { state } = require("./state");
 const { saveSession } = require("./persistence");
 const { listThemes, getTheme } = require("./themes");
@@ -962,6 +962,10 @@ app.whenReady().then(async () => {
   logger.error(`[desktop] Failed to start: ${error.message}`);
   dialog.showErrorBox("Sacra Lux could not start", error.message);
   app.quit();
+});
+
+app.on("before-quit", () => {
+  flushPendingSave();
 });
 
 app.on("window-all-closed", () => {
