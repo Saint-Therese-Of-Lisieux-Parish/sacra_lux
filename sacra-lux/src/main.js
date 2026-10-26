@@ -11,6 +11,7 @@ const logger = require("./logger");
 const { writeStartupBanner } = require("./cliBanner");
 const { createIpcHandlers, registerIpcHandlers } = require("./ipcHandlers");
 const { secureWindow } = require("./windowSecurity");
+const { sanitizePdfFileName } = require("./pdfFileName");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -384,7 +385,7 @@ async function exportCurrentMassPdf(phases, quality) {
   if (slides.length === 0) return { ok: false, error: "No slides to export" };
 
   // Show save dialog first so user can cancel before the slow capture
-  const defaultName = (currentState.presentation?.title || "Mass").replace(/[^a-zA-Z0-9 _-]/g, "") + ".pdf";
+  const defaultName = sanitizePdfFileName(currentState.presentation?.title, "Mass") + ".pdf";
   const saveResult = await dialog.showSaveDialog(appWindow, {
     title: "Export Slides as PDF",
     defaultPath: path.join(os.homedir(), "Documents", defaultName),
@@ -495,7 +496,7 @@ async function exportSlidePdf(slides, screenSettings, suggestedName, quality) {
 
   if (!slides || slides.length === 0) return { ok: false, error: "No slides to export" };
 
-  const safeName = (suggestedName || "Slide").replace(/[^a-zA-Z0-9 _-]/g, "").trim() || "Slide";
+  const safeName = sanitizePdfFileName(suggestedName, "Slide");
   const saveResult = await dialog.showSaveDialog(appWindow, {
     title: "Export Slide as PDF",
     defaultPath: path.join(os.homedir(), "Documents", safeName + ".pdf"),
