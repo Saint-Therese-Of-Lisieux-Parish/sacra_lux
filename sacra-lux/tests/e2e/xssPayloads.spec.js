@@ -6,6 +6,7 @@ const { test, expect } = require("@playwright/test");
 const {
   createTempHome,
   dropLoadedServerModules,
+  loadReadingsFolderOverHttp,
   makeReadingsFolder,
   startIsolatedServer
 } = require("../helpers/testHarness");
@@ -141,7 +142,7 @@ test("readings folder text and title show as plain text on all three pages", asy
   fs.writeFileSync(path.join(folder, "mass_title.txt"), HOSTILE_TITLE, "utf8");
   fs.writeFileSync(path.join(folder, "Reading_I.txt"), `${HOSTILE}\n\n${HOSTILE}`, "utf8");
   fs.writeFileSync(path.join(folder, "Gospel.txt"), `${HOSTILE}\n\n${HOSTILE}`, "utf8");
-  const res = await request.post(`${baseUrl}/api/load-readings`, { data: { folderPath: folder } });
+  const res = await loadReadingsFolderOverHttp(request, baseUrl, folder);
   expect(res.ok()).toBe(true);
 
   for (const route of ["/app", "/screen", "/remote"]) {

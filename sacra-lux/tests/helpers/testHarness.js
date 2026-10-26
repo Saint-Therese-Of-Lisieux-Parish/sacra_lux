@@ -24,6 +24,48 @@ function makeReadingsFolder(rootDir) {
   return folder;
 }
 
+// Build a Mass ZIP from a folder of reading .txt files (and an optional assets/ folder).
+// The Mass ZIP import is the supported way to put a Mass in place.
+function buildReadingsZipData(folderPath) {
+  const AdmZip = require("adm-zip");
+  const { importReadings } = require("../../src/readingsImporter");
+  const { createDefaultOrganizer } = require("../../src/organizer");
+  const zip = new AdmZip();
+  const imported = importReadings(folderPath, {});
+  const organizer = createDefaultOrganizer(imported.documents || []);
+  zip.addFile("settings.json", Buffer.from(JSON.stringify({
+    presentationTitle: imported.title || path.basename(folderPath),
+    organizerSequence: organizer.sequence,
+    manualSlides: organizer.manualSlides
+  })));
+  for (const file of fs.readdirSync(folderPath)) {
+    if (file.endsWith(".txt")) zip.addLocalFile(path.join(folderPath, file), "readings");
+  }
+  const assets = path.join(folderPath, "assets");
+  if (fs.existsSync(assets)) {
+    for (const file of fs.readdirSync(assets)) zip.addLocalFile(path.join(assets, file), "readings/assets");
+  }
+  return zip.toBuffer().toString("base64");
+}
+
+// Load a readings folder through a supertest app.
+async function loadReadingsFolder(app, folderPath) {
+  const request = require("supertest");
+  const response = await request(app).post("/api/import-mass-zip").send({ zipData: buildReadingsZipData(folderPath) });
+  if (response.status !== 200) {
+    throw new Error(`Loading ${folderPath} failed: ${response.status} ${JSON.stringify(response.body)}`);
+  }
+  return response;
+}
+
+// Load a readings folder through a Playwright APIRequestContext.
+async function loadReadingsFolderOverHttp(request, baseUrl, folderPath, headers = {}) {
+  return request.post(`${baseUrl}/api/import-mass-zip`, {
+    headers,
+    data: { zipData: buildReadingsZipData(folderPath) }
+  });
+}
+
 // Specs that share one Playwright worker also share the loaded server module.
 // A start PIN from an earlier spec makes every state-changing request fail
 // with 401. Drop the loaded modules so the next spec starts a clean server.
@@ -96,6 +138,8 @@ async function startIsolatedServer({ port = 0, homeDir } = {}) {
 module.exports = {
   dropLoadedServerModules,
   createTempHome,
+  loadReadingsFolder,
+  loadReadingsFolderOverHttp,
   makeReadingsFolder,
   startIsolatedServer
 };
