@@ -565,6 +565,33 @@ test("Screen Settings has no legacy position inputs and still saves bounds", asy
   expect(settings.readingTextHeightPx).toBe(781);
 });
 
+test("Text, Hymn, and Prayer tabs keep separate font choices", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+
+  const size = page.locator("#textSlideTextSizePx");
+  await page.locator('[data-settings-tab="text"]').click();
+  await size.fill("60");
+  await page.locator('[data-settings-tab="hymn"]').click();
+  await expect(size).toHaveValue("");
+  await size.fill("70");
+  await page.locator('[data-settings-tab="prayer"]').click();
+  await expect(size).toHaveValue("");
+  await page.locator("#textSlideTextItalic").check();
+  await page.locator('[data-settings-tab="text"]').click();
+  await expect(size).toHaveValue("60");
+  await expect(page.locator("#textSlideTextItalic")).not.toBeChecked();
+
+  await expect.poll(async () => {
+    const saved = (await (await request.get(`${baseUrl}/api/state`)).json()).screenSettings;
+    return [saved.textSlideTextSizePx, saved.hymnTextSizePx, saved.prayerTextSizePx, saved.prayerTextItalic, saved.hymnTextItalic];
+  }).toEqual([60, 70, 0, true, false]);
+});
+
 test("Screen Settings shows one slide type text style at a time", async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);

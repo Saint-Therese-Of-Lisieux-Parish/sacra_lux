@@ -1038,7 +1038,24 @@ function normalizeScreenSettings(input = {}) {
     textSlideMarginXPx: legacyGeometry.textSlideMarginXPx,
     textSlideMarginYPx: legacyGeometry.textSlideMarginYPx,
     textSlideTextHeightPx: legacyGeometry.textSlideTextHeightPx,
+    ...normalizeTypeFontSettings(input, current, "hymn"),
+    ...normalizeTypeFontSettings(input, current, "prayer"),
     textBounds
+  };
+}
+
+/**
+ * Font choices for hymn and prayer slides. A type with no saved choice starts
+ * from the Text slide choice, so settings saved before the split look the same.
+ */
+function normalizeTypeFontSettings(input, current, prefix) {
+  const pick = (key, fallback) => input[`${prefix}${key}`] ?? current[`${prefix}${key}`] ?? input[`textSlide${key}`] ?? fallback;
+  const font = String(pick("TextFont", current.textSlideTextFont ?? ""));
+  return {
+    [`${prefix}TextFont`]: GOOGLE_FONTS.has(font) ? font : "",
+    [`${prefix}TextSizePx`]: Math.min(200, Math.max(0, Number(pick("TextSizePx", current.textSlideTextSizePx ?? 0)) || 0)),
+    [`${prefix}TextBold`]: Boolean(pick("TextBold", current.textSlideTextBold ?? false)),
+    [`${prefix}TextItalic`]: Boolean(pick("TextItalic", current.textSlideTextItalic ?? false))
   };
 }
 
