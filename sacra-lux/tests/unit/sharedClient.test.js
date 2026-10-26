@@ -5,7 +5,9 @@ const {
   formatCountdownTime,
   formatDurationTime,
   imageFileNameLabel,
+  itemRuntimeSeconds,
   knownFontName,
+  slideshowRuntimeSeconds,
   slideshowLabelFromFileNames
 } = require("../../public/client/shared.js");
 
@@ -65,6 +67,49 @@ describe("shared client helpers", () => {
       expect(formatDurationTime(10.6)).toBe("00:11");
       expect(formatDurationTime(-5)).toBe("00:00");
       expect(formatDurationTime("abc")).toBe("00:00");
+    });
+  });
+
+  describe("itemRuntimeSeconds", () => {
+    const images = [{ url: "/a.png" }, { url: "/b.png" }, { url: "/c.png" }, { url: "" }];
+    const slideshow = { id: "s", type: "imageSlideshow", durationSec: 10 };
+
+    test("slideshow time is images x seconds x loops, with no fade time", () => {
+      const manual = { images, slideshowDurationSec: 10, slideshowLoopCount: 1 };
+      expect(itemRuntimeSeconds(slideshow, manual, 3)).toBe(30);
+      expect(itemRuntimeSeconds(slideshow, { ...manual, slideshowLoopCount: 2 }, 3)).toBe(60);
+    });
+
+    test("slideshow time ignores the transition setting and the editor preview agrees", () => {
+      const manual = { images, slideshowDurationSec: 10, slideshowLoopCount: 2 };
+      expect(itemRuntimeSeconds(slideshow, manual, 3)).toBe(slideshowRuntimeSeconds(3, 10, 2));
+    });
+
+    test("an explicit playable image count overrides the manual images", () => {
+      const manual = { images, slideshowDurationSec: 5, slideshowLoopCount: 1 };
+      expect(itemRuntimeSeconds(slideshow, manual, 3, 2)).toBe(10);
+    });
+
+    test("a multi-page item plays durationSec for each page", () => {
+      expect(itemRuntimeSeconds({ type: "text", durationSec: 10 }, undefined, 3)).toBe(30);
+    });
+
+    test("a countdown uses its countdown seconds", () => {
+      expect(itemRuntimeSeconds({ type: "countdown", durationSec: 10 }, { countdownSec: 45 }, 1)).toBe(45);
+    });
+
+    test("a movie has no known time", () => {
+      expect(itemRuntimeSeconds({ type: "movie", durationSec: null }, {}, 1)).toBeNull();
+    });
+
+    test("phase total is the sum of the item times", () => {
+      const items = [
+        [slideshow, { images, slideshowDurationSec: 10, slideshowLoopCount: 1 }, 3],
+        [{ type: "text", durationSec: 10 }, undefined, 3],
+        [{ type: "countdown" }, { countdownSec: 45 }, 1]
+      ];
+      const total = items.reduce((sum, args) => sum + itemRuntimeSeconds(...args), 0);
+      expect(total).toBe(30 + 30 + 45);
     });
   });
 
