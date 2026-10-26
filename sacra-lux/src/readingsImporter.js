@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { endingForSection } = require("./readingEndings");
 
 // ── Pagination cache ─────────────────────────────────────────────────────────
 
@@ -68,21 +69,6 @@ function clearPaginationCache() {
   _paginationCache.clear();
   _visualLineCache.clear();
 }
-
-// Liturgical ending responses keyed by section name.
-const ENDING_BY_SECTION = {
-  "Reading I": "The Word of the Lord.",
-  "Reading II": "The Word of the Lord.",
-  "Reading III": "The Word of the Lord.",
-  "Reading IV": "The Word of the Lord.",
-  "Reading V": "The Word of the Lord.",
-  "Reading VI": "The Word of the Lord.",
-  "Reading VII": "The Word of the Lord.",
-  "Epistle": "The Word of the Lord.",
-  "Responsorial Psalm": "The Word of the Lord.",
-  "Verse Before the Gospel": null,
-  "Gospel": "The Gospel of the Lord."
-};
 
 // Parish export order: the psalm, then the readings, then the Gospel.
 const SECTION_ORDER = [
@@ -511,7 +497,7 @@ function loadReadingDocuments(folderPath) {
       section,
       passage: parsed.passage,
       textLines: parsed.textLines,
-      ending: ENDING_BY_SECTION[section] ?? null
+      ending: endingForSection(section)
     });
   }
 

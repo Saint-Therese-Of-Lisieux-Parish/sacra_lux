@@ -1,3 +1,4 @@
+const { endingForSection } = require("./readingEndings");
 const { MIN_BOX, REFERENCE_CANVAS, normalizeGroupBounds } = require("./textBounds");
 
 const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "imageSlideshow", "movie", "countdown", "interstitial"]);
@@ -642,7 +643,7 @@ function buildReadingDocumentFromItem(item) {
     section: item.label,
     passage: item.source?.citation || item.label,
     textLines: String(item.content?.text || "").split("\n"),
-    ending: null
+    ending: endingForSection(item.label)
   };
 }
 

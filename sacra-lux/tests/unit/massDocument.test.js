@@ -285,7 +285,7 @@ describe("massDocument", () => {
         section: "First Reading",
         passage: "Genesis 1:1-3",
         textLines: ["In the beginning..."],
-        ending: null
+        ending: "The Word of the Lord."
       }
     ]);
     expect(runtime.manualSlides["countdown-1"]).toMatchObject({

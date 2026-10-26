@@ -1,3 +1,5 @@
+const { endingForSection } = require("./readingEndings");
+
 const USCCB_DAILY_READINGS_RSS_URL = "https://bible.usccb.org/readings.rss";
 
 const SECTION_STEMS = {
@@ -93,7 +95,7 @@ function parseDailyReadingsRss(rssXml) {
       section,
       passage,
       textLines,
-      ending: null
+      ending: endingForSection(section)
     });
   }
 
