@@ -599,6 +599,31 @@ describe("server api integration", () => {
     expect(large.body.slides.length).toBeGreaterThan(base.body.slides.length);
   });
 
+  test("preview-manual-slide splits hymn text by size and honors draft settings", async () => {
+    const body = {
+      type: "hymn",
+      label: "Hymn",
+      phase: "mass",
+      backgroundTheme: "dark",
+      manualSlide: {
+        text: Array.from({ length: 12 }, (_, i) => `Verse line ${i + 1}`).join("\n")
+      }
+    };
+    const small = await request(app)
+      .post("/api/preview-manual-slide")
+      .send({ ...body, overrideSettings: { textSlideTextSizePx: 40, hymnTextSizePx: 40 } })
+      .expect(200);
+    const large = await request(app)
+      .post("/api/preview-manual-slide")
+      .send({ ...body, overrideSettings: { textSlideTextSizePx: 150, hymnTextSizePx: 150 } })
+      .expect(200);
+
+    expect(small.body.slides).toHaveLength(1);
+    expect(large.body.slides.length).toBeGreaterThan(1);
+    expect(large.body.slides.at(-1).totalPages).toBe(large.body.slides.length);
+    expect(large.body.slides.map((slide) => slide.text).join("\n")).toBe(body.manualSlide.text);
+  });
+
   test("preview-reading includes the organizer label as groupLabel", async () => {
     const readingsDir = path.join(handle.homeDir, "preview-reading");
     fs.mkdirSync(readingsDir, { recursive: true });

@@ -657,5 +657,6 @@ module.exports = {
   importReadings,
   listPsalmRefrainOptions,
   paginateDocuments,
+  estimateVisualLines,
   clearPaginationCache
 };

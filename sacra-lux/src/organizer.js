@@ -1,5 +1,5 @@
 const { slideshowRuntimeSeconds } = require("../public/client/shared.js");
-const { paginateDocuments } = require("./readingsImporter");
+const { paginateDocuments, estimateVisualLines } = require("./readingsImporter");
 const {
   boundsToRect,
   legacyTextBoundsFromSettings,
@@ -350,7 +350,61 @@ function dedupeOrganizerIds(sequence, manualSlides, takenIds) {
   return { sequence: nextSequence, manualSlides: nextManualSlides };
 }
 
-function buildManualSlide(item, manualSlide, index) {
+/**
+ * Split one page of text so each part fits the text box.
+ * Prefer a blank line between stanzas as the split point.
+ * Keep a single line that is too long on its own page.
+ */
+function splitTextToFit(text, maxVisualLines, fontSizePx, boxWidthPx) {
+  const lines = String(text || "").split("\n");
+  const cost = (line) => estimateVisualLines(line, fontSizePx, boxWidthPx);
+  if (lines.reduce((sum, line) => sum + cost(line), 0) <= maxVisualLines) return [text];
+
+  const pages = [];
+  let current = [];
+  let used = 0;
+  let lastBlank = -1;
+  const flush = (end) => {
+    const page = current.slice(0, end).join("\n").trim();
+    if (page) pages.push(page);
+    current = current.slice(end);
+    while (current.length && current[0].trim() === "") current.shift();
+    used = current.reduce((sum, line) => sum + cost(line), 0);
+    lastBlank = -1;
+  };
+
+  for (const line of lines) {
+    const lineCost = cost(line);
+    if (used + lineCost > maxVisualLines && current.some((l) => l.trim() !== "")) {
+      flush(lastBlank > 0 ? lastBlank : current.length);
+    }
+    if (line.trim() === "" && current.length === 0) continue;
+    if (line.trim() === "") lastBlank = current.length;
+    current.push(line);
+    used += lineCost;
+  }
+  flush(current.length);
+  return pages.length ? pages : [text];
+}
+
+function textPagesForSettings(item, manualSlide, pages, screenSettings) {
+  if (!screenSettings || !["text", "prayer", "hymn"].includes(item.type)) return pages;
+  const overrides = normalizeStyleOverrides(manualSlide?.styleOverrides);
+  const typeSize = Number(screenSettings[`${item.type}TextSizePx`] ?? screenSettings.textSlideTextSizePx);
+  const sizePx = overrides.fontSizePx || typeSize || Number(screenSettings.fontSizePx) || 60;
+  const lineHeight = Number(screenSettings.textSlideLineHeight) || 1.55;
+  const textBounds = normalizeTextBounds(
+    screenSettings.textBounds || legacyTextBoundsFromSettings(screenSettings)
+  );
+  const rect = boundsToRect(
+    overrides.bounds?.body || textBounds[item.type],
+    screenSettings.resolution || "1080p"
+  );
+  const maxLines = Math.max(1, Math.floor(rect.height / (sizePx * lineHeight)));
+  return pages.flatMap((page) => splitTextToFit(page, maxLines, sizePx, rect.width));
+}
+
+function buildManualSlide(item, manualSlide, index, screenSettings) {
   const rawText = manualSlide?.text || "";
   const baseProps = {
     organizerItemId: item.id,
@@ -442,7 +496,7 @@ function buildManualSlide(item, manualSlide, index) {
   }
 
   // Split text, prayer, and hymn slides at hard-break markers.
-  const pages = splitTextAtHardBreaks(rawText);
+  const pages = textPagesForSettings(item, manualSlide, splitTextAtHardBreaks(rawText), screenSettings);
   const totalPages = pages.length;
   const typeLabel = item.type.charAt(0).toUpperCase() + item.type.slice(1);
 
@@ -543,7 +597,7 @@ function buildPresentationFromOrganizer({
     }
 
     if (VALID_TYPES.includes(item.type) && item.type !== "reading") {
-      const built = buildManualSlide(item, manualSlides[item.id], slides.length);
+      const built = buildManualSlide(item, manualSlides[item.id], slides.length, screenSettings);
       slides.push(...built);
     }
   }
