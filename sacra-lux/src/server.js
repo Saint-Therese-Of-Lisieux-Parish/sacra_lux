@@ -3698,7 +3698,10 @@ function startServer(port = 17841, options = {}) {
         documents: state.readingsSource?.documents || [],
         sequence,
         manualSlides: { [organizerId]: manual },
-        screenSettings: state.screenSettings
+        // Draft settings let the settings preview repaginate before a save.
+        screenSettings: payload.overrideSettings && typeof payload.overrideSettings === "object"
+          ? normalizeScreenSettings({ ...state.screenSettings, ...payload.overrideSettings })
+          : state.screenSettings
       });
 
       return res.json({ ok: true, slides: presentation.slides || [] });

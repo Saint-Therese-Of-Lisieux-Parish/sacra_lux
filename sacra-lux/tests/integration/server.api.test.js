@@ -584,6 +584,21 @@ describe("server api integration", () => {
     expect(res.body.slides[1].text).toBe("Second block");
   });
 
+  test("preview-reading repaginates with draft override settings", async () => {
+    const body = {
+      label: "Sample Reading",
+      passage: "Revelation 3:9",
+      text: Array.from({ length: 40 }, (_, i) => `Line number ${i + 1} of the sample reading`).join("\n")
+    };
+    const base = await request(app).post("/api/preview-reading").send(body).expect(200);
+    const large = await request(app)
+      .post("/api/preview-reading")
+      .send({ ...body, overrideSettings: { readingTextSizePx: 200 } })
+      .expect(200);
+
+    expect(large.body.slides.length).toBeGreaterThan(base.body.slides.length);
+  });
+
   test("preview-reading includes the organizer label as groupLabel", async () => {
     const readingsDir = path.join(handle.homeDir, "preview-reading");
     fs.mkdirSync(readingsDir, { recursive: true });
