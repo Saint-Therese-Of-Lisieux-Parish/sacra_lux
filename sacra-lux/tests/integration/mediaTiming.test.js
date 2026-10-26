@@ -22,7 +22,7 @@ describe("automated media timing", () => {
   let client;
 
   const slideshowImages = (count = 2) => Array.from({ length: count }, (_, index) => ({
-    url: `/uploads/timing-${index}.png`,
+    url: `/static/assets/timing-${index}.png`,
     name: `Timing-${index}.png`
   }));
 
