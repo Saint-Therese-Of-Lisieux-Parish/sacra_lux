@@ -69,9 +69,10 @@ async function startMain() {
   };
 
   jest.doMock("electron", () => electron, { virtual: true });
+  const saveCurrentMass = jest.fn();
   jest.doMock("../../src/server", () => ({
     startServer: jest.fn(() => ({ io: { on: jest.fn(), emit: jest.fn() }, server })),
-    saveCurrentMass: jest.fn()
+    saveCurrentMass
   }));
   jest.doMock("../../src/persistence", () => ({ saveSession: jest.fn() }));
   jest.doMock("../../src/cliBanner", () => ({ writeStartupBanner: jest.fn() }));
@@ -86,6 +87,7 @@ async function startMain() {
   resolveReady();
   await new Promise((resolve) => setTimeout(resolve, 50));
   windows.electron = electron;
+  windows.saveCurrentMass = saveCurrentMass;
   return windows;
 }
 
@@ -123,6 +125,40 @@ describe("Electron window security settings", () => {
     item.click();
     expect(windows.electron.shell.openExternal).toHaveBeenCalledWith(
       "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/"
+    );
+  });
+
+  test("the Save menu item shows a success status", async () => {
+    const windows = await startMain();
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const file = template.find((item) => item.label === "File");
+    const save = file.submenu.find((item) => item.label === "Save");
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+
+    save.click();
+
+    expect(windows.saveCurrentMass).toHaveBeenCalledTimes(1);
+    expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
+      expect.stringContaining("desktop-status")
+    );
+    expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
+      expect.stringContaining("Mass saved")
+    );
+  });
+
+  test("the Save menu item shows an error status without throwing", async () => {
+    const windows = await startMain();
+    windows.saveCurrentMass.mockImplementation(() => {
+      throw new Error("Disk full");
+    });
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const file = template.find((item) => item.label === "File");
+    const save = file.submenu.find((item) => item.label === "Save");
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+
+    expect(() => save.click()).not.toThrow();
+    expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
+      expect.stringContaining("Disk full")
     );
   });
 

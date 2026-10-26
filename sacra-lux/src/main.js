@@ -165,6 +165,12 @@ function clickAppButton(buttonId) {
   runInAppWindow(`document.getElementById(${JSON.stringify(buttonId)})?.click()`);
 }
 
+function showAppStatus(message) {
+  runInAppWindow(
+    `document.dispatchEvent(new CustomEvent("desktop-status", { detail: ${JSON.stringify(message)} }))`
+  );
+}
+
 function normalizeTargetScreenIds(screenIds) {
   return [...new Set((Array.isArray(screenIds) ? screenIds : [])
     .map((id) => Number(id))
@@ -642,8 +648,13 @@ function buildAppMenu(ioRef) {
       label: "Save",
       accelerator: "CmdOrCtrl+S",
       click: () => {
-        saveSession(state);
-        saveCurrentMass();
+        try {
+          saveSession(state);
+          saveCurrentMass();
+          showAppStatus("Mass saved");
+        } catch (error) {
+          showAppStatus(error?.message || "Could not save the Mass.");
+        }
       }
     },
     { type: "separator" },
