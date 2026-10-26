@@ -11,6 +11,9 @@ operator screen. The projector shows the same slide. A phone can follow
 along and move the slides. When the operator changes a slide, the projector
 and the phone change with it.
 
+Read the published documentation at
+<https://saint-therese-of-lisieux-parish.github.io/sacra_lux/>.
+
 ## Who this is for
 
 Sacra Lux is a live Mass presentation app for parish operators and the
@@ -353,4 +356,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.218-alpha`.
+The current package version is `0.0.219-alpha`.
