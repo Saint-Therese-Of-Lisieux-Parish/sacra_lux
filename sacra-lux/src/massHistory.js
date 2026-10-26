@@ -3,6 +3,7 @@ const os = require("os");
 const path = require("path");
 
 const { writeFileAtomic } = require("./atomicWrite");
+const logger = require("./logger");
 
 const HOME_DIR = process.env.HOME || os.homedir();
 const SACRA_LUX_DIR = path.join(HOME_DIR, ".sacra-lux");
@@ -119,7 +120,13 @@ function readMetadata(archiveId) {
     return null;
   }
   const raw = fs.readFileSync(paths.metadataPath, "utf8");
-  const parsed = JSON.parse(raw);
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (err) {
+    logger.warn(`[massHistory] Ignoring damaged metadata.json for archive ${archiveId}: ${err.message}`);
+    return null;
+  }
   return parsed && typeof parsed === "object" ? parsed : null;
 }
 

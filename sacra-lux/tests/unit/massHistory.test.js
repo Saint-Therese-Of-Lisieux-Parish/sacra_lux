@@ -34,6 +34,29 @@ describe("massHistory", () => {
     expect(listed[0].sizeBytes).toBeGreaterThan(0);
   });
 
+  test("listMassArchives lists an archive with a damaged metadata.json by folder name", () => {
+    const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");
+    for (const id of ["Alpha", "Old", "Omega"]) {
+      fs.mkdirSync(path.join(historyDir, id), { recursive: true });
+      fs.writeFileSync(
+        path.join(historyDir, id, "metadata.json"),
+        id === "Old" ? '{"id":"Old",' : JSON.stringify({ id, title: `${id} title` }),
+        "utf8"
+      );
+    }
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    const history = require("../../src/massHistory");
+    const listed = history.listMassArchives(null);
+
+    expect(listed.map((a) => a.id).sort()).toEqual(["Alpha", "Old", "Omega"]);
+    expect(listed.find((a) => a.id === "Old").title).toBe("Old");
+    expect(listed.find((a) => a.id === "Alpha").title).toBe("Alpha title");
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain("Old");
+    warn.mockRestore();
+  });
+
   test("syncCurrentMassToArchive shortens an archive id for a very long title", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     fs.mkdirSync(currentMassDir, { recursive: true });
