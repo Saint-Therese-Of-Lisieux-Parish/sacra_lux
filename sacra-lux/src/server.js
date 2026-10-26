@@ -81,7 +81,9 @@ const {
   clearControlAccess,
   clientHasControlSession,
   clientMayControl,
+  getRequestAddress,
   hasPinConfigured,
+  isLoopbackAddress,
   isStartTokenValid,
   issueStartToken,
   noteControlUnlock,
@@ -125,6 +127,10 @@ const logInfo = logger.info;
 const logWarn = logger.warn;
 const logError = logger.error;
 const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
+// A readings folder holds text files and an assets/ folder of media only.
+const READINGS_FOLDER_MEDIA_PATTERN = /^[^/\\:*?"<>|]+\.(jpg|jpeg|png|gif|webp|svg|avif|mp4)$/i;
+const MAX_READINGS_FOLDER_FILES = 200;
+const MAX_READINGS_FOLDER_BYTES = 250 * 1024 * 1024;
 const IMAGE_ASSET_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
 const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
@@ -268,24 +274,34 @@ function renameCollidingStems(newDocuments, existingDocuments) {
 }
 
 function copyFolderFilesInto(srcFolder, destDir) {
-  fs.mkdirSync(destDir, { recursive: true });
-  for (const file of fs.readdirSync(srcFolder)) {
-    const srcPath = path.join(srcFolder, file);
-    if (fs.statSync(srcPath).isFile()) {
-      fs.copyFileSync(srcPath, path.join(destDir, file));
+  // Choose and check every file before the first copy, so a rejected folder changes nothing.
+  const copies = [];
+  let totalBytes = 0;
+  const collect = (folder, subdir, accepts) => {
+    for (const file of fs.readdirSync(folder)) {
+      if (!accepts(file)) continue;
+      const srcPath = path.join(folder, file);
+      const stat = fs.statSync(srcPath);
+      if (!stat.isFile()) continue;
+      totalBytes += stat.size;
+      copies.push([srcPath, path.join(destDir, subdir, file), subdir]);
     }
-  }
-
+  };
+  collect(srcFolder, "", (file) => /\.txt$/i.test(file));
   const srcAssets = path.join(srcFolder, "assets");
   if (fs.existsSync(srcAssets) && fs.statSync(srcAssets).isDirectory()) {
-    const destAssets = path.join(destDir, "assets");
-    fs.mkdirSync(destAssets, { recursive: true });
-    for (const file of fs.readdirSync(srcAssets)) {
-      const srcPath = path.join(srcAssets, file);
-      if (fs.statSync(srcPath).isFile()) {
-        fs.copyFileSync(srcPath, path.join(destAssets, file));
-      }
-    }
+    collect(srcAssets, "assets", (file) => READINGS_FOLDER_MEDIA_PATTERN.test(file));
+  }
+  if (copies.length > MAX_READINGS_FOLDER_FILES || totalBytes > MAX_READINGS_FOLDER_BYTES) {
+    throw new ValidationError(
+      `A readings folder can hold at most ${MAX_READINGS_FOLDER_FILES} files and ${MAX_READINGS_FOLDER_BYTES / (1024 * 1024)} MB.`
+    );
+  }
+
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const [srcPath, destPath, subdir] of copies) {
+    if (subdir) fs.mkdirSync(path.join(destDir, subdir), { recursive: true });
+    fs.copyFileSync(srcPath, destPath);
   }
 }
 
@@ -3545,6 +3561,10 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/load-readings", (req, res) => {
     try {
+      // Only the operator computer may name a folder on its disk.
+      if (!isLoopbackAddress(getRequestAddress(req))) {
+        return res.status(403).json({ error: "Readings folders can be loaded from the operator computer only." });
+      }
       const { folderPath, insertAtIndex, screenSettings, alternateSelections } = req.body || {};
       if (!folderPath) {
         return res.status(400).json({ error: "folderPath is required." });
