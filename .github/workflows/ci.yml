@@ -41,13 +41,14 @@ jobs:
 
       - name: Install Playwright browser
         # The apt mirror download has stalled for more than 10 minutes on some runs (#442).
-        # Stop a try after 4 minutes, end the apt process that it left behind (it holds
-        # the dpkg lock), and try again. Up to 3 tries.
-        timeout-minutes: 15
+        # Stop a try after 8 minutes, end the apt process that it left behind (it holds
+        # the dpkg lock), and try again. Up to 3 tries. Packages that apt already
+        # downloaded stay in its cache, so a later try has less to fetch.
+        timeout-minutes: 30
         run: |
           printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99ci-retries
           for attempt in 1 2 3; do
-            if timeout --kill-after=10 240 npx playwright install --with-deps chromium webkit; then exit 0; fi
+            if timeout --kill-after=10 480 npx playwright install --with-deps chromium webkit; then exit 0; fi
             echo "Playwright install attempt $attempt failed or timed out."
             sudo pkill -9 -x apt-get || true
             sudo dpkg --configure -a || true
