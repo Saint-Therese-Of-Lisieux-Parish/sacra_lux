@@ -111,6 +111,25 @@ test("operator UI shows hostile organizer text as plain text", async ({ page, re
   await expectInert(page, problems);
 });
 
+test("operator UI keeps a hostile image URL out of the organizer markup", async ({ page, request }) => {
+  await page.addInitScript(() => { window.__xssFired = 0; });
+  const problems = watchPage(page);
+  const hostileUrl = `/api/mass-asset/a"><img data-xss-probe src=x onerror="${FLAG}">.png`;
+  const res = await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [
+        { id: "image:xss", type: "image", label: "Image", phase: "mass", backgroundTheme: "light" }
+      ],
+      manualSlides: { "image:xss": { imageUrl: hostileUrl } }
+    }
+  });
+  expect(res.ok()).toBe(true);
+  await openOperator(page);
+
+  await expect(page.locator("#sequenceList .sequence-item").first()).toBeVisible();
+  await expectInert(page, problems);
+});
+
 test("projector display shows hostile slide text as plain text", async ({ page, request }) => {
   await page.addInitScript(() => { window.__xssFired = 0; });
   const problems = watchPage(page);
