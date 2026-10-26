@@ -111,6 +111,32 @@ test("operator UI shows hostile organizer text as plain text", async ({ page, re
   await expectInert(page, problems);
 });
 
+test("operator UI keeps a hostile image URL out of the organizer markup", async ({ page, request }) => {
+  await page.addInitScript(() => { window.__xssFired = 0; });
+  const hostileUrl = `/api/mass-asset/a"><img data-xss-probe src=x onerror="${FLAG}">.png`;
+  const res = await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [
+        { id: "image:xss", type: "image", label: "Image", phase: "mass", backgroundTheme: "light" }
+      ],
+      manualSlides: { "image:xss": { imageUrl: hostileUrl } }
+    }
+  });
+  expect(res.ok()).toBe(true);
+  await page.goto(`${baseUrl}/app`);
+
+  // This test reads the page with evaluate. WebKit locators wait on the pending image load.
+  await expect.poll(() => page.evaluate(
+    () => document.querySelectorAll("#sequenceList .sequence-item").length
+  ), { timeout: 30000 }).toBe(1);
+  await page.waitForTimeout(500);
+  const result = await page.evaluate(() => ({
+    fired: window.__xssFired || 0,
+    probes: document.querySelectorAll("[data-xss-probe]").length
+  }));
+  expect(result).toEqual({ fired: 0, probes: 0 });
+});
+
 test("projector display shows hostile slide text as plain text", async ({ page, request }) => {
   await page.addInitScript(() => { window.__xssFired = 0; });
   const problems = watchPage(page);

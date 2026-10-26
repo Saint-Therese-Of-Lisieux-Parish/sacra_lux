@@ -5920,6 +5920,15 @@
       return SacraLuxShared.escapeHtml(value);
     }
 
+    // Build an inline background-image style from a URL that may hold hostile characters.
+    function backgroundImageStyle(url) {
+      const safeUrl = String(url || "").replace(
+        /[\u0000-\u001f\u007f"'<>`\\]/g,
+        (ch) => `%${ch.charCodeAt(0).toString(16).padStart(2, "0")}`
+      );
+      return escapeHtml(`background-image:url('${safeUrl}')`);
+    }
+
     function replaceSelectOptions(selectEl, items, { placeholderLabel = "", placeholderValue = "" } = {}) {
       if (!selectEl) return;
       const fragment = document.createDocumentFragment();
@@ -6168,13 +6177,13 @@
           const bgUrl = item.type === "imageSlideshow"
             ? (slideshowImages[0]?.url || repSlide?.imageUrl || lightBg)
             : (manualSlide?.imageUrl || repSlide?.imageUrl || lightBg);
-          thumbStyle = `background-image:url('${bgUrl.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')`;
+          thumbStyle = backgroundImageStyle(bgUrl);
         } else if (isMovie) {
           thumbStyle = "background:linear-gradient(145deg, rgba(8,12,18,0.88), rgba(24,32,42,0.72))";
         } else if (item.backgroundTheme === "light") {
-          thumbStyle = `background-image:url('${lightBg.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')`;
+          thumbStyle = backgroundImageStyle(lightBg);
         } else {
-          thumbStyle = `background-image:url('${darkBg.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}')`;
+          thumbStyle = backgroundImageStyle(darkBg);
         }
         const thumbContent = buildThumbHtml(item, repSlide, manualSlide);
         const safeItemId = escapeHtml(item.id);

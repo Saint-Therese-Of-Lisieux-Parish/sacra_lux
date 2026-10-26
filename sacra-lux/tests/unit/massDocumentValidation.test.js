@@ -434,3 +434,19 @@ describe("massDocument helpers and round trips", () => {
     expect(() => validateMassDocument(document)).not.toThrow();
   });
 });
+
+describe("assetUrlFromRef character checks", () => {
+  test.each([
+    'assets/a"><img src=x onerror=1>.png',
+    "assets/a<b>.png",
+    "assets/a`b.png",
+    "assets/a\\b.png",
+    "assets/a\u0001b.png"
+  ])("rejects %j", (ref) => {
+    expect(() => assetUrlFromRef(ref)).toThrow(ValidationError);
+  });
+
+  test("accepts a name with spaces, a percent sign, and an apostrophe", () => {
+    expect(assetUrlFromRef("assets/Mary's 100% photo #1.png")).toBe("/api/mass-asset/Mary's%20100%25%20photo%20%231.png");
+  });
+});
