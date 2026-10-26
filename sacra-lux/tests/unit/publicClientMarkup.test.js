@@ -133,4 +133,10 @@ describe("public client markup guards", () => {
     expect(appHtml).toMatch(/\.editor-preview-sticky\s*\{[^}]*position: sticky/);
     expect(dialog).toContain('id="editorBoundsShow"');
   });
+
+  test("editor preview requests are debounced and cancel the request still in flight", () => {
+    expect(appHtml).toContain("const EDITOR_PREVIEW_DEBOUNCE_MS");
+    expect(appHtml).toContain("editorPreviewAbort.abort()");
+    expect(appHtml.match(/signal: editorPreviewSignal/g)).toHaveLength(2);
+  });
 });
