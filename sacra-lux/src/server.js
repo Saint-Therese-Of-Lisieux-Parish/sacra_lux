@@ -1317,6 +1317,13 @@ function stopImageSlideshowTimer({ resetProgress = true, clearError = false } = 
   if (clearError) state.imageSlideshowError = null;
 }
 
+function removeSavedMassAssets(savedAssets) {
+  const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+  for (const asset of savedAssets) {
+    fs.rmSync(path.join(assetsDir, path.basename(decodeAssetName(asset.url))), { force: true });
+  }
+}
+
 function slideshowAssetPathFromUrl(url) {
   const match = String(url || "").match(/^\/api\/mass-asset\/([^/]+)$/);
   if (!match) return null;
@@ -2456,10 +2463,7 @@ function startServer(port = 17841, options = {}) {
           imported.push(saveMassAssetUpload(upload));
         }
       } catch (error) {
-        const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
-        for (const asset of imported) {
-          fs.rmSync(path.join(assetsDir, path.basename(decodeAssetName(asset.url))), { force: true });
-        }
+        removeSavedMassAssets(imported);
         throw error;
       }
       return res.json({ ok: true, images: imported });
