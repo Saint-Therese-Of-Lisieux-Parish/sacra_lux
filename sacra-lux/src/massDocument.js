@@ -110,9 +110,23 @@ function buildAssetRef(filename) {
   return filename ? `assets/${filename}` : null;
 }
 
+// Asset URLs percent-encode the file name so "#" and "%" survive in a browser.
+function assetUrlFromName(filename) {
+  return `/api/mass-asset/${encodeURIComponent(filename)}`;
+}
+
+function decodeAssetName(segment) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    // A stored URL from before encoding: keep the raw name.
+    return segment;
+  }
+}
+
 function assetRefFromUrl(url) {
   const apiMatch = String(url || "").match(/\/api\/mass-asset\/([^/]+)$/);
-  if (apiMatch) return buildAssetRef(apiMatch[1]);
+  if (apiMatch) return buildAssetRef(decodeAssetName(apiMatch[1]));
 
   const legacyUploadMatch = String(url || "").match(/\/static\/uploads\/([^/]+)$/);
   if (legacyUploadMatch) return buildAssetRef(legacyUploadMatch[1]);
@@ -126,7 +140,7 @@ function assetUrlFromRef(ref) {
   if (!match) {
     throw new ValidationError(`Unsupported asset ref "${normalized}".`);
   }
-  return `/api/mass-asset/${match[1]}`;
+  return assetUrlFromName(match[1]);
 }
 
 function buildAssetsManifest(document) {
@@ -772,6 +786,8 @@ function serializeReadingDocument(doc) {
 module.exports = {
   ValidationError,
   assetRefFromUrl,
+  decodeAssetName,
+  assetUrlFromName,
   assetUrlFromRef,
   buildMassDocumentFromLegacyPackage,
   buildMassDocumentFromState,
