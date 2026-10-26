@@ -47,4 +47,21 @@ describe("HTTP security headers", () => {
     const res = await request(app).get("/api/state").expect(200);
     expect(res.headers["content-security-policy"]).toBeUndefined();
   });
+
+  test("Mass SVG assets send a restrictive CSP and nosniff header", async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>window.xssProbe = true;</script></svg>';
+    const upload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({
+        filename: "unsafe.svg",
+        dataUrl: `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`
+      })
+      .expect(200);
+
+    const res = await request(app).get(upload.body.url).expect(200);
+
+    expect(res.headers["content-security-policy"])
+      .toBe("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
+    expect(res.headers["x-content-type-options"]).toBe("nosniff");
+  });
 });
