@@ -8,8 +8,8 @@ server holds the only authoritative state, so always inspect server state
 
 - Confirm the projector window is on `/screen` and the target display is set in
   **Screen Settings**.
-- Check `isBlack` in `GET /api/state`. If it is `true`, press **Black Screen**
-  to restore output.
+- Check `isBlack` in `GET /api/state`. If it is `true`, press `B` on the
+  operator page to restore output. The operator page has no Black Screen button.
 - Check `interstitialHoldActive`. A stuck hold pins the projector to an
   interstitial; release the hold from the remote.
 - Reload the `/screen` window. It renders purely from `state:update`.

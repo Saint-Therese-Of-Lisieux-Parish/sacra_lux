@@ -126,10 +126,12 @@ A countdown slide pauses auto-advance until it reaches zero.
 
 ## Blackout and Manual Navigation
 
-- **Black Screen** hides the projector output without changing the selected
-  slide.
-- **◀ Prev** and **Next ▶** move one slide.
-- **⏭ Go to Mass Start** jumps to the first Mass slide.
+The operator page does not show Prev, Next, or Black Screen buttons. Use the keyboard when focus is not in a text field or an open dialog.
+
+- Press `Right Arrow` or `Space` to show the next slide.
+- Press `Left Arrow` to show the previous slide.
+- Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change.
+- **⏭ Go to Mass Start** jumps to the first Mass slide. The button is shown when the Mass has a Mass slide.
 
 ## The Phone Remote
 
@@ -199,9 +201,16 @@ new slide so psalm refrains get their own page.
 
 ## Keyboard
 
-The operator UI supports keyboard navigation and editing shortcuts. Hover a
-control to see its key hint; common keys cover next/previous slide, blackout,
-and dialog confirm/cancel.
+These keys work when focus is not in a text field, a list, or an open dialog:
+
+| Key | Result |
+| --- | --- |
+| `Right Arrow` or `Space` | Show the next slide. |
+| `Left Arrow` | Show the previous slide. |
+| `Up Arrow` / `Down Arrow` | Move the organizer selection by one row. |
+| `Page Up` / `Page Down` | Move the organizer selection by five rows. |
+| `E` or `Enter` | Open the selected slide in the editor. |
+| `B` | Hide or show the projector output. |
 
 ## Where Files Live
 
