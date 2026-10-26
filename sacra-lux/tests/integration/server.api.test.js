@@ -1459,8 +1459,11 @@ describe("server api integration", () => {
     const realWrite = fs.writeFileSync;
     let writes = 0;
     const writeSpy = jest.spyOn(fs, "writeFileSync").mockImplementation((...args) => {
-      writes += 1;
-      if (writes === 2) throw new Error("disk full");
+      // Background persistence also writes; count only writes into the assets directory.
+      if (path.dirname(String(args[0])) === assetsDir) {
+        writes += 1;
+        if (writes === 2) throw new Error("disk full");
+      }
       return realWrite(...args);
     });
     try {
