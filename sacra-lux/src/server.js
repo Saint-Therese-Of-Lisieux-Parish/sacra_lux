@@ -230,6 +230,35 @@ function writeZipMassPackage(zip, destDir, packageDefinition) {
   readMassPackageDefinition(destDir, state.screenSettings);
 }
 
+// Copy only the supporting files of a readings folder into the current Mass.
+// Existing files stay: a name that is already in use is not copied again.
+function copyAssetsIntoCurrentMass(srcFolder) {
+  const srcAssets = path.join(srcFolder, "assets");
+  if (!fs.existsSync(srcAssets) || !fs.statSync(srcAssets).isDirectory()) return;
+  const destAssets = path.join(CURRENT_MASS_DIR, "assets");
+  fs.mkdirSync(destAssets, { recursive: true });
+  for (const file of fs.readdirSync(srcAssets)) {
+    const srcPath = path.join(srcAssets, file);
+    const destPath = path.join(destAssets, file);
+    if (fs.statSync(srcPath).isFile() && !fs.existsSync(destPath)) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+// Give each new reading a stem that no existing reading uses.
+function renameCollidingStems(newDocuments, existingDocuments) {
+  const used = new Set(existingDocuments.map((doc) => doc.stem));
+  return newDocuments.map((doc) => {
+    let stem = doc.stem;
+    for (let n = 2; used.has(stem); n += 1) {
+      stem = `${doc.stem}_${n}`;
+    }
+    used.add(stem);
+    return stem === doc.stem ? doc : { ...doc, stem };
+  });
+}
+
 function copyFolderFilesInto(srcFolder, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
   for (const file of fs.readdirSync(srcFolder)) {
@@ -3506,19 +3535,31 @@ function startServer(port = 17841, options = {}) {
         });
       }
 
+      // An insert adds to the current Mass. It keeps the readings and media that the Mass has.
+      const isInsert = state.organizerSequence.length > 0 && insertAtIndex !== undefined;
+      const existingDocuments = state.readingsSource?.documents || [];
+      const newDocuments = isInsert
+        ? renameCollidingStems(imported.documents || [], existingDocuments)
+        : imported.documents || [];
+
       // Copy readings into the standard current_mass directory only after the source can be read.
-      const currentMassPath = copyReadingsToCurrentMass(folderPath);
+      let currentMassPath = CURRENT_MASS_DIR;
+      if (isInsert) {
+        copyAssetsIntoCurrentMass(folderPath);
+      } else {
+        currentMassPath = copyReadingsToCurrentMass(folderPath);
+      }
       state.screenSettings = nextScreenSettings;
 
       state.readingsSource = {
         folderPath: currentMassPath,
-        documents: imported.documents || []
+        documents: isInsert ? [...existingDocuments, ...newDocuments] : newDocuments
       };
       state.startupPrompt = null;
 
-      const defaults = createDefaultOrganizer(state.readingsSource.documents, { alternateSelections });
+      const defaults = createDefaultOrganizer(newDocuments, { alternateSelections });
 
-      if (state.organizerSequence.length === 0 || insertAtIndex === undefined) {
+      if (!isInsert) {
         state.organizerSequence = defaults.sequence;
         state.manualSlides = defaults.manualSlides;
       } else {
