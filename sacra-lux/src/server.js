@@ -275,22 +275,23 @@ function copyReadingsToCurrentMass(srcFolder) {
 function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
 
-  for (const file of fs.readdirSync(CURRENT_MASS_DIR)) {
-    if (file.endsWith(".txt")) {
-      fs.rmSync(path.join(CURRENT_MASS_DIR, file), { force: true });
-    }
-  }
-
+  // Write every file before the stale ones go, so a failed write loses nothing.
+  const keep = new Set();
   if (title && String(title).trim()) {
-    fs.writeFileSync(path.join(CURRENT_MASS_DIR, "mass_title.txt"), `${String(title).trim()}\n`, "utf8");
+    writeFileAtomic(path.join(CURRENT_MASS_DIR, "mass_title.txt"), `${String(title).trim()}\n`);
+    keep.add("mass_title.txt");
   }
 
   for (const doc of documents) {
-    fs.writeFileSync(
-      path.join(CURRENT_MASS_DIR, `${doc.stem}.txt`),
-      serializeReadingDocument(doc),
-      "utf8"
-    );
+    const file = `${doc.stem}.txt`;
+    writeFileAtomic(path.join(CURRENT_MASS_DIR, file), serializeReadingDocument(doc));
+    keep.add(file);
+  }
+
+  for (const file of fs.readdirSync(CURRENT_MASS_DIR)) {
+    if (file.endsWith(".txt") && !keep.has(file)) {
+      fs.rmSync(path.join(CURRENT_MASS_DIR, file), { force: true });
+    }
   }
 }
 
@@ -298,11 +299,7 @@ function saveCurrentMass() {
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
   syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
   const massData = buildMassDocumentFromState(state);
-  fs.writeFileSync(
-    path.join(CURRENT_MASS_DIR, "mass.json"),
-    JSON.stringify(massData, null, 2),
-    "utf8"
-  );
+  writeFileAtomic(path.join(CURRENT_MASS_DIR, "mass.json"), JSON.stringify(massData, null, 2));
   const archive = syncCurrentMassToArchive({
     currentArchiveId: state.activeMassArchiveId,
     title: state.presentation?.title,
@@ -3383,11 +3380,11 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/mass-history/:archiveId/compress", heavyRateLimit, async (req, res) => {
     try {
-      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const archivePaths = getArchivePaths(path.basename(String(req.params.archiveId || "")));
+      const { archiveId } = archivePaths;
       if (archiveId === state.activeMassArchiveId) {
         return res.status(400).json({ error: "The active Mass cannot be compressed." });
       }
-      const archivePaths = getArchivePaths(archiveId);
       if (!fs.existsSync(archivePaths.packageDir)) {
         return res.status(404).json({ error: "Mass archive package not found." });
       }
@@ -3410,7 +3407,7 @@ function startServer(port = 17841, options = {}) {
 
   app.delete("/api/mass-history/:archiveId", (req, res) => {
     try {
-      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const { archiveId } = getArchivePaths(path.basename(String(req.params.archiveId || "")));
       if (archiveId === state.activeMassArchiveId) {
         return res.status(400).json({ error: "The active Mass archive cannot be deleted." });
       }
