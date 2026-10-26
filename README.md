@@ -273,6 +273,8 @@ GitHub checks on a pull request to `master`:
 | [workflow-lint.yml](./.github/workflows/workflow-lint.yml) | A zizmor scan of the workflow files. It fails on medium findings or higher. Accepted findings are in [.github/zizmor.yml](./.github/zizmor.yml). |
 | [codeql.yml](./.github/workflows/codeql.yml) | CodeQL analysis. It also runs on a weekly schedule. |
 | [mutation.yml](./.github/workflows/mutation.yml) | Not a pull request check. It runs StrykerJS on `src/security.js` each week and on demand. It uploads the HTML report. |
+| [dependency-review.yml](./.github/workflows/dependency-review.yml) | Reviews dependency changes in `sacra-lux/package.json` and `sacra-lux/package-lock.json`. It fails on a high severity finding. |
+| [pages.yml](./.github/workflows/pages.yml) | Builds the user-guide site with MkDocs when `docs/`, `mkdocs.yml`, or `requirements-docs.txt` changes. A push to `master` publishes the site. |
 
 Every pull request must raise the version in `sacra-lux/package.json` and
 the two matching fields in `sacra-lux/package-lock.json`. The same version
