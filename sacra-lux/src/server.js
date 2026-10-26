@@ -902,7 +902,16 @@ function setStartupPrompt(reason) {
   };
 }
 
-function restoreCurrentMassOrPrompt(ioRef) {
+function archiveExistsOnDisk(archiveId) {
+  if (typeof archiveId !== "string" || !archiveId) return false;
+  try {
+    return fs.existsSync(getArchivePaths(archiveId).archiveDir);
+  } catch {
+    return false;
+  }
+}
+
+function restoreCurrentMassOrPrompt(ioRef, savedArchiveId = null) {
   const currentMassJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
   if (!fs.existsSync(currentMassJsonPath)) {
     resetPresentationRuntimeState();
@@ -914,6 +923,8 @@ function restoreCurrentMassOrPrompt(ioRef) {
     const packageInfo = readMassPackageDefinition(CURRENT_MASS_DIR, state.screenSettings);
     state.activeMassArchiveId = null;
     applyMassPackageFromCurrentDir(ioRef, packageInfo.raw);
+    // Keep the saved archive active so the next save updates it and makes no copy.
+    state.activeMassArchiveId = archiveExistsOnDisk(savedArchiveId) ? savedArchiveId : null;
     return true;
   } catch (error) {
     resetPresentationRuntimeState();
@@ -2167,10 +2178,15 @@ function scheduleSave(syncCurrentMass = false) {
     const shouldSyncCurrentMass = _syncCurrentMassOnSave;
     _syncCurrentMassOnSave = false;
     try {
-      saveSession(state);
+      // Save the Mass first: it sets activeMassArchiveId, which the session records.
       if (shouldSyncCurrentMass) {
         saveCurrentMass();
       }
+    } catch (error) {
+      logError(`[persistence] Save failed: ${error.message}`);
+    }
+    try {
+      saveSession(state);
     } catch (error) {
       logError(`[persistence] Save failed: ${error.message}`);
     }
@@ -2239,7 +2255,7 @@ function restoreSession(ioRef) {
     }
   }
 
-  restoreCurrentMassOrPrompt(ioRef);
+  restoreCurrentMassOrPrompt(ioRef, session?.activeMassArchiveId);
 }
 
 // ── Express / Socket.IO server ────────────────────────────────────────────────
