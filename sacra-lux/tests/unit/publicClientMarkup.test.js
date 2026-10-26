@@ -7,7 +7,7 @@ describe("public client markup guards", () => {
   test("app html uses safe helpers for dynamic select population", () => {
     expect(appHtml).toContain("function replaceSelectOptions");
     expect(appHtml).toContain("replaceSelectOptions(\n        els.editorSourceStem,");
-    expect(appHtml).toContain("replaceSelectOptions(els.editorAssetPicker, assetOptions");
+    expect(appHtml).toContain("replaceSelectOptions(els.editorAssetPicker, editorAssetOptions");
     expect(appHtml).toContain("replaceSelectOptions(\n            els.editorPrayerSelect,");
 
     expect(appHtml).not.toMatch(/editorSourceStem\.innerHTML\s*=\s*documents/);

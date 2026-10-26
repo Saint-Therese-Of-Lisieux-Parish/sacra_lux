@@ -7172,8 +7172,16 @@
       }
     }
 
+    const DEFAULT_INTERSTITIAL_IMAGE = "/static/assets/default-interstitial.png";
+
+    // An interstitial with no custom image shows the built-in default image.
+    function usesDefaultInterstitialImage(rawUrl) {
+      return els.editorType?.value === "interstitial" && !String(rawUrl || "").trim();
+    }
+
     function updateImagePreview(rawUrl) {
-      const url = safeMediaUrl(rawUrl);
+      const isDefault = usesDefaultInterstitialImage(rawUrl);
+      const url = safeMediaUrl(isDefault ? DEFAULT_INTERSTITIAL_IMAGE : rawUrl);
       const preview = document.getElementById("imagePreview");
       if (!preview) return;
       if (url) {
@@ -7184,7 +7192,7 @@
         preview.hidden = true;
       }
       if (els.clearImageBtn) {
-        els.clearImageBtn.hidden = !url;
+        els.clearImageBtn.hidden = !url || isDefault;
       }
     }
 
@@ -7546,6 +7554,9 @@
       const imageAssets = assets.filter((a) => a.mediaType !== "video");
       const videoAssets = assets.filter((a) => a.mediaType === "video");
       const assetOptions = imageAssets.map((a) => ({ value: a.url, label: a.name }));
+      const editorAssetOptions = els.editorType?.value === "interstitial"
+        ? [{ value: DEFAULT_INTERSTITIAL_IMAGE, label: "Default (built-in)" }, ...assetOptions]
+        : assetOptions;
       const backgroundOptions = [
         ...builtinBackgrounds.map((a) => ({ value: a.url, label: `Built-in: ${a.name}` })),
         ...assetOptions
@@ -7553,10 +7564,10 @@
       const videoAssetOptions = videoAssets.map((a) => ({ value: a.url, label: a.name }));
 
       if (els.editorAssetPicker) {
-        replaceSelectOptions(els.editorAssetPicker, assetOptions, {
+        replaceSelectOptions(els.editorAssetPicker, editorAssetOptions, {
           placeholderLabel: "\u2014 select from assets folder \u2014"
         });
-        const matched = imageAssets.some((a) => a.url === editorUrl);
+        const matched = editorAssetOptions.some((a) => a.value === editorUrl);
         els.editorAssetPicker.value = matched ? editorUrl : "";
         updateImagePreview(editorUrl);
       }
