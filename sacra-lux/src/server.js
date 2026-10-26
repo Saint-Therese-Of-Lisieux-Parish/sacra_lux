@@ -2719,6 +2719,16 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
+  // Sends the 429 answer and returns true while the client address is locked out.
+  function rejectIfPinLocked(req, res) {
+    const activeLock = getActiveLock(getClientIp(req));
+    if (!activeLock) return false;
+    const retryAfterSec = Math.max(1, Math.ceil((activeLock.lockUntil - Date.now()) / 1000));
+    res.set("Retry-After", String(retryAfterSec));
+    res.status(429).json({ error: "Too many failed attempts. Please try again later." });
+    return true;
+  }
+
   // ── Start PIN management ───────────────────────────────────────────────────
   app.post("/api/start-pin", authRateLimit, (req, res) => {
     try {
@@ -2727,6 +2737,7 @@ function startServer(port = 17841, options = {}) {
       if (!hasPinConfigured() && !clientMayControl(req)) {
         return res.status(401).json({ error: getUnlockMessage() });
       }
+      if (hasPinConfigured() && rejectIfPinLocked(req, res)) return undefined;
       if (hasPinConfigured() && !verifyPin(currentPin)) {
         registerPinFailure(getClientIp(req));
         return res.status(403).json({ error: "Current PIN is required." });
@@ -2777,12 +2788,7 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/verify-pin", authRateLimit, (req, res) => {
     try {
       const ip = getClientIp(req);
-      const activeLock = getActiveLock(ip);
-      if (activeLock) {
-        const retryAfterSec = Math.max(1, Math.ceil((activeLock.lockUntil - Date.now()) / 1000));
-        res.set("Retry-After", String(retryAfterSec));
-        return res.status(429).json({ error: "Too many failed attempts. Please try again later." });
-      }
+      if (rejectIfPinLocked(req, res)) return undefined;
 
       const { pin } = req.body || {};
       if (!hasPinConfigured()) {
