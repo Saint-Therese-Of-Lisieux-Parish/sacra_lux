@@ -2,6 +2,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
+const { writeFileAtomic } = require("./atomicWrite");
+
 const HOME_DIR = process.env.HOME || os.homedir();
 const SACRA_LUX_DIR = path.join(HOME_DIR, ".sacra-lux");
 const CURRENT_MASS_DIR = path.join(SACRA_LUX_DIR, "current_mass");
@@ -124,7 +126,7 @@ function readMetadata(archiveId) {
 function writeMetadata(archiveId, metadata) {
   const paths = getArchivePaths(archiveId);
   fs.mkdirSync(paths.archiveDir, { recursive: true });
-  fs.writeFileSync(paths.metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+  writeFileAtomic(paths.metadataPath, JSON.stringify(metadata, null, 2));
   return metadata;
 }
 
