@@ -54,11 +54,13 @@ sequenceDiagram
     Server->>Screen: state:update
 ```
 
-## 4. Remote Interstitial Hold
+## 4. Interstitial Hold
+
+The server handles `screen:interstitial-hold` from a control client. The current phone remote page does not send this event.
 
 ```mermaid
 sequenceDiagram
-    participant Remote as "Phone Remote"
+    participant Remote as "Control client"
     participant Server as "server.js"
     participant Screen as "/screen"
 

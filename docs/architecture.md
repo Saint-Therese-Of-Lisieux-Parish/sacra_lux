@@ -121,16 +121,17 @@ arms a fallback at the item's duration (or the movie's real length once a
 screen reports `slide:video-ready`). `src/movieAdvance.js` dedupes the end
 reports when several projector windows watch the same movie.
 
-Image slideshows advance on `_imageSlideshowTimer` for their total runtime
-(every image plus the crossfades between them), including loop iterations, and
-fall back to the next slide when empty. Screens can report a failed preload
+Image slideshows advance on `_imageSlideshowTimer` for their total runtime.
+The time is the image count, times the seconds per image, times the loop count.
+A crossfade does not add time. An empty slideshow falls back to the next slide. Screens can report a failed preload
 via `image-slideshow:preload-error`, which drops the image from playable
 entries.
 
 Countdown slides temporarily take over auto-advance from the active phase
-timer. The remote interstitial-hold feature pauses active slide timers, swaps
-the rendered display to a chosen interstitial slide, then restores the previous
-slide and restarts timing as if the slide had just been selected.
+timer. A control client can send `screen:interstitial-hold`. The server then
+pauses active slide timers, swaps the rendered display to a chosen interstitial
+slide, and restores the previous slide on the next event. The current phone
+remote page does not send this event.
 
 ## Display Override Model
 

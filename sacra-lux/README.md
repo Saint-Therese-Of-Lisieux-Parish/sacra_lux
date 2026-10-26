@@ -17,8 +17,8 @@ operator app, projector screen, and phone remote synchronized in real time.
 - edit slides with live preview in the Slide Editor dialog
 - use volunteer-friendly organizer controls, keyboard navigation, and grouped remote controls
 - run pre-mass, gathering, and post-mass automation
-- hold the display on an interstitial slide from the phone remote and resume the previous slide cleanly
-- choose from twelve app UI themes, including liturgical seasons
+- show the projector, a slide carousel, and a phase-grouped slide list on the phone remote
+- choose from 22 app UI themes, including liturgical seasons
 - manage Mass-local assets, background presets, and image-slideshow batches
 - archive, duplicate, load, compress, import, and export Mass packages
 - export AVIF-optimized ZIPs and Electron-only PDFs
@@ -70,8 +70,8 @@ The `Release` GitHub Actions workflow publishes the release files. Push a tag
 that matches the `package.json` version. The current version uses this tag:
 
 ```bash
-git tag v0.0.168-alpha
-git push origin v0.0.168-alpha
+git tag v0.0.197-alpha
+git push origin v0.0.197-alpha
 ```
 
 The workflow builds these files:
@@ -136,7 +136,8 @@ Sacra Lux stores mutable runtime data in `~/.sacra-lux/`:
 - `session.json` — persisted session (version 2)
 - `current_mass/` — active Mass package (`mass.json`, readings, `assets/`)
 - `mass_history/` — archived Mass folders and compressed ZIPs
-- `prayers/` — prayer text storage
+
+Prayer texts ship in `prayers/` next to this package. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
 
 `current_mass/` is treated as the active self-contained Mass package and is
 preferred during restore. Its `mass.json` is a version 3 Mass Document; see

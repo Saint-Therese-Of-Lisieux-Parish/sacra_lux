@@ -66,7 +66,7 @@ Add slides with **➕ New Slide** and choose a type:
 | Image Slideshow | several images that cycle automatically |
 | Movie | a video file |
 | Countdown | a visual countdown timer |
-| Interstitial | a holding slide used by the remote |
+| Interstitial | an image slide used as a pause between other slides |
 
 Reorder rows with **▲ Up** and **▼ Down**, duplicate with **Duplicate**, and
 remove with **Delete**. Assign each item a section: **Pre-Mass**, **Gathering**,
@@ -95,12 +95,14 @@ edit back to the source `.txt` in the Mass package.
 
 ## Screen Settings
 
-**⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections:
+**⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections.
 
-1. **Typography & Output** sets the primary font, the base size, the transition, the resolution, and bold global text.
-2. **Slide Backgrounds** sets the background image for Reading, Text, Hymn, and Prayer slides and the background image for Interstitial slides.
-3. **Text Styles** shows one slide type at a time. The tabs are **Reading Body**, **Reading Reference & Passage**, and **Text, Prayer & Hymn**. The reference tab also sets the section title, such as First Reading.
-4. **Visual Bounds Editor** moves one layout box. The choices are Reading body, Passage reference, Hymn, Prayer, and Text slide.
+1. **Typography & Output** sets the primary font, the base size, the transition, and bold global text.
+2. **Slide Backgrounds** sets two images. The first image is the background for Reading, Text, Hymn, and Prayer slides. The second image is the background for Interstitial slides. Each image can use a preset or an uploaded file.
+3. **Text Styles** has five tabs: **Reading Body**, **Reading Reference & Passage**, **Text**, **Hymn**, and **Prayer**. A slide preview shows the selected text area. **Font** sets the type style for that tab. **Window Position** moves that text area. Font, size, bold, and italic are separate for Text, Hymn, and Prayer. The other Text, Hymn, and Prayer settings are shared. The reference tab also sets the section title, such as First Reading. It can show the slide number, the reading label, and the spoken ending. The spoken ending is its own slide. The text is `The Word of the Lord.` or `The Gospel of the Lord.`
+4. **Resolution** is the last section. The choices are 720p, 1080p, 1440p, and 4K. The default is 1080p.
+
+Most changes apply as you edit. **Apply Changes & Close** saves the changes and closes the dialog.
 
 **🎨 Select Theme** opens the theme list. It does not change the projector text.
 
@@ -124,22 +126,23 @@ A countdown slide pauses auto-advance until it reaches zero.
 
 ## Blackout and Manual Navigation
 
-- **Black Screen** hides the projector output without changing the selected
-  slide.
-- **◀ Prev** and **Next ▶** move one slide.
-- **⏭ Go to Mass Start** jumps to the first Mass slide.
+The operator page does not show Prev, Next, or Black Screen buttons. Use the keyboard when focus is not in a text field or an open dialog.
+
+- Press `Right Arrow` or `Space` to show the next slide.
+- Press `Left Arrow` to show the previous slide.
+- Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change.
+- **⏭ Go to Mass Start** jumps to the first Mass slide. The button is shown when the Mass has a Mass slide.
 
 ## The Phone Remote
 
 Open `/remote` on a phone on the same network, or scan the QR code shown on the
-idle projector. The remote is preview-first: a live projector preview sits at
-the top, with:
+idle projector. The remote shows a live projector preview at the top.
 
-- **Prev** / **Next**
-- a grouped list of slides for quick jumping
-- next-section advance
-- **Hold on interstitial** to pin the projector to an interstitial slide while
-  you navigate elsewhere, then release to resume the prior slide
+- Swipe left or right on the preview to move one slide.
+- Use the carousel under the preview. Double-tap a card to show that slide.
+- Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements.
+
+The remote has no Blackout, Start Mass, or Interstitial button. It does not send `screen:interstitial-hold`.
 
 ## Starting the Remote with a PIN
 
@@ -197,9 +200,16 @@ new slide so psalm refrains get their own page.
 
 ## Keyboard
 
-The operator UI supports keyboard navigation and editing shortcuts. Hover a
-control to see its key hint; common keys cover next/previous slide, blackout,
-and dialog confirm/cancel.
+These keys work when focus is not in a text field, a list, or an open dialog:
+
+| Key | Result |
+| --- | --- |
+| `Right Arrow` or `Space` | Show the next slide. |
+| `Left Arrow` | Show the previous slide. |
+| `Up Arrow` / `Down Arrow` | Move the organizer selection by one row. |
+| `Page Up` / `Page Down` | Move the organizer selection by five rows. |
+| `E` or `Enter` | Open the selected slide in the editor. |
+| `B` | Hide or show the projector output. |
 
 ## Where Files Live
 
@@ -208,6 +218,7 @@ Sacra Lux keeps runtime files under `~/.sacra-lux/`:
 - `session.json` — the saved session
 - `current_mass/` — the active Mass package (`mass.json`, readings, `assets/`)
 - `mass_history/` — archived Masses
-- `prayers/` — the prayer library
+
+Prayer texts ship in `sacra-lux/prayers/`. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
 
 Use **📁 Open Mass Folder** (Electron) to open `current_mass/`.

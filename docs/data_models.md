@@ -236,10 +236,12 @@ A section title setting that is not saved starts at the matching reference value
 
 - `textSlideTextAlign` — `left` | `center` | `right`
 - `textSlideTextVAlign` — `top` | `middle` | `bottom`
-- `textSlideTextFont` — allowlist or `""`
-- `textSlideTextSizePx` — clamped 0–200; `0` means auto-fit
+- `textSlideTextFont` — allowlist or `""`. This is the Text tab.
+- `textSlideTextSizePx` — clamped 0–200. `0` uses the global base size.
 - `textSlideTextBold`
 - `textSlideTextItalic`
+- `hymnTextFont`, `hymnTextSizePx`, `hymnTextBold`, `hymnTextItalic` — Hymn tab. An unsaved choice starts from the Text values. Size `0` uses the global base size.
+- `prayerTextFont`, `prayerTextSizePx`, `prayerTextBold`, `prayerTextItalic` — Prayer tab. An unsaved choice starts from the Text values. Size `0` uses the global base size.
 - `textSlideTextColor` — `#rrggbb`
 - `textSlideLineHeight` — clamped 1.0–3.0
 - `textSlideLetterSpacingPx` — clamped -2–10
