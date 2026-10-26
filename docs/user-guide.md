@@ -98,7 +98,7 @@ edit back to the source `.txt` in the Mass package.
 **⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections:
 
 1. **Typography & Output** sets the primary font, the base size, the transition, the resolution, and bold global text.
-2. **Dark & Light Presets** sets the background image for dark slides and the background image for light slides.
+2. **Slide Backgrounds** sets the background image for Reading, Text, Hymn, and Prayer slides and the background image for Interstitial slides.
 3. **Text Styles** shows one slide type at a time. The tabs are **Reading Body**, **Reading Reference & Passage**, and **Text, Prayer & Hymn**. The reference tab also sets the section title, such as First Reading.
 4. **Visual Bounds Editor** moves one layout box. The choices are Reading body, Passage reference, Hymn, Prayer, and Text slide.
 
