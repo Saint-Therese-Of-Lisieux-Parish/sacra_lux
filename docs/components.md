@@ -46,10 +46,6 @@ Pure organizer logic (no I/O):
   image-slideshow expansion
 - compute image-slideshow runtime as image count times seconds per image times loop count. A crossfade does not add time.
 
-### `src/readingEndings.js`
-
-`endingForSection()` returns the spoken ending for a section name or a display label. Readings I through VII, the Epistle, the psalm, and the matching display labels use `The Word of the Lord.` The Gospel uses `The Gospel of the Lord.` Verse Before the Gospel has no ending. A suffix such as ` (Alternate 1)` does not change the ending.
-
 ### `src/readingsImporter.js`
 
 Reading pipeline:
