@@ -126,6 +126,45 @@ describe("server api integration", () => {
     });
   });
 
+  describe("changing the start PIN", () => {
+    async function connectSocket(token) {
+      const client = createSocket(handle.baseUrl, { transports: ["websocket"], auth: { token } });
+      await new Promise((resolve, reject) => {
+        client.once("connect", resolve);
+        client.once("connect_error", reject);
+      });
+      return client;
+    }
+
+    test("ends the old control sessions and keeps the session of the client that changed it", async () => {
+      const first = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const oldToken = first.body.controlToken;
+      const otherSocket = await connectSocket(oldToken);
+      try {
+        const required = new Promise((resolve) => otherSocket.once("control:required", resolve));
+
+        const changed = await request(app)
+          .post("/api/start-pin")
+          .send({ pin: "5678", currentPin: "1234" })
+          .expect(200);
+
+        await required;
+        await request(app)
+          .post("/api/organizer")
+          .set("x-sacra-control", oldToken)
+          .send({ sequence: [] })
+          .expect(401);
+        const fresh = await request(app)
+          .post("/api/organizer")
+          .set("x-sacra-control", changed.body.controlToken)
+          .send({ sequence: [] });
+        expect(fresh.status).not.toBe(401);
+      } finally {
+        otherSocket.disconnect();
+      }
+    });
+  });
+
   test("first PIN from loopback sets the PIN and issues a control token", async () => {
     const response = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
 
