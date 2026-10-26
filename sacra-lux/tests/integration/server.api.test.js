@@ -343,6 +343,16 @@ describe("server api integration", () => {
       .send({})
       .expect(401);
     await request(app)
+      .post("/api/preview-reading")
+      .set("x-sacra-control", "not-a-session")
+      .send({ text: "Unauthorized preview" })
+      .expect(401);
+    await request(app)
+      .post("/api/preview-manual-slide")
+      .set("x-sacra-control", "not-a-session")
+      .send({ type: "text", manualSlide: { text: "Unauthorized preview" } })
+      .expect(401);
+    await request(app)
       .post("/api/start-pin")
       .set("x-sacra-control", "not-a-session")
       .send({ pin: "" })
@@ -374,6 +384,12 @@ describe("server api integration", () => {
       .set("X-Forwarded-For", phone)
       .set("x-sacra-control", unlocked.body.controlToken)
       .send({})
+      .expect(200);
+
+    await request(app)
+      .post("/api/preview-reading")
+      .set("x-sacra-control", pinResponse.body.controlToken)
+      .send({ text: "Authorized preview" })
       .expect(200);
   });
 
@@ -905,8 +921,24 @@ describe("server api integration", () => {
       .send({ zipData: "A".repeat(69 * 1024 * 1024) });
     expect(zipRoute.status).toBe(413);
 
+    const previewRoute = await request(app)
+      .post("/api/preview-reading")
+      .send({ text: "x".repeat(2 * 1024 * 1024) });
+    expect(previewRoute.status).toBe(413);
+
     // Other clients still get state while oversized requests arrive.
     await request(app).get("/api/state").expect(200);
+  });
+
+  test("preview-reading rejects text that exceeds 100,000 characters", async () => {
+    const pinResponse = await request(app).post("/api/start-pin").send({ pin: "2468" }).expect(200);
+
+    await request(app)
+      .post("/api/preview-reading")
+      .set("x-sacra-control", pinResponse.body.controlToken)
+      .send({ text: "x".repeat(100001) })
+      .expect(400)
+      .expect(({ body }) => expect(body.error).toMatch(/100,000/));
   });
 
   test("unauthorized upload requests get HTTP 401 before the body arrives", async () => {
