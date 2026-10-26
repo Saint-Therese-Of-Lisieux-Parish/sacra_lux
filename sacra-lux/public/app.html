@@ -3416,8 +3416,8 @@
           </div>
 
           <div class="settings-apply-row">
-            <div class="settings-apply-copy">Most changes already apply automatically. Use this if you want to force an immediate sync to the live screen.</div>
-            <button id="applyScreen" class="primary">Apply Now</button>
+            <div class="settings-apply-copy">Most changes already apply automatically. This button saves the changes and closes the dialog.</div>
+            <button id="applyScreen" class="primary">Apply Changes &amp; Close</button>
           </div>
         </div>
       </dialog>
@@ -6762,11 +6762,12 @@
       const data = await response.json();
       if (!response.ok) {
         els.status.textContent = data.error || "Failed to apply screen settings";
-        return;
+        return false;
       }
       if (!silent) {
         els.status.textContent = `Screen updated: ${data.screenSettings.fontFamily} ${data.screenSettings.fontSizePx}px`;
       }
+      return true;
     }
 
     function colorCodeValue(codeEl) {
@@ -7852,7 +7853,18 @@
       }
     });
 
-    els.applyScreen.addEventListener("click", () => applyScreenSettings());
+    els.applyScreen.addEventListener("click", async () => {
+      clearTimeout(window.__autoApplyTimer);
+      window.__autoApplyTimer = null;
+      let saved = false;
+      try {
+        saved = await applyScreenSettings();
+      } catch (error) {
+        els.status.textContent = error?.message || "Failed to apply screen settings";
+      }
+      // Keep the dialog open after a failed save so the error stays in view.
+      if (saved) document.getElementById("settingsDialog").close();
+    });
 
     // ── Background asset pickers ──────────────────────────────────────────
     async function refreshBgAssetPickers() {

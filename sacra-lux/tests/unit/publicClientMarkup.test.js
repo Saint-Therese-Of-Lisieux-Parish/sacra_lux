@@ -148,6 +148,13 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('resolution: els.screenResolution.value || "1080p"');
   });
 
+  test("apply button saves and closes the Screen Settings dialog", () => {
+    expect(appHtml).toMatch(/<button id="applyScreen" class="primary">Apply Changes &amp; Close<\/button>/);
+    expect(appHtml).toContain("This button saves the changes and closes the dialog.");
+    expect(appHtml).not.toContain("Apply Now");
+    expect(appHtml).toContain("if (saved) document.getElementById(\"settingsDialog\").close();");
+  });
+
   test("backgrounds section names slide types and avoids the words Dark and Light", () => {
     const start = appHtml.indexOf('<div class="settings-section-label">Backgrounds</div>');
     const section = appHtml.slice(start, appHtml.indexOf("</section>", start));
