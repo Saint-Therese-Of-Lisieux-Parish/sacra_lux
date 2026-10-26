@@ -2131,30 +2131,39 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   }
 }
 
+function runScheduledSave() {
+  _savePending = false;
+  _saveTimer = null;
+  const shouldSyncCurrentMass = _syncCurrentMassOnSave;
+  _syncCurrentMassOnSave = false;
+  try {
+    // Save the Mass first: it sets activeMassArchiveId, which the session records.
+    if (shouldSyncCurrentMass) {
+      saveCurrentMass();
+    }
+  } catch (error) {
+    logError(`[persistence] Save failed: ${error.message}`);
+  }
+  try {
+    saveSession(state);
+  } catch (error) {
+    logError(`[persistence] Save failed: ${error.message}`);
+  }
+}
+
 /** Wait 600 ms after the last change before writing to disk. */
 function scheduleSave(syncCurrentMass = false) {
   _syncCurrentMassOnSave = _syncCurrentMassOnSave || Boolean(syncCurrentMass);
   if (_savePending) return;
   _savePending = true;
-  _saveTimer = setTimeout(() => {
-    _savePending = false;
-    _saveTimer = null;
-    const shouldSyncCurrentMass = _syncCurrentMassOnSave;
-    _syncCurrentMassOnSave = false;
-    try {
-      // Save the Mass first: it sets activeMassArchiveId, which the session records.
-      if (shouldSyncCurrentMass) {
-        saveCurrentMass();
-      }
-    } catch (error) {
-      logError(`[persistence] Save failed: ${error.message}`);
-    }
-    try {
-      saveSession(state);
-    } catch (error) {
-      logError(`[persistence] Save failed: ${error.message}`);
-    }
-  }, 600);
+  _saveTimer = setTimeout(runScheduledSave, 600);
+}
+
+/** Write a pending save now. Call this before the process exits. */
+function flushPendingSave() {
+  if (!_savePending) return;
+  clearTimeout(_saveTimer);
+  runScheduledSave();
 }
 
 /**
@@ -4137,6 +4146,7 @@ function startServer(port = 17841, options = {}) {
 module.exports = {
   startServer,
   saveCurrentMass,
+  flushPendingSave,
   validateMassZipArchive,
   MASS_ZIP_LIMITS: Object.freeze({
     maxCompressedBytes: MAX_MASS_ZIP_COMPRESSED_BYTES,

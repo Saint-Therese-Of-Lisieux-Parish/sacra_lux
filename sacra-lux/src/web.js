@@ -1,4 +1,4 @@
-const { startServer } = require("./server");
+const { startServer, flushPendingSave } = require("./server");
 const logger = require("./logger");
 const { writeStartupBanner } = require("./cliBanner");
 const pkg = require("../package.json");
@@ -14,3 +14,10 @@ writeStartupBanner({
 });
 
 startServer(PORT);
+
+for (const signal of ["SIGINT", "SIGTERM"]) {
+  process.once(signal, () => {
+    flushPendingSave();
+    process.exit(0);
+  });
+}
