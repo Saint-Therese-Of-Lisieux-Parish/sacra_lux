@@ -712,7 +712,7 @@ describe("server api integration", () => {
 
       const live = (await request(app).get("/api/state").expect(200)).body;
       const doc = live.readingsSource.documents.find((entry) => entry.stem === "Reading_I");
-      const projectorSlides = live.presentation.slides.filter((slide) => String(slide.id).startsWith("reading-Reading_I-p"));
+      const projectorSlides = live.presentation.slides.filter((slide) => String(slide.id).startsWith("reading-Reading_I-"));
       expect(projectorSlides.length).toBeGreaterThan(1);
 
       const preview = await request(app)

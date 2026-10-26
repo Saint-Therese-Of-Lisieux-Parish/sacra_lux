@@ -3251,7 +3251,7 @@
                     <input id="readingShowEnding" type="checkbox" checked>
                     <span class="settings-toggle-copy">
                       <span class="settings-toggle-title">Show spoken ending</span>
-                      <span class="settings-toggle-help">Shows “The Word of the Lord” or “The Gospel of the Lord” on the last page.</span>
+                      <span class="settings-toggle-help">Shows “The Word of the Lord” or “The Gospel of the Lord” on its own slide after the last page.</span>
                     </span>
                   </label>
                   </div>
@@ -5751,10 +5751,7 @@
         const showPage = ds.readingShowPageNumber !== false;
         const pageNum = slide?.pageNumber || 1;
         const totalPages = slide?.totalPages || 1;
-        const showEnding = ds.readingShowEnding !== false;
-        const previewText = showEnding && pageNum === totalPages && slide?.ending
-          ? `${text}\n\n${slide.ending}`
-          : text;
+        const previewText = slide?.isEndingSlide ? (slide.ending || "") : text;
         const hasReadingContent = passage.trim().length > 0 || text.trim().length > 0;
 
         const labelHtml = showLabel

@@ -2,7 +2,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const { importReadings, paginateDocuments } = require("../../src/readingsImporter");
+const { importReadings, paginateDocuments, clearPaginationCache } = require("../../src/readingsImporter");
 
 describe("readingsImporter", () => {
   test("imports and orders readings from folder", () => {
@@ -251,25 +251,56 @@ describe("spoken reading endings", () => {
     expect(result.documents[0].ending).toBe("The Gospel of the Lord.");
   });
 
-  test("shows the spoken ending only on the last page", () => {
+  describe("ending slide", () => {
     const longText = Array.from({ length: 24 }, (_, index) => `Line ${index + 1} of the reading.`);
-    const slides = paginateDocuments([
-      {
-        stem: "Reading_I",
-        section: "Reading I",
-        passage: "Genesis 1:1",
-        textLines: longText,
-        ending: "The Word of the Lord."
-      }
-    ], {
-      fontSizePx: 60,
-      readingTextHeightPx: 840,
-      readingTextMarginXPx: 80
+    const options = { fontSizePx: 60, readingTextHeightPx: 840, readingTextMarginXPx: 80 };
+    const makeDoc = (section, ending) => ({
+      stem: "Reading_I",
+      section,
+      passage: "Genesis 1:1",
+      textLines: longText,
+      ending
     });
 
-    expect(slides.length).toBeGreaterThan(1);
-    expect(slides.slice(0, -1).every((slide) => slide.ending === null)).toBe(true);
-    expect(slides[slides.length - 1].ending).toBe("The Word of the Lord.");
+    test("adds one slide after the last scripture slide that holds only the ending", () => {
+      clearPaginationCache();
+      const slides = paginateDocuments([makeDoc("Reading I", "The Word of the Lord.")], options);
+      const last = slides[slides.length - 1];
+
+      expect(last.isEndingSlide).toBe(true);
+      expect(last.text).toBe("");
+      expect(last.ending).toBe("The Word of the Lord.");
+      expect(last.isLastPage).toBe(true);
+      expect(slides.filter((slide) => slide.isEndingSlide)).toHaveLength(1);
+    });
+
+    test("keeps the ending out of every scripture slide", () => {
+      clearPaginationCache();
+      const slides = paginateDocuments([makeDoc("Reading I", "The Word of the Lord.")], options);
+      const scripture = slides.filter((slide) => !slide.isEndingSlide);
+
+      expect(scripture.length).toBeGreaterThan(1);
+      expect(scripture.every((slide) => slide.ending === null)).toBe(true);
+      expect(scripture.every((slide) => !slide.text.includes("Word of the Lord"))).toBe(true);
+    });
+
+    test("adds no slide when the ending is off", () => {
+      clearPaginationCache();
+      const withEnding = paginateDocuments([makeDoc("Reading I", "The Word of the Lord.")], options);
+      const without = paginateDocuments([makeDoc("Reading I", "The Word of the Lord.")], { ...options, readingShowEnding: false });
+      const noEnding = paginateDocuments([makeDoc("Reading I", null)], options);
+
+      expect(without).toHaveLength(withEnding.length - 1);
+      expect(without).toHaveLength(noEnding.length);
+      expect(without.some((slide) => slide.isEndingSlide)).toBe(false);
+    });
+
+    test("uses the Gospel wording for a Gospel reading", () => {
+      clearPaginationCache();
+      const slides = paginateDocuments([makeDoc("Gospel", "The Gospel of the Lord.")], options);
+
+      expect(slides[slides.length - 1].ending).toBe("The Gospel of the Lord.");
+    });
   });
 });
 

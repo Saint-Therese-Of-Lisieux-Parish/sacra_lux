@@ -46,7 +46,9 @@ async function expectStageShows(stageRoot, slide) {
     return;
   }
   // The display drops the "R." marker from psalm lines.
-  const firstLine = String(slide.text).split("\n").find((line) => line.trim()).replace(/^R\.\s*/, "");
+  // An ending slide holds the spoken ending and no scripture text.
+  const shownText = slide.isEndingSlide ? slide.ending : slide.text;
+  const firstLine = String(shownText).split("\n").find((line) => line.trim()).replace(/^R\.\s*/, "");
   await expect(visible).toContainText(firstLine);
 }
 

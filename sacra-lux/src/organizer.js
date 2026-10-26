@@ -564,7 +564,8 @@ function buildReadingSlides(item, documents, screenSettings) {
     readingTextBold: effectiveScreenSettings.readingTextBold,
     readingTextItalic: effectiveScreenSettings.readingTextItalic,
     readingLetterSpacingPx: effectiveScreenSettings.readingLetterSpacingPx,
-    psalmRefrainIndex: item.psalmRefrainIndex
+    psalmRefrainIndex: item.psalmRefrainIndex,
+    readingShowEnding: effectiveScreenSettings.readingShowEnding
   });
 
   return paginated.map((slide) => ({
@@ -572,13 +573,16 @@ function buildReadingSlides(item, documents, screenSettings) {
     organizerItemId: item.id,
     styleOverrides,
     groupLabel: item.label || displayLabelForDocument(doc),
-    title:
-      slide.totalPages > 1
-        ? `${item.label || displayLabelForDocument(doc)} — ${slide.passage} (${slide.pageNumber}/${slide.totalPages})`
-        : `${item.label || displayLabelForDocument(doc)} — ${slide.passage}`,
+    title: readingSlideTitle(item.label || displayLabelForDocument(doc), slide),
     phase: normalizePhase(item.phase),
     backgroundTheme: normalizeBackgroundTheme(item.backgroundTheme, item.type)
   }));
+}
+
+function readingSlideTitle(label, slide) {
+  const base = `${label} — ${slide.passage}`;
+  if (slide.isEndingSlide) return `${base} (Ending)`;
+  return slide.totalPages > 1 ? `${base} (${slide.pageNumber}/${slide.totalPages})` : base;
 }
 
 function buildPresentationFromOrganizer({
