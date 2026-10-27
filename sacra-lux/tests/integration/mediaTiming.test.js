@@ -135,7 +135,7 @@ describe("automated media timing", () => {
         { id: "after-movie", type: "text", label: "After", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
       ],
       {
-        "movie-intro": { videoUrl: "/uploads/intro.mp4", videoLoop: false, videoAutoAdvance: true },
+        "movie-intro": { videoUrl: "/api/mass-asset/intro.mp4", videoLoop: false, videoAutoAdvance: true },
         "after-movie": { text: "After" }
       }
     );
