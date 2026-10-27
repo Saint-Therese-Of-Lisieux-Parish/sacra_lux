@@ -13,7 +13,7 @@
 
 | Layer | Technology |
 | --- | --- |
-| desktop runtime | Electron 44 |
+| desktop runtime | Electron 45 |
 | packaging | electron-builder 26 (macOS DMG, Windows NSIS) |
 | server | Node.js 26, Express 5, Socket.IO 4 |
 | frontend | vanilla HTML, CSS, and JavaScript |
