@@ -782,10 +782,10 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 
   const assetsDir = path.join(packageDir, "assets");
   if (fs.existsSync(assetsDir)) {
-    for (const file of fs.readdirSync(assetsDir)) {
-      const fullPath = path.join(assetsDir, file);
-      if (fs.statSync(fullPath).isFile() && !convertedAssetFiles.has(file) && !zip.getEntry(`assets/${file}`)) {
-        zip.addFile(`assets/${file}`, fs.readFileSync(fullPath));
+    for (const dirent of fs.readdirSync(assetsDir, { withFileTypes: true })) {
+      const file = dirent.name;
+      if (dirent.isFile() && !convertedAssetFiles.has(file) && !zip.getEntry(`assets/${file}`)) {
+        zip.addFile(`assets/${file}`, fs.readFileSync(path.join(assetsDir, file)));
       }
     }
   }
