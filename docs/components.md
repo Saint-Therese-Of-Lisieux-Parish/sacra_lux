@@ -147,7 +147,8 @@ Theme definitions (label, CSS variables, colour scheme) for the app UI.
 
 ### `src/logger.js`
 
-Small runtime logging wrapper with `info` and `warn`.
+Small runtime logging wrapper with `info`, `warn`, and `error`. Quiet logs
+skip `info`. `warn` and `error` still print.
 
 ## Electron Modules
 
