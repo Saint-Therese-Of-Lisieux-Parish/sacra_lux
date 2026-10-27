@@ -3703,6 +3703,8 @@ function startServer(port = 17841, options = {}) {
         documents: imported.documents || []
       };
 
+      // The live title wins: mass_title.txt on disk can lag behind it by the save delay.
+      const liveTitle = state.presentation?.title;
       state.presentation = buildPresentationFromOrganizer({
         title: imported.title || path.basename(folderPath),
         documents: state.readingsSource.documents,
@@ -3710,7 +3712,11 @@ function startServer(port = 17841, options = {}) {
         manualSlides: state.manualSlides,
         screenSettings: state.screenSettings
       });
+      if (typeof liveTitle === "string") {
+        state.presentation.title = liveTitle;
+      }
 
+      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
