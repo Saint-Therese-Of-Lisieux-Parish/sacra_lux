@@ -301,6 +301,33 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass clears current assets after it archives the prior Mass", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Mass A", startTime: "" })
+      .expect(200);
+    await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "mass-a-photo.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    const created = await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Mass B", startTime: "" })
+      .expect(200);
+
+    expect((await request(app).get("/api/mass-assets").expect(200)).body.assets).toEqual([]);
+    const archiveAssets = path.join(
+      handle.homeDir,
+      ".sacra-lux",
+      "mass_history",
+      created.body.archivedMassId,
+      "package",
+      "assets"
+    );
+    expect(fs.existsSync(path.join(archiveAssets, "mass-a-photo.png"))).toBe(true);
+  });
+
   test("theme endpoints list Catholic themes first", async () => {
     const expectedCatholicIds = [
       "carmelite",

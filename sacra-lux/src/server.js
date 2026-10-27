@@ -3170,7 +3170,12 @@ function startServer(port = 17841, options = {}) {
         archivedMassId = state.activeMassArchiveId || null;
       }
 
-      // 2. Build a default organizer sequence with placeholder slides
+      // 2. Remove Mass-owned media only after the prior Mass archive succeeds.
+      const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+      fs.rmSync(assetsDir, { recursive: true, force: true });
+      fs.mkdirSync(assetsDir, { recursive: true });
+
+      // 3. Build a default organizer sequence with placeholder slides
       state.activeMassArchiveId = null;
       state.startupPrompt = null;
       const newSequence = [
@@ -3241,7 +3246,7 @@ function startServer(port = 17841, options = {}) {
       }
       state.manualSlides = newManualSlides;
 
-      // 3. Set title, clear readings, and reset playback
+      // 4. Set title, clear readings, and reset playback
       state.presentation.title = massTitle;
       state.presentation.sourceFile = null;
       state.readingsSource = { folderPath: null, documents: lectionaryDocuments };
@@ -3249,7 +3254,7 @@ function startServer(port = 17841, options = {}) {
       resetDisplayOverrides();
       stopActiveSlideTimers();
 
-      // 4. Build the slides, then arm the wall clock from this Mass's gathering length.
+      // 5. Build the slides, then arm the wall clock from this Mass's gathering length.
       state.presentation = buildPresentationFromOrganizer({
         title: state.presentation.title,
         documents: state.readingsSource.documents,
