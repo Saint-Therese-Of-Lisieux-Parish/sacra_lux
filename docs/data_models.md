@@ -279,6 +279,7 @@ runtime state with secrets stripped. Client-visible fields:
   gatheringRunning: boolean,
   postMassRunning: boolean,
   countdownEndsAt: number | null,
+  serverTime: number,
   imageSlideshowEndsAt: number | null,
   imageSlideshowLoopIteration: number,
   imageSlideshowError: string | null,
@@ -293,6 +294,10 @@ Stripped before transmission:
 - `startPin` and `startPinHash` (the snapshot adds `hasStartPin: boolean`)
 - `interstitialHoldReturnSlideIndex`
 - `interstitialHoldResumeState`
+
+`serverTime` is the server clock at `lastUpdated`, in milliseconds. The
+projector uses it to correct a countdown when the projector clock differs from
+the server clock.
 
 `startupPrompt` is `{ type: "mass-library", reason: string }` when the server
 starts without a valid `current_mass` package, or `null` otherwise.
