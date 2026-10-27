@@ -53,7 +53,16 @@ jobs:
         timeout-minutes: 5
         run: |
           printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99ci-retries
-          timeout --kill-after=10 290 npx playwright install --with-deps chromium webkit
+          for attempt in 1 2; do
+            if timeout --kill-after=10 290 npx playwright install --with-deps chromium webkit; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 1 ]; then
+              echo "Playwright browser install failed on attempt 1; retrying once."
+            fi
+          done
+          echo "Playwright browser install failed after 2 attempts."
+          exit 1
 
       - name: Lint
         run: npm run lint
