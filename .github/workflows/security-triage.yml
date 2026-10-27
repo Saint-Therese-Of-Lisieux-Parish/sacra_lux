@@ -1,0 +1,82 @@
+name: Security triage
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  security-events: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Collect open CodeQL alerts
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const weekStart = new Date().toISOString().slice(0, 10);
+            const title = `[Security Triage] Week ${weekStart}`;
+            const alerts = await github.paginate(
+              github.rest.codeScanning.listAlertsForRepo,
+              { owner, repo, state: "open", per_page: 100 },
+            );
+            const alertRows = alerts.length === 0
+              ? "No open CodeQL alerts."
+              : alerts.map((alert) => {
+                  const location = alert.most_recent_instance?.location;
+                  const line = location?.start_line ?? "unknown";
+                  const path = location?.path ?? "unknown";
+                  const severity = alert.rule.security_severity_level
+                    ?? alert.rule.severity
+                    ?? "unknown";
+                  return `- [ ] \`${alert.rule.id}\` (${severity}) — \`${path}:${line}\` — ${alert.html_url}`;
+                }).join("\\n");
+            const body = [
+              "# Weekly security triage",
+              "",
+              `Last checked: ${weekStart}`,
+              `Open CodeQL alerts: ${alerts.length}`,
+              "",
+              "## Alerts",
+              "",
+              alertRows,
+              "",
+              "## Next action",
+              "",
+              "Assign an owner to each alert. Link the fix pull request in this issue.",
+              "Close this issue after CodeQL reports the alerts as resolved.",
+            ].join("\\n");
+            const issues = await github.paginate(
+              github.rest.issues.listForRepo,
+              { owner, repo, state: "open", per_page: 100 },
+            );
+            const issue = issues.find((candidate) => (
+              !candidate.pull_request && candidate.title === title
+            ));
+            if (issue) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issue.number,
+                body,
+              });
+              core.info(`Updated issue #${issue.number}.`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+              });
+              core.info(`Created issue #${created.data.number}.`);
+            }
