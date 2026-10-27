@@ -86,3 +86,4 @@ for (const { id, button } of DIALOGS) {
     expect(summary).toEqual([]);
   });
 }
+
