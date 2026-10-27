@@ -25,6 +25,7 @@ const pkg = require("../package.json");
 const SITE_URL = "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/";
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 let appWindow;
 let screenWindow;
@@ -57,8 +58,7 @@ function getLocalIpv4Address() {
 }
 
 /**
- * Start the Electron-owned server, falling back to an ephemeral local port
- * when the preferred port is already used by a separately running web server.
+ * Start the Electron-owned server on its configured port.
  */
 function startDesktopServer() {
   // Write the banner once. A later port retry does not write it again.
@@ -87,11 +87,7 @@ function startDesktopServer() {
         return;
       }
 
-      server.removeListener("listening", onListening);
-      logger.info(`[desktop] Port ${PORT} is already in use; selecting an available local port.`);
-      server.once("listening", onListening);
-      server.once("error", reject);
-      server.listen(0, "0.0.0.0");
+      reject(new Error(`Port ${PORT} is already in use.`));
     };
 
     server.once("listening", onListening);
@@ -892,6 +888,20 @@ function createSplash({ linkToSite = false } = {}) {
   });
 }
 
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!appWindow || appWindow.isDestroyed()) {
+      return;
+    }
+    if (appWindow.isMinimized()) {
+      appWindow.restore();
+    }
+    appWindow.show();
+    appWindow.focus();
+  });
+
 app.whenReady().then(async () => {
   createSplash();
   const splashCreatedAt = Date.now();
@@ -973,3 +983,4 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+}

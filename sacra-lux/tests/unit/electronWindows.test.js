@@ -6,7 +6,7 @@ const PRELOAD_PATH = path.join(__dirname, "../../src/preload.js");
 const AGENTS_PATH = path.join(__dirname, "../../../AGENTS.md");
 
 // Load src/main.js with a mocked electron module and run app start up.
-async function startMain() {
+async function startMain({ singleInstanceLock = true, portInUse = false } = {}) {
   jest.resetModules();
   const windows = [];
 
@@ -33,6 +33,7 @@ async function startMain() {
     isVisible() { return false; }
     show() {}
     focus() {}
+    restore() {}
     close() {}
     destroy() {}
     setBounds() {}
@@ -47,6 +48,7 @@ async function startMain() {
   const electron = {
     app: {
       commandLine: { appendSwitch: jest.fn() },
+      requestSingleInstanceLock: jest.fn(() => singleInstanceLock),
       whenReady: () => ready,
       on: jest.fn(),
       quit: jest.fn(),
@@ -61,7 +63,8 @@ async function startMain() {
   };
   const server = {
     once: jest.fn((name, handler) => {
-      if (name === "listening") setImmediate(handler);
+      if (name === "listening" && !portInUse) setImmediate(handler);
+      if (name === "error" && portInUse) setImmediate(() => handler({ code: "EADDRINUSE" }));
     }),
     removeListener: jest.fn(),
     address: () => ({ port: 17841 }),
@@ -71,8 +74,9 @@ async function startMain() {
   jest.doMock("electron", () => electron, { virtual: true });
   const saveCurrentMass = jest.fn();
   const flushPendingSave = jest.fn();
+  const startServer = jest.fn(() => ({ io: { on: jest.fn(), emit: jest.fn() }, server }));
   jest.doMock("../../src/server", () => ({
-    startServer: jest.fn(() => ({ io: { on: jest.fn(), emit: jest.fn() }, server })),
+    startServer,
     saveCurrentMass,
     flushPendingSave
   }));
@@ -89,12 +93,43 @@ async function startMain() {
   resolveReady();
   await new Promise((resolve) => setTimeout(resolve, 50));
   windows.electron = electron;
+  windows.startServer = startServer;
   windows.saveCurrentMass = saveCurrentMass;
   windows.flushPendingSave = flushPendingSave;
   return windows;
 }
 
 describe("Electron window security settings", () => {
+  test("a second app instance quits before it starts the server", async () => {
+    const windows = await startMain({ singleInstanceLock: false });
+
+    expect(windows).toHaveLength(0);
+    expect(windows.electron.app.quit).toHaveBeenCalledTimes(1);
+    expect(windows.startServer).not.toHaveBeenCalled();
+  });
+
+  test("a second instance shows and focuses the first app window", async () => {
+    const windows = await startMain();
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    appWindow.show = jest.fn();
+    appWindow.focus = jest.fn();
+    const secondInstance = windows.electron.app.on.mock.calls.find(([name]) => name === "second-instance");
+
+    secondInstance[1]();
+
+    expect(appWindow.show).toHaveBeenCalledTimes(1);
+    expect(appWindow.focus).toHaveBeenCalledTimes(1);
+  });
+
+  test("a busy configured port shows an error and does not use another port", async () => {
+    const windows = await startMain({ portInUse: true });
+
+    expect(windows.electron.dialog.showErrorBox).toHaveBeenCalledWith(
+      "Sacra Lux could not start",
+      "Port 17841 is already in use."
+    );
+  });
+
   test("every window sets contextIsolation and never sets nodeIntegration", async () => {
     const windows = await startMain();
 
