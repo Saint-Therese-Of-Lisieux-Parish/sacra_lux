@@ -1929,6 +1929,44 @@ describe("server api integration", () => {
     emitSpy.mockRestore();
   });
 
+  test("compress keeps an archive package when a movie exceeds the ZIP entry limit", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Large Movie", startTime: "2026-04-01T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Next Mass", startTime: "2026-04-08T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const packageDir = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Large-Movie", "package");
+    const definitionPath = path.join(packageDir, "mass.json");
+    const definition = JSON.parse(fs.readFileSync(definitionPath, "utf8"));
+    definition.items.push({
+      id: "largeMovie",
+      kind: "movie",
+      label: "Homily",
+      section: "mass",
+      asset: { ref: "assets/homily.mp4" }
+    });
+    fs.writeFileSync(definitionPath, JSON.stringify(definition), "utf8");
+    fs.mkdirSync(path.join(packageDir, "assets"), { recursive: true });
+    fs.writeFileSync(
+      path.join(packageDir, "assets", "homily.mp4"),
+      Buffer.alloc(MASS_ZIP_LIMITS.maxEntryBytes + 1)
+    );
+
+    const response = await request(app)
+      .post("/api/mass-history/Large-Movie/compress")
+      .expect(400);
+
+    expect(response.body.error).toContain("assets/homily.mp4");
+    expect(fs.existsSync(packageDir)).toBe(true);
+  });
+
   test("mass history routes reject an unknown archive", async () => {
     await request(app)
       .post("/api/mass-history/Unknown-Archive/load")
