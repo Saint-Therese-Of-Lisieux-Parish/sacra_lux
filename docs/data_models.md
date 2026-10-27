@@ -292,6 +292,7 @@ runtime state with secrets stripped. Client-visible fields:
 Stripped before transmission:
 
 - `startPin` and `startPinHash` (the snapshot adds `hasStartPin: boolean`)
+- `readingsSource.folderPath` (the snapshot adds `readingsSource.hasFolder`)
 - `interstitialHoldReturnSlideIndex`
 - `interstitialHoldResumeState`
 
