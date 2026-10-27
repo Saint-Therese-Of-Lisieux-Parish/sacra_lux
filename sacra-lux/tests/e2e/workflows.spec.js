@@ -998,6 +998,68 @@ test("Image Slideshow crossfades between consecutive images", async ({ page, req
   await expect(page.locator(`.frame[data-image-url="${first.url}"]`)).toHaveCSS("opacity", "0");
 });
 
+test("Black Screen and settings changes keep movie playback", async ({ page, request }) => {
+  await page.addInitScript(() => {
+    const times = new WeakMap();
+    Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
+      configurable: true,
+      get() { return times.get(this) || 0; },
+      set(value) { times.set(this, Number(value) || 0); }
+    });
+    HTMLMediaElement.prototype.load = () => {};
+    HTMLMediaElement.prototype.play = () => Promise.resolve();
+    HTMLMediaElement.prototype.pause = () => {};
+  });
+
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { transition: "none" } });
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{ id: "movie:black-screen", type: "movie", label: "Movie", phase: "mass", backgroundTheme: "dark" }],
+      manualSlides: { "movie:black-screen": { videoUrl: "/api/mass-asset/movie.mp4", videoAutoAdvance: true } }
+    }
+  });
+  await page.goto(`${baseUrl}/screen`);
+  const video = page.locator("video.video-player");
+  await expect(video).toHaveCount(1);
+  await video.evaluate((element) => {
+    element.currentTime = 5;
+    element.volume = 0.37;
+    window.__movieVideo = element;
+  });
+
+  async function setBlack(value) {
+    await page.evaluate((nextValue) => new Promise((resolve) => {
+      const testSocket = io();
+      testSocket.on("connect", () => {
+        testSocket.on("state:update", (state) => {
+          if (Boolean(state.isBlack) === nextValue) {
+            testSocket.disconnect();
+            resolve();
+          }
+        });
+        testSocket.emit("screen:black", nextValue);
+      });
+    }), value);
+  }
+
+  await setBlack(true);
+  await expect.poll(() => video.evaluate((element) => ({
+    same: element === window.__movieVideo,
+    currentTime: element.currentTime,
+    muted: element.muted
+  }))).toEqual({ same: true, currentTime: 5, muted: true });
+
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { fontSizePx: 72 } });
+  await expect.poll(() => video.evaluate((element) => element === window.__movieVideo)).toBe(true);
+  await setBlack(false);
+  await expect(video).toHaveJSProperty("muted", false);
+  await expect.poll(() => video.evaluate((element) => ({
+    same: element === window.__movieVideo,
+    currentTime: element.currentTime,
+    volume: element.volume
+  }))).toEqual({ same: true, currentTime: 5, volume: 0.37 });
+});
+
 test("remote preview preload failures do not remove projector slideshow images", async ({ page, request }) => {
   async function uploadPng(filename, background) {
     const png = await sharp({
