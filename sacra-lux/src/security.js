@@ -18,6 +18,10 @@ const RATE_LIMIT_CONFIG = {
 const MAX_START_TOKENS = 100;
 const startTokens = new Map();
 const pinLockouts = new Map();
+const PIN_FAILURE_RETENTION_MS = 24 * 60 * 60 * 1000;
+const PIN_FAILURE_ALERT_COUNT = 50;
+let recentPinFailureTimes = [];
+let pinFailureAlertRaised = false;
 
 const rateLimitBuckets = {
   global: new Map(),
@@ -107,7 +111,22 @@ function registerPinFailure(ip) {
     lastFailureAt: now
   };
   pinLockouts.set(ip, record);
+  notePinFailureForAlert(now);
   return record;
+}
+
+// Log one warning when many addresses together guess PINs. The log never holds a PIN.
+function notePinFailureForAlert(now) {
+  recentPinFailureTimes = recentPinFailureTimes.filter((time) => now - time < PIN_FAILURE_RETENTION_MS);
+  recentPinFailureTimes.push(now);
+  if (recentPinFailureTimes.length < PIN_FAILURE_ALERT_COUNT) {
+    pinFailureAlertRaised = false;
+    return;
+  }
+  if (!pinFailureAlertRaised) {
+    pinFailureAlertRaised = true;
+    logger.warn(`[security] ${recentPinFailureTimes.length} PIN failures in the last 24 hours.`);
+  }
 }
 
 function clearPinFailures(ip) {
@@ -427,7 +446,7 @@ function cleanupSecurityState(now = Date.now()) {
   }
 
   for (const [ip, lock] of pinLockouts) {
-    if ((lock.lockUntil || 0) <= now && now - (lock.lastFailureAt || 0) > (15 * 60 * 1000)) {
+    if ((lock.lockUntil || 0) <= now && now - (lock.lastFailureAt || 0) > PIN_FAILURE_RETENTION_MS) {
       pinLockouts.delete(ip);
     }
   }
@@ -447,6 +466,8 @@ function resetSecurityState() {
   clearStartToken();
   clearControlAccess();
   pinLockouts.clear();
+  recentPinFailureTimes = [];
+  pinFailureAlertRaised = false;
   clearRateLimitState();
 }
 
