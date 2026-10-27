@@ -55,7 +55,7 @@ notes.
 
 ### [workflows.md](./workflows.md)
 
-End-to-end flows for readings import, organizer updates, countdowns, remote
+End-to-end flows for readings import, organizer updates, countdowns,
 interstitial hold, control auth, slideshow and movie playback, ZIP import and
 export, archive operations, USCCB import, and session restore.
 
