@@ -96,6 +96,7 @@ const state = {
   imageSlideshowError: null,
   activeMassArchiveId: null,
   startupPrompt: null,
+  saveError: "",
   lastUpdated: new Date().toISOString()
 };
 

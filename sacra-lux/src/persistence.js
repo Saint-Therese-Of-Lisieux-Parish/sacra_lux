@@ -143,7 +143,9 @@ function saveSession(state) {
     });
   } catch (err) {
     logger.error(`[persistence] Failed to save session: ${err.message}`);
+    return false;
   }
+  return true;
 }
 /**
  * Parse session text and migrate it to the current format.
