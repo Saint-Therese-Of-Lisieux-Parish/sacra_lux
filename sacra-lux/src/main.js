@@ -33,6 +33,7 @@ const screenWindows = new Map();
 let remoteWindow;
 let splashWindow;
 let appMenu = null;
+let isQuitting = false;
 
 // Every window may navigate only inside the local app origin.
 function lockWindow(win) {
@@ -151,6 +152,15 @@ function showWindow(win) {
   win.focus();
 }
 
+function showAppWindow() {
+  if (!appWindow || appWindow.isDestroyed()) {
+    createAppWindow();
+    appWindow.loadURL(`http://localhost:${PORT}/`);
+    configurePopupHandling();
+  }
+  showWindow(appWindow);
+}
+
 function runInAppWindow(script) {
   if (!appWindow || appWindow.isDestroyed()) return;
   showWindow(appWindow);
@@ -202,6 +212,29 @@ function createAppWindow() {
     }
   });
   lockWindow(appWindow);
+  appWindow.on("closed", () => {
+    appWindow = null;
+  });
+  if (process.platform !== "darwin") {
+    appWindow.on("close", (event) => {
+      if (isQuitting) return;
+      const choice = dialog.showMessageBoxSync(appWindow, {
+        type: "question",
+        buttons: ["Quit Sacra Lux", "Keep Open"],
+        defaultId: 1,
+        cancelId: 1,
+        title: "Quit Sacra Lux?",
+        message: "Do you want to quit Sacra Lux and close the projector?"
+      });
+      if (choice !== 0) {
+        event.preventDefault();
+        return;
+      }
+      isQuitting = true;
+      destroyAllScreenWindows();
+      app.quit();
+    });
+  }
 }
 
 function createScreenWindow(targetScreenId = null) {
@@ -716,7 +749,7 @@ function buildAppMenu(ioRef) {
     {
       label: "Show App Window",
       accelerator: "CmdOrCtrl+1",
-      click: () => showWindow(appWindow)
+      click: () => showAppWindow()
     },
     {
       label: "Show Screen Windows",
@@ -966,6 +999,8 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindows();
+    } else {
+      showAppWindow();
     }
   });
 }).catch((error) => {

@@ -6,7 +6,7 @@ const PRELOAD_PATH = path.join(__dirname, "../../src/preload.js");
 const AGENTS_PATH = path.join(__dirname, "../../../AGENTS.md");
 
 // Load src/main.js with a mocked electron module and run app start up.
-async function startMain({ singleInstanceLock = true, portInUse = false } = {}) {
+async function startMain({ singleInstanceLock = true, portInUse = false, platform = process.platform } = {}) {
   jest.resetModules();
   const windows = [];
 
@@ -26,7 +26,7 @@ async function startMain({ singleInstanceLock = true, portInUse = false } = {}) 
       };
       windows.push(this);
     }
-    on() {}
+    on(name, handler) { this.listeners[name] = handler; }
     loadURL() {}
     isDestroyed() { return false; }
     isMinimized() { return false; }
@@ -57,7 +57,7 @@ async function startMain({ singleInstanceLock = true, portInUse = false } = {}) 
     BrowserWindow: FakeBrowserWindow,
     Menu: { buildFromTemplate: jest.fn(() => ({})), setApplicationMenu: jest.fn() },
     ipcMain: { handle: jest.fn(), on: jest.fn() },
-    dialog: { showErrorBox: jest.fn() },
+    dialog: { showErrorBox: jest.fn(), showMessageBoxSync: jest.fn(() => 1) },
     screen: { getAllDisplays: jest.fn(() => []), getPrimaryDisplay: jest.fn(() => ({ id: 1 })) },
     shell: { openExternal: jest.fn() }
   };
@@ -89,9 +89,12 @@ async function startMain({ singleInstanceLock = true, portInUse = false } = {}) 
     isQuietLogs: jest.fn(() => true)
   }));
 
+  const originalPlatform = process.platform;
+  Object.defineProperty(process, "platform", { configurable: true, value: platform });
   require("../../src/main");
   resolveReady();
   await new Promise((resolve) => setTimeout(resolve, 50));
+  Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
   windows.electron = electron;
   windows.startServer = startServer;
   windows.saveCurrentMass = saveCurrentMass;
@@ -119,6 +122,31 @@ describe("Electron window security settings", () => {
 
     expect(appWindow.show).toHaveBeenCalledTimes(1);
     expect(appWindow.focus).toHaveBeenCalledTimes(1);
+  });
+
+  test("Show App Window creates the app window again after it closes", async () => {
+    const windows = await startMain();
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    appWindow.listeners.closed();
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const windowMenu = template.find((item) => item.label === "Window" || item.role === "windowMenu");
+    windowMenu.submenu.find((item) => item.label === "Show App Window").click();
+
+    expect(windows.filter((win) => win.options.title === "Sacra Lux")).toHaveLength(2);
+  });
+
+  test("Windows asks before quitting", async () => {
+    const windows = await startMain({ platform: "win32" });
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    const closeEvent = { preventDefault: jest.fn() };
+    windows.electron.dialog.showMessageBoxSync.mockReturnValue(1);
+    appWindow.listeners.close(closeEvent);
+    expect(closeEvent.preventDefault).toHaveBeenCalledTimes(1);
+    expect(windows.electron.app.quit).not.toHaveBeenCalled();
+
+    windows.electron.dialog.showMessageBoxSync.mockReturnValue(0);
+    appWindow.listeners.close({ preventDefault: jest.fn() });
+    expect(windows.electron.app.quit).toHaveBeenCalledTimes(1);
   });
 
   test("a busy configured port shows an error and does not use another port", async () => {
