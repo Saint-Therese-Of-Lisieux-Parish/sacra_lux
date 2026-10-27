@@ -233,7 +233,8 @@ PIN-gated remote start flow at `/start`.
 ### `public/client/shared.js`
 
 UMD shared helpers loaded by all three pages and required directly by unit
-tests: `escapeHtml()`, `formatCountdownTime()`, and `formatDurationTime()`.
+tests: `escapeHtml()`, `formatCountdownTime()`, `formatDurationTime()`, and
+`addLocalDays()`.
 
 ### `public/shared.css`
 
