@@ -71,7 +71,8 @@ server holds the only authoritative state, so always inspect server state
 
 - Screen settings are validated and clamped by the server
   (`normalizeScreenSettings()`). Values outside the allowed range are clamped,
-  not rejected, so an out-of-range input will appear to "change value".
+  not rejected, so an out-of-range input will appear to change value.
+- A value that is not a finite number keeps the current value.
 - A setting change that affects reading layout re-paginates the deck.
 
 ## Port already in use
