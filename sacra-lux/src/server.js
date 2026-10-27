@@ -122,6 +122,7 @@ const logInfo = logger.info;
 const logWarn = logger.warn;
 const logError = logger.error;
 const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
+let activeIo = null;
 const IMAGE_ASSET_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
 const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
@@ -2157,6 +2158,7 @@ function runScheduledSave() {
   _saveTimer = null;
   const shouldSyncCurrentMass = _syncCurrentMassOnSave;
   _syncCurrentMassOnSave = false;
+  let saveError = "";
   try {
     // Save the Mass first: it sets activeMassArchiveId, which the session records.
     if (shouldSyncCurrentMass) {
@@ -2164,11 +2166,20 @@ function runScheduledSave() {
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
+    saveError = `Could not save mass.json: ${error.message}`;
   }
   try {
-    saveSession(state);
+    if (saveSession(state) === false) {
+      saveError = saveError || "Could not save session.json.";
+    }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
+    saveError = saveError || `Could not save session.json: ${error.message}`;
+  }
+  if (state.saveError !== saveError) {
+    state.saveError = saveError;
+    touch();
+    activeIo?.emit("state:update", getStateSnapshot());
   }
 }
 
@@ -2285,6 +2296,7 @@ function startServer(port = 17841, options = {}) {
   const io = new Server(server, {
     allowRequest: hostGuard.allowRequest
   });
+  activeIo = io;
 
   const globalApiRateLimit = createRateLimitMiddleware({
     ...RATE_LIMIT_CONFIG.global,

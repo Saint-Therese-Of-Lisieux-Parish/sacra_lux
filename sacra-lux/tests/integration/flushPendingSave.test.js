@@ -31,11 +31,12 @@ describe("flushPendingSave", () => {
 
   test("logs a failed final save and returns", async () => {
     jest.resetModules();
+    const syncCurrentMassToArchive = jest.fn(() => {
+      throw new Error("ENOSPC: simulated");
+    });
     jest.doMock("../../src/massHistory", () => ({
       ...jest.requireActual("../../src/massHistory"),
-      syncCurrentMassToArchive: () => {
-        throw new Error("ENOSPC: simulated");
-      }
+      syncCurrentMassToArchive
     }));
     const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     const handle = await startIsolatedServer({
@@ -48,6 +49,14 @@ describe("flushPendingSave", () => {
 
       expect(() => flushPendingSave()).not.toThrow();
       expect(errorSpy.mock.calls.some((call) => String(call[0]).includes("Save failed"))).toBe(true);
+      const failedState = await request(handle.app).get("/api/state").expect(200);
+      expect(failedState.body.saveError).toContain("mass.json");
+
+      syncCurrentMassToArchive.mockReturnValue({ id: "archive-1" });
+      await request(handle.app).post("/api/update-title").send({ title: "Recovered" }).expect(200);
+      flushPendingSave();
+      const recoveredState = await request(handle.app).get("/api/state").expect(200);
+      expect(recoveredState.body.saveError).toBe("");
     } finally {
       errorSpy.mockRestore();
       jest.dontMock("../../src/massHistory");

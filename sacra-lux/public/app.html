@@ -1909,6 +1909,10 @@
       display: none;
     }
 
+    .status-badge.error {
+      color: var(--danger-text, var(--danger));
+    }
+
     #massTitleInput {
       font-size: clamp(1.65rem, 3.8vw, 2.7rem);
       font-weight: 800;
@@ -6647,7 +6651,8 @@
       }
 
       els.massTitleInput.value = data.presentation?.title || "No presentation";
-      els.status.textContent = `${slides.length} slides`;
+      els.status.textContent = data.saveError || `${slides.length} slides`;
+      els.status.classList.toggle("error", Boolean(data.saveError));
 
       // Update start-time status display
       const mst = data.massStartTime || null;

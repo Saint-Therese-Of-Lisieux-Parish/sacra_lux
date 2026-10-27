@@ -65,6 +65,12 @@ describe("public client markup guards", () => {
     expect(screenHtml).toContain("const serverNow = Date.now() + serverClockOffset");
   });
 
+  test("shows a server save error in the operator status badge", () => {
+    expect(appHtml).toContain('id="status" class="status-badge"');
+    expect(appHtml).toContain("data.saveError || `${slides.length} slides`");
+    expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.saveError))');
+  });
+
   test("slide type tabs pick the bounds layout and no Layout dropdown shows", () => {
     const tabs = [...appHtml.matchAll(/class="settings-tab[^"]*" data-settings-tab="([^"]+)"[^>]*>([^<]+)</g)]
       .map((match) => [match[1], match[2]]);
