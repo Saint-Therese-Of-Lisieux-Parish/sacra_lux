@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const { test, expect } = require("@playwright/test");
 const sharp = require("sharp");
-const { clearRateLimitState } = require("../../src/security");
 
 const {
   createTempHome,
@@ -32,7 +31,9 @@ test.beforeAll(async () => {
 });
 
 test.beforeEach(() => {
-  clearRateLimitState();
+  // Earlier specs can reload src modules. Read the active module so this
+  // clears the rate-limit store used by this server.
+  require("../../src/security").clearRateLimitState();
 });
 
 test.afterAll(async () => {
@@ -1211,7 +1212,9 @@ test("start page validates PIN-gated mass start flow", async ({ page, request })
 });
 
 test("start page handles lockout and server errors without counting failures", async ({ page, request }) => {
-  const setPin = await request.post(`${baseUrl}/api/start-pin`, { data: { pin: "1234" } });
+  const setPin = await request.post(`${baseUrl}/api/start-pin`, {
+    data: { pin: "1234", currentPin: "1234" }
+  });
   expect(setPin.ok()).toBeTruthy();
   await page.route("**/api/verify-pin", async (route) => {
     await route.fulfill({
