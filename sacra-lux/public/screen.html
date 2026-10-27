@@ -792,8 +792,8 @@
   <script src="/static/vendor/qrcode.min.js"></script>
   <script src="/static/client/shared.js"></script>
   <script>
-    const socket = io();
     const isPreviewMode = window.location.search.includes("preview=1");
+    const socket = isPreviewMode ? null : io();
     const isEmbeddedScreen = window !== window.top;
     const shouldPlayVideoInline = !isPreviewMode && !isEmbeddedScreen;
 
