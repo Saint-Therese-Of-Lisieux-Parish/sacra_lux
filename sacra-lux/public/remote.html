@@ -1054,14 +1054,16 @@
           if (!isMulti) {
             const cue = group.cues[0];
             const label = escapeHtml(cue.groupLabel || cue.title);
-            return `<button class="cue-btn${hasActive ? " active" : ""}" data-index="${cue.index}">${label}</button>`;
+            const ariaCurrent = hasActive ? ' aria-current="true"' : "";
+            return `<button class="cue-btn${hasActive ? " active" : ""}"${ariaCurrent} data-index="${cue.index}">${label}</button>`;
           }
 
           const first = group.cues[0];
           const groupName = escapeHtml(first.groupLabel || first.title.replace(/ \(\d+\/\d+\)$/, ""));
           const subHtml = group.cues.map((cue) => {
             const isActive = cue.index === active;
-            return `<button class="cue-btn sub-cue${isActive ? " active" : ""}" data-index="${cue.index}">${escapeHtml(cue.title)}</button>`;
+            const ariaCurrent = isActive ? ' aria-current="true"' : "";
+            return `<button class="cue-btn sub-cue${isActive ? " active" : ""}"${ariaCurrent} data-index="${cue.index}">${escapeHtml(cue.title)}</button>`;
           }).join("");
 
           return `<details class="cue-group${hasActive ? " group-active" : ""}"${hasActive ? " open" : ""}>

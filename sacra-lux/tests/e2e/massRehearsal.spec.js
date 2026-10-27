@@ -67,6 +67,9 @@ async function expectAllShow(index, { request, operator, screen, remote }) {
     );
     return indexes.includes(index);
   }, { message: `remote cue, expected ${index}` }).toBe(true);
+  await expect.poll(async () => remote.locator('.cue-btn[aria-current="true"]').evaluateAll(
+    (buttons) => buttons.map((button) => Number(button.dataset.index))
+  ), { message: `remote aria-current, expected ${index}` }).toEqual([index]);
 }
 
 test.beforeAll(async () => {
