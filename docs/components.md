@@ -174,6 +174,12 @@ capture. Every window sets `sandbox: true` and `contextIsolation: true`.
 Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
+### `src/pdfFileName.js`
+
+`sanitizePdfFileName()` removes characters that are not allowed in a file
+name, then trims the text. PDF export uses it for the suggested file name.
+An empty result uses the fallback name.
+
 ### `src/windowSecurity.js`
 
 Navigation lock for every Electron window. It cancels navigation outside the
