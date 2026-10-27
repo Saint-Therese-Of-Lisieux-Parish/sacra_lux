@@ -155,7 +155,8 @@ If a start PIN is set, the remote must unlock before it can control the Mass:
 3. On success the phone is redirected to `/remote`.
 
 Set, change, or clear the PIN from the **Start PIN** dialog. Clearing the PIN
-removes the unlock requirement.
+removes the unlock requirement. A change or a clear ends the other control
+sessions. Those phones must unlock again.
 
 ## Mass Library
 
