@@ -660,12 +660,40 @@ describe("security", () => {
       expect(run().allowed).toBe(true);
     });
 
-    test("forgets old PIN failures only after the lock and the idle period end", () => {
+    test("forgets old PIN failures only after 24 hours without a failure", () => {
       timerSecurity.registerPinFailure("3.3.3.3");
       jest.advanceTimersByTime(15 * 60000);
       expect(timerSecurity.registerPinFailure("3.3.3.3").failures).toBe(2);
-      jest.advanceTimersByTime(21 * 60000);
+      jest.advanceTimersByTime(23 * 60 * 60000);
+      expect(timerSecurity.registerPinFailure("3.3.3.3").failures).toBe(3);
+      jest.advanceTimersByTime(25 * 60 * 60000);
       expect(timerSecurity.registerPinFailure("3.3.3.3").failures).toBe(1);
+    });
+
+    test("keeps the lockout count after 30 minutes and starts a new lock on the next failure", () => {
+      for (let index = 0; index < 9; index += 1) {
+        timerSecurity.registerPinFailure("7.7.7.7");
+      }
+      jest.advanceTimersByTime(30 * 60000);
+      expect(timerSecurity.getActiveLock("7.7.7.7")).toBeNull();
+      const next = timerSecurity.registerPinFailure("7.7.7.7");
+      expect(next.failures).toBe(10);
+      expect(Math.round((next.lockUntil - Date.now()) / 1000)).toBe(15 * 60);
+      expect(timerSecurity.getActiveLock("7.7.7.7")).not.toBeNull();
+    });
+
+    test("logs one warning when 50 PIN failures come from many addresses", () => {
+      const warnSpy = jest.spyOn(require("../../src/logger"), "warn").mockImplementation(() => {});
+      for (let index = 0; index < 49; index += 1) {
+        timerSecurity.registerPinFailure(`10.0.0.${index % 10}`);
+      }
+      expect(warnSpy).not.toHaveBeenCalled();
+      timerSecurity.registerPinFailure("10.0.0.1");
+      timerSecurity.registerPinFailure("10.0.0.2");
+      const alerts = warnSpy.mock.calls.filter(([message]) => String(message).includes("PIN failures"));
+      expect(alerts).toHaveLength(1);
+      expect(alerts[0][0]).toContain("50");
+      warnSpy.mockRestore();
     });
 
     test("keeps a PIN record while its lock is active", () => {
