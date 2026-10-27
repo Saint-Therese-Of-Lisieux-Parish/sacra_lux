@@ -13,7 +13,16 @@ writeStartupBanner({
   log: (message) => logger.info(message)
 });
 
-startServer(PORT);
+const { server } = startServer(PORT);
+
+server.once("error", (error) => {
+  if (error?.code === "EADDRINUSE") {
+    process.stderr.write(`Port ${PORT} is already in use. Stop the other process or set PORT to a free port.\n`);
+  } else {
+    process.stderr.write(`Cannot start the web server: ${error?.message || error}\n`);
+  }
+  process.exit(1);
+});
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
   process.once(signal, () => {

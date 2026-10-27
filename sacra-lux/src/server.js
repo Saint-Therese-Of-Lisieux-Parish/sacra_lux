@@ -459,16 +459,28 @@ function isAllowedMediaUrl(value) {
   return ALLOWED_MEDIA_URL_PREFIXES.some((prefix) => value.startsWith(prefix));
 }
 
-/** Return an error message for the first image URL in the organizer payload that has a bad prefix. */
+const BACKGROUND_URL_KEYS = ["darkBackgroundUrl", "lightBackgroundUrl", "colorBackgroundUrl", "imageBackgroundUrl", "wordBackgroundUrl", "graphicBackgroundUrl"];
+const BACKGROUND_URL_ERROR = "Background URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.";
+
+/** Return an error message when a screen settings payload holds a background URL with a bad prefix. */
+function screenSettingsUrlError(settings) {
+  if (!settings || typeof settings !== "object") {
+    return "";
+  }
+  const bad = BACKGROUND_URL_KEYS.some((key) => typeof settings[key] === "string" && settings[key] && !isAllowedMediaUrl(settings[key]));
+  return bad ? BACKGROUND_URL_ERROR : "";
+}
+
+/** Return an error message for the first image or movie URL in the organizer payload that has a bad prefix. */
 function manualSlideUrlError(manualSlides) {
   for (const manual of Object.values(manualSlides && typeof manualSlides === "object" ? manualSlides : {})) {
-    const urls = [manual?.imageUrl];
+    const urls = [manual?.imageUrl, manual?.videoUrl];
     if (Array.isArray(manual?.images)) {
       urls.push(...manual.images.map((entry) => (typeof entry === "string" ? entry : entry?.url)));
     }
     for (const url of urls) {
       if (typeof url === "string" && url.trim() && !isAllowedMediaUrl(url.trim())) {
-        return "Image URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.";
+        return "Image and movie URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.";
       }
     }
   }
@@ -2633,12 +2645,9 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/screen-settings", (req, res) => {
     try {
       const body = req.body || {};
-      for (const key of ["darkBackgroundUrl", "lightBackgroundUrl", "colorBackgroundUrl", "imageBackgroundUrl", "wordBackgroundUrl", "graphicBackgroundUrl"]) {
-        if (typeof body[key] === "string" && body[key] && !isAllowedMediaUrl(body[key])) {
-          return res.status(400).json({
-            error: "Background URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/."
-          });
-        }
+      const urlError = screenSettingsUrlError(body);
+      if (urlError) {
+        return res.status(400).json({ error: urlError });
       }
       state.screenSettings = normalizeScreenSettings(body);
       repaginateReadingSlidesIfNeeded();
@@ -2972,6 +2981,10 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/import-settings", (req, res) => {
     try {
       const payload = req.body || {};
+      const urlError = screenSettingsUrlError(payload.screenSettings) || manualSlideUrlError(payload.manualSlides);
+      if (urlError) {
+        return res.status(400).json({ error: urlError });
+      }
       const nextScreenSettings = payload.screenSettings && typeof payload.screenSettings === "object"
         ? normalizeScreenSettings(payload.screenSettings)
         : state.screenSettings;
@@ -3895,6 +3908,9 @@ function startServer(port = 17841, options = {}) {
     });
 
     socket.on("screen:settings", withControl(socket, (settings) => {
+      if (screenSettingsUrlError(settings)) {
+        return;
+      }
       state.screenSettings = normalizeScreenSettings(settings || {});
       repaginateReadingSlidesIfNeeded();
       broadcast();
