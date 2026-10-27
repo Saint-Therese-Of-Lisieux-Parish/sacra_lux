@@ -57,6 +57,14 @@ describe("public client markup guards", () => {
     expect(screenHtml).toContain("slide.isEndingSlide");
   });
 
+  test("screen countdowns use the server clock", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    expect(screenHtml).toContain("state.serverTime");
+    expect(screenHtml).toContain("window.__serverClockOffsetMs");
+    expect(screenHtml).toContain("const serverNow = Date.now() + serverClockOffset");
+  });
+
   test("slide type tabs pick the bounds layout and no Layout dropdown shows", () => {
     const tabs = [...appHtml.matchAll(/class="settings-tab[^"]*" data-settings-tab="([^"]+)"[^>]*>([^<]+)</g)]
       .map((match) => [match[1], match[2]]);

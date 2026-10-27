@@ -1138,7 +1138,9 @@
 
       function tick() {
         // When no active countdown (e.g. preview mode), show the full duration statically.
-        const remaining = endsAt ? Math.max(0, endsAt - Date.now()) : totalSec * 1000;
+        const serverClockOffset = Number(window.__serverClockOffsetMs) || 0;
+        const serverNow = Date.now() + serverClockOffset;
+        const remaining = endsAt ? Math.max(0, endsAt - serverNow) : totalSec * 1000;
         const remainSec = Math.ceil(remaining / 1000);
         timeEl.textContent = formatCountdownTime(remainSec);
 
@@ -2174,6 +2176,9 @@
     // Wrap render to also update idle overlay and prepare the next slideshow image.
     const _originalRender = render;
     function renderWithIdle(state) {
+      if (Number.isFinite(Number(state.serverTime))) {
+        window.__serverClockOffsetMs = Number(state.serverTime) - Date.now();
+      }
       _originalRender(state);
       preloadNextImageSlideshowSlide(state);
       updateIdleOverlay(state);
