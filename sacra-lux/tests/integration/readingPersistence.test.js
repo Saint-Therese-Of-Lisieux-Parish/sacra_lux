@@ -40,4 +40,26 @@ describe("reading persistence", () => {
       await restarted.stop();
     }
   });
+
+  test.each([
+    ["missing", { stem: "Reading_I" }],
+    ["a number", { stem: "Reading_I", text: 42 }]
+  ])("save-reading rejects text that is %s and keeps the file", async (_label, body) => {
+    const first = await boot();
+    try {
+      const readingsDir = makeReadingsFolder(homeDir);
+      await loadReadingsFolder(first.app, readingsDir);
+      const before = (await request(first.app).get("/api/state").expect(200)).body;
+      const beforeDoc = before.readingsSource.documents.find((entry) => entry.stem === "Reading_I");
+
+      await request(first.app).post("/api/save-reading").send(body).expect(400);
+
+      const after = (await request(first.app).get("/api/state").expect(200)).body;
+      const afterDoc = after.readingsSource.documents.find((entry) => entry.stem === "Reading_I");
+      expect(afterDoc.textLines).toEqual(beforeDoc.textLines);
+      expect(JSON.stringify(afterDoc.textLines)).not.toContain("undefined");
+    } finally {
+      await first.stop();
+    }
+  });
 });

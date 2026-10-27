@@ -3671,6 +3671,9 @@ function startServer(port = 17841, options = {}) {
       if (!folderPath || !stem) {
         return res.status(400).json({ error: "No Mass readings folder loaded or stem missing." });
       }
+      if (typeof text !== "string") {
+        return res.status(400).json({ error: "Reading text must be a string." });
+      }
 
       const filePath = resolveReadingTxtInMass(folderPath, stem);
       if (!fs.existsSync(filePath)) {
