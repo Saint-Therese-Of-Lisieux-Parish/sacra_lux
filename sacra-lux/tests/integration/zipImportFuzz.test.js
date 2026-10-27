@@ -77,8 +77,12 @@ describe("ZIP import fuzzing", () => {
 
         expect([200, 400]).toContain(response.status);
         expect(fs.readdirSync(sandboxDir)).toEqual(["home"]);
+        // A valid `readings/evil.txt` entry lands inside a Mass package. The
+        // package may also be copied into the Mass history, so allow nested
+        // copies. An escaped write lands directly in the data or home folder.
+        const escapeFolders = [homeDir, path.join(homeDir, ".sacra-lux")];
         expect(listFiles(homeDir).some((file) => path.basename(file) === "evil.txt" &&
-          !file.includes(`${path.sep}current_mass${path.sep}`))).toBe(false);
+          escapeFolders.includes(path.dirname(file)))).toBe(false);
       }),
       { numRuns: 60 }
     );
