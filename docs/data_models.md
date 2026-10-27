@@ -352,6 +352,9 @@ Each Mass archive stores `metadata.json`:
 
 `listMassArchives()` augments each record with `hasPackage`,
 `hasCompressedZip`, `sizeBytes`, and `isActive` for the API response.
+When `metadata.json` is not valid JSON, the archive stays in the list. The
+title is then the archive id, and `startTime`, `createdAt`, and `updatedAt`
+are `null`.
 
 ## Mass Document
 
