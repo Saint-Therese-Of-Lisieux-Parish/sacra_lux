@@ -44,7 +44,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 - `POST /api/organizer` — replace `organizerSequence` and merge manual slides
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
-- `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`
+- `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing
 - `POST /api/save-reading` — write edited reading text back into the source `.txt`
 
@@ -100,6 +100,7 @@ A larger body gets HTTP 413 before route logic runs:
 | `POST /api/upload-mass-asset`, `POST /api/upload-image` | 188 MB (140 MB file as base64, `MAX_SINGLE_UPLOAD_BYTES`) |
 | `POST /api/import-slideshow-images` | 161 MB (120 MB of images as base64) |
 | `POST /api/import-mass-zip` | 68 MB (50 MB ZIP as base64) |
+| `POST /api/preview-reading`, `POST /api/preview-manual-slide` | 1 MB |
 | all other routes | 10 MB |
 
 Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
