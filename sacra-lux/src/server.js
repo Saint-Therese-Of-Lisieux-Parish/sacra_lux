@@ -392,7 +392,8 @@ function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
 
 const MAX_SLIDESHOW_IMPORT_IMAGES = 500;
 const MAX_SLIDESHOW_IMPORT_BYTES = 120 * 1024 * 1024;
-const MAX_MASS_ZIP_COMPRESSED_BYTES = 50 * 1024 * 1024;
+// An export must import again, so one ZIP has to hold several uploads of the largest allowed size.
+const MAX_MASS_ZIP_COMPRESSED_BYTES = 200 * 1024 * 1024;
 // JSON request body limits. Base64 adds one third, so each upload route allows
 // its decoded limit times 4/3 plus 1 MB for the JSON wrapper.
 // The pages use inline scripts and styles, so the policy allows them but limits every other source to this origin.
@@ -434,8 +435,8 @@ const JSON_BODY_LIMITS_BY_PATH = new Map([
   ["/api/import-mass-zip", JSON_BODY_LIMIT_MASS_ZIP]
 ]);
 const MAX_MASS_ZIP_ENTRIES = 1000;
-const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 250 * 1024 * 1024;
-const MAX_MASS_ZIP_ENTRY_BYTES = 50 * 1024 * 1024;
+const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 500 * 1024 * 1024;
+const MAX_MASS_ZIP_ENTRY_BYTES = MAX_SINGLE_UPLOAD_BYTES;
 
 /**
  * Rewrite legacy `/static/uploads/<file>` references to `/api/mass-asset/<file>`.
@@ -2341,7 +2342,19 @@ function startServer(port = 17841, options = {}) {
   }
   app.use((req, res, next) => {
     const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
-    return jsonParserFor(limit)(req, res, next);
+    if (req.path !== "/api/import-mass-zip") {
+      return jsonParserFor(limit)(req, res, next);
+    }
+    // Report an oversized ZIP request as HTTP 400 that names the limit and the size.
+    return jsonParserFor(limit)(req, res, (error) => {
+      if (error?.type === "entity.too.large") {
+        return res.status(400).json({
+          error: `Mass ZIP compressed size exceeds the ${MAX_MASS_ZIP_COMPRESSED_BYTES} byte limit. ` +
+            `The request is ${error.length ? "" : "at least "}${error.length || error.received} bytes encoded.`
+        });
+      }
+      return next(error);
+    });
   });
 
   // Express cannot stream files from an Electron ASAR archive. Packaged builds
