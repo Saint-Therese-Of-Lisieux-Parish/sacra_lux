@@ -982,6 +982,33 @@ test("remote splash dismisses into preview-first layout and arrow next advances 
   }).toBe(1);
 });
 
+test("remote previews do not open Socket.IO connections", async ({ page }) => {
+  const websocketUrls = [];
+  page.on("websocket", (websocket) => websocketUrls.push(websocket.url()));
+
+  await page.goto(`${baseUrl}/remote`);
+  await dismissRemoteSplash(page);
+
+  await expect(page.locator("#screenFrame")).toHaveCount(1);
+  await expect(page.locator(".carousel-thumb-frame")).toHaveCount(5);
+  await expect.poll(() => websocketUrls.filter((url) => url.includes("/socket.io/")).length).toBe(2);
+
+  const previewPage = await page.context().newPage();
+  const previewWebsocketUrls = [];
+  previewPage.on("websocket", (websocket) => previewWebsocketUrls.push(websocket.url()));
+  await previewPage.goto(`${baseUrl}/screen?preview=1`);
+  await expect.poll(() => previewWebsocketUrls.length).toBe(0);
+  await previewPage.evaluate(() => {
+    window.postMessage({
+      type: "preview_update",
+      slide: { id: "preview", type: "text", title: "Preview", text: "Preview text" },
+      screenSettings: {}
+    }, window.location.origin);
+  });
+  await expect(previewPage.locator(".text-layout-body")).toHaveText("Preview text");
+  await previewPage.close();
+});
+
 test("remote selecting a post-mass slide starts the post-mass loop from that slide", async ({ page, request }) => {
   const organizerRes = await request.post(`${baseUrl}/api/organizer`, {
     data: {
