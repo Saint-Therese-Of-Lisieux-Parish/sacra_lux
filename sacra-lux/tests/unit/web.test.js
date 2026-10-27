@@ -1,3 +1,4 @@
+const { EventEmitter } = require("events");
 const pkg = require("../../package.json");
 
 describe("web entry point", () => {
@@ -20,7 +21,7 @@ describe("web entry point", () => {
   });
 
   test("starts the server on the configured PORT", () => {
-    const startServer = jest.fn();
+    const startServer = jest.fn(() => ({ server: new EventEmitter() }));
     process.env.PORT = "19555";
 
     jest.doMock("../../src/server", () => ({ startServer }));
@@ -31,7 +32,7 @@ describe("web entry point", () => {
   });
 
   test("falls back to the default port when PORT is unset", () => {
-    const startServer = jest.fn();
+    const startServer = jest.fn(() => ({ server: new EventEmitter() }));
 
     jest.doMock("../../src/server", () => ({ startServer }));
 
@@ -41,7 +42,7 @@ describe("web entry point", () => {
   });
 
   test("does not write the banner when stdout is not a terminal", () => {
-    const startServer = jest.fn();
+    const startServer = jest.fn(() => ({ server: new EventEmitter() }));
     const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     process.stdout.isTTY = false;
 
@@ -62,6 +63,7 @@ describe("web entry point", () => {
     });
     const startServer = jest.fn(() => {
       events.push("server-start");
+      return { server: new EventEmitter() };
     });
     process.stdout.isTTY = true;
 
@@ -87,7 +89,7 @@ describe("web entry point", () => {
 
   test("does not write the banner when quiet logs are on", () => {
     const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-    const startServer = jest.fn();
+    const startServer = jest.fn(() => ({ server: new EventEmitter() }));
     process.stdout.isTTY = true;
     const logger = require("../../src/logger");
     logger.setQuietLogs(true);
@@ -98,5 +100,37 @@ describe("web entry point", () => {
 
     expect(logSpy).not.toHaveBeenCalled();
     expect(startServer).toHaveBeenCalledWith(17841);
+  });
+
+  test("prints a plain message and exits 1 when the port is in use", () => {
+    const server = new EventEmitter();
+    const startServer = jest.fn(() => ({ server }));
+    const writeSpy = jest.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {});
+    process.env.PORT = "19555";
+
+    jest.doMock("../../src/server", () => ({ startServer }));
+
+    require("../../src/web");
+    server.emit("error", Object.assign(new Error("listen EADDRINUSE"), { code: "EADDRINUSE" }));
+
+    expect(writeSpy.mock.calls[0][0]).toContain("19555");
+    expect(writeSpy.mock.calls[0][0]).toContain("PORT");
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
+
+  test("prints the message and exits 1 for another listen error", () => {
+    const server = new EventEmitter();
+    const startServer = jest.fn(() => ({ server }));
+    const writeSpy = jest.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const exitSpy = jest.spyOn(process, "exit").mockImplementation(() => {});
+
+    jest.doMock("../../src/server", () => ({ startServer }));
+
+    require("../../src/web");
+    server.emit("error", Object.assign(new Error("permission denied"), { code: "EACCES" }));
+
+    expect(writeSpy.mock.calls[0][0]).toContain("permission denied");
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 });
