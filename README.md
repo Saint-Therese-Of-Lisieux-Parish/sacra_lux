@@ -122,8 +122,10 @@ The port changes in these cases:
   `Number(process.env.PORT || 17841)`. An unset `PORT` uses `17841`.
 - Electron uses `SACRA_LUX_PORT` when that value is a positive integer.
   Any other value falls back to `17841`.
-- If the Electron port is already in use, the desktop app selects another
-  local port and logs that choice.
+- If that port is already in use, Electron shows an error and quits. It does
+  not choose another port.
+- A second launch does not start another server. Electron focuses the open
+  window and the new process quits.
 
 The server binds to `0.0.0.0`, so another device can open the remote URL.
 Use the host printed in the server log.
@@ -133,6 +135,8 @@ Use the host printed in the server log.
 The server rejects a request when its `Host` header is not allowed (HTTP 403).
 It also rejects a state-changing request, or a Socket.IO connection, when its
 `Origin` header is not allowed. A request with no `Origin` header is accepted.
+A state-changing request with `Sec-Fetch-Site: cross-site` gets HTTP 403 and
+the error `Cross-site request not allowed.`
 This stops a web page in the operator browser, and DNS rebinding, from using
 the server.
 
@@ -358,4 +362,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.239-alpha`.
+The current package version is `0.0.240-alpha`.

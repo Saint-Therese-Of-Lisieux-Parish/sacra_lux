@@ -71,13 +71,19 @@ server holds the only authoritative state, so always inspect server state
 
 - Screen settings are validated and clamped by the server
   (`normalizeScreenSettings()`). Values outside the allowed range are clamped,
-  not rejected, so an out-of-range input will appear to "change value".
+  not rejected, so an out-of-range input will appear to change value.
+- A value that is not a finite number keeps the current value.
 - A setting change that affects reading layout re-paginates the deck.
 
 ## Port already in use
 
-Sacra Lux listens on `17841`. If another process holds it, stop that process or
-restart the app. In web mode confirm nothing else is bound to the port.
+Sacra Lux listens on `17841`. If another process holds that port, Electron
+shows "Sacra Lux could not start" and quits. Stop the other process, or set
+`SACRA_LUX_PORT` to a free port, then start the app again. In web mode, set
+`PORT` or stop the process that holds `17841`.
+
+A second Electron launch does not start a second server. It focuses the open
+window, and the new process quits.
 
 ## Native features are unavailable
 
@@ -99,3 +105,6 @@ can happen when a phone opens the remote through a host name or a network
 address that is not an address of this computer. Set
 `SACRA_LUX_ALLOWED_NETWORKS` to the network, for example `192.168.1.0/24`, and
 restart the app. See [Allowed hosts and origins](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/README.md#allowed-hosts-and-origins).
+
+A state-changing request from another web site gets HTTP 403 and the error
+`Cross-site request not allowed.` Open the app from this computer instead.
