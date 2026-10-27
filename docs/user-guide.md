@@ -16,6 +16,13 @@ the rest of this directory.
 The operator window also shows a live preview of the projector. All three stay
 in sync because the server broadcasts every change to all of them.
 
+### Packaged app logs
+
+The packaged Electron app writes warning and error messages to `sacra-lux.log`
+in the Electron user data folder. The file stays on the local computer and the
+app keeps one `.1` backup when the log reaches 5 MiB. Web mode writes logs only
+to the console.
+
 ## First Run
 
 1. Launch Sacra Lux (the Electron app) or start web mode (`npm run web`).

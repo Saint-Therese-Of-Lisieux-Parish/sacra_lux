@@ -936,6 +936,12 @@ if (!hasSingleInstanceLock) {
   });
 
 app.whenReady().then(async () => {
+  if (typeof logger.configure === "function") {
+    logger.configure({
+      isPackaged: app.isPackaged,
+      logDirectory: app.isPackaged ? app.getPath("userData") : ""
+    });
+  }
   createSplash();
   const splashCreatedAt = Date.now();
   const io = await startDesktopServer();
