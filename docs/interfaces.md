@@ -21,8 +21,9 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 `sacra_lux_control` cookie or the `x-sacra-control` header.
 
 - The `/api` middleware in `src/server.js` enforces control for every method
-  except `GET`, `HEAD`, `OPTIONS`, and the exceptions `/verify-pin`,
-  `/start-pin`, `/preview-reading`, and `/preview-manual-slide`.
+  except `GET`, `HEAD`, `OPTIONS`, and the exceptions `/verify-pin` and
+  `/start-pin`. `POST /api/preview-reading` and `POST /api/preview-manual-slide`
+  require a control session.
 - Socket handlers wrap control-sensitive events with `withControl()`, which
   emits `control:required` when the client is not authorized.
 - `POST /api/start-pin`, `POST /api/verify-pin`, and a validated
