@@ -1,5 +1,9 @@
 # Review Notes
 
+These notes record the documentation pass on 2026-10-11. Later audits are in
+the `docs-audit` GitHub issues. Do not read the version `0.0.25-alpha` below
+as the current package version.
+
 ## Review Status
 
 The Markdown set was reviewed against the current codebase on `2026-10-11` and
