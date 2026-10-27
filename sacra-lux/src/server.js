@@ -3429,6 +3429,8 @@ function startServer(port = 17841, options = {}) {
         return res.status(404).json({ error: "Mass archive package not found." });
       }
       const zipBuffer = await buildMassZipFromPackage(archivePaths.packageDir, { avif: true });
+      const zip = new (getAdmZip())(zipBuffer);
+      validateMassZipArchive(zip, zipBuffer.length);
       fs.writeFileSync(archivePaths.compressedZipPath, zipBuffer);
       fs.rmSync(archivePaths.packageDir, { recursive: true, force: true });
       const metadata = {
