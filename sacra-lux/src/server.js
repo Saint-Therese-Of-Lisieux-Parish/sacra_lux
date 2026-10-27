@@ -3709,7 +3709,7 @@ function startServer(port = 17841, options = {}) {
 
       touch();
       io.emit("state:update", getStateSnapshot());
-      scheduleSave();
+      scheduleSave(true);
 
       return res.json({ ok: true });
     } catch (error) {

@@ -371,6 +371,30 @@ test("Text Area tool shows the group text and the projector page breaks", async 
   await request.post(`${baseUrl}/api/update-title`, { data: { title: previousTitle } });
 });
 
+test("reading editor shows an error when the reading save fails", async ({ page, request }) => {
+  const previousTitle = (await (await request.get(`${baseUrl}/api/state`)).json()).presentation?.title || "";
+  await loadReadingsFolderOverHttp(request, baseUrl, readingsPath);
+  const state = await (await request.get(`${baseUrl}/api/state`)).json();
+  const item = state.organizerSequence.find((entry) => entry.sourceStem === "Reading_I");
+  expect(item).toBeTruthy();
+
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator(`[data-edit-id="${item.id}"]`).click();
+  await page.route("**/api/save-reading", (route) => route.fulfill({
+    status: 400,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "Reading save failed." })
+  }));
+  await page.locator("#editorReadingText").fill("A changed reading.");
+
+  await expect(page.locator("#editorSaveStatus")).toHaveText("Error");
+  await expect(page.locator("#editorSaveStatus")).not.toHaveText("Saved");
+  await request.post(`${baseUrl}/api/update-title`, { data: { title: previousTitle } });
+});
+
 test("Text Area tool keeps the number fields usable when the preview fails", async ({ page, request }) => {
   await page.route((url) => url.pathname === "/screen" && url.searchParams.get("preview") === "1",
     (route) => route.abort());

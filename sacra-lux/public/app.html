@@ -7404,6 +7404,7 @@
     }
 
     async function saveEditor() {
+      let readingSave = null;
       await updateSelected((sequence, manualSlides, index) => {
         const item = sequence[index];
         const nextType = els.editorType.value;
@@ -7437,12 +7438,7 @@
 
           const newText = els.editorReadingText.value;
           if (newText && window.__lastReadingText !== newText) {
-            window.__lastReadingText = newText;
-            fetch("/api/save-reading", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ stem: item.sourceStem, text: newText })
-            }).catch(() => { });
+            readingSave = { stem: item.sourceStem, text: newText };
           }
         } else {
           item.sourceStem = null;
@@ -7494,6 +7490,18 @@
           }
         }
       }, "Slide updated");
+      if (readingSave) {
+        const response = await fetch("/api/save-reading", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(readingSave)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to save reading.");
+        }
+        window.__lastReadingText = readingSave.text;
+      }
     }
 
     let editorSaveTimer = null;

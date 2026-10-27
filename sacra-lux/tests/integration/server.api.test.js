@@ -858,6 +858,14 @@ describe("server api integration", () => {
     );
     expect(saved).toContain("Updated text.");
     expect(saved.startsWith("Genesis 1:1")).toBe(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const massDocument = JSON.parse(fs.readFileSync(
+      path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json"),
+      "utf8"
+    ));
+    expect(massDocument.items.find((entry) => entry.source?.stem === "Reading_I").content.text)
+      .toContain("Updated text.");
   });
 
   test("save-reading replaces the reading file without a temporary file", async () => {
