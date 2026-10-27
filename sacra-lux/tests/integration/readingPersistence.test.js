@@ -1,3 +1,6 @@
+const fs = require("fs");
+const path = require("path");
+const { io: createClient } = require("socket.io-client");
 const request = require("supertest");
 
 const {
@@ -61,5 +64,69 @@ describe("reading persistence", () => {
     } finally {
       await first.stop();
     }
+  });
+
+  describe("save-reading keeps live state", () => {
+    let handle;
+    let client;
+
+    beforeEach(async () => {
+      handle = await boot();
+      const readingsDir = makeReadingsFolder(homeDir);
+      const longText = Array.from({ length: 300 }, (_, n) => `Line ${n} of a long Gospel.`).join("\n");
+      fs.writeFileSync(path.join(readingsDir, "Gospel.txt"), `John 1:1-5\n\n${longText}`, "utf8");
+      await loadReadingsFolder(handle.app, readingsDir);
+    });
+
+    afterEach(async () => {
+      if (client) {
+        client.close();
+        client = null;
+      }
+      await handle.stop();
+    });
+
+    async function connect() {
+      client = createClient(handle.baseUrl, { transports: ["websocket"] });
+      await new Promise((resolve, reject) => {
+        client.once("connect", resolve);
+        client.once("connect_error", reject);
+      });
+    }
+
+    async function getState() {
+      return (await request(handle.app).get("/api/state").expect(200)).body;
+    }
+
+    test("keeps a title set just before the save", async () => {
+      await request(handle.app).post("/api/update-title").send({ title: "New Title" }).expect(200);
+      await request(handle.app).post("/api/save-reading").send({ stem: "Reading_I", text: "Short." }).expect(200);
+      expect((await getState()).presentation.title).toBe("New Title");
+    });
+
+    test("keeps an empty title", async () => {
+      await request(handle.app).post("/api/update-title").send({ title: "" }).expect(200);
+      await request(handle.app).post("/api/save-reading").send({ stem: "Reading_I", text: "Short." }).expect(200);
+      expect((await getState()).presentation.title).toBe("");
+    });
+
+    test("moves the slide index into range when the reading gets shorter", async () => {
+      await connect();
+      const total = (await getState()).presentation.slides.length;
+      client.emit("slide:goto", total - 1);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      expect((await getState()).currentSlideIndex).toBe(total - 1);
+
+      const updated = new Promise((resolve) => {
+        client.on("state:update", (snapshot) => {
+          if (snapshot.presentation.slides.length < total) {
+            resolve(snapshot);
+          }
+        });
+      });
+      await request(handle.app).post("/api/save-reading").send({ stem: "Gospel", text: "Short." }).expect(200);
+      const snapshot = await updated;
+      expect(snapshot.currentSlideIndex).toBeLessThan(snapshot.presentation.slides.length);
+    });
   });
 });
