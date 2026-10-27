@@ -135,6 +135,8 @@ Use the host printed in the server log.
 The server rejects a request when its `Host` header is not allowed (HTTP 403).
 It also rejects a state-changing request, or a Socket.IO connection, when its
 `Origin` header is not allowed. A request with no `Origin` header is accepted.
+A state-changing request with `Sec-Fetch-Site: cross-site` gets HTTP 403 and
+the error `Cross-site request not allowed.`
 This stops a web page in the operator browser, and DNS rebinding, from using
 the server.
 
