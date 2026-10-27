@@ -38,5 +38,6 @@ describe("state", () => {
     expect(snapshot.startPinHash).toBeUndefined();
     expect(snapshot.interstitialHoldReturnSlideIndex).toBeUndefined();
     expect(snapshot.interstitialHoldResumeState).toBeUndefined();
+    expect(snapshot.serverTime).toEqual(expect.any(Number));
   });
 });
