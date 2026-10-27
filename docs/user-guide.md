@@ -216,6 +216,10 @@ These keys work when focus is not in a text field, a list, or an open dialog:
 
 ## Where Files Live
 
+In Electron, **File > Save** writes the session and the current Mass. The
+operator page then shows `Mass saved`, or the error text when the write fails.
+Closing the app writes a save that is still waiting.
+
 Sacra Lux keeps runtime files under `~/.sacra-lux/`:
 
 - `session.json` — the saved session

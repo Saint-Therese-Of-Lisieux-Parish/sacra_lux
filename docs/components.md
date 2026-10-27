@@ -174,6 +174,10 @@ capture. Every window sets `sandbox: true` and `contextIsolation: true`.
 Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
+`File > Save` writes the session and the current Mass, then shows `Mass saved`
+or the error text. `before-quit` calls `flushPendingSave()` so a debounced
+save is written before exit.
+
 ### `src/pdfFileName.js`
 
 `sanitizePdfFileName()` removes characters that are not allowed in a file
@@ -195,6 +199,7 @@ documented in [interfaces.md](./interfaces.md).
 ### `src/web.js`
 
 Headless entry point that starts the shared server without Electron.
+`SIGINT` and `SIGTERM` call `flushPendingSave()` before the process exits.
 
 ## Browser Surfaces
 
