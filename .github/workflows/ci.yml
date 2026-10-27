@@ -50,7 +50,7 @@ jobs:
         # The apt mirror download has stalled for more than 10 minutes on some runs (#442).
         # Stop the install after five minutes so a stalled download cannot delay
         # the full CI job. The browser cache in #462 can remove later downloads.
-        timeout-minutes: 5
+        timeout-minutes: 12
         run: |
           printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99ci-retries
           for attempt in 1 2; do
@@ -59,6 +59,13 @@ jobs:
             fi
             if [ "$attempt" -eq 1 ]; then
               echo "Playwright browser install failed on attempt 1; retrying once."
+              for wait_attempt in $(seq 1 24); do
+                if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+                  break
+                fi
+                echo "Waiting for the first Playwright install process to release the package lock."
+                sleep 5
+              done
             fi
           done
           echo "Playwright browser install failed after 2 attempts."
