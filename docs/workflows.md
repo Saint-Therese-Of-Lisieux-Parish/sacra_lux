@@ -95,7 +95,8 @@ sequenceDiagram
             Server-->>Phone: redirect payload with cookie
             Phone->>Server: GET /api/start-redirect?token=...
             Server->>Security: validate token
-            Server-->>Phone: redirect /remote
+            Server-->>Phone: redirect /remote#start-pre-mass
+            Phone->>Server: POST /api/pre-mass/start
         else invalid or limited
             Server-->>Phone: 403 or 429
         end

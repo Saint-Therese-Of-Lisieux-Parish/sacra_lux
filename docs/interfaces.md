@@ -62,7 +62,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/start-time` — set or clear `massStartTime` and arm the start timers
 - `POST /api/start-pin` — set, change, or clear the start PIN
 - `POST /api/verify-pin` — verify a PIN, issue a one-time start token and a control session
-- `GET /api/start-redirect` — validate a start token and redirect to `/remote`
+- `GET /api/start-redirect` — validate a start token and redirect to `/remote`. This GET does not start pre-Mass. After a valid token, the redirect is `/remote#start-pre-mass`, and the remote page sends `POST /api/pre-mass/start`.
 - `POST /api/pre-mass/start`, `POST /api/pre-mass/stop`
 - `POST /api/gathering/start`, `POST /api/gathering/stop`
 - `POST /api/post-mass/start`, `POST /api/post-mass/stop`
