@@ -176,7 +176,8 @@ Registers the IPC handlers listed in
 
 `File > Save` writes the session and the current Mass, then shows `Mass saved`
 or the error text. `before-quit` calls `flushPendingSave()` so a debounced
-save is written before exit.
+save is written before exit. On macOS, closing the windows does not quit the
+app. Activating the app opens the operator window again.
 
 ### `src/pdfFileName.js`
 
