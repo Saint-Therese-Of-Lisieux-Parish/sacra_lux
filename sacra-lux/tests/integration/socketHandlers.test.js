@@ -335,9 +335,15 @@ describe("socket handlers", () => {
       expect(state.imageSlideshowError).toBe(errorBefore);
 
       if (!slide.imageUrl) return;
-      const pending = waitForState(client, (next) => /Could not preload/.test(next.imageSlideshowError || ""));
       client.emit("image-slideshow:preload-error", { slideId: slide.id, imageUrl: slide.imageUrl });
+      await flush();
+      expect(state.imageSlideshowError).toBe(errorBefore);
+
+      const projector = await connect({ auth: { screenRole: "projector" } });
+      const pending = waitForState(client, (next) => /Could not preload/.test(next.imageSlideshowError || ""));
+      projector.emit("image-slideshow:preload-error", { slideId: slide.id, imageUrl: slide.imageUrl });
       await pending;
+      projector.disconnect();
     });
   });
 

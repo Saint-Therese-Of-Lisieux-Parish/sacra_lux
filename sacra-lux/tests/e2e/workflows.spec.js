@@ -941,6 +941,56 @@ test("Image Slideshow crossfades between consecutive images", async ({ page, req
   await expect(page.locator(`.frame[data-image-url="${first.url}"]`)).toHaveCSS("opacity", "0");
 });
 
+test("remote preview preload failures do not remove projector slideshow images", async ({ page, request }) => {
+  async function uploadPng(filename, background) {
+    const png = await sharp({
+      create: { width: 64, height: 64, channels: 3, background }
+    }).png().toBuffer();
+    const response = await request.post(`${baseUrl}/api/upload-mass-asset`, {
+      data: { filename, dataUrl: `data:image/png;base64,${png.toString("base64")}` }
+    });
+    expect(response.ok()).toBe(true);
+    return response.json();
+  }
+
+  const first = await uploadPng("Preview-first.png", { r: 155, g: 28, b: 49 });
+  const second = await uploadPng("Preview-second.png", { r: 28, g: 79, b: 155 });
+  const third = await uploadPng("Preview-third.png", { r: 49, g: 155, b: 28 });
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{ id: "imageSlideshow:preview-error", type: "imageSlideshow", label: "Preview error", phase: "pre", backgroundTheme: "light" }],
+      manualSlides: {
+        "imageSlideshow:preview-error": {
+          images: [
+            { url: first.url, name: "Preview-first.png" },
+            { url: second.url, name: "Preview-second.png" },
+            { url: third.url, name: "Preview-third.png" }
+          ],
+          slideshowDurationSec: 3,
+          slideshowLoopCount: 2
+        }
+      }
+    }
+  });
+
+  await page.route(`**${second.url}`, (route) => route.abort());
+  await page.goto(`${baseUrl}/remote`);
+  await page.evaluate(() => {
+    window.__slideshowImageIndices = [];
+    const observer = io();
+    observer.on("state:update", (state) => {
+      const slide = state.presentation?.slides?.[state.currentSlideIndex];
+      if (slide?.organizerItemId === "imageSlideshow:preview-error") {
+        window.__slideshowImageIndices.push(slide.slideshowImageIndex);
+      }
+    });
+  });
+  await request.post(`${baseUrl}/api/pre-mass/start`);
+  await page.waitForTimeout(16_000);
+
+  expect(await page.evaluate(() => window.__slideshowImageIndices)).toContain(1);
+});
+
 test("remote splash dismisses into preview-first layout and arrow next advances slide", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {

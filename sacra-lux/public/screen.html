@@ -792,9 +792,11 @@
   <script src="/static/vendor/qrcode.min.js"></script>
   <script src="/static/client/shared.js"></script>
   <script>
-    const isPreviewMode = window.location.search.includes("preview=1");
-    const socket = isPreviewMode ? null : io();
     const isEmbeddedScreen = window !== window.top;
+    const isPreviewMode = window.location.search.includes("preview=1");
+    const socket = isPreviewMode ? null : io({
+      auth: { screenRole: isEmbeddedScreen ? "preview" : "projector" }
+    });
     const shouldPlayVideoInline = !isPreviewMode && !isEmbeddedScreen;
 
     // ── Double-buffer crossfade setup ─────────────────────────────────────────
@@ -2153,6 +2155,7 @@
     }
 
     function preloadNextImageSlideshowSlide(state) {
+      if (isEmbeddedScreen || isPreviewMode) return;
       const nextSlide = findNextImageSlideshowSlide(state);
       const url = nextSlide?.imageUrl;
       if (!url || preloadedSlideshowUrls.has(url) || failedSlideshowPreloads.has(url)) return;
