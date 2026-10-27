@@ -122,8 +122,10 @@ The port changes in these cases:
   `Number(process.env.PORT || 17841)`. An unset `PORT` uses `17841`.
 - Electron uses `SACRA_LUX_PORT` when that value is a positive integer.
   Any other value falls back to `17841`.
-- If the Electron port is already in use, the desktop app selects another
-  local port and logs that choice.
+- If that port is already in use, Electron shows an error and quits. It does
+  not choose another port.
+- A second launch does not start another server. Electron focuses the open
+  window and the new process quits.
 
 The server binds to `0.0.0.0`, so another device can open the remote URL.
 Use the host printed in the server log.
