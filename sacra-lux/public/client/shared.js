@@ -21,6 +21,16 @@
       .replace(/'/g, "&#39;");
   }
 
+  /** Decode a URL value, or return the original value when it is malformed. */
+  function safeDecodeURIComponent(value) {
+    const text = String(value ?? "");
+    try {
+      return decodeURIComponent(text);
+    } catch (_error) {
+      return text;
+    }
+  }
+
   /**
    * Font names reach the projector through a CSS font-family string, so the
    * pages use one known-Fonts whitelist for the names they render.
@@ -121,12 +131,7 @@
     if (!normalized) return "";
     const withoutQuery = normalized.split(/[?#]/, 1)[0];
     const filename = withoutQuery.split("/").pop() || "";
-    let decoded = filename;
-    try {
-      decoded = decodeURIComponent(filename);
-    } catch (_error) {
-      decoded = filename;
-    }
+    const decoded = safeDecodeURIComponent(filename);
     return decoded.replace(/\.[^.]+$/, "").trim();
   }
 
@@ -168,6 +173,7 @@
 
   return {
     escapeHtml,
+    safeDecodeURIComponent,
     knownFontName,
     formatCountdownTime,
     formatDurationTime,

@@ -8,12 +8,23 @@ const {
   imageFileNameLabel,
   itemRuntimeSeconds,
   knownFontName,
+  safeDecodeURIComponent,
   slideshowRuntimeSeconds,
   withSlideTypeFont,
   slideshowLabelFromFileNames
 } = require("../../public/client/shared.js");
 
 describe("shared client helpers", () => {
+  describe("safeDecodeURIComponent", () => {
+    test("decodes valid URL escapes", () => {
+      expect(safeDecodeURIComponent("50%25%20off.mp4")).toBe("50% off.mp4");
+    });
+
+    test("returns malformed URL text unchanged", () => {
+      expect(safeDecodeURIComponent("50% off.mp4")).toBe("50% off.mp4");
+    });
+  });
+
   describe("escapeHtml", () => {
     test("escapes markup-significant characters", () => {
       expect(escapeHtml('<b class="x">&\'</b>')).toBe(

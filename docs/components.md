@@ -147,7 +147,8 @@ Theme definitions (label, CSS variables, colour scheme) for the app UI.
 
 ### `src/logger.js`
 
-Small runtime logging wrapper with `info` and `warn`.
+Small runtime logging wrapper with `info`, `warn`, and `error`. Quiet logs
+skip `info`. `warn` and `error` still print.
 
 ## Electron Modules
 
@@ -169,8 +170,20 @@ Electron IPC implementation for the channels in
 Electron entry point. Handles BrowserWindow creation, the application menu,
 monitor targeting and fullscreen actions, native file pickers (folder, image,
 video), opening the current Mass folder, and PDF export through offscreen
-capture. Registers the IPC handlers listed in
+capture. Every window sets `sandbox: true` and `contextIsolation: true`.
+Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
+
+`File > Save` writes the session and the current Mass, then shows `Mass saved`
+or the error text. `before-quit` calls `flushPendingSave()` so a debounced
+save is written before exit. On macOS, closing the windows does not quit the
+app. Activating the app opens the operator window again.
+
+### `src/pdfFileName.js`
+
+`sanitizePdfFileName()` removes characters that are not allowed in a file
+name, then trims the text. PDF export uses it for the suggested file name.
+An empty result uses the fallback name.
 
 ### `src/windowSecurity.js`
 
@@ -187,6 +200,7 @@ documented in [interfaces.md](./interfaces.md).
 ### `src/web.js`
 
 Headless entry point that starts the shared server without Electron.
+`SIGINT` and `SIGTERM` call `flushPendingSave()` before the process exits.
 
 ## Browser Surfaces
 
@@ -202,7 +216,9 @@ Mass dialogs, PIN and Screen dialogs, and import/export actions.
 Projector renderer: reading slides, text, prayer, hymn, image,
 image-slideshow, movie, and interstitial slides, countdown visuals, transitions,
 blackout mode, movie end/ready reporting, slideshow preload-error reporting, and
-an idle QR/start overlay.
+an idle QR/start overlay. A page opened with `preview=1` does not open a
+Socket.IO connection. The countdown uses `serverTime` from the snapshot so the
+remaining time follows the server clock.
 
 ### `public/remote.html`
 
@@ -217,7 +233,8 @@ PIN-gated remote start flow at `/start`.
 ### `public/client/shared.js`
 
 UMD shared helpers loaded by all three pages and required directly by unit
-tests: `escapeHtml()`, `formatCountdownTime()`, and `formatDurationTime()`.
+tests: `escapeHtml()`, `formatCountdownTime()`, `formatDurationTime()`, and
+`addLocalDays()`.
 
 ### `public/shared.css`
 

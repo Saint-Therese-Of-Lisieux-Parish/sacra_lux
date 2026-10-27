@@ -5536,7 +5536,7 @@
         // Add option for URLs not in assets (e.g. from imported settings)
         const opt = document.createElement("option");
         opt.value = url;
-        opt.textContent = decodeURIComponent(url.split("/").pop());
+        opt.textContent = SacraLuxShared.safeDecodeURIComponent(url.split("/").pop());
         selectEl.appendChild(opt);
         selectEl.value = url;
       }
@@ -6167,11 +6167,11 @@
           sourceMeta = ` · ${repSlide.passage}`;
         } else if (isMovie) {
           const videoUrl = manualSlide?.videoUrl || repSlide?.videoUrl || "";
-          const videoFile = videoUrl ? decodeURIComponent(videoUrl.split("/").pop()) : "";
+          const videoFile = videoUrl ? SacraLuxShared.safeDecodeURIComponent(videoUrl.split("/").pop()) : "";
           if (videoFile) sourceMeta = ` · ${videoFile}`;
         } else if (isImage && item.type !== "imageSlideshow") {
           const imgUrl = manualSlide?.imageUrl || repSlide?.imageUrl || "";
-          const imgFile = imgUrl ? decodeURIComponent(imgUrl.split("/").pop()) : "";
+          const imgFile = imgUrl ? SacraLuxShared.safeDecodeURIComponent(imgUrl.split("/").pop()) : "";
           if (imgFile) sourceMeta = ` · ${imgFile}`;
         }
         // Image-type slides use their own image; other slides pick background by backgroundTheme.
@@ -7243,7 +7243,9 @@
     function normalizeEditorSlideshowImage(entry) {
       const url = typeof entry === "string" ? entry : entry?.url;
       const normalizedUrl = String(url || "").trim();
-      const fallbackName = normalizedUrl ? decodeURIComponent(normalizedUrl.split(/[?#]/, 1)[0].split("/").pop() || "Image") : "Image";
+      const fallbackName = normalizedUrl
+        ? SacraLuxShared.safeDecodeURIComponent(normalizedUrl.split(/[?#]/, 1)[0].split("/").pop() || "Image")
+        : "Image";
       return {
         url: normalizedUrl,
         name: String(entry?.name || fallbackName || "Image").trim() || "Image"

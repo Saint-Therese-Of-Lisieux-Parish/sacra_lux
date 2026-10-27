@@ -279,6 +279,7 @@ runtime state with secrets stripped. Client-visible fields:
   gatheringRunning: boolean,
   postMassRunning: boolean,
   countdownEndsAt: number | null,
+  serverTime: number,
   imageSlideshowEndsAt: number | null,
   imageSlideshowLoopIteration: number,
   imageSlideshowError: string | null,
@@ -291,8 +292,13 @@ runtime state with secrets stripped. Client-visible fields:
 Stripped before transmission:
 
 - `startPin` and `startPinHash` (the snapshot adds `hasStartPin: boolean`)
+- `readingsSource.folderPath` (the snapshot adds `readingsSource.hasFolder`)
 - `interstitialHoldReturnSlideIndex`
 - `interstitialHoldResumeState`
+
+`serverTime` is the server clock at `lastUpdated`, in milliseconds. The
+projector uses it to correct a countdown when the projector clock differs from
+the server clock.
 
 `startupPrompt` is `{ type: "mass-library", reason: string }` when the server
 starts without a valid `current_mass` package, or `null` otherwise.
@@ -346,6 +352,9 @@ Each Mass archive stores `metadata.json`:
 
 `listMassArchives()` augments each record with `hasPackage`,
 `hasCompressedZip`, `sizeBytes`, and `isActive` for the API response.
+When `metadata.json` is not valid JSON, the archive stays in the list. The
+title is then the archive id, and `startTime`, `createdAt`, and `updatedAt`
+are `null`.
 
 ## Mass Document
 

@@ -35,14 +35,16 @@ from `bible.usccb.org` and uses the feed title when you leave the title blank.
 This needs internet access.
 
 Creating a new Mass archives the current one first if it has content, then
-builds a starter organizer (announcements, gathering timer, Mass title, hymns,
-interstitials, readings, Creed, Lord's Prayer, communion, recessional, and
-post-announcements).
+removes the current Mass media files. It then builds a starter organizer
+(announcements, gathering timer, Mass title, hymns, interstitials, readings,
+Creed, Lord's Prayer, communion, recessional, and post-announcements).
 
 ### Duplicate a Mass for next week
 
 Use **🔄 Duplicate** to copy the current Mass into a new archive, then edit the
 copy. This is the usual way to prepare the next week from this week's order.
+The dialog sets the new start time seven calendar days later and keeps the
+same clock time.
 
 ### Import readings from a folder
 
@@ -153,7 +155,8 @@ If a start PIN is set, the remote must unlock before it can control the Mass:
 3. On success the phone is redirected to `/remote`.
 
 Set, change, or clear the PIN from the **Start PIN** dialog. Clearing the PIN
-removes the unlock requirement.
+removes the unlock requirement. A change or a clear ends the other control
+sessions. Those phones must unlock again.
 
 ## Mass Library
 
@@ -212,6 +215,10 @@ These keys work when focus is not in a text field, a list, or an open dialog:
 | `B` | Hide or show the projector output. |
 
 ## Where Files Live
+
+In Electron, **File > Save** writes the session and the current Mass. The
+operator page then shows `Mass saved`, or the error text when the write fails.
+Closing the app writes a save that is still waiting.
 
 Sacra Lux keeps runtime files under `~/.sacra-lux/`:
 
