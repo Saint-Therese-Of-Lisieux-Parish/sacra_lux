@@ -43,6 +43,8 @@ Creed, Lord's Prayer, communion, recessional, and post-announcements).
 
 Use **🔄 Duplicate** to copy the current Mass into a new archive, then edit the
 copy. This is the usual way to prepare the next week from this week's order.
+The dialog sets the new start time seven calendar days later and keeps the
+same clock time.
 
 ### Import readings from a folder
 
