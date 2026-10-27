@@ -1437,6 +1437,7 @@ function scheduleImageSlideshowSlide(ioRef) {
     if (latestPosition < latestPlayable.length - 1) {
       state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
     } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
+      _imageSlideshowFailedUrls.clear();
       state.imageSlideshowLoopIteration += 1;
       state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
     } else {
@@ -3869,6 +3870,7 @@ function startServer(port = 17841, options = {}) {
   }
 
   io.on("connection", (socket) => {
+    socket.data.screenRole = socket.handshake.auth?.screenRole === "projector" ? "projector" : "client";
     socket.emit("state:update", getCachedStateSnapshot(true));
 
     socket.on("control:auth", (payload) => {
@@ -3917,6 +3919,7 @@ function startServer(port = 17841, options = {}) {
       scheduleMovieAutoAdvance(io, durationMs, { startedAt });
     }));
     socket.on("image-slideshow:preload-error", withControl(socket, (payload) => {
+      if (socket.data.screenRole !== "projector") return;
       const imageUrl = String(payload?.imageUrl || "");
       const slideId = String(payload?.slideId || "");
       const failedSlide = (state.presentation?.slides || []).find((slide) =>
