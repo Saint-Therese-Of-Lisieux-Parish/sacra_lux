@@ -170,7 +170,8 @@ Electron IPC implementation for the channels in
 Electron entry point. Handles BrowserWindow creation, the application menu,
 monitor targeting and fullscreen actions, native file pickers (folder, image,
 video), opening the current Mass folder, and PDF export through offscreen
-capture. Registers the IPC handlers listed in
+capture. Every window sets `sandbox: true` and `contextIsolation: true`.
+Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
 ### `src/windowSecurity.js`
