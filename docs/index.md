@@ -74,7 +74,7 @@ Symptom-driven troubleshooting for common runtime and operational problems.
 
 ### [review_notes.md](./review_notes.md)
 
-Documentation reconciliation notes for the latest refresh.
+Documentation reconciliation notes for the pass on 2026-10-11.
 
 ### [code_review_ears_report.md](./code_review_ears_report.md)
 
