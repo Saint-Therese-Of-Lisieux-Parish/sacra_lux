@@ -35,7 +35,7 @@ The operator UI owns organizer editing, slide editing, archive flows, screen
 settings, app theme controls, and the PIN and Screen dialogs. The screen is a
 pure renderer that also reports movie end/ready and image-preload failures. The
 remote is intentionally smaller and focuses on navigation, grouped jumping,
-section advance, interstitial hold, and PIN handoff.
+and PIN handoff. It does not send `screen:interstitial-hold`.
 
 ## Entry Points
 
