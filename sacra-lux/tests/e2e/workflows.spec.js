@@ -82,6 +82,39 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("operator UI shows malformed media URL names without render errors", async ({ page, request }) => {
+  const malformedUrl = "/api/mass-asset/50% off.mp4";
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await request.post(`${baseUrl}/api/screen-settings`, {
+    data: { darkBackgroundUrl: malformedUrl }
+  });
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [
+        { id: "movie:malformed-url", type: "movie", label: "Movie", phase: "mass", backgroundTheme: "light" },
+        { id: "image:malformed-url", type: "image", label: "Image", phase: "mass", backgroundTheme: "light" },
+        { id: "imageSlideshow:malformed-url", type: "imageSlideshow", label: "Slideshow", phase: "mass", backgroundTheme: "light" },
+        { id: "text:malformed-url", type: "text", label: "Text", phase: "mass", backgroundTheme: "dark" }
+      ],
+      manualSlides: {
+        "movie:malformed-url": { videoUrl: malformedUrl },
+        "image:malformed-url": { imageUrl: malformedUrl },
+        "imageSlideshow:malformed-url": { images: [{ url: malformedUrl }], slideshowDurationSec: 10, slideshowLoopCount: 1 },
+        "text:malformed-url": { text: "Text" }
+      }
+    }
+  });
+
+  await page.route("**/api/mass-asset/**", (route) => route.fulfill({ status: 200, body: "" }));
+  await page.goto(`${baseUrl}/app`);
+  const rows = page.locator("#sequenceList .sequence-item");
+  await expect(rows).toHaveCount(4);
+  await expect(rows.nth(0)).toContainText("50% off.mp4");
+  await expect(rows.nth(1)).toContainText("50% off.mp4");
+  expect(pageErrors).toEqual([]);
+});
+
 test("Interstitial editor shows the built-in default image and offers it first in the asset list", async ({ page, request }) => {
   const organizerRes = await request.post(`${baseUrl}/api/organizer`, {
     data: {
