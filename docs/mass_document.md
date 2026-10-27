@@ -82,9 +82,11 @@ contain `stem`, `citation`, `title`, `translation`, and `attribution`.
   `interstitial`.
 - `assets: [{ ref, name? }]` — allowed only for `imageSlideshow`, at most 500
   entries.
-- A reference must match `assets/<filename>`, and `assetUrlFromRef()` resolves
-  it to `/api/mass-asset/<filename>`. `assetRefFromUrl()` accepts
-  `/api/mass-asset/<filename>` and the legacy `/static/uploads/<filename>`.
+- A reference must match `assets/<filename>`. `assetUrlFromRef()` rejects a
+  name that contains a control character, `"`, `<`, `>`, `` ` ``, or `\`.
+  A valid name becomes `/api/mass-asset/` plus the percent-encoded file name.
+  `assetRefFromUrl()` accepts that encoded form and the legacy
+  `/static/uploads/<filename>` form.
 
 ### presentation
 

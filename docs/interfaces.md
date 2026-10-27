@@ -21,8 +21,9 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 `sacra_lux_control` cookie or the `x-sacra-control` header.
 
 - The `/api` middleware in `src/server.js` enforces control for every method
-  except `GET`, `HEAD`, `OPTIONS`, and the exceptions `/verify-pin`,
-  `/start-pin`, `/preview-reading`, and `/preview-manual-slide`.
+  except `GET`, `HEAD`, `OPTIONS`, and the exceptions `/verify-pin` and
+  `/start-pin`. `POST /api/preview-reading` and `POST /api/preview-manual-slide`
+  require a control session.
 - Socket handlers wrap control-sensitive events with `withControl()`, which
   emits `control:required` when the client is not authorized.
 - `POST /api/start-pin`, `POST /api/verify-pin`, and a validated
@@ -43,7 +44,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 - `POST /api/organizer` — replace `organizerSequence` and merge manual slides
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
-- `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`
+- `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing
 - `POST /api/save-reading` — write edited reading text back into the source `.txt`
 
@@ -61,7 +62,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/start-time` — set or clear `massStartTime` and arm the start timers
 - `POST /api/start-pin` — set, change, or clear the start PIN
 - `POST /api/verify-pin` — verify a PIN, issue a one-time start token and a control session
-- `GET /api/start-redirect` — validate a start token and redirect to `/remote`
+- `GET /api/start-redirect` — validate a start token and redirect to `/remote`. This GET does not start pre-Mass. After a valid token, the redirect is `/remote#start-pre-mass`, and the remote page sends `POST /api/pre-mass/start`.
 - `POST /api/pre-mass/start`, `POST /api/pre-mass/stop`
 - `POST /api/gathering/start`, `POST /api/gathering/stop`
 - `POST /api/post-mass/start`, `POST /api/post-mass/stop`
@@ -99,6 +100,7 @@ A larger body gets HTTP 413 before route logic runs:
 | `POST /api/upload-mass-asset`, `POST /api/upload-image` | 188 MB (140 MB file as base64, `MAX_SINGLE_UPLOAD_BYTES`) |
 | `POST /api/import-slideshow-images` | 161 MB (120 MB of images as base64) |
 | `POST /api/import-mass-zip` | 68 MB (50 MB ZIP as base64) |
+| `POST /api/preview-reading`, `POST /api/preview-manual-slide` | 1 MB |
 | all other routes | 10 MB |
 
 Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):

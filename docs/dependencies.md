@@ -15,8 +15,8 @@
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `electron` | ^44.9.1 | desktop runtime |
-| `electron-builder` | ^26.8.1 | macOS and Windows packaging |
+| `electron` | ^45.0.0 | desktop runtime |
+| `electron-builder` | ^26.18.0 | macOS and Windows packaging |
 
 ## Test and Quality Tooling
 

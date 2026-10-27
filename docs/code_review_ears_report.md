@@ -14,6 +14,11 @@ The SL-013 evidence below says `.github/workflows/release.yml` has no signing or
 
 This note does not close SL-011 or SL-012.
 
+At `31f683076d9e81c9e4fb39837d514ca3d7bff2e3`, the `/api` control check runs
+before the JSON body parser. SL-011's line citations are from `b6531bd` and
+do not match the current file. The upload JSON limit is 188 MB for a 140 MB
+file, not 200 MB. Treat the finding text as the record of that older commit.
+
 ## Verification summary
 
 - `npm test`: passed, 20 unit suites with 239 tests and 9 integration suites with 106 tests.
