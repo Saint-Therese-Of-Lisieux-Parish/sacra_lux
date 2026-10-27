@@ -951,12 +951,7 @@ describe("server api integration", () => {
     expect(smallRoute.status).toBe(413);
     expect(smallRoute.body.error).toBeTruthy();
 
-    // Mass ZIP import above its 68 MB body limit is rejected the same way.
-    const zipRoute = await request(app)
-      .post("/api/import-mass-zip")
-      .send({ zipData: "A".repeat(69 * 1024 * 1024) });
-    expect(zipRoute.status).toBe(413);
-
+    // The Mass ZIP route reports an oversized body as HTTP 400. See largeMassZipRoundTrip.test.js.
     const previewRoute = await request(app)
       .post("/api/preview-reading")
       .send({ text: "x".repeat(2 * 1024 * 1024) });

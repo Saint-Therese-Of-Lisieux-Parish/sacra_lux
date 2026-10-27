@@ -92,7 +92,7 @@ describe("ZIP import fuzzing", () => {
     const zip = new AdmZip();
     zip.addFile("mass.json", Buffer.from(MIN_MASS_JSON));
     // Zeros compress to a tiny archive. The entries together exceed the limit.
-    const entryCount = Math.floor(MASS_ZIP_LIMITS.maxUncompressedBytes / MASS_ZIP_LIMITS.maxEntryBytes);
+    const entryCount = Math.floor(MASS_ZIP_LIMITS.maxUncompressedBytes / MASS_ZIP_LIMITS.maxEntryBytes) + 1;
     const block = Buffer.alloc(MASS_ZIP_LIMITS.maxEntryBytes);
     for (let index = 0; index < entryCount; index += 1) {
       zip.addFile(`assets/zero-${index}.png`, block);

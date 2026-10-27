@@ -170,10 +170,10 @@ reads the `format` and `version` keys to choose how to read the file.
 
 | Limit | Value |
 | --- | --- |
-| Compressed ZIP size | 50 MiB (52,428,800 bytes) |
+| Compressed ZIP size | 200 MiB (209,715,200 bytes) |
 | Number of entries | 1000 |
-| Size of one entry, uncompressed | 50 MiB (52,428,800 bytes) |
-| Total size, uncompressed | 250 MiB (262,144,000 bytes) |
+| Size of one entry, uncompressed | 140 MiB (146,800,640 bytes) |
+| Total size, uncompressed | 500 MiB (524,288,000 bytes) |
 | Rate limit | 10 requests in 10 minutes and 1 at a time, per client IP |
 
 The importer checks the limits against the sizes in the ZIP headers before it
@@ -183,7 +183,7 @@ bytes pass the entry limit or the total limit, the importer rejects the ZIP.
 A ZIP that exceeds a limit is rejected as a whole, and the current Mass stays
 unchanged.
 
-The 50 MiB compressed limit applies to the whole ZIP. A large `mp4` file and
+The 200 MiB compressed limit applies to the whole ZIP. A large `mp4` file and
 the other files together can exceed it. An `mp4` file is usually already
 compressed, so it takes almost the same space in the ZIP.
 
@@ -206,11 +206,11 @@ the data is ignored.
 | --- | --- | --- |
 | `zipData` is missing | 400 | `zipData is required.` |
 | `zipData` is not base64 | 400 | `Invalid zip data.` |
-| Compressed size too large | 400 | `Mass ZIP compressed size exceeds the 52428800 byte limit.` |
+| Compressed size too large | 400 | `Mass ZIP compressed size exceeds the 209715200 byte limit.` A request body above the limit also gets HTTP 400. Its message adds the size of the request. |
 | Too many entries | 400 | `Mass ZIP contains too many entries; the limit is 1000.` |
-| One entry too large | 400 | `Mass ZIP entry "<name>" exceeds the 52428800 byte limit.` |
+| One entry too large | 400 | `Mass ZIP entry "<name>" exceeds the 146800640 byte limit.` |
 | Entry content differs from its declared size | 400 | `Mass ZIP entry "<name>" does not match its declared size.` or `Mass ZIP entry "<name>" is larger than its declared size.` |
-| Total size too large | 400 | `Mass ZIP uncompressed size exceeds the 262144000 byte limit.` |
+| Total size too large | 400 | `Mass ZIP uncompressed size exceeds the 524288000 byte limit.` |
 | Invalid entry size | 400 | `Mass ZIP entry "<name>" has an invalid size.` |
 | No definition file | 400 | `ZIP does not contain mass.json or settings.json.` |
 | Definition is not valid JSON | 400 | the JSON parser message |
