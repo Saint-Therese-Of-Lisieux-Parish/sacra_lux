@@ -705,6 +705,8 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 
   const CONVERTIBLE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif"]);
   const assignAvifName = createAvifNameAllocator(path.join(packageDir, "assets"));
+  // Originals that became AVIF copies. The leftover loop below must not add them again.
+  const convertedAssetFiles = new Set();
   for (const ref of refs) {
     let filePath = null;
     let originalName = null;
@@ -734,6 +736,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
         zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
       }
       urlRemap.set(ref, `assets/${avifName}`);
+      convertedAssetFiles.add(originalName);
     } else {
       zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
     }
@@ -779,10 +782,10 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 
   const assetsDir = path.join(packageDir, "assets");
   if (fs.existsSync(assetsDir)) {
-    for (const file of fs.readdirSync(assetsDir)) {
-      const fullPath = path.join(assetsDir, file);
-      if (fs.statSync(fullPath).isFile() && !zip.getEntry(`assets/${file}`)) {
-        zip.addFile(`assets/${file}`, fs.readFileSync(fullPath));
+    for (const dirent of fs.readdirSync(assetsDir, { withFileTypes: true })) {
+      const file = dirent.name;
+      if (dirent.isFile() && !convertedAssetFiles.has(file) && !zip.getEntry(`assets/${file}`)) {
+        zip.addFile(`assets/${file}`, fs.readFileSync(path.join(assetsDir, file)));
       }
     }
   }
