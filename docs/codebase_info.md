@@ -30,18 +30,17 @@ repo-root/
 │   ├── public/            # app.html, screen.html, remote.html, start.html, client/, assets/, fonts/, vendor/
 │   ├── src/               # server, domain modules, Electron entry points
 │   ├── tests/             # unit/, integration/, e2e/, helpers/
-│   ├── scripts/           # check-version-sync.js, precommit.js
+│   ├── scripts/           # version checks, precommit, background build, packaged smoke
 │   ├── jest.config.cjs
 │   ├── playwright.config.js
 │   ├── package.json
 │   └── README.md
 ├── docs/                  # maintained codebase reference
-├── homepage/              # brand and marketing copy (not a technical source)
-├── Pre-Mass Automation/   # standalone Python slide generators (separate tooling)
-├── .claude/skills/        # repository agent skills
 ├── .github/               # CI workflows and Copilot instructions
 ├── .githooks/             # tracked local pre-commit hook
 ├── README.md
+├── mkdocs.yml             # documentation site config
+├── requirements-docs.txt  # Python packages for the documentation site
 ├── AGENTS.md
 ├── CLAUDE.md
 └── GEMINI.md
