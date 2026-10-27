@@ -227,6 +227,20 @@
       .catch(() => {});
 
     let _failCount = 0;
+    let _lockoutTimer = null;
+
+    function startLockout(seconds) {
+      const waitSeconds = Math.max(1, Math.ceil(seconds));
+      if (_lockoutTimer !== null) clearTimeout(_lockoutTimer);
+      errorMsg.textContent = `Too many attempts. Try again in ${waitSeconds} seconds.`;
+      startBtn.disabled = true;
+      _lockoutTimer = setTimeout(() => {
+        _lockoutTimer = null;
+        startBtn.disabled = false;
+        startBtn.textContent = "Start";
+        errorMsg.textContent = "";
+      }, waitSeconds * 1000);
+    }
 
     function playBuzzer() {
       try {
@@ -266,15 +280,24 @@
         });
         const data = await resp.json();
         if (!resp.ok) {
-          _failCount++;
-          if (_failCount >= 5) {
-            playBuzzer();
-            errorMsg.textContent = "Incorrect PIN. Alarm sounded.";
-          } else if (_failCount === 4) {
-            errorMsg.textContent = "Incorrect PIN.";
-            warnDialog.showModal();
+          if (resp.status === 429) {
+            const retryAfter = Number(resp.headers.get("Retry-After"));
+            startLockout(Number.isFinite(retryAfter) ? retryAfter : 1);
+          } else if (resp.status >= 500) {
+            errorMsg.textContent = "Connection error. Please try again.";
+          } else if (resp.status === 403) {
+            _failCount++;
+            if (_failCount >= 5) {
+              playBuzzer();
+              errorMsg.textContent = "Incorrect PIN. Alarm sounded.";
+            } else if (_failCount === 4) {
+              errorMsg.textContent = "Incorrect PIN.";
+              warnDialog.showModal();
+            } else {
+              errorMsg.textContent = data.error || "Incorrect PIN.";
+            }
           } else {
-            errorMsg.textContent = data.error || "Incorrect PIN.";
+            errorMsg.textContent = data.error || "Unable to verify the PIN.";
           }
           pinInput.value = "";
           pinInput.focus();
@@ -284,8 +307,10 @@
       } catch {
         errorMsg.textContent = "Connection error. Please try again.";
       } finally {
-        startBtn.disabled = false;
-        startBtn.textContent = "Start";
+        if (_lockoutTimer === null) {
+          startBtn.disabled = false;
+          startBtn.textContent = "Start";
+        }
       }
     }
   </script>

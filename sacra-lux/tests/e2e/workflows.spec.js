@@ -1183,6 +1183,39 @@ test("start page validates PIN-gated mass start flow", async ({ page, request })
   await page.waitForURL(/\/remote/);
 });
 
+test("start page handles lockout and server errors without counting failures", async ({ page, request }) => {
+  const setPin = await request.post(`${baseUrl}/api/start-pin`, { data: { pin: "1234" } });
+  expect(setPin.ok()).toBeTruthy();
+  await page.route("**/api/verify-pin", async (route) => {
+    await route.fulfill({
+      status: 429,
+      headers: { "Content-Type": "application/json", "Retry-After": "1" },
+      body: JSON.stringify({ error: "Too many attempts" })
+    });
+  });
+  await page.goto(`${baseUrl}/start`);
+  await page.fill("#pinInput", "1234");
+  await page.click("#startBtn");
+  await expect(page.locator("#errorMsg")).toHaveText("Too many attempts. Try again in 1 seconds.");
+  await expect(page.locator("#startBtn")).toBeDisabled();
+  await expect(page.locator("#warnDialog")).toBeHidden();
+  await page.waitForTimeout(1100);
+  await expect(page.locator("#startBtn")).toBeEnabled();
+
+  await page.unroute("**/api/verify-pin");
+  await page.route("**/api/verify-pin", async (route) => {
+    await route.fulfill({
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Server error" })
+    });
+  });
+  await page.fill("#pinInput", "1234");
+  await page.click("#startBtn");
+  await expect(page.locator("#errorMsg")).toHaveText("Connection error. Please try again.");
+  await expect(page.locator("#warnDialog")).toBeHidden();
+});
+
 test("Sacra Lux can load readings and expose slides in state", async ({ page, request }) => {
   await page.goto(`${baseUrl}/`);
   await expect(page.locator("#status")).toBeVisible();
