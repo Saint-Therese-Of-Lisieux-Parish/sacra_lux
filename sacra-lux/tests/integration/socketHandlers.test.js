@@ -185,6 +185,14 @@ describe("socket handlers", () => {
       await pending;
     });
 
+    test("screen:settings ignores a background URL outside the allow-list", async () => {
+      const { state } = require("../../src/state");
+      const before = JSON.stringify(state.screenSettings);
+      client.emit("screen:settings", { darkBackgroundUrl: "https://evil.example/a.png" });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(JSON.stringify(state.screenSettings)).toBe(before);
+    });
+
     test("screen:black toggles the blackout flag", async () => {
       let pending = waitForState(client, (next) => next.isBlack === true);
       client.emit("screen:black", true);

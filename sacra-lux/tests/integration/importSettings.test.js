@@ -56,6 +56,38 @@ describe("settings import and export", () => {
     expect(state.presentation.slides.length).toBeGreaterThan(0);
   });
 
+  test("rejects a background URL outside the allow-list and changes nothing", async () => {
+    const before = JSON.stringify(state.screenSettings);
+    await request(app).post("/api/import-settings").send({
+      screenSettings: { darkBackgroundUrl: "javascript:alert(1)" }
+    }).expect(400);
+    expect(JSON.stringify(state.screenSettings)).toBe(before);
+  });
+
+  test("rejects an image or movie URL outside the allow-list", async () => {
+    const before = JSON.stringify(state.manualSlides);
+    await request(app).post("/api/import-settings").send({
+      manualSlides: { one: { imageUrl: "https://evil.example/a.png" } }
+    }).expect(400);
+    await request(app).post("/api/import-settings").send({
+      manualSlides: { one: { videoUrl: "https://evil.example/a.mp4" } }
+    }).expect(400);
+    expect(JSON.stringify(state.manualSlides)).toBe(before);
+  });
+
+  test("rejects a movie URL outside the allow-list in the organizer", async () => {
+    await request(app).post("/api/organizer").send({
+      sequence,
+      manualSlides: { v: { videoUrl: "https://evil.example/a.mp4" } }
+    }).expect(400);
+  });
+
+  test("accepts built-in background URLs", async () => {
+    await request(app).post("/api/import-settings").send({
+      screenSettings: { darkBackgroundUrl: "/static/assets/default-text-background.avif" }
+    }).expect(200);
+  });
+
   test("a null start time clears the start time", async () => {
     await request(app).post("/api/import-settings").send({ massStartTime: "2030-01-01T09:00" }).expect(200);
     await request(app).post("/api/import-settings").send({ massStartTime: null }).expect(200);
