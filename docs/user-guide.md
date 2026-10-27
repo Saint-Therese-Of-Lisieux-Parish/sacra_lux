@@ -35,9 +35,9 @@ from `bible.usccb.org` and uses the feed title when you leave the title blank.
 This needs internet access.
 
 Creating a new Mass archives the current one first if it has content, then
-builds a starter organizer (announcements, gathering timer, Mass title, hymns,
-interstitials, readings, Creed, Lord's Prayer, communion, recessional, and
-post-announcements).
+removes the current Mass media files. It then builds a starter organizer
+(announcements, gathering timer, Mass title, hymns, interstitials, readings,
+Creed, Lord's Prayer, communion, recessional, and post-announcements).
 
 ### Duplicate a Mass for next week
 
