@@ -71,6 +71,12 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.saveError))');
   });
 
+  test("keeps affected operator gradients below the white mix limit", () => {
+    expect(appHtml).toContain("color-mix(in srgb, var(--accent), white 20%)");
+    expect(appHtml).not.toContain("color-mix(in srgb, var(--accent), white 86%)");
+    expect(appHtml).not.toContain("color-mix(in srgb, var(--accent), white 90%)");
+  });
+
   test("slide type tabs pick the bounds layout and no Layout dropdown shows", () => {
     const tabs = [...appHtml.matchAll(/class="settings-tab[^"]*" data-settings-tab="([^"]+)"[^>]*>([^<]+)</g)]
       .map((match) => [match[1], match[2]]);
