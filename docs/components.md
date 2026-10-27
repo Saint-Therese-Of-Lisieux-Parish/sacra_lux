@@ -216,7 +216,8 @@ Mass dialogs, PIN and Screen dialogs, and import/export actions.
 Projector renderer: reading slides, text, prayer, hymn, image,
 image-slideshow, movie, and interstitial slides, countdown visuals, transitions,
 blackout mode, movie end/ready reporting, slideshow preload-error reporting, and
-an idle QR/start overlay.
+an idle QR/start overlay. A page opened with `preview=1` does not open a
+Socket.IO connection.
 
 ### `public/remote.html`
 
