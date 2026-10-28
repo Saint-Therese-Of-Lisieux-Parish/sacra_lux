@@ -116,6 +116,7 @@ describe("socket handlers", () => {
   afterEach(() => {
     if (client) client.disconnect();
     client = null;
+    jest.useRealTimers();
     state.preMassRunning = false;
     state.gatheringRunning = false;
     state.postMassRunning = false;
@@ -327,6 +328,44 @@ describe("socket handlers", () => {
       client.emit("slide:video-ready", { slideId, durationMs: 600000 });
       await flush();
       expect(state.currentSlideIndex).toBe(index);
+    });
+
+    test("projector reports work while a PIN blocks operator control", async () => {
+      jest.useFakeTimers({ doNotFake: ["nextTick", "queueMicrotask", "setImmediate", "clearImmediate", "hrtime", "performance"] });
+      const index = movieIndex();
+      await goto("slide:goto", index);
+      const slideId = state.presentation.slides[index].id;
+      const projector = await connect({ auth: { screenRole: "projector" } });
+      try {
+        expect(handle.io.sockets.sockets.get(projector.id).data.screenRole).toBe("projector");
+        await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+        const denied = nextEvent(client, "control:required");
+        client.emit("slide:next");
+        await denied;
+
+        projector.emit("slide:video-ready", { slideId, durationMs: 60000 });
+        await new Promise((resolve) => setImmediate(resolve));
+        jest.advanceTimersByTime(59000);
+        expect(state.currentSlideIndex).toBe(index);
+
+        jest.useRealTimers();
+        projector.emit("slide:video-ended", { slideId });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(state.currentSlideIndex).toBe(index + 1);
+
+        const slideshow = state.presentation.slides[index + 1];
+        expect(slideshow.type).toBe("imageSlideshow");
+        expect(slideshow.imageUrl).toBeTruthy();
+        projector.emit("image-slideshow:preload-error", {
+          slideId: slideshow.id,
+          imageUrl: slideshow.imageUrl
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(state.imageSlideshowError).toMatch(/Could not preload/);
+      } finally {
+        projector.disconnect();
+      }
     });
   });
 
