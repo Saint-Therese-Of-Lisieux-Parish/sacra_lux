@@ -2219,6 +2219,10 @@ function restoreSession(ioRef) {
       state.massStartTime = session.massStartTime;
     }
 
+    if (Number.isInteger(session.organizerRevision) && session.organizerRevision >= 0) {
+      state.organizerRevision = session.organizerRevision;
+    }
+
     if (session.startPinHash && typeof session.startPinHash === "object") {
       state.startPinHash = {
         hash: String(session.startPinHash.hash || ""),
@@ -3494,9 +3498,16 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/organizer", (req, res) => {
     try {
-      const { sequence, manualSlides } = req.body || {};
+      const { sequence, manualSlides, organizerRevision } = req.body || {};
       if (!Array.isArray(sequence)) {
         return res.status(400).json({ error: "sequence array is required." });
+      }
+
+      if (organizerRevision !== undefined && organizerRevision !== state.organizerRevision) {
+        return res.status(409).json({
+          error: "Another organizer change was saved first. Reload the current state and try again.",
+          organizerRevision: state.organizerRevision
+        });
       }
 
       const urlError = manualSlideUrlError(manualSlides);
@@ -3518,6 +3529,7 @@ function startServer(port = 17841, options = {}) {
       _imageSlideshowFailedUrls.clear();
       state.organizerSequence = normalizeOrganizerSequence(sequence);
       state.manualSlides = mergeManualSlideState(state.organizerSequence, manualSlides || {});
+      state.organizerRevision += 1;
       propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       // Always rebuild the presentation so manual content stays current.
       state.presentation = buildPresentationFromOrganizer({
