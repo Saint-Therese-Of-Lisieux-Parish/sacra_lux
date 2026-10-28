@@ -76,6 +76,8 @@ const state = {
     textBounds: structuredClone(DEFAULT_TEXT_BOUNDS)
   },
   currentSlideIndex: 0,
+  currentSlideId: null,
+  currentSlideChangedAt: new Date().toISOString(),
   isBlack: false,
   interstitialHoldActive: false,
   interstitialHoldSlideIndex: null,
@@ -107,7 +109,13 @@ function getSafeSlideIndex(index) {
 }
 
 function touch() {
-  state.lastUpdated = new Date().toISOString();
+  const now = new Date().toISOString();
+  const currentSlideId = state.presentation?.slides?.[state.currentSlideIndex]?.id || null;
+  if (currentSlideId !== state.currentSlideId) {
+    state.currentSlideId = currentSlideId;
+    state.currentSlideChangedAt = now;
+  }
+  state.lastUpdated = now;
 }
 
 function getStateSnapshot() {

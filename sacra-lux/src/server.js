@@ -908,6 +908,23 @@ function restoreCurrentMassOrPrompt(ioRef, savedArchiveId = null) {
   }
 }
 
+const SAVED_SLIDE_MAX_AGE_MS = 4 * 60 * 60 * 1000;
+
+function restoreSavedSlide(session) {
+  const slideId = typeof session?.currentSlideId === "string" ? session.currentSlideId : "";
+  const savedAt = Date.parse(session?.currentSlideChangedAt || session?.savedAt || "");
+  if (!slideId || !Number.isFinite(savedAt)) return false;
+  const ageMs = Date.now() - savedAt;
+  if (ageMs < 0 || ageMs > SAVED_SLIDE_MAX_AGE_MS) return false;
+
+  const slideIndex = (state.presentation?.slides || []).findIndex((slide) => slide.id === slideId);
+  if (slideIndex < 0) return false;
+  state.currentSlideIndex = slideIndex;
+  state.currentSlideId = slideId;
+  state.currentSlideChangedAt = new Date(savedAt).toISOString();
+  return true;
+}
+
 /** Return `value` as a number when it is finite, otherwise `fallback`. A null value counts as missing. */
 function finiteOr(value, fallback) {
   if (value == null) return fallback;
@@ -2265,7 +2282,8 @@ function restoreSession(ioRef) {
     }
   }
 
-  restoreCurrentMassOrPrompt(ioRef, session?.activeMassArchiveId);
+  const restored = restoreCurrentMassOrPrompt(ioRef, session?.activeMassArchiveId);
+  if (restored) restoreSavedSlide(session);
 }
 
 // ── Express / Socket.IO server ────────────────────────────────────────────────
