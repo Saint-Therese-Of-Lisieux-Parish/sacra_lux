@@ -93,13 +93,17 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `DELETE /api/mass-history/:archiveId`
 
 JSON request body limits (`JSON_BODY_LIMITS_BY_PATH` in `src/server.js`).
-A larger body gets HTTP 413 before route logic runs:
+A larger body gets HTTP 413 before route logic runs.
+`POST /api/import-mass-zip` is the exception.
+A body over its limit returns HTTP 400.
+The error starts with `Mass ZIP compressed size exceeds the 209715200 byte limit.`
+The same error then states the encoded request size.
 
 | Route | Limit |
 | --- | --- |
 | `POST /api/upload-mass-asset`, `POST /api/upload-image` | 188 MB (140 MB file as base64, `MAX_SINGLE_UPLOAD_BYTES`) |
 | `POST /api/import-slideshow-images` | 161 MB (120 MB of images as base64) |
-| `POST /api/import-mass-zip` | 68 MB (50 MB ZIP as base64) |
+| `POST /api/import-mass-zip` | `268mb` (200 MiB ZIP as base64) |
 | `POST /api/preview-reading`, `POST /api/preview-manual-slide` | 1 MB |
 | all other routes | 10 MB |
 
