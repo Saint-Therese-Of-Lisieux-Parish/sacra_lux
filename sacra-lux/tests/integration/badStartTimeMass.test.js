@@ -73,6 +73,13 @@ describe("mass creation rejects an unparseable start time", () => {
   const stateUpdates = (spy) =>
     spy.mock.calls.filter(([event]) => event === "state:update");
 
+  function expectStateUnchanged(after, before) {
+    const { serverTime: beforeServerTime, ...beforeState } = before;
+    const { serverTime: afterServerTime, ...afterState } = after;
+    expect(afterState).toEqual(beforeState);
+    expect(afterServerTime).toBeGreaterThanOrEqual(beforeServerTime);
+  }
+
   test("duplicate-mass returns 400 and leaves live state and archives untouched", async () => {
     await seedLiveMass("Duplicate Source");
     const before = await snapshot();
@@ -86,7 +93,7 @@ describe("mass creation rejects an unparseable start time", () => {
     expect(stateUpdates(emitSpy)).toHaveLength(0);
 
     const after = await snapshot();
-    expect(after.state).toEqual(before.state);
+    expectStateUnchanged(after.state, before.state);
     expect(after.history).toEqual(before.history);
 
     emitSpy.mockRestore();
@@ -105,7 +112,7 @@ describe("mass creation rejects an unparseable start time", () => {
     expect(stateUpdates(emitSpy)).toHaveLength(0);
 
     const after = await snapshot();
-    expect(after.state).toEqual(before.state);
+    expectStateUnchanged(after.state, before.state);
     expect(after.history).toEqual(before.history);
 
     emitSpy.mockRestore();
@@ -126,7 +133,7 @@ describe("mass creation rejects an unparseable start time", () => {
       expect(global.fetch).not.toHaveBeenCalled();
 
       const after = await snapshot();
-      expect(after.state).toEqual(before.state);
+      expectStateUnchanged(after.state, before.state);
       expect(after.history).toEqual(before.history);
     } finally {
       global.fetch = originalFetch;

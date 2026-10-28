@@ -122,8 +122,7 @@ function touch() {
 
 function getStateSnapshot() {
   const snap = structuredClone(state);
-  const parsedLastUpdated = Date.parse(state.lastUpdated);
-  snap.serverTime = Number.isFinite(parsedLastUpdated) ? parsedLastUpdated : Date.now();
+  snap.serverTime = Date.now();
   // Expose only whether a PIN is configured, not the PIN itself.
   snap.hasStartPin = Boolean(state.startPinHash?.hash || state.startPin);
   snap.controlMode = state.controlMode === "trusted-lan" ? "trusted-lan" : "unset";

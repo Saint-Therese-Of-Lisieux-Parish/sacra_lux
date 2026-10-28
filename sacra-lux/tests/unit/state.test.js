@@ -40,4 +40,15 @@ describe("state", () => {
     expect(snapshot.interstitialHoldResumeState).toBeUndefined();
     expect(snapshot.serverTime).toEqual(expect.any(Number));
   });
+
+  test("getStateSnapshot uses the current server clock", () => {
+    const { state, getStateSnapshot } = require("../../src/state");
+    state.lastUpdated = "2000-01-01T00:00:00.000Z";
+    const before = Date.now();
+
+    const snapshot = getStateSnapshot();
+
+    expect(snapshot.serverTime).toBeGreaterThanOrEqual(before);
+    expect(snapshot.serverTime).toBeLessThanOrEqual(Date.now());
+  });
 });
