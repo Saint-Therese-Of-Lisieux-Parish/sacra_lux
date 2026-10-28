@@ -180,9 +180,15 @@ and storage type. From here you can **Load**, **Compress** (convert a folder
 package to an AVIF-optimized ZIP), or **Delete** an archive. The active Mass is
 listed first.
 
+**Load** asks you to confirm before it replaces the current Mass. **Cancel**
+leaves the current Mass in place. When Pre-Mass, Gathering, or Post-Mass is
+running, the dialog says that the projector will change. It says the same
+thing when the start time is less than two hours away, including a start time
+that has already passed.
+
 ## Export and Import
 
-- **↩︎ Import** loads a Mass or settings ZIP/JSON.
+- **↩︎ Import** loads a Mass or settings ZIP/JSON. A Mass ZIP asks for the same replacement confirmation as **Load**.
 - **↪︎ Export** downloads the current Mass as a ZIP.
 - **Export AVIF** converts eligible images to AVIF and downloads an optimized
   ZIP.
