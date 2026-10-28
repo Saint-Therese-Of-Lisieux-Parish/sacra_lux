@@ -70,8 +70,8 @@ The `Release` GitHub Actions workflow publishes the release files. Push a tag
 that matches the `package.json` version. The current package version is `0.0.265-alpha`.
 
 ```bash
-git tag v0.0.197-alpha
-git push origin v0.0.197-alpha
+git tag v0.0.265-alpha
+git push origin v0.0.265-alpha
 ```
 
 The workflow builds these files:
