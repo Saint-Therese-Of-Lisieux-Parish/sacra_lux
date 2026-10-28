@@ -593,6 +593,8 @@
 
     let currentSlides = [];
     let currentActive = 0;
+    let cueListStructureSignature = "";
+    let cueListLastScrollAt = 0;
     let carouselFocusIndex = 0;
     let carouselSelectedIndex = 0;
     let latestState = null;
@@ -953,20 +955,79 @@
         carouselDragOffset = 0;
         renderCarousel();
       }
-      els.cueList.innerHTML = buildCueListHtml(cues, active);
+      const nextCueListStructureSignature = getCueListStructureSignature(cues);
+      const cueListStructureChanged = nextCueListStructureSignature !== cueListStructureSignature;
+      if (!cueListStructureChanged) {
+        updateCueListActiveState(active);
+      } else {
+        const listState = captureCueListState();
+        els.cueList.innerHTML = buildCueListHtml(cues, active);
+        restoreCueListState(listState);
+        cueListStructureSignature = nextCueListStructureSignature;
+      }
       syncRemoteViewportMetrics();
 
-      // Scroll so the active item is at the top of the list.
-      // If it's inside a group, account for the summary header height.
-      const activeBtn = els.cueList.querySelector(".cue-btn.active");
-      if (activeBtn) {
-        const list = els.cueList;
-        const listTop = list.getBoundingClientRect().top;
-        const btnTop = activeBtn.getBoundingClientRect().top;
-        const summary = activeBtn.closest("details")?.querySelector("summary");
-        const summaryH = summary ? summary.getBoundingClientRect().height : 0;
-        list.scrollTop += (btnTop - listTop) - summaryH;
+      if (cueListStructureChanged && !captureCueListState().preserveScroll) {
+        scrollCueListToActive();
       }
+    }
+
+    function getCueListStructureSignature(cues) {
+      return JSON.stringify(cues.map((cue) => ({
+        id: cue.id,
+        organizerItemId: cue.organizerItemId,
+        phase: cue.phase,
+        groupLabel: cue.groupLabel,
+        title: cue.title
+      })));
+    }
+
+    function captureCueListState() {
+      return {
+        focusedIndex: document.activeElement?.classList.contains("cue-btn")
+          ? document.activeElement.dataset.index
+          : null,
+        openGroupIds: Array.from(els.cueList.querySelectorAll("details[open]"))
+          .map((group) => group.dataset.groupId),
+        scrollTop: els.cueList.scrollTop,
+        preserveScroll: Date.now() - cueListLastScrollAt <= 10000
+      };
+    }
+
+    function restoreCueListState(listState) {
+      if (listState.preserveScroll) {
+        els.cueList.scrollTop = listState.scrollTop;
+      }
+      for (const group of els.cueList.querySelectorAll("details[data-group-id]")) {
+        group.open = listState.openGroupIds.includes(group.dataset.groupId);
+      }
+      if (listState.focusedIndex != null) {
+        els.cueList.querySelector(`.cue-btn[data-index="${CSS.escape(listState.focusedIndex)}"]`)?.focus();
+      }
+    }
+
+    function updateCueListActiveState(active) {
+      for (const button of els.cueList.querySelectorAll(".cue-btn")) {
+        const isActive = Number(button.dataset.index) === active;
+        button.classList.toggle("active", isActive);
+        if (isActive) button.setAttribute("aria-current", "true");
+        else button.removeAttribute("aria-current");
+      }
+      for (const group of els.cueList.querySelectorAll("details[data-group-id]")) {
+        const hasActive = group.querySelector(".cue-btn.active") != null;
+        group.classList.toggle("group-active", hasActive);
+      }
+    }
+
+    function scrollCueListToActive() {
+      const activeBtn = els.cueList.querySelector(".cue-btn.active");
+      if (!activeBtn) return;
+      const list = els.cueList;
+      const listTop = list.getBoundingClientRect().top;
+      const btnTop = activeBtn.getBoundingClientRect().top;
+      const summary = activeBtn.closest("details")?.querySelector("summary");
+      const summaryH = summary ? summary.getBoundingClientRect().height : 0;
+      list.scrollTop += (btnTop - listTop) - summaryH;
     }
 
     function animateCarouselSlideChange(previousActiveIndex, nextActiveIndex) {
@@ -1066,7 +1127,7 @@
             return `<button class="cue-btn sub-cue${isActive ? " active" : ""}"${ariaCurrent} data-index="${cue.index}">${escapeHtml(cue.title)}</button>`;
           }).join("");
 
-          return `<details class="cue-group${hasActive ? " group-active" : ""}"${hasActive ? " open" : ""}>
+          return `<details class="cue-group${hasActive ? " group-active" : ""}" data-group-id="${escapeHtml(group.id)}"${hasActive ? " open" : ""}>
             <summary class="cue-group-summary">
               ${groupName}
               <span class="cue-group-count">${group.cues.length} slides</span>
@@ -1079,6 +1140,10 @@
         return `<div class="phase-section"><div class="phase-section-header">${label}</div>${groupsHtml}</div>`;
       }).join("");
     }
+
+    els.cueList.addEventListener("scroll", () => {
+      cueListLastScrollAt = Date.now();
+    }, { passive: true });
 
     function pinPreviewDock(behavior = "auto") {
       els.previewDock?.scrollIntoView({

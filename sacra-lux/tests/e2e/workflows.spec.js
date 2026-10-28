@@ -1223,6 +1223,56 @@ test("remote preview interaction keeps the large preview pinned at the top", asy
   expect(previewBox.y).toBeLessThan(2);
 });
 
+test("remote cue list keeps scroll and focus when the live slide changes", async ({ page, request }) => {
+  const sequence = Array.from({ length: 12 }, (_, index) => ({
+    id: `text:remote-${index}`,
+    type: "text",
+    label: `Slide ${index + 1}`,
+    phase: "mass",
+    backgroundTheme: "dark"
+  }));
+  const manualSlides = Object.fromEntries(sequence.map((slide, index) => [slide.id, {
+    text: `Remote slide ${index + 1}`,
+    notes: "",
+    textVAlign: "middle",
+    imageUrl: null
+  }]));
+  await request.post(`${baseUrl}/api/organizer`, { data: { sequence, manualSlides } });
+
+  await page.goto(`${baseUrl}/remote`);
+  await dismissRemoteSplash(page);
+  const focusedButton = page.locator('.cue-btn[data-index="1"]');
+  await focusedButton.focus();
+  await page.locator("#cueList").evaluate((list) => list.scrollTo({ top: 9999 }));
+  const before = await page.locator("#cueList").evaluate((list) => ({
+    scrollTop: list.scrollTop,
+    activeElement: document.activeElement?.dataset.index
+  }));
+
+  await page.evaluate(() => new Promise((resolve) => {
+    const testSocket = io();
+    testSocket.on("connect", () => {
+      testSocket.on("state:update", (state) => {
+        if (Number(state.currentSlideIndex) === 2) {
+          testSocket.disconnect();
+          resolve();
+        }
+      });
+      testSocket.emit("slide:goto:remote", 2);
+    });
+  }));
+
+  await expect.poll(() => page.locator("#cueList").evaluate((list) => ({
+    scrollTop: list.scrollTop,
+    activeElement: document.activeElement?.dataset.index,
+    activeButtons: list.querySelectorAll(".cue-btn.active").length
+  }))).toEqual({
+    scrollTop: before.scrollTop,
+    activeElement: before.activeElement,
+    activeButtons: 1
+  });
+});
+
 test("controls show a focus ring and a clear disabled state", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
