@@ -9,12 +9,12 @@ server holds the only authoritative state, so always inspect server state
 - Confirm the projector window is on `/screen` and the target display is set in
   **Screen Settings**.
 - Check `isBlack` in `GET /api/state`. If it is `true`, press `B` on the
-  operator page to restore output. The operator page has no Black Screen button.
+  Digital Minister page to restore output. The Digital Minister page has no Black Screen button.
 - Check `interstitialHoldActive`. A value of `true` pins the projector to an
   interstitial. The current phone remote does not send `screen:interstitial-hold`.
 - Reload the `/screen` window. It renders purely from `state:update`.
 
-## The remote or operator UI stops updating
+## The remote or Digital Minister UI stops updating
 
 - Confirm the device is on the same network and can reach
   `http://<host>:17841/`.

@@ -29,7 +29,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/start-pin`, `POST /api/verify-pin`, and a validated
   `GET /api/start-redirect` all issue a control session and set the cookie.
 - With no PIN configured, control checks pass for loopback clients. The
-  operator can also select `trusted-lan` through `POST /api/control-mode` to
+  A Digital Minister can also select `trusted-lan` through `POST /api/control-mode` to
   allow control from non-loopback clients.
 
 ## HTTP API

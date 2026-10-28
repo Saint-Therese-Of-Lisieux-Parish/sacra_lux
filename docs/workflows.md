@@ -38,7 +38,7 @@ sequenceDiagram
 
 The body can include `organizerRevision`. When that value is present and it
 is not the current revision, the server returns HTTP 409. It does not change
-the Mass. The operator page then loads the current state. A body with no
+the Mass. The Digital Minister page then loads the current state. A body with no
 `organizerRevision` still saves. A successful save adds 1 to the revision.
 
 ## 3. Countdown Handling

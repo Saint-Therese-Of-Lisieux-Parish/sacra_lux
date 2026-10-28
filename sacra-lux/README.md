@@ -2,11 +2,11 @@
 
 Sacra Lux is a Catholic Mass presentation app built for live parish
 use. It runs from a single shared server-side state model and keeps the
-operator app, projector screen, and phone remote synchronized in real time.
+Digital Minister app, projector screen, and phone remote synchronized in real time.
 
 ## Run Modes
 
-- Electron desktop app: operator window, projector window, optional remote popup
+- Electron desktop app: Digital Minister window, projector window, optional remote popup
 - Web mode: Node server with browser clients
 
 ## Core Capabilities

@@ -6,9 +6,9 @@
 [![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FSaint-Therese-Of-Lisieux-Parish%2Fsacra_lux%2Fbadges%2Fcoverage.json)](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/package-json/v/Saint-Therese-Of-Lisieux-Parish/sacra_lux?filename=sacra-lux%2Fpackage.json&label=version)](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/sacra-lux/package.json)
 
-Sacra Lux helps a parish run the slides for Mass. One person runs the
-operator screen. The projector shows the same slide. A phone can follow
-along and move the slides. When the operator changes a slide, the projector
+Sacra Lux helps a parish run the slides for Mass. One Digital Minister runs the
+presentation screen. The projector shows the same slide. A phone can follow
+along and move the slides. When the Digital Minister changes a slide, the projector
 and the phone change with it.
 
 Read the published documentation at
@@ -16,13 +16,13 @@ Read the published documentation at
 
 ## Who this is for
 
-Sacra Lux is a live Mass presentation app for parish operators and the
+Sacra Lux is a live Mass presentation app for Digital Ministers and the
 people who help them. This repository holds the application, the reference
 documents, the GitHub workflows, and the tracked Git hooks.
 
 Two run modes are supported:
 
-- **Electron.** `npm start` opens the desktop app. It shows an operator
+- **Electron.** `npm start` opens the desktop app. It shows a Digital Minister
   window and a projector window. A remote window is optional.
 - **Web.** `npm run web` starts the Node.js server. People open the pages
   in a browser.
@@ -59,7 +59,7 @@ For browser-only mode, stay in `sacra-lux` and run:
 npm run web
 ```
 
-The server listens on `0.0.0.0`. The log prints the operator, remote, and
+The server listens on `0.0.0.0`. The log prints the Digital Minister, remote, and
 screen URLs.
 
 ## Commands
@@ -139,7 +139,7 @@ It also rejects a state-changing request, or a Socket.IO connection, when its
 `Origin` header is not allowed. A request with no `Origin` header is accepted.
 A state-changing request with `Sec-Fetch-Site: cross-site` gets HTTP 403 and
 the error `Cross-site request not allowed.`
-This stops a web page in the operator browser, and DNS rebinding, from using
+This stops a web page in the Digital Minister browser, and DNS rebinding, from using
 the server.
 
 These hosts are always allowed: `localhost`, loopback addresses, and the
@@ -365,4 +365,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.277-alpha`.
+The current package version is `0.0.278-alpha`.
