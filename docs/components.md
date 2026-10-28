@@ -226,7 +226,9 @@ remaining time follows the server clock.
 ### `public/remote.html`
 
 Phone remote: a live screen preview, swipe and arrow-key slide changes, a
-slide carousel, and a phase-grouped jump list. It does not send
+slide carousel, and a phase-grouped jump list. The active row sets
+`aria-current="true"`. A slide change keeps the list scroll position for 10
+seconds after a scroll. It does not send
 `screen:interstitial-hold`. PIN entry is the `/start` page.
 
 ### `public/start.html`
