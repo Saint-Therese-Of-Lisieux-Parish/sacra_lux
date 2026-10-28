@@ -169,7 +169,7 @@ host name, add it to the same list.
 | [sacra-lux/src/readingsImporter.js](./sacra-lux/src/readingsImporter.js) | Reading file names, order, and pagination. |
 | [sacra-lux/src/lectionaryRss.js](./sacra-lux/src/lectionaryRss.js) | USCCB Daily Readings RSS import. |
 | [sacra-lux/src/themes.json](./sacra-lux/src/themes.json) | App UI themes. There are 22 themes, including liturgical seasons. |
-| [.github/workflows/](./.github/workflows) | CI, docs checks, secret scan, smoke, CodeQL, Scorecard, version check, and release. |
+| [.github/workflows/](./.github/workflows) | CI, docs checks, secret scan, smoke, CodeQL, security triage, Scorecard, version check, and release. |
 | [.githooks/](./.githooks) | The tracked pre-commit hook. |
 | [docs/](./docs) | The maintained guides. Start at [docs/index.md](./docs/index.md). |
 | [AGENTS.md](./AGENTS.md) | Guidance for coding agents. |
@@ -278,6 +278,7 @@ GitHub checks on a pull request to `master`:
 | [secret-scan.yml](./.github/workflows/secret-scan.yml) | A gitleaks scan of the pull request history. |
 | [workflow-lint.yml](./.github/workflows/workflow-lint.yml) | A zizmor scan of the workflow files. It fails on medium findings or higher. Accepted findings are in [.github/zizmor.yml](./.github/zizmor.yml). |
 | [codeql.yml](./.github/workflows/codeql.yml) | CodeQL analysis. It also runs on a weekly schedule. |
+| [security-triage.yml](./.github/workflows/security-triage.yml) | Opens or updates one issue each Monday at 14:00 UTC. The title is `[Security Triage] Week <date>`. The issue lists open CodeQL alerts and alerts fixed in the last seven days. You can also run it with `workflow_dispatch`. |
 | [mutation.yml](./.github/workflows/mutation.yml) | Not a pull request check. It runs StrykerJS on `src/security.js` each week and on demand. It uploads the HTML report. |
 | [dependency-review.yml](./.github/workflows/dependency-review.yml) | Reviews dependency changes in `sacra-lux/package.json` and `sacra-lux/package-lock.json`. It fails on a high severity finding. |
 | [pages.yml](./.github/workflows/pages.yml) | Builds the user-guide site with MkDocs when `docs/`, `mkdocs.yml`, or `requirements-docs.txt` changes. A push to `master` publishes the site. |
