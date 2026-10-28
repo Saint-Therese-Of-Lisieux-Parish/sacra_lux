@@ -557,7 +557,8 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
     ? "svg"
     : mimeType.split("/")[1];
   if (!allowedExtensions.has(`.${mediaExtension}`)) {
-    throw new ValidationError("Unsupported media type.");
+    const displayName = String(filename || "file").trim() || "file";
+    throw new ValidationError(`Unsupported media type for "${displayName}".`);
   }
 
   const bytes = Buffer.from(match[2], "base64");

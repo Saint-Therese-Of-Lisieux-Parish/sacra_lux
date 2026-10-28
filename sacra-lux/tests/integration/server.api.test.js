@@ -1585,7 +1585,7 @@ describe("server api integration", () => {
       .send({ images: [{ filename: "clip.mp4", dataUrl: "data:video/mp4;base64,AAAA" }] })
       .expect(400);
 
-    expect(res.body.error).toMatch(/unsupported media type/i);
+    expect(res.body.error).toMatch(/unsupported media type.*clip\.mp4/i);
   });
 
   test("mass asset route rejects invalid filenames", async () => {
