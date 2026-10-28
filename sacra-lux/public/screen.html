@@ -1923,6 +1923,12 @@
     }
 
     function getVisualSignature(state, visualState) {
+      if (visualState.slide?.type === "movie") {
+        return JSON.stringify({
+          effectiveIndex: visualState.effectiveIndex,
+          slide: visualState.slide
+        });
+      }
       return JSON.stringify({
         effectiveIndex: visualState.effectiveIndex,
         slide: visualState.slide,
@@ -1932,10 +1938,37 @@
       });
     }
 
+    function updateMoviePlaybackState(state, visualState) {
+      const slide = visualState.slide;
+      if (slide?.type !== "movie") return;
+
+      applyScreenSettings(getEffectiveScreenSettings(state.screenSettings || {}, slide), slide);
+      const isBlack = Boolean(state.isBlack);
+      document.querySelectorAll(`.frame[data-slide-id="${CSS.escape(slide.id || "")}"]`).forEach((movieFrame) => {
+        movieFrame.classList.toggle("blackout", isBlack);
+        movieFrame.querySelectorAll("video.video-player").forEach((video) => {
+          if (isBlack) {
+            if (!video.dataset.blackoutPlaybackState) {
+              video.dataset.blackoutPlaybackState = JSON.stringify({ muted: video.muted, volume: video.volume });
+            }
+            video.muted = true;
+          } else if (video.dataset.blackoutPlaybackState) {
+            try {
+              const previous = JSON.parse(video.dataset.blackoutPlaybackState);
+              video.muted = Boolean(previous.muted);
+              video.volume = Number.isFinite(previous.volume) ? previous.volume : video.volume;
+            } catch { }
+            delete video.dataset.blackoutPlaybackState;
+          }
+        });
+      });
+    }
+
     function render(state) {
       window.__latestState = state;
       const transition = (state.screenSettings || {}).transition || "fade";
       const visualState = getVisualState(state);
+      updateMoviePlaybackState(state, visualState);
       const visualSignature = getVisualSignature(state, visualState);
 
       // Timer bookkeeping can emit a second state snapshot without changing
