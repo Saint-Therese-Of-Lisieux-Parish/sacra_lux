@@ -2291,8 +2291,11 @@ describe("server api integration", () => {
 
   test("import-mass-zip keeps the current package when the ZIP is corrupt", async () => {
     const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    fs.rmSync(currentMassDir, { recursive: true, force: true });
     fs.mkdirSync(currentMassDir, { recursive: true });
-    fs.writeFileSync(path.join(currentMassDir, "keep.txt"), "keep", "utf8");
+    const keepPath = path.join(currentMassDir, "keep.txt");
+    fs.writeFileSync(keepPath, "keep", "utf8");
+    expect(fs.readFileSync(keepPath, "utf8")).toBe("keep");
     const before = await request(app).get("/api/state").expect(200);
 
     await request(app)
@@ -2300,7 +2303,7 @@ describe("server api integration", () => {
       .send({ zipData: Buffer.from("not a zip").toString("base64") })
       .expect((response) => expect(response.status).toBeGreaterThanOrEqual(400));
 
-    expect(fs.readFileSync(path.join(currentMassDir, "keep.txt"), "utf8")).toBe("keep");
+    expect(fs.readFileSync(keepPath, "utf8")).toBe("keep");
     const after = await request(app).get("/api/state").expect(200);
     expect(after.body).toEqual(before.body);
   });
