@@ -42,7 +42,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Readings and organizer
 
-- `POST /api/organizer` — replace `organizerSequence` and merge manual slides
+- `POST /api/organizer` — replace `organizerSequence` and merge manual slides. An image URL or a movie URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Image and movie URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.`
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
 - `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing
@@ -50,7 +50,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Screen and app settings
 
-- `POST /api/screen-settings` — validate, persist, and repaginate
+- `POST /api/screen-settings` — validate, persist, and repaginate. A background URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Background URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.`
 - `GET /api/themes` — theme `{ id, label }` list plus the current theme
 - `GET /api/theme-vars` — full CSS variable map per theme
 - `POST /api/app-settings` — set the app UI theme
@@ -81,7 +81,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 ### Import, export, and archive
 
 - `GET /api/export-settings` — download a version 2 settings JSON payload; `lastReadingsFolderPath` is `null` for clients without a control session
-- `POST /api/import-settings` — apply a settings JSON payload
+- `POST /api/import-settings` — apply a settings JSON payload. Background URLs use the screen-settings rule. Image and movie URLs in `manualSlides` use the organizer rule. A bad URL returns HTTP 400.
 - `GET /api/export-mass-zip` — download the current Mass package as a ZIP
 - `GET /api/export-mass-zip-avif?token=` — download a completed AVIF export via its one-time token
 - `POST /api/import-mass-zip` — replace the current Mass from an uploaded ZIP
@@ -133,7 +133,7 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 ### Client to server
 
 - `control:auth` — present a control token to unlock control events
-- `screen:settings` — update screen settings and repaginate readings if needed
+- `screen:settings` — update screen settings and repaginate readings if needed. A background URL with a bad prefix is ignored.
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index
 - `slide:goto:remote` — jump from the remote and allow post-mass loop activation
