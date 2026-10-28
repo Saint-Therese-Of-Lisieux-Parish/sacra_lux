@@ -189,6 +189,11 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("if (els.editorDialog.open) {\n        renderEditor(sequence, data.manualSlides || {}, getDocuments());\n      }");
   });
 
+  test("QR links have accessible names", () => {
+    expect(appHtml).toMatch(/id="urlRemote"[^>]*aria-label="Open the phone remote"/);
+    expect(appHtml).toMatch(/id="urlScreen"[^>]*aria-label="Open the projector screen"/);
+  });
+
   test("resolution is the last settings field and defaults to 1080p", () => {
     const dialog = appHtml.slice(appHtml.indexOf('<dialog id="settingsDialog"'), appHtml.indexOf("</dialog>", appHtml.indexOf('<dialog id="settingsDialog"')));
     const fieldIds = [...dialog.matchAll(/<(?:input|select|textarea)\b[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);
