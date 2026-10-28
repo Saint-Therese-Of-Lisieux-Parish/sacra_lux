@@ -130,6 +130,10 @@ function saveSession(state) {
       organizerRevision: state.organizerRevision,
       lastReadingsFolderPath: state.readingsSource?.folderPath || null,
       presentationTitle: state.presentation?.title || null,
+      ...(state.currentSlideId || state.presentation?.slides?.[state.currentSlideIndex]?.id
+        ? { currentSlideId: state.currentSlideId || state.presentation.slides[state.currentSlideIndex].id }
+        : {}),
+      ...(state.currentSlideChangedAt ? { currentSlideChangedAt: state.currentSlideChangedAt } : {}),
       massStartTime: state.massStartTime || null,
       startPinHash: state.startPinHash || null,
       controlMode: state.controlMode || "unset",
