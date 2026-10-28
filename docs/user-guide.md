@@ -29,7 +29,10 @@ to the console.
 2. Open the operator screen. With no Mass loaded, the app opens the Mass
    Library prompt so you can create or load a Mass.
 3. In Electron, open **Screen Settings** and choose the projector display, then
-   enable **Fullscreen**. The projector opens the `/screen` page.
+   enable **Fullscreen**. The projector opens the `/screen` page. When Pre-Mass,
+   Gathering, or Post-Mass starts, Electron turns fullscreen on if a projector
+   display is not the operator display and fullscreen is still allowed. Turn
+   fullscreen off to stop that. Turn it on to allow it again.
 
 ## Preparing a Mass
 
@@ -40,6 +43,9 @@ Open **New Mass** (➕). Enter a title and, optionally, a start time. If you tic
 fills the First Reading, Psalm, Second Reading, Gospel, and Gospel Acclamation
 from `bible.usccb.org` and uses the feed title when you leave the title blank.
 This needs internet access.
+
+Edit the Mass title in the operator header. If that save fails, the field
+returns to the saved title and the status line shows the error.
 
 Creating a new Mass archives the current one first if it has content, then
 removes the current Mass media files. It then builds a starter organizer
@@ -62,6 +68,11 @@ Use **📥 Import** or **🔄 Reload Mass Folder** to load a folder of reading
 
 The organizer is the ordered list of Mass parts. Each row is one item; the
 projector shows the derived slides.
+
+Each organizer save sends the current `organizerRevision`. If another save
+used that same revision first, the server rejects the new save. The page
+then loads the current Mass again. The rejected change is not kept. After
+that load, the status line shows the slide count.
 
 Add slides with **➕ New Slide** and choose a type:
 
@@ -95,12 +106,26 @@ Select an item and use the Slide Editor dialog. Depending on the type you can:
 
 For a slideshow, set **seconds per image** and **loop count**, and run the
 preflight check to catch duplicates, missing files, and unreadable images
-before the Mass.
+before the Mass. If the check cannot run, the editor shows
+`Preflight could not be completed.`
+
+**Add image folder** keeps files whose names end in `avif`, `gif`, `jpg`,
+`jpeg`, `png`, `svg`, or `webp`. It skips other files and names them in the
+status line. The import stops at 500 images. It also stops when the selected
+images are larger than 120 MB together.
+
+**Add image** and a drop on the slideshow drop zone send the selected images
+in one request. The server keeps each image it can store. When some images
+fail, the status line shows the added count, then `failed:` and the file
+names. When the request fails, the status line shows the selected count,
+then `failed:` and the file names.
 
 ### Editing reading text
 
 Open a reading's slide and edit the text, then **Save**. Sacra Lux writes the
-edit back to the source `.txt` in the Mass package.
+edit back to the source `.txt` in the Mass package. The save keeps the current
+Mass title and the current slide. If the save fails, the status line shows the
+error.
 
 ## Screen Settings
 
@@ -135,11 +160,11 @@ A countdown slide pauses auto-advance until it reaches zero.
 
 ## Blackout and Manual Navigation
 
-The operator page does not show Prev, Next, or Black Screen buttons. Use the keyboard when focus is not in a text field or an open dialog.
+The operator page does not show Prev, Next, or Black Screen buttons. The keys in [Keyboard](#keyboard) do not run while a control has focus.
 
 - Press `Right Arrow` or `Space` to show the next slide.
 - Press `Left Arrow` to show the previous slide.
-- Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change.
+- Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change. A movie keeps playing. Blackout mutes it, and the next press restores the previous volume.
 - **⏭ Go to Mass Start** jumps to the first Mass slide. The button is shown when the Mass has a Mass slide.
 
 ## The Phone Remote
@@ -149,7 +174,7 @@ idle projector. The remote shows a live projector preview at the top.
 
 - Swipe left or right on the preview to move one slide.
 - Use the carousel under the preview. Double-tap a card to show that slide.
-- Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements.
+- Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements. The active row has `aria-current="true"`. A slide change keeps your scroll position, open groups, and keyboard focus. The list scrolls to the active row when the rows change and you have not scrolled the list for 10 seconds.
 
 The remote has no Blackout, Start Mass, or Interstitial button. It does not send `screen:interstitial-hold`.
 
@@ -163,18 +188,27 @@ If a start PIN is set, the remote must unlock before it can control the Mass:
 
 Set, change, or clear the PIN from the **Start PIN** dialog. Clearing the PIN
 removes the unlock requirement. A change or a clear ends the other control
-sessions. Those phones must unlock again.
+sessions. Those phones must unlock again. If the clear fails, the dialog shows
+the error.
 
 ## Mass Library
 
 **📚 Mass Library** lists archived Masses with their title, start time, size,
 and storage type. From here you can **Load**, **Compress** (convert a folder
-package to an AVIF-optimized ZIP), or **Delete** an archive. The active Mass is
+package to an AVIF-optimized ZIP), or **Delete** an archive. A converted
+image is stored only as the AVIF file. The app checks the ZIP before it
+removes the folder. If the check fails, the folder stays. The active Mass is
 listed first.
+
+**Load** asks you to confirm before it replaces the current Mass. **Cancel**
+leaves the current Mass in place. When Pre-Mass, Gathering, or Post-Mass is
+running, the dialog says that the projector will change. It says the same
+thing when the start time is less than two hours away, including a start time
+that has already passed.
 
 ## Export and Import
 
-- **↩︎ Import** loads a Mass or settings ZIP/JSON.
+- **↩︎ Import** loads a Mass or settings ZIP/JSON. A Mass ZIP asks for the same replacement confirmation as **Load**.
 - **↪︎ Export** downloads the current Mass as a ZIP.
 - **Export AVIF** converts eligible images to AVIF and downloads an optimized
   ZIP.
@@ -210,7 +244,7 @@ new slide so psalm refrains get their own page.
 
 ## Keyboard
 
-These keys work when focus is not in a text field, a list, or an open dialog:
+These keys work when focus is not in a text field, a select list, a button, a link, a summary, or an open dialog. They also do not run when the focused control has role `button`, `link`, `checkbox`, `radio`, `switch`, `tab`, or `menuitem`.
 
 | Key | Result |
 | --- | --- |
@@ -225,7 +259,9 @@ These keys work when focus is not in a text field, a list, or an open dialog:
 
 In Electron, **File > Save** writes the session and the current Mass. The
 operator page then shows `Mass saved`, or the error text when the write fails.
-Closing the app writes a save that is still waiting.
+Closing the app writes a save that is still waiting. A scheduled save that
+fails shows the error in the status line instead of the slide count. A later
+successful save clears that error.
 
 Sacra Lux keeps runtime files under `~/.sacra-lux/`:
 

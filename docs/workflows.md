@@ -36,6 +36,11 @@ sequenceDiagram
     Server->>Server: emit state:update
 ```
 
+The body can include `organizerRevision`. When that value is present and it
+is not the current revision, the server returns HTTP 409. It does not change
+the Mass. The operator page then loads the current state. A body with no
+`organizerRevision` still saves. A successful save adds 1 to the revision.
+
 ## 3. Countdown Handling
 
 ```mermaid
@@ -236,11 +241,14 @@ flowchart TD
 ```mermaid
 flowchart TD
     A["POST /api/mass-history/:archiveId/compress"] --> B["load archive package"]
-    B --> C["build AVIF-optimized ZIP"]
-    C --> D["write archive-avif.zip"]
-    D --> E["remove folder package"]
-    E --> F["update metadata to storage=compressed"]
+    B --> C["build AVIF ZIP and omit converted originals"]
+    C --> D["validate the ZIP"]
+    D --> E["write archive-avif.zip"]
+    E --> F["remove folder package"]
+    F --> G["update metadata to storage=compressed"]
 ```
+
+If validation fails, the folder package stays in place. A converted image is stored only as the AVIF file.
 
 ## 14. New Mass from USCCB Readings
 

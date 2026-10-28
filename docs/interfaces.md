@@ -42,15 +42,15 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Readings and organizer
 
-- `POST /api/organizer` — replace `organizerSequence` and merge manual slides
+- `POST /api/organizer` — replace `organizerSequence` and merge manual slides. An image URL or a movie URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Image and movie URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.` The body may include `organizerRevision`. When that field is present and it is not equal to the current revision, the route returns HTTP 409. The error is `Another organizer change was saved first. Reload the current state and try again.` The body also returns the current `organizerRevision`. The route does not change the Mass. A body without `organizerRevision` still saves. A successful save adds 1 to `organizerRevision`.
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
 - `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing
-- `POST /api/save-reading` — write edited reading text back into the source `.txt`
+- `POST /api/save-reading` — write edited reading text into the source `.txt`. The `text` field must be a string. If it is not, the route returns HTTP 400 and `Reading text must be a string.` The route keeps the current presentation title. It clamps `currentSlideIndex`. It then saves the Mass.
 
 ### Screen and app settings
 
-- `POST /api/screen-settings` — validate, persist, and repaginate
+- `POST /api/screen-settings` — validate, persist, and repaginate. A background URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Background URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.`
 - `GET /api/themes` — theme `{ id, label }` list plus the current theme
 - `GET /api/theme-vars` — full CSS variable map per theme
 - `POST /api/app-settings` — set the app UI theme
@@ -69,9 +69,9 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Assets and prayers
 
-- `POST /api/upload-mass-asset` — save one image or video into `current_mass/assets/`
+- `POST /api/upload-mass-asset` — save one image or video into `current_mass/assets/`. Image types are `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, and `avif`. The video type is `mp4`. An unsupported type returns HTTP 400 and `Unsupported media type for "<name>".`
 - `POST /api/upload-image` — backward-compatible alias of the above
-- `POST /api/import-slideshow-images` — save a bounded batch of images for a slideshow
+- `POST /api/import-slideshow-images` — save a bounded batch of images for a slideshow. The body is `{ images: [{ filename, dataUrl }] }`. An empty list returns HTTP 400 and `Choose one or more image files.` More than 500 images returns HTTP 400 and `A slideshow can contain at most 500 images.` Images larger than 120 MB together return HTTP 400 and `The selected images are too large to import together.` When at least one image is valid, the route returns HTTP 200, the saved images, and `failed` for the rest. When every image is invalid, the route returns HTTP 400.
 - `POST /api/image-slideshow/preflight` — report duplicates, missing, unsupported, or unreadable slideshow images
 - `GET /api/mass-assets` — list assets; `?kind=image|video|all`
 - `GET /api/mass-asset/:filename` — serve one Mass asset
@@ -81,7 +81,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 ### Import, export, and archive
 
 - `GET /api/export-settings` — download a version 2 settings JSON payload; `lastReadingsFolderPath` is `null` for clients without a control session
-- `POST /api/import-settings` — apply a settings JSON payload
+- `POST /api/import-settings` — apply a settings JSON payload. Background URLs use the screen-settings rule. Image and movie URLs in `manualSlides` use the organizer rule. A bad URL returns HTTP 400.
 - `GET /api/export-mass-zip` — download the current Mass package as a ZIP
 - `GET /api/export-mass-zip-avif?token=` — download a completed AVIF export via its one-time token
 - `POST /api/import-mass-zip` — replace the current Mass from an uploaded ZIP
@@ -93,13 +93,17 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `DELETE /api/mass-history/:archiveId`
 
 JSON request body limits (`JSON_BODY_LIMITS_BY_PATH` in `src/server.js`).
-A larger body gets HTTP 413 before route logic runs:
+A larger body gets HTTP 413 before route logic runs.
+`POST /api/import-mass-zip` is the exception.
+A body over its limit returns HTTP 400.
+The error starts with `Mass ZIP compressed size exceeds the 209715200 byte limit.`
+The same error then states the encoded request size.
 
 | Route | Limit |
 | --- | --- |
 | `POST /api/upload-mass-asset`, `POST /api/upload-image` | 188 MB (140 MB file as base64, `MAX_SINGLE_UPLOAD_BYTES`) |
 | `POST /api/import-slideshow-images` | 161 MB (120 MB of images as base64) |
-| `POST /api/import-mass-zip` | 68 MB (50 MB ZIP as base64) |
+| `POST /api/import-mass-zip` | `268mb` (200 MiB ZIP as base64) |
 | `POST /api/preview-reading`, `POST /api/preview-manual-slide` | 1 MB |
 | all other routes | 10 MB |
 
@@ -129,7 +133,7 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 ### Client to server
 
 - `control:auth` — present a control token to unlock control events
-- `screen:settings` — update screen settings and repaginate readings if needed
+- `screen:settings` — update screen settings and repaginate readings if needed. A background URL with a bad prefix is ignored.
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index
 - `slide:goto:remote` — jump from the remote and allow post-mass loop activation
@@ -148,7 +152,7 @@ handled in `src/main.js`:
 | `window.api` member | IPC channel | Purpose |
 | --- | --- | --- |
 | `pickFolder()` | `dialog:pickFolder` | native folder picker |
-| `pickImageFile()` | `dialog:pickImageFile` | native image picker returning `{ name, dataUrl }` |
+| `pickImageFile()` | `dialog:pickImageFile` | native image picker. A supported file returns `{ name, dataUrl }`. An unsupported file or a file over 140 MB returns `{ error }`. |
 | `pickVideoFile()` | `dialog:pickVideoFile` | native video picker returning `{ name, dataUrl }` |
 | `getMonitors()` | `screen:getMonitors` | list available displays |
 | `setTargetMonitor(id)` | `screen:setTargetMonitor` | set and persist one target display |

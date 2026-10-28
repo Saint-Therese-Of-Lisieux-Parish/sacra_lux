@@ -102,7 +102,10 @@ Durable session fields:
 ### `src/uploadLimits.js`
 
 `MAX_SINGLE_UPLOAD_BYTES` is 140 MB. The HTTP upload routes and the Electron
-file pickers share this limit.
+file pickers share this limit. The image picker accepts `jpg`, `jpeg`, `png`,
+`gif`, `webp`, `svg`, and `avif`. A larger image returns `Image file exceeds the 140 MB limit. Please use a smaller file.`
+An unsupported upload returns `Unsupported media type for "<name>".`
+An upload over the limit returns `Media file exceeds the 140 MB limit.`
 
 ### `src/hostGuard.js`
 
@@ -128,6 +131,7 @@ Security primitives:
 - one-time remote start tokens bound to IP and user-agent
 - control sessions (`issueControlSession`, `noteControlUnlock`) with a 12-hour TTL
 - escalating PIN lockouts (60 s after 3 failures, 5 min after 6, 15 min after 9)
+- PIN failure counts stay for 24 hours after the lock ends. One warning is logged at 50 failures in 24 hours. The warning does not contain a PIN.
 - HTTP and Socket.IO rate-limit buckets, plus upload/heavy concurrency limits
 - periodic cleanup of expired rate-limit and lockout state
 
@@ -148,7 +152,10 @@ Theme definitions (label, CSS variables, colour scheme) for the app UI.
 ### `src/logger.js`
 
 Small runtime logging wrapper with `info`, `warn`, and `error`. Quiet logs
-skip `info`. `warn` and `error` still print.
+skip `info`. `warn` and `error` still print. In a packaged Electron app,
+`warn` and `error` also append to `sacra-lux.log` in the Electron user data
+folder. The file rotates to `sacra-lux.log.1` at 5 MiB. The log redacts PIN,
+token, hash, salt, and bearer values. Web mode writes only to the console.
 
 ## Electron Modules
 
@@ -171,6 +178,9 @@ Electron entry point. Handles BrowserWindow creation, the application menu,
 monitor targeting and fullscreen actions, native file pickers (folder, image,
 video), opening the current Mass folder, and PDF export through offscreen
 capture. Every window sets `sandbox: true` and `contextIsolation: true`.
+When Pre-Mass, Gathering, or Post-Mass starts, `autoFullscreenScreen()` turns
+fullscreen on only when fullscreen is allowed and a target display is not the
+operator display. Turning fullscreen off blocks the next automatic change.
 Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
@@ -200,6 +210,8 @@ documented in [interfaces.md](./interfaces.md).
 ### `src/web.js`
 
 Headless entry point that starts the shared server without Electron.
+When the port is in use, it writes `Port <port> is already in use. Stop the other process or set PORT to a free port.` and exits.
+Another start error writes `Cannot start the web server: <message>` and exits.
 `SIGINT` and `SIGTERM` call `flushPendingSave()` before the process exits.
 
 ## Browser Surfaces
@@ -215,7 +227,7 @@ Mass dialogs, PIN and Screen dialogs, and import/export actions.
 
 Projector renderer: reading slides, text, prayer, hymn, image,
 image-slideshow, movie, and interstitial slides, countdown visuals, transitions,
-blackout mode, movie end/ready reporting, slideshow preload-error reporting, and
+blackout mode, movie playback that continues while muted during blackout, movie end/ready reporting, slideshow preload-error reporting, and
 an idle QR/start overlay. A page opened with `preview=1` does not open a
 Socket.IO connection. The countdown uses `serverTime` from the snapshot so the
 remaining time follows the server clock.
@@ -223,7 +235,9 @@ remaining time follows the server clock.
 ### `public/remote.html`
 
 Phone remote: a live screen preview, swipe and arrow-key slide changes, a
-slide carousel, and a phase-grouped jump list. It does not send
+slide carousel, and a phase-grouped jump list. The active row sets
+`aria-current="true"`. A slide change keeps the list scroll position for 10
+seconds after a scroll. It does not send
 `screen:interstitial-hold`. PIN entry is the `/start` page.
 
 ### `public/start.html`

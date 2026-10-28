@@ -264,6 +264,7 @@ runtime state with secrets stripped. Client-visible fields:
   readingsSource: object,
   organizerSequence: array,
   manualSlides: object,
+  organizerRevision: number,
   screenSettings: object,
   currentSlideIndex: number,
   isBlack: boolean,
@@ -285,6 +286,7 @@ runtime state with secrets stripped. Client-visible fields:
   imageSlideshowError: string | null,
   activeMassArchiveId: string | null,
   startupPrompt: object | null,
+  saveError: string,
   lastUpdated: string
 }
 ```
@@ -303,6 +305,14 @@ the server clock.
 `startupPrompt` is `{ type: "mass-library", reason: string }` when the server
 starts without a valid `current_mass` package, or `null` otherwise.
 
+`saveError` is empty when the last scheduled save succeeded. A failed Mass
+save sets `Could not save mass.json: <message>`. A failed session save sets
+`Could not save session.json.` or `Could not save session.json: <message>`.
+The session file does not store `saveError`.
+
+`organizerRevision` starts at 0. A successful organizer save adds 1.
+The snapshot includes the current value.
+
 ## Session File
 
 `session.json` under `~/.sacra-lux/` persists session version `2`:
@@ -312,6 +322,7 @@ starts without a valid `current_mass` package, or `null` otherwise.
 - `screenSettings`
 - `organizerSequence`
 - `manualSlides`
+- `organizerRevision` — saved revision. Restore uses it when it is an integer of 0 or greater. Any other saved value leaves the revision at 0.
 - `lastReadingsFolderPath`
 - `presentationTitle`
 - `massStartTime`

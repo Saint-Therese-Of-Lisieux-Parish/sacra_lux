@@ -78,9 +78,11 @@ server holds the only authoritative state, so always inspect server state
 ## Port already in use
 
 Sacra Lux listens on `17841`. If another process holds that port, Electron
-shows "Sacra Lux could not start" and quits. Stop the other process, or set
-`SACRA_LUX_PORT` to a free port, then start the app again. In web mode, set
-`PORT` or stop the process that holds `17841`.
+shows "Sacra Lux could not start" and `Port <port> is already in use.`, then
+quits. Stop the other process, or set `SACRA_LUX_PORT` to a free port, then
+start the app again. In web mode, the process writes
+`Port <port> is already in use. Stop the other process or set PORT to a free port.`
+and exits. Set `PORT` or stop the process that holds `17841`.
 
 A second Electron launch does not start a second server. It focuses the open
 window, and the new process quits.
