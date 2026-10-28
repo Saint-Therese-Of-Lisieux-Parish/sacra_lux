@@ -2328,7 +2328,10 @@ describe("server api integration", () => {
       .expect(400);
 
     const after = await request(app).get("/api/state").expect(200);
-    expect(after.body).toEqual(before.body);
+    const { serverTime: beforeServerTime, ...beforeState } = before.body;
+    const { serverTime: afterServerTime, ...afterState } = after.body;
+    expect(afterState).toEqual(beforeState);
+    expect(afterServerTime).toBeGreaterThanOrEqual(beforeServerTime);
   });
 
   test("import-mass-zip keeps the current package when the ZIP is corrupt", async () => {
@@ -2347,7 +2350,10 @@ describe("server api integration", () => {
 
     expect(fs.readFileSync(keepPath, "utf8")).toBe("keep");
     const after = await request(app).get("/api/state").expect(200);
-    expect(after.body).toEqual(before.body);
+    const { serverTime: beforeServerTime, ...beforeState } = before.body;
+    const { serverTime: afterServerTime, ...afterState } = after.body;
+    expect(afterState).toEqual(beforeState);
+    expect(afterServerTime).toBeGreaterThanOrEqual(beforeServerTime);
   });
 
   test("export-mass-zip writes a v3 mass.json document without PIN data", async () => {
