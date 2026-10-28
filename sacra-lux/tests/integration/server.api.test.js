@@ -1588,6 +1588,21 @@ describe("server api integration", () => {
     expect(res.body.error).toMatch(/unsupported media type.*clip\.mp4/i);
   });
 
+  test("folder slideshow import reports invalid images with valid images", async () => {
+    const res = await request(app)
+      .post("/api/import-slideshow-images")
+      .send({
+        images: [
+          { filename: "Good.png", dataUrl: tinyPngDataUrl },
+          { filename: "Bad.mp4", dataUrl: "data:video/mp4;base64,AAAA" }
+        ]
+      })
+      .expect(200);
+
+    expect(res.body.images).toHaveLength(1);
+    expect(res.body.failed).toEqual([{ name: "Bad.mp4", error: expect.stringMatching(/unsupported media type/i) }]);
+  });
+
   test("mass asset route rejects invalid filenames", async () => {
     const res = await request(app)
       .get("/api/mass-asset/bad:name.png")
