@@ -9,6 +9,7 @@ describe("settings import and export", () => {
   let handle;
   let app;
   let state;
+  let resetSecurityState;
 
   const sequence = [
     { id: "one", type: "text", label: "One", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
@@ -21,9 +22,11 @@ describe("settings import and export", () => {
     handle = await startIsolatedServer({ port: 0, homeDir: createTempHome("sacra-lux-import-") });
     app = handle.app;
     ({ state } = require("../../src/state"));
+    ({ resetSecurityState } = require("../../src/security"));
   });
 
   beforeEach(async () => {
+    resetSecurityState();
     state.startPin = "";
     state.startPinHash = null;
     await request(app).post("/api/new-mass").send({ title: "Import Mass", startTime: "" }).expect(200);
