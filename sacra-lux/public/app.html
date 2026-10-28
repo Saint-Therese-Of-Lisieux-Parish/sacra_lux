@@ -6439,6 +6439,7 @@
     };
 
     function renderEditor(sequence, manualSlides, documents) {
+      if (!els.editorDialog.open) return;
       const item = selectedItem(sequence);
       if (!item) {
         els.editorEmpty.hidden = false;
@@ -6568,6 +6569,9 @@
       els.editorDurationSec.value = String(item.durationSec || 10);
 
       const manual = manualSlides[item.id] || { text: "", notes: "", imageUrl: "", videoUrl: "", styleOverrides: {} };
+      const editorDataKey = JSON.stringify({ item, manual, documents });
+      if (editorDataKey === window.__lastEditorDataKey) return;
+      window.__lastEditorDataKey = editorDataKey;
       if (focused !== els.editorText) els.editorText.value = manual.text || "";
       if (focused !== els.editorNotes) els.editorNotes.value = manual.notes || "";
       if (focused !== els.editorImageUrl) els.editorImageUrl.value = manual.imageUrl || "";
@@ -6873,7 +6877,9 @@
       els.blackBtn.textContent = uiState.black ? "Unblack Screen" : "Black Screen";
 
       renderSequence(sequence, slides);
-      renderEditor(sequence, data.manualSlides || {}, getDocuments());
+      if (els.editorDialog.open) {
+        renderEditor(sequence, data.manualSlides || {}, getDocuments());
+      }
     }
 
     socket.on("state:update", render);
@@ -6957,10 +6963,10 @@
 
     function openSelectedSlideEditor() {
       if (!uiState.selectedOrganizerId) return false;
-      render(uiState.data);
       if (!els.editorDialog.open) {
         els.editorDialog.showModal();
       }
+      render(uiState.data);
       requestAnimationFrame(scalePreviewIframe);
       return true;
     }
