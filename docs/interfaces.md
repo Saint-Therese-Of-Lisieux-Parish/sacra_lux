@@ -46,7 +46,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
 - `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing
-- `POST /api/save-reading` — write edited reading text back into the source `.txt`
+- `POST /api/save-reading` — write edited reading text into the source `.txt`. The `text` field must be a string. If it is not, the route returns HTTP 400 and `Reading text must be a string.` The route keeps the current presentation title. It clamps `currentSlideIndex`. It then saves the Mass.
 
 ### Screen and app settings
 
