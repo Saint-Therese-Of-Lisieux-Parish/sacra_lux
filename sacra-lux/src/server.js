@@ -3946,6 +3946,16 @@ function startServer(port = 17841, options = {}) {
     };
   }
 
+  function withScreenReport(socket, handler) {
+    return (...args) => {
+      if (!socketMayControl(socket) && socket.data.screenRole !== "projector") {
+        socket.emit("control:required", { error: getUnlockMessage() });
+        return undefined;
+      }
+      return handler(...args);
+    };
+  }
+
   io.on("connection", (socket) => {
     socket.data.screenRole = socket.handshake.auth?.screenRole === "projector" ? "projector" : "client";
     socket.emit("state:update", getCachedStateSnapshot(true));
@@ -3976,7 +3986,7 @@ function startServer(port = 17841, options = {}) {
       activateGatheringSequence: true,
       activatePostMassLoop: true
     })));
-    socket.on("slide:video-ended", withControl(socket, (payload) => {
+    socket.on("slide:video-ended", withScreenReport(socket, (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
@@ -3988,7 +3998,7 @@ function startServer(port = 17841, options = {}) {
       stopMovieAutoAdvanceTimer();
       advanceFromCurrentSlide(io);
     }));
-    socket.on("slide:video-ready", withControl(socket, (payload) => {
+    socket.on("slide:video-ready", withScreenReport(socket, (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
@@ -3998,7 +4008,7 @@ function startServer(port = 17841, options = {}) {
       const startedAt = _moviePlaybackSlideId === currentSlide.id ? _moviePlaybackStartedAt : null;
       scheduleMovieAutoAdvance(io, durationMs, { startedAt });
     }));
-    socket.on("image-slideshow:preload-error", withControl(socket, (payload) => {
+    socket.on("image-slideshow:preload-error", withScreenReport(socket, (payload) => {
       if (socket.data.screenRole !== "projector") return;
       const imageUrl = String(payload?.imageUrl || "");
       const slideId = String(payload?.slideId || "");
