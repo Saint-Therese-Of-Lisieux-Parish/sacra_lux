@@ -89,7 +89,7 @@ const {
   verifyPin
 } = require("./security");
 const { ALLOWED_NETWORKS_ENV, createHostGuard } = require("./hostGuard");
-const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
+const { IMAGE_ASSET_EXTENSIONS, MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 const {
   legacyTextBoundsFromSettings,
   normalizeTextBounds,
@@ -123,7 +123,7 @@ const logWarn = logger.warn;
 const logError = logger.error;
 const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
 let activeIo = null;
-const IMAGE_ASSET_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"]);
+const IMAGE_ASSET_EXT = new Set(IMAGE_ASSET_EXTENSIONS.map((extension) => `.${extension}`));
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
 const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
 
