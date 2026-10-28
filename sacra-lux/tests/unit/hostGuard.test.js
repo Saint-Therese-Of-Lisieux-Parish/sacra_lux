@@ -1,4 +1,4 @@
-const { createHostGuard, parseAllowedEntries } = require("../../src/hostGuard");
+const { createHostGuard, createSourceNetworkGuard, parseAllowedEntries } = require("../../src/hostGuard");
 
 const LOCAL = ["192.168.50.7", "fe80::1"];
 
@@ -93,6 +93,31 @@ describe("host guard origins", () => {
     "not a url"
   ])("rejects %s", (origin) => {
     expect(g.isOriginAllowed(origin)).toBe(false);
+  });
+});
+
+describe("source network guard", () => {
+  test.each([
+    ["192.168.1.7", "192.168.1.7"],
+    ["192.168.1.7", "192.168.1.0/24"],
+    ["2001:db8::7", "2001:db8::/64"],
+    ["::ffff:192.168.1.7", "192.168.1.0/24"]
+  ])("allows %s in %s", (address, allowed) => {
+    expect(createSourceNetworkGuard({ allowedEntries: allowed }).isAllowedAddress(address)).toBe(true);
+  });
+
+  test("rejects an address outside the allowlist", () => {
+    const guard = createSourceNetworkGuard({ allowedEntries: "192.168.1.0/24" });
+    expect(guard.isAllowedAddress("192.168.2.1")).toBe(false);
+  });
+
+  test("reports malformed IPv4 and IPv6 entries", () => {
+    expect(createSourceNetworkGuard({ allowedEntries: "192.168.1.0/33,2001:db8::/129" }).entries).toEqual([]);
+    expect(createSourceNetworkGuard({ allowedEntries: "192.168.1.0/33,2001:db8::/129" }).parse("x").invalid).toEqual(["x"]);
+  });
+
+  test("allows all addresses when the allowlist is empty", () => {
+    expect(createSourceNetworkGuard({ allowedEntries: "" }).isAllowedAddress("203.0.113.10")).toBe(true);
   });
 });
 

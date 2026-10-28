@@ -1,6 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const net = require("net");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -88,7 +89,7 @@ const {
   socketMayControl,
   verifyPin
 } = require("./security");
-const { ALLOWED_NETWORKS_ENV, createHostGuard } = require("./hostGuard");
+const { ALLOWED_NETWORKS_ENV, createHostGuard, createSourceNetworkGuard } = require("./hostGuard");
 const { IMAGE_ASSET_EXTENSIONS, MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 const {
   legacyTextBoundsFromSettings,
@@ -2282,6 +2283,9 @@ function restoreSession(ioRef) {
       if (typeof session.appSettings.remoteAddress === "string") {
         state.appSettings.remoteAddress = session.appSettings.remoteAddress;
       }
+      if (typeof session.appSettings.sourceNetworks === "string") {
+        state.appSettings.sourceNetworks = session.appSettings.sourceNetworks;
+      }
     }
   }
 
@@ -2302,16 +2306,25 @@ function startServer(port = 17841, options = {}) {
   const hostGuard = createHostGuard({
     onInvalidEntry: (entry) => logger.warn(`[security] Ignoring invalid ${ALLOWED_NETWORKS_ENV} entry: ${entry}`)
   });
+  const sourceNetworkGuard = createSourceNetworkGuard({
+    onInvalidEntry: (entry) => logger.warn(`[security] Ignoring invalid source network entry: ${entry}`)
+  });
 
   const app = express();
   app.use(hostGuard.middleware);
+  app.use(sourceNetworkGuard.middleware);
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     next();
   });
   const server = http.createServer(app);
   const io = new Server(server, {
-    allowRequest: hostGuard.allowRequest
+    allowRequest: (req, callback) => {
+      hostGuard.allowRequest(req, (error, hostAllowed) => {
+        if (error || !hostAllowed) return callback(error, false);
+        sourceNetworkGuard.allowRequest(req, callback);
+      });
+    }
   });
   activeIo = io;
 
@@ -2732,7 +2745,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/app-settings", (req, res) => {
     try {
-      const { theme, remoteAddress } = req.body || {};
+      const { theme, remoteAddress, sourceNetworks } = req.body || {};
       if (theme) {
         if (!listThemes().some((entry) => entry.id === theme)) {
           return res.status(400).json({ error: "Unknown theme." });
@@ -2747,6 +2760,24 @@ function startServer(port = 17841, options = {}) {
         }
         if (!state.appSettings) state.appSettings = {};
         state.appSettings.remoteAddress = remoteAddress;
+      }
+      if (sourceNetworks !== undefined) {
+        if (typeof sourceNetworks !== "string") {
+          return res.status(400).json({ error: "The source-network allowlist must be text." });
+        }
+        const next = sourceNetworkGuard.parse(sourceNetworks);
+        if (next.invalid.length) {
+          return res.status(400).json({ error: `Invalid source network: ${next.invalid[0]}.` });
+        }
+        const clientAddress = String(req.socket?.remoteAddress || req.connection?.remoteAddress || req.ip || "")
+          .replace(/^::ffff:/i, "");
+        const clientFamily = net.isIP(clientAddress);
+        if (next.entries.length && (!clientFamily || !next.networks.check(clientAddress, clientFamily === 4 ? "ipv4" : "ipv6"))) {
+          return res.status(400).json({ error: "The source-network allowlist must include the local operator address." });
+        }
+        sourceNetworkGuard.setAllowedEntries(sourceNetworks);
+        state.appSettings.sourceNetworks = sourceNetworks;
+        logger.info(`[security] Source-network restriction ${sourceNetworks.trim() ? "enabled" : "disabled"}.`);
       }
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -4202,6 +4233,13 @@ function startServer(port = 17841, options = {}) {
 
     // Restore the session after the server is bound.
     restoreSession(io);
+    const restoredSourceNetworks = state.appSettings?.sourceNetworks || "";
+    const restoredSource = sourceNetworkGuard.setAllowedEntries(restoredSourceNetworks);
+    if (restoredSource.invalid.length) {
+      state.appSettings.sourceNetworks = "";
+      logger.warn("[security] Ignoring invalid saved source-network allowlist.");
+    }
+    logger.info(`[security] Source-network restriction ${sourceNetworkGuard.entries.length ? "active" : "inactive"}.`);
     scheduleStartTimer(io);
 
     const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];

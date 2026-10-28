@@ -205,6 +205,21 @@ describe("server api integration", () => {
     expect((await request(app).get("/api/state").expect(200)).body.appSettings.theme).toBe(before);
   });
 
+  test("app settings validate and apply the source-network allowlist", async () => {
+    await request(app).post("/api/app-settings").send({ sourceNetworks: "127.0.0.1/32" }).expect(200);
+    expect(state.appSettings.sourceNetworks).toBe("127.0.0.1/32");
+    await request(app).get("/api/state").expect(200);
+
+    await request(app).post("/api/app-settings").send({ sourceNetworks: "not-an-ip" }).expect(400);
+    expect(state.appSettings.sourceNetworks).toBe("127.0.0.1/32");
+
+    await request(app).post("/api/app-settings").send({ sourceNetworks: "192.0.2.0/24" }).expect(400);
+    expect(state.appSettings.sourceNetworks).toBe("127.0.0.1/32");
+
+    await request(app).post("/api/app-settings").send({ sourceNetworks: "" }).expect(200);
+    expect(state.appSettings.sourceNetworks).toBe("");
+  });
+
   test("built-in backgrounds are listed with image dimensions and served", async () => {
     const response = await request(app).get("/api/builtin-backgrounds").expect(200);
 

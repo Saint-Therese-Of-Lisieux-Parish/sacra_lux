@@ -127,4 +127,74 @@ function createHostGuard({ allowedEntries = process.env[ALLOWED_NETWORKS_ENV], g
   return { isCrossSite, isHostAllowed, isOriginAllowed, middleware, allowRequest };
 }
 
-module.exports = { ALLOWED_NETWORKS_ENV, createHostGuard, parseAllowedEntries };
+function normalizeClientAddress(value) {
+  const address = String(value || "").replace(/^::ffff:/i, "");
+  return address;
+}
+
+function parseSourceNetworkEntries(rawValue) {
+  const networks = new net.BlockList();
+  const entries = [];
+  const invalid = [];
+  for (const entry of String(rawValue || "").split(",").map((part) => part.trim()).filter(Boolean)) {
+    const [address, prefixText, extra] = entry.split("/");
+    const family = net.isIP(address);
+    const prefix = prefixText === undefined ? (family === 4 ? 32 : family === 6 ? 128 : NaN) : Number(prefixText);
+    const maxPrefix = family === 4 ? 32 : family === 6 ? 128 : -1;
+    if (!family || extra !== undefined || !Number.isInteger(prefix) || prefix < 0 || prefix > maxPrefix) {
+      invalid.push(entry);
+      continue;
+    }
+    networks.addSubnet(address, prefix, family === 4 ? "ipv4" : "ipv6");
+    entries.push(entry);
+  }
+  return { networks, entries, invalid };
+}
+
+function createSourceNetworkGuard({ allowedEntries = process.env.SACRA_LUX_SOURCE_NETWORKS, onInvalidEntry = () => {} } = {}) {
+  let parsed = parseSourceNetworkEntries(allowedEntries);
+  for (const entry of parsed.invalid) onInvalidEntry(entry);
+
+  function setAllowedEntries(value) {
+    const next = parseSourceNetworkEntries(value);
+    if (next.invalid.length) return next;
+    parsed = next;
+    return next;
+  }
+
+  function isAllowedAddress(value) {
+    if (!parsed.entries.length) return true;
+    const address = normalizeClientAddress(value);
+    const family = net.isIP(address);
+    return family > 0 && parsed.networks.check(address, family === 4 ? "ipv4" : "ipv6");
+  }
+
+  function middleware(req, res, next) {
+    if (!isAllowedAddress(req.socket?.remoteAddress || req.connection?.remoteAddress || req.ip)) {
+      return res.status(403).json({ error: "Source network not allowed." });
+    }
+    return next();
+  }
+
+  function allowRequest(req, callback) {
+    callback(null, isAllowedAddress(req.socket?.remoteAddress || req.connection?.remoteAddress || req.ip));
+  }
+
+  return {
+    allowRequest,
+    get entries() { return [...parsed.entries]; },
+    isAllowedAddress,
+    middleware,
+    parse: parseSourceNetworkEntries,
+    setAllowedEntries
+  };
+}
+
+module.exports = {
+  ALLOWED_NETWORKS_ENV,
+  createHostGuard,
+  createSourceNetworkGuard,
+  normalizeClientAddress,
+  parseAllowedEntries,
+  parseSourceNetworkEntries
+};
