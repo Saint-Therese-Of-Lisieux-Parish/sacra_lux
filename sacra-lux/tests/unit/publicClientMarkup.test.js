@@ -182,6 +182,13 @@ describe("public client markup guards", () => {
     expect(appHtml.match(/signal: editorPreviewSignal/g)).toHaveLength(2);
   });
 
+  test("editor data requests run only while the editor is open and its data changes", () => {
+    expect(appHtml).toContain("if (!els.editorDialog.open) return;");
+    expect(appHtml).toContain("const editorDataKey = JSON.stringify({ item, manual, documents });");
+    expect(appHtml).toContain("if (editorDataKey === window.__lastEditorDataKey) return;");
+    expect(appHtml).toContain("if (els.editorDialog.open) {\n        renderEditor(sequence, data.manualSlides || {}, getDocuments());\n      }");
+  });
+
   test("resolution is the last settings field and defaults to 1080p", () => {
     const dialog = appHtml.slice(appHtml.indexOf('<dialog id="settingsDialog"'), appHtml.indexOf("</dialog>", appHtml.indexOf('<dialog id="settingsDialog"')));
     const fieldIds = [...dialog.matchAll(/<(?:input|select|textarea)\b[^>]*\bid="([^"]+)"/g)].map((match) => match[1]);
