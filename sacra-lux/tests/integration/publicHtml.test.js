@@ -33,6 +33,17 @@ describe("public html integration", () => {
     expect(res.text).toContain('target="_blank" rel="noopener noreferrer"');
   });
 
+  test("operator app exposes the locked control message and unlock action", async () => {
+    const res = await request(app).get("/").expect(200);
+
+    expect(res.text).toContain('id="controlLockBanner"');
+    expect(res.text).toContain("Locked: enter the PIN to control.");
+    expect(res.text).toContain('id="unlockControlBtn"');
+    expect(res.text).toContain('socket.on("control:required"');
+    expect(res.text).toContain("openPinDialogForUnlock");
+    expect(res.text).toContain("if (response.status === 401) showControlLocked()");
+  });
+
   test("operator app supports drag-and-drop media imports into announcement sections", async () => {
     const res = await request(app).get("/").expect(200);
 
