@@ -5933,17 +5933,32 @@
       const response = await fetch("/api/organizer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sequence, manualSlides })
+        body: JSON.stringify({
+          sequence,
+          manualSlides,
+          organizerRevision: uiState.data?.organizerRevision ?? 0
+        })
       });
       const data = await response.json();
       if (!response.ok) {
         els.status.textContent = data.error || "Failed to save Mass changes.";
+        if (response.status === 409) {
+          await refreshState();
+        }
         return false;
       }
       const totalSlides = Number(data.slideCount ?? 0);
       els.status.textContent = `${message}. ${formatProjectedSlideCount(totalSlides)} in this Mass.`;
       els.massTitleInput.value = uiState.data?.presentation?.title || "No presentation";
       return true;
+    }
+
+    async function refreshState() {
+      const response = await fetch("/api/state");
+      if (!response.ok) throw new Error("Failed to reload state.");
+      const data = await response.json();
+      render(data);
+      return data;
     }
 
     const PHASE_LABELS = {

@@ -16,6 +16,7 @@ const state = {
   },
   organizerSequence: [],
   manualSlides: {},
+  organizerRevision: 0,
   screenSettings: {
     fontFamily: "Merriweather",
     fontSizePx: 60,
