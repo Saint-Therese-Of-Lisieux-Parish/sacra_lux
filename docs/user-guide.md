@@ -184,7 +184,9 @@ the error.
 
 **📚 Mass Library** lists archived Masses with their title, start time, size,
 and storage type. From here you can **Load**, **Compress** (convert a folder
-package to an AVIF-optimized ZIP), or **Delete** an archive. The active Mass is
+package to an AVIF-optimized ZIP), or **Delete** an archive. A converted
+image is stored only as the AVIF file. The app checks the ZIP before it
+removes the folder. If the check fails, the folder stays. The active Mass is
 listed first.
 
 **Load** asks you to confirm before it replaces the current Mass. **Cancel**
