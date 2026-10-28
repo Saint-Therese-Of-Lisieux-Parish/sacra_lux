@@ -97,6 +97,11 @@ For a slideshow, set **seconds per image** and **loop count**, and run the
 preflight check to catch duplicates, missing files, and unreadable images
 before the Mass.
 
+**Add image folder** keeps files whose names end in `avif`, `gif`, `jpg`,
+`jpeg`, `png`, `svg`, or `webp`. It skips other files and names them in the
+status line. The import stops at 500 images. It also stops when the selected
+images are larger than 120 MB together.
+
 ### Editing reading text
 
 Open a reading's slide and edit the text, then **Save**. Sacra Lux writes the
