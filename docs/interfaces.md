@@ -71,7 +71,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 - `POST /api/upload-mass-asset` — save one image or video into `current_mass/assets/`. Image types are `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, and `avif`. The video type is `mp4`. An unsupported type returns HTTP 400 and `Unsupported media type for "<name>".`
 - `POST /api/upload-image` — backward-compatible alias of the above
-- `POST /api/import-slideshow-images` — save a bounded batch of images for a slideshow
+- `POST /api/import-slideshow-images` — save a bounded batch of images for a slideshow. The body is `{ images: [{ filename, dataUrl }] }`. An empty list returns HTTP 400 and `Choose one or more image files.` More than 500 images returns HTTP 400 and `A slideshow can contain at most 500 images.` Images larger than 120 MB together return HTTP 400 and `The selected images are too large to import together.` When at least one image is valid, the route returns HTTP 200, the saved images, and `failed` for the rest. When every image is invalid, the route returns HTTP 400.
 - `POST /api/image-slideshow/preflight` — report duplicates, missing, unsupported, or unreadable slideshow images
 - `GET /api/mass-assets` — list assets; `?kind=image|video|all`
 - `GET /api/mass-asset/:filename` — serve one Mass asset

@@ -114,6 +114,12 @@ before the Mass. If the check cannot run, the editor shows
 status line. The import stops at 500 images. It also stops when the selected
 images are larger than 120 MB together.
 
+**Add image** and a drop on the slideshow drop zone send the selected images
+in one request. The server keeps each image it can store. When some images
+fail, the status line shows the added count, then `failed:` and the file
+names. When the request fails, the status line shows the selected count,
+then `failed:` and the file names.
+
 ### Editing reading text
 
 Open a reading's slide and edit the text, then **Save**. Sacra Lux writes the
