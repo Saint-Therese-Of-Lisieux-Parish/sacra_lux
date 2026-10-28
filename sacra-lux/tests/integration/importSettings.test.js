@@ -85,6 +85,18 @@ describe("settings import and export", () => {
     }).expect(400);
   });
 
+  test("rejects an encoded path separator in an asset URL", async () => {
+    const before = JSON.stringify(state.manualSlides);
+    await request(app).post("/api/organizer").send({
+      sequence,
+      manualSlides: { one: { imageUrl: "/api/mass-asset/..%2Fx.png" } }
+    }).expect(400);
+    await request(app).post("/api/import-settings").send({
+      manualSlides: { one: { imageUrl: "/api/mass-asset/..%2Fx.png" } }
+    }).expect(400);
+    expect(JSON.stringify(state.manualSlides)).toBe(before);
+  });
+
   test("accepts built-in background URLs", async () => {
     await request(app).post("/api/import-settings").send({
       screenSettings: { darkBackgroundUrl: "/static/assets/default-text-background.avif" }

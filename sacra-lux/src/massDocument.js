@@ -124,9 +124,17 @@ function decodeAssetName(segment) {
   }
 }
 
+function isSafeAssetName(name) {
+  return typeof name === "string" && name.length > 0 && name !== "." && name !== ".." &&
+    !/[\\/\u0000-\u001f\u007f"<>`]/.test(name);
+}
+
 function assetRefFromUrl(url) {
   const apiMatch = String(url || "").match(/\/api\/mass-asset\/([^/]+)$/);
-  if (apiMatch) return buildAssetRef(decodeAssetName(apiMatch[1]));
+  if (apiMatch) {
+    const name = decodeAssetName(apiMatch[1]);
+    return isSafeAssetName(name) ? buildAssetRef(name) : null;
+  }
 
   const legacyUploadMatch = String(url || "").match(/\/static\/uploads\/([^/]+)$/);
   if (legacyUploadMatch) return buildAssetRef(legacyUploadMatch[1]);
@@ -793,6 +801,7 @@ module.exports = {
   decodeAssetName,
   assetUrlFromName,
   assetUrlFromRef,
+  isSafeAssetName,
   buildMassDocumentFromLegacyPackage,
   buildMassDocumentFromState,
   buildRuntimeStateFromMassDocument,
