@@ -127,6 +127,7 @@ function saveSession(state) {
       screenSettings: state.screenSettings,
       organizerSequence: state.organizerSequence,
       manualSlides: state.manualSlides,
+      organizerRevision: state.organizerRevision,
       lastReadingsFolderPath: state.readingsSource?.folderPath || null,
       presentationTitle: state.presentation?.title || null,
       massStartTime: state.massStartTime || null,
