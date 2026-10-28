@@ -151,7 +151,10 @@ Theme definitions (label, CSS variables, colour scheme) for the app UI.
 ### `src/logger.js`
 
 Small runtime logging wrapper with `info`, `warn`, and `error`. Quiet logs
-skip `info`. `warn` and `error` still print.
+skip `info`. `warn` and `error` still print. In a packaged Electron app,
+`warn` and `error` also append to `sacra-lux.log` in the Electron user data
+folder. The file rotates to `sacra-lux.log.1` at 5 MiB. The log redacts PIN,
+token, hash, salt, and bearer values. Web mode writes only to the console.
 
 ## Electron Modules
 
