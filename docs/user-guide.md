@@ -147,7 +147,7 @@ The operator page does not show Prev, Next, or Black Screen buttons. Use the key
 
 - Press `Right Arrow` or `Space` to show the next slide.
 - Press `Left Arrow` to show the previous slide.
-- Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change.
+- Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change. A movie keeps playing. Blackout mutes it, and the next press restores the previous volume.
 - **⏭ Go to Mass Start** jumps to the first Mass slide. The button is shown when the Mass has a Mass slide.
 
 ## The Phone Remote
