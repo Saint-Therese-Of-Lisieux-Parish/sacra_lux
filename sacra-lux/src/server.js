@@ -818,6 +818,7 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
   state.screenSettings = normalizeScreenSettings(runtime.screenSettings || DEFAULT_SCREEN_SETTINGS);
   state.organizerSequence = sortOrganizerSequenceByPhase(normalizeOrganizerSequence(runtime.organizerSequence || []));
   state.manualSlides = mergeManualSlideState(state.organizerSequence, runtime.manualSlides || {});
+  state.organizerRevision += 1;
   propagateInterstitialImage(state.organizerSequence, state.manualSlides);
 
   const documents = Array.isArray(runtime.documents) && runtime.documents.length > 0
@@ -3105,6 +3106,9 @@ function startServer(port = 17841, options = {}) {
         state.manualSlides = nextManualSlides;
         propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       }
+      if (Array.isArray(payload.organizerSequence) || (payload.manualSlides && typeof payload.manualSlides === "object")) {
+        state.organizerRevision += 1;
+      }
       repaginateReadingSlidesIfNeeded();
       // Readings rebuild the slides above. A sequence with no readings still
       // has to be built before the wall clock measures gathering.
@@ -3216,6 +3220,7 @@ function startServer(port = 17841, options = {}) {
       state.activeMassArchiveId = null;
       state.startupPrompt = null;
       state.presentation.title = String(title).trim();
+      state.organizerRevision += 1;
 
       // 3. Reset playback, then arm the clock from the slides this Mass already has.
       state.currentSlideIndex = 0;
@@ -3355,6 +3360,7 @@ function startServer(port = 17841, options = {}) {
         }
       }
       state.manualSlides = newManualSlides;
+      state.organizerRevision += 1;
 
       // 4. Set title, clear readings, and reset playback
       state.presentation.title = massTitle;

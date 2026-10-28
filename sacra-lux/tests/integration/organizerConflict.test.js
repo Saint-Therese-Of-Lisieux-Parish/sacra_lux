@@ -65,4 +65,25 @@ describe("organizer save conflicts", () => {
       .send({ sequence: [], manualSlides: {} })
       .expect(200);
   });
+
+  test("rejects an organizer save after settings import changes the revision", async () => {
+    const initial = await request(handle.app).get("/api/state").expect(200);
+    const staleRevision = initial.body.organizerRevision;
+
+    await request(handle.app)
+      .post("/api/import-settings")
+      .send({
+        organizerSequence: [{ id: "imported", type: "text", label: "Imported", phase: "mass" }],
+        manualSlides: { imported: { text: "Imported" } }
+      })
+      .expect(200);
+
+    const current = await request(handle.app).get("/api/state").expect(200);
+    expect(current.body.organizerRevision).toBe(staleRevision + 1);
+
+    await request(handle.app)
+      .post("/api/organizer")
+      .send({ sequence: [], manualSlides: {}, organizerRevision: staleRevision })
+      .expect(409);
+  });
 });
