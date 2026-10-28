@@ -29,7 +29,10 @@ to the console.
 2. Open the operator screen. With no Mass loaded, the app opens the Mass
    Library prompt so you can create or load a Mass.
 3. In Electron, open **Screen Settings** and choose the projector display, then
-   enable **Fullscreen**. The projector opens the `/screen` page.
+   enable **Fullscreen**. The projector opens the `/screen` page. When Pre-Mass,
+   Gathering, or Post-Mass starts, Electron turns fullscreen on if a projector
+   display is not the operator display and fullscreen is still allowed. Turn
+   fullscreen off to stop that. Turn it on to allow it again.
 
 ## Preparing a Mass
 
