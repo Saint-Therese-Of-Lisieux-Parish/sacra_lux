@@ -41,6 +41,9 @@ fills the First Reading, Psalm, Second Reading, Gospel, and Gospel Acclamation
 from `bible.usccb.org` and uses the feed title when you leave the title blank.
 This needs internet access.
 
+Edit the Mass title in the operator header. If that save fails, the field
+returns to the saved title and the status line shows the error.
+
 Creating a new Mass archives the current one first if it has content, then
 removes the current Mass media files. It then builds a starter organizer
 (announcements, gathering timer, Mass title, hymns, interstitials, readings,
@@ -171,7 +174,8 @@ If a start PIN is set, the remote must unlock before it can control the Mass:
 
 Set, change, or clear the PIN from the **Start PIN** dialog. Clearing the PIN
 removes the unlock requirement. A change or a clear ends the other control
-sessions. Those phones must unlock again.
+sessions. Those phones must unlock again. If the clear fails, the dialog shows
+the error.
 
 ## Mass Library
 
