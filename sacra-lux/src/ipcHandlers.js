@@ -1,5 +1,5 @@
 const path = require("path");
-const { MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
+const { IMAGE_ASSET_EXTENSIONS, MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
 
 const IPC_CHANNELS = Object.freeze([
   "dialog:pickFolder",
@@ -20,8 +20,8 @@ const IMAGE_MIME_BY_EXTENSION = Object.freeze({
   png: "image/png",
   gif: "image/gif",
   webp: "image/webp",
-  bmp: "image/bmp",
-  svg: "image/svg+xml"
+  svg: "image/svg+xml",
+  avif: "image/avif"
 });
 
 const VIDEO_MAX_BYTES = MAX_SINGLE_UPLOAD_BYTES;
@@ -93,7 +93,7 @@ function createIpcHandlers(dependencies = {}) {
       title: "Select Image",
       properties: ["openFile"],
       filters: [
-        { name: "Images", extensions: Object.keys(IMAGE_MIME_BY_EXTENSION) }
+        { name: "Images", extensions: IMAGE_ASSET_EXTENSIONS }
       ]
     });
     if (result.canceled || result.filePaths.length === 0) return null;
@@ -103,6 +103,16 @@ function createIpcHandlers(dependencies = {}) {
     const extension = path.extname(filePath).slice(1).toLowerCase();
     const mime = IMAGE_MIME_BY_EXTENSION[extension];
     if (!mime) return inputError("The selected file is not a supported image.");
+
+    const stats = fs.statSync(filePath);
+    if (!stats || typeof stats.size !== "number") {
+      return inputError("The selected image could not be read.");
+    }
+    if (stats.size > MAX_SINGLE_UPLOAD_BYTES) {
+      return inputError(
+        `Image file exceeds the ${Math.floor(MAX_SINGLE_UPLOAD_BYTES / (1024 * 1024))} MB limit. Please use a smaller file.`
+      );
+    }
 
     const buffer = fs.readFileSync(filePath);
     if (!Buffer.isBuffer(buffer)) return inputError("The selected image could not be read.");

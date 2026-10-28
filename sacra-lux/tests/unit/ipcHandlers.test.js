@@ -3,7 +3,7 @@ const {
   createIpcHandlers,
   registerIpcHandlers
 } = require("../../src/ipcHandlers");
-const { MAX_SINGLE_UPLOAD_BYTES } = require("../../src/uploadLimits");
+const { IMAGE_ASSET_EXTENSIONS, MAX_SINGLE_UPLOAD_BYTES } = require("../../src/uploadLimits");
 
 function createTestHandlers(overrides = {}) {
   const state = {
@@ -100,6 +100,29 @@ describe("ipcHandlers", () => {
     expect(result.name).toBe("sunday.PNG");
     expect(result.dataUrl).toMatch(/^data:image\/png;base64,/);
     expect(dependencies.fs.readFileSync).toHaveBeenCalledWith("/tmp/pictures/sunday.PNG");
+  });
+
+  test("uses the server image extensions and rejects an oversized image before reading", async () => {
+    const { dependencies, handlers } = createTestHandlers({
+      dialog: {
+        showOpenDialog: jest.fn(async () => ({
+          canceled: false,
+          filePaths: ["/tmp/pictures/large.avif"]
+        }))
+      },
+      fs: {
+        readFileSync: jest.fn(),
+        statSync: jest.fn(() => ({ size: MAX_SINGLE_UPLOAD_BYTES + 1 })),
+        promises: { mkdir: jest.fn() }
+      }
+    });
+
+    const result = await handlers["dialog:pickImageFile"]();
+
+    expect(result.error).toContain("140 MB limit");
+    expect(dependencies.fs.statSync).toHaveBeenCalledWith("/tmp/pictures/large.avif");
+    expect(dependencies.fs.readFileSync).not.toHaveBeenCalled();
+    expect(IMAGE_ASSET_EXTENSIONS).toEqual(["jpg", "jpeg", "png", "gif", "webp", "svg", "avif"]);
   });
 
   test("returns the selected video as an upload payload", async () => {
