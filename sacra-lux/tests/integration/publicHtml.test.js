@@ -84,6 +84,18 @@ describe("public html integration", () => {
     expect(res.text).toContain("Tap anywhere to open the remote.");
   });
 
+  test("remote markup shows unlock and connection status controls", async () => {
+    const res = await request(app).get("/remote").expect(200);
+
+    expect(res.text).toContain('id="remoteStatus" class="remote-status" role="status" aria-live="polite"');
+    expect(res.text).toContain('id="remoteUnlockLink" href="/start" hidden');
+    expect(res.text).toContain('socket.on("control:required"');
+    expect(res.text).toContain('showRemoteStatus(error || "Unlock the remote to control slides.", { showUnlock: true })');
+    expect(res.text).toContain('socket.on("disconnect"');
+    expect(res.text).toContain('showRemoteStatus("Disconnected. Waiting for the server to reconnect.")');
+    expect(res.text).toContain('socket.on("connect"');
+  });
+
   test("remote markup has no Blackout, Start Mass, or Interstitial Slide quick actions", async () => {
     const res = await request(app).get("/remote").expect(200);
 

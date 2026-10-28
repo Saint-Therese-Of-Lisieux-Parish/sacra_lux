@@ -504,7 +504,10 @@
 
     </section>
 
-    <p id="remoteStatus" class="remote-status" role="status" aria-live="polite"></p>
+    <div id="remoteStatus" class="remote-status" role="status" aria-live="polite">
+      <span id="remoteStatusMessage"></span>
+      <a id="remoteUnlockLink" href="/start" hidden>Unlock the remote</a>
+    </div>
 
     <section class="card" style="padding: 0.35rem 0.35rem 0.12rem">
       <div id="cueList" class="cue-list"></div>
@@ -523,6 +526,8 @@
       splashSlideCount: document.getElementById("splashSlideCount"),
       cueList: document.getElementById("cueList"),
       remoteStatus: document.getElementById("remoteStatus"),
+      remoteStatusMessage: document.getElementById("remoteStatusMessage"),
+      remoteUnlockLink: document.getElementById("remoteUnlockLink"),
       previewDock: document.getElementById("previewDock"),
       previewCarousel: document.getElementById("previewCarousel"),
       carouselTrack: document.getElementById("carouselTrack"),
@@ -671,6 +676,11 @@
       els.splashTitle.textContent = state.presentation?.title || "No presentation loaded";
       els.splashMassStart.textContent = formatStartTime(state.massStartTime);
       els.splashSlideCount.textContent = String(state.presentation?.slides?.length || 0);
+    }
+
+    function showRemoteStatus(message, { showUnlock = false } = {}) {
+      els.remoteStatusMessage.textContent = message || "";
+      els.remoteUnlockLink.hidden = !showUnlock;
     }
 
     function dismissSplash() {
@@ -934,7 +944,7 @@
       const active = currentActive;
 
       updateSplash(state);
-      els.remoteStatus.textContent = "";
+      showRemoteStatus("");
 
       const shouldAnimateCarousel =
         hadSlides &&
@@ -1071,9 +1081,18 @@
       hasRenderedSocketState = true;
       render(state);
     });
-    socket.on("interstitial:hold:error", ({ error }) => {
+    socket.on("control:required", ({ error } = {}) => {
+      showRemoteStatus(error || "Unlock the remote to control slides.", { showUnlock: true });
+    });
+    socket.on("disconnect", () => {
+      showRemoteStatus("Disconnected. Waiting for the server to reconnect.");
+    });
+    socket.on("connect", () => {
+      showRemoteStatus("");
+    });
+    socket.on("interstitial:hold:error", ({ error } = {}) => {
       if (error) {
-        els.remoteStatus.textContent = error;
+        showRemoteStatus(error);
       }
     });
 
