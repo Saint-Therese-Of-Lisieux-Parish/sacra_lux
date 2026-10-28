@@ -3,7 +3,8 @@ const { DEFAULT_TEXT_BOUNDS } = require("./textBounds");
 
 const state = {
   appSettings: {
-    theme: DEFAULT_THEME
+    theme: DEFAULT_THEME,
+    remoteAddress: ""
   },
   presentation: {
     title: "No presentation loaded",

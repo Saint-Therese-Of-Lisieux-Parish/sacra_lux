@@ -3453,6 +3453,15 @@
             <div class="settings-section-label">Theme</div>
             <div class="theme-picker" id="themePicker"></div>
           </div>
+          <div class="settings-section">
+            <div class="settings-section-label">Network address</div>
+            <label for="remoteAddress">Use this address for remote and screen links</label>
+            <select id="remoteAddress">
+              <option value="">Default route</option>
+            </select>
+            <div class="settings-field-help">The default route is selected when available.</div>
+            <div class="form-error" id="remoteAddressError" role="alert" hidden></div>
+          </div>
         </div>
       </dialog>
 
@@ -8157,11 +8166,39 @@
 
     // ── App Settings dialog (themes) ──────────────────────────────────────
     const appSettingsDialog = document.getElementById("appSettingsDialog");
+    const remoteAddressSelect = document.getElementById("remoteAddress");
+    const remoteAddressError = document.getElementById("remoteAddressError");
+    function loadNetworkAddresses() {
+      fetch("/api/network-addresses").then((r) => r.json()).then((data) => {
+        remoteAddressSelect.innerHTML = "<option value=\"\">Default route</option>";
+        for (const entry of data.addresses || []) {
+          const option = document.createElement("option");
+          option.value = entry.address;
+          option.textContent = `${entry.address} (${entry.interfaceName})`;
+          remoteAddressSelect.appendChild(option);
+        }
+        remoteAddressSelect.value = data.selectedAddress || "";
+      }).catch(() => { });
+    }
     document.getElementById("openAppSettingsBtn").addEventListener("click", () => {
       appSettingsDialog.showModal();
+      loadNetworkAddresses();
     });
     document.getElementById("closeAppSettingsBtn").addEventListener("click", () => {
       appSettingsDialog.close();
+    });
+    remoteAddressSelect.addEventListener("change", () => {
+      remoteAddressError.hidden = true;
+      fetch("/api/app-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remoteAddress: remoteAddressSelect.value })
+      }).then(async (response) => {
+        if (!response.ok) throw new Error((await response.json()).error || "Could not save the network address.");
+      }).catch((error) => {
+        remoteAddressError.textContent = error.message;
+        remoteAddressError.hidden = false;
+      });
     });
 
     // Theme definitions loaded from server

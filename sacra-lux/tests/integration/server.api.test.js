@@ -64,6 +64,7 @@ describe("server api integration", () => {
     state.startPin = "";
     state.startPinHash = null;
     state.controlMode = "unset";
+    state.appSettings.remoteAddress = "";
     warnSpy = jest.spyOn(console, "warn").mockImplementation(() => { });
   });
 
@@ -83,6 +84,17 @@ describe("server api integration", () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.hasStartPin).toBe(true);
     expect(stateRes.body.startPin).toBeUndefined();
+  });
+
+  test("lists network addresses and saves a valid selected address", async () => {
+    const addresses = await request(app).get("/api/network-addresses").expect(200);
+    expect(addresses.body.addresses.length).toBeGreaterThan(0);
+    const selected = addresses.body.addresses[0].address;
+
+    await request(app).post("/api/app-settings").send({ remoteAddress: selected }).expect(200);
+    expect(state.appSettings.remoteAddress).toBe(selected);
+    await request(app).post("/api/app-settings").send({ remoteAddress: "192.0.2.1" }).expect(400);
+    expect(state.appSettings.remoteAddress).toBe(selected);
   });
 
   describe("first PIN setup from a non-loopback client", () => {

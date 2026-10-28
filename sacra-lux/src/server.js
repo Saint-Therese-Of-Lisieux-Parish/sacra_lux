@@ -1,7 +1,6 @@
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const os = require("os");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -47,6 +46,7 @@ const {
 } = require("./organizer");
 const { saveSession, loadSession, getSessionFilePath } = require("./persistence");
 const { getTheme, listThemeEntries, listThemes, DEFAULT_THEME } = require("./themes");
+const { getPreferredIpv4Address, listIpv4Addresses } = require("./networkAddress");
 const logger = require("./logger");
 const { writeFileAtomic } = require("./atomicWrite");
 const { createMovieEndGuard } = require("./movieAdvance");
@@ -2279,6 +2279,9 @@ function restoreSession(ioRef) {
       if (session.appSettings.theme && getTheme(session.appSettings.theme)) {
         state.appSettings.theme = session.appSettings.theme;
       }
+      if (typeof session.appSettings.remoteAddress === "string") {
+        state.appSettings.remoteAddress = session.appSettings.remoteAddress;
+      }
     }
   }
 
@@ -2293,16 +2296,7 @@ function startServer(port = 17841, options = {}) {
   logger.setQuietLogs(options.quietLogs);
 
   function getLocalIpv4Address() {
-    const interfaces = os.networkInterfaces();
-    for (const addresses of Object.values(interfaces)) {
-      if (!addresses) continue;
-      for (const info of addresses) {
-        if (info.family === "IPv4" && !info.internal) {
-          return info.address;
-        }
-      }
-    }
-    return "localhost";
+    return getPreferredIpv4Address({ selectedAddress: state.appSettings?.remoteAddress });
   }
 
   const hostGuard = createHostGuard({
@@ -2738,13 +2732,21 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/app-settings", (req, res) => {
     try {
-      const { theme } = req.body || {};
+      const { theme, remoteAddress } = req.body || {};
       if (theme) {
         if (!listThemes().some((entry) => entry.id === theme)) {
           return res.status(400).json({ error: "Unknown theme." });
         }
         if (!state.appSettings) state.appSettings = {};
         state.appSettings.theme = theme;
+      }
+      if (remoteAddress !== undefined) {
+        const validAddress = listIpv4Addresses().some((entry) => entry.address === remoteAddress);
+        if (remoteAddress !== "" && !validAddress) {
+          return res.status(400).json({ error: "The selected network address is not available." });
+        }
+        if (!state.appSettings) state.appSettings = {};
+        state.appSettings.remoteAddress = remoteAddress;
       }
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -3837,6 +3839,11 @@ function startServer(port = 17841, options = {}) {
       screenUrl: `http://${host}:${p}/screen`,
       appUrl: `http://${host}:${p}/`
     });
+  });
+
+  app.get("/api/network-addresses", (_, res) => {
+    const addresses = listIpv4Addresses();
+    res.json({ addresses, selectedAddress: state.appSettings?.remoteAddress || getLocalIpv4Address() });
   });
 
   function broadcast() {

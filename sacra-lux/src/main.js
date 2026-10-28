@@ -12,6 +12,7 @@ const { writeStartupBanner } = require("./cliBanner");
 const { createIpcHandlers, registerIpcHandlers } = require("./ipcHandlers");
 const { secureWindow } = require("./windowSecurity");
 const { sanitizePdfFileName } = require("./pdfFileName");
+const { getPreferredIpv4Address } = require("./networkAddress");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -42,21 +43,7 @@ function lockWindow(win) {
 }
 
 function getLocalIpv4Address() {
-  const interfaces = os.networkInterfaces();
-
-  for (const addresses of Object.values(interfaces)) {
-    if (!addresses) {
-      continue;
-    }
-
-    for (const info of addresses) {
-      if (info.family === "IPv4" && !info.internal) {
-        return info.address;
-      }
-    }
-  }
-
-  return "localhost";
+  return getPreferredIpv4Address({ selectedAddress: state.appSettings?.remoteAddress });
 }
 
 /**

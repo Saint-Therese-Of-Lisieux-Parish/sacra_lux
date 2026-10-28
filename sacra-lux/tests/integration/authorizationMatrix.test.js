@@ -28,6 +28,7 @@ const ROUTES = [
   ["GET", "/api/theme-vars", "public"], // Static theme values.
   ["GET", "/api/mass-history", "public"], // Archive list for the library dialog.
   ["GET", "/api/server-info", "public"], // The remote needs the network address.
+  ["GET", "/api/network-addresses", "public"], // The app settings dialog lists local addresses.
   ["GET", "/api/session-info", "public"], // The handler hides file paths from clients with no control.
   ["GET", "/api/export-settings", "public"], // The handler hides file paths from clients with no control.
   ["GET", "/api/start-redirect", "public"], // It checks a one-time start token.
