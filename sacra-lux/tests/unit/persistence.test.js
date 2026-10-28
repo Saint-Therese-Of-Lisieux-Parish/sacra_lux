@@ -29,7 +29,7 @@ describe("persistence", () => {
       targetScreenIds: [2, 2, "3", "bad", 4],
       screenFullscreen: 1,
       activeMassArchiveId: "Palm-Sunday",
-      appSettings: { theme: "dark" }
+      appSettings: { theme: "dark", remoteAddress: "10.12.1.1" }
     });
 
     const saved = JSON.parse(fs.readFileSync(getSessionFilePath(), "utf8"));
@@ -45,7 +45,7 @@ describe("persistence", () => {
       targetScreenIds: [2, 3, 4],
       screenFullscreen: true,
       activeMassArchiveId: "Palm-Sunday",
-      appSettings: { theme: "dark" }
+      appSettings: { theme: "dark", remoteAddress: "10.12.1.1" }
     });
   });
 
