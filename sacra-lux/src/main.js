@@ -34,6 +34,7 @@ let remoteWindow;
 let splashWindow;
 let appMenu = null;
 let isQuitting = false;
+let allowAutomaticFullscreen = true;
 
 // Every window may navigate only inside the local app origin.
 function lockWindow(win) {
@@ -330,6 +331,30 @@ function fullscreenScreen() {
     if (win.isMinimized()) win.restore();
     win.setFullScreen(true);
   }
+  return windows;
+}
+
+function hasSeparateTargetDisplay() {
+  const targetIds = normalizeTargetScreenIds(state.targetScreenIds);
+  if (targetIds.length === 0) return false;
+  const bounds = appWindow?.getBounds?.();
+  const center = bounds
+    ? { x: bounds.x + (bounds.width / 2), y: bounds.y + (bounds.height / 2) }
+    : null;
+  const mainDisplay = center && screen.getDisplayNearestPoint?.(center)
+    || screen.getPrimaryDisplay?.();
+  if (!mainDisplay) return targetIds.length > 0;
+  return targetIds.some((id) => Number(id) !== Number(mainDisplay.id));
+}
+
+function autoFullscreenScreen() {
+  if (!allowAutomaticFullscreen || state.screenFullscreen || !hasSeparateTargetDisplay()) return false;
+  const windows = fullscreenScreen();
+  if (windows.length === 0) return false;
+  state.screenFullscreen = true;
+  saveSession(state);
+  updateFullscreenMenuLabel();
+  return true;
 }
 
 
@@ -593,12 +618,14 @@ async function exportSlidePdf(slides, screenSettings, suggestedName, quality) {
 
 function setScreenFullscreen(on) {
   state.screenFullscreen = Boolean(on);
+  allowAutomaticFullscreen = state.screenFullscreen;
   saveSession(state);
   const windows = ensureConfiguredScreenWindows();
   if (windows.length === 0) return { ok: false };
   if (state.screenFullscreen) {
     fullscreenScreen();
   } else {
+    allowAutomaticFullscreen = false;
     for (const win of windows) {
       win.setFullScreen(false);
     }
@@ -775,11 +802,13 @@ function buildAppMenu(ioRef) {
         if (!screenWindow || screenWindow.isDestroyed()) return;
         if (state.screenFullscreen) {
           state.screenFullscreen = false;
+          allowAutomaticFullscreen = false;
           for (const win of getScreenWindowList()) {
             win.setFullScreen(false);
           }
         } else {
           state.screenFullscreen = true;
+          allowAutomaticFullscreen = true;
           fullscreenScreen();
         }
         saveSession(state);
@@ -995,7 +1024,7 @@ app.whenReady().then(async () => {
       const snap = args[0];
       const isActive = Boolean(snap.preMassRunning || snap.gatheringRunning || snap.postMassRunning);
       if (isActive && !_prevActive) {
-        fullscreenScreen();
+        if (autoFullscreenScreen()) snap.screenFullscreen = true;
       }
       _prevActive = isActive;
     }

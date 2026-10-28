@@ -6,7 +6,12 @@ const PRELOAD_PATH = path.join(__dirname, "../../src/preload.js");
 const AGENTS_PATH = path.join(__dirname, "../../../AGENTS.md");
 
 // Load src/main.js with a mocked electron module and run app start up.
-async function startMain({ singleInstanceLock = true, portInUse = false, platform = process.platform } = {}) {
+async function startMain({
+  singleInstanceLock = true,
+  portInUse = false,
+  platform = process.platform,
+  displays = []
+} = {}) {
   jest.resetModules();
   const windows = [];
 
@@ -24,6 +29,7 @@ async function startMain({ singleInstanceLock = true, portInUse = false, platfor
         setFrameRate: jest.fn(),
         executeJavaScript: jest.fn()
       };
+      this.setFullScreen = jest.fn();
       windows.push(this);
     }
     on(name, handler) { this.listeners[name] = handler; }
@@ -37,7 +43,6 @@ async function startMain({ singleInstanceLock = true, portInUse = false, platfor
     close() {}
     destroy() {}
     setBounds() {}
-    setFullScreen() {}
   }
   FakeBrowserWindow.getAllWindows = () => windows;
 
@@ -55,10 +60,21 @@ async function startMain({ singleInstanceLock = true, portInUse = false, platfor
       getPath: jest.fn(() => "/tmp")
     },
     BrowserWindow: FakeBrowserWindow,
-    Menu: { buildFromTemplate: jest.fn(() => ({})), setApplicationMenu: jest.fn() },
+    Menu: {
+      buildFromTemplate: jest.fn((template) => ({
+        getMenuItemById: (id) => template
+          .flatMap((item) => item.submenu?.items || item.submenu || [item])
+          .find((item) => item.id === id)
+      })),
+      setApplicationMenu: jest.fn()
+    },
     ipcMain: { handle: jest.fn(), on: jest.fn() },
     dialog: { showErrorBox: jest.fn(), showMessageBoxSync: jest.fn(() => 1) },
-    screen: { getAllDisplays: jest.fn(() => []), getPrimaryDisplay: jest.fn(() => ({ id: 1 })) },
+    screen: {
+      getAllDisplays: jest.fn(() => displays),
+      getPrimaryDisplay: jest.fn(() => displays[0] || { id: 1 }),
+      getDisplayNearestPoint: jest.fn(() => displays[0] || { id: 1 })
+    },
     shell: { openExternal: jest.fn() }
   };
   const server = {
@@ -74,7 +90,8 @@ async function startMain({ singleInstanceLock = true, portInUse = false, platfor
   jest.doMock("electron", () => electron, { virtual: true });
   const saveCurrentMass = jest.fn();
   const flushPendingSave = jest.fn();
-  const startServer = jest.fn(() => ({ io: { on: jest.fn(), emit: jest.fn() }, server }));
+  const io = { on: jest.fn(), emit: jest.fn() };
+  const startServer = jest.fn(() => ({ io, server }));
   jest.doMock("../../src/server", () => ({
     startServer,
     saveCurrentMass,
@@ -96,6 +113,7 @@ async function startMain({ singleInstanceLock = true, portInUse = false, platfor
   await new Promise((resolve) => setTimeout(resolve, 50));
   Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
   windows.electron = electron;
+  windows.io = io;
   windows.startServer = startServer;
   windows.saveCurrentMass = saveCurrentMass;
   windows.flushPendingSave = flushPendingSave;
@@ -103,6 +121,40 @@ async function startMain({ singleInstanceLock = true, portInUse = false, platfor
 }
 
 describe("Electron window security settings", () => {
+  test("does not auto-fullscreen when the operator turned fullscreen off", async () => {
+    const windows = await startMain({ displays: [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }, { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }] });
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
+    toggle.click();
+    toggle.click();
+    for (const win of windows.filter((item) => item.options.title === "Sacra Lux Screen")) {
+      win.setFullScreen.mockClear();
+    }
+    const state = require("../../src/state").state;
+    state.targetScreenIds = [2];
+    windows.io.emit("state:update", { preMassRunning: true });
+    expect(windows.filter((win) => win.options.title === "Sacra Lux Screen").every((win) => !win.setFullScreen.mock.calls.length)).toBe(true);
+  });
+
+  test("does not auto-fullscreen screen windows on the primary display", async () => {
+    const windows = await startMain({ displays: [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }] });
+    windows.io.emit("state:update", { preMassRunning: true });
+    expect(windows.filter((win) => win.options.title === "Sacra Lux Screen").every((win) => !win.setFullScreen.mock.calls.length)).toBe(true);
+  });
+
+  test("auto-fullscreens a separate target display and updates the menu", async () => {
+    const windows = await startMain({ displays: [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }, { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }] });
+    const state = require("../../src/state").state;
+    state.targetScreenIds = [2];
+    windows.io.emit("state:update", { preMassRunning: true });
+    const screenWindows = windows.filter((win) => win.options.title === "Sacra Lux Screen");
+    expect(screenWindows.at(-1).setFullScreen).toHaveBeenCalledWith(true);
+    expect(state.screenFullscreen).toBe(true);
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
+    expect(toggle.label).toBe("Exit Screen Fullscreen");
+  });
+
   test("a second app instance quits before it starts the server", async () => {
     const windows = await startMain({ singleInstanceLock: false });
 
