@@ -42,7 +42,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Readings and organizer
 
-- `POST /api/organizer` — replace `organizerSequence` and merge manual slides. An image URL or a movie URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Image and movie URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.`
+- `POST /api/organizer` — replace `organizerSequence` and merge manual slides. An image URL or a movie URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Image and movie URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.` The body may include `organizerRevision`. When that field is present and it is not equal to the current revision, the route returns HTTP 409. The error is `Another organizer change was saved first. Reload the current state and try again.` The body also returns the current `organizerRevision`. The route does not change the Mass. A body without `organizerRevision` still saves. A successful save adds 1 to `organizerRevision`.
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
 - `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing

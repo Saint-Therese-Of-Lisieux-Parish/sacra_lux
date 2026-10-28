@@ -69,6 +69,11 @@ Use **📥 Import** or **🔄 Reload Mass Folder** to load a folder of reading
 The organizer is the ordered list of Mass parts. Each row is one item; the
 projector shows the derived slides.
 
+Each organizer save sends the current `organizerRevision`. If another save
+used that same revision first, the server rejects the new save. The page
+then loads the current Mass again. The rejected change is not kept. After
+that load, the status line shows the slide count.
+
 Add slides with **➕ New Slide** and choose a type:
 
 | Item type | What it projects |
