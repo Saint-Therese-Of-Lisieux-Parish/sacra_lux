@@ -6945,7 +6945,7 @@
     const VIDEO_FILE_NAME = /\.mp4$/i;
 
     function isImageFile(file) {
-      return Boolean(file) && (String(file.type || "").startsWith("image/") || IMAGE_FILE_NAME.test(file.name || ""));
+      return Boolean(file) && IMAGE_FILE_NAME.test(file.name || "");
     }
 
     function isVideoFile(file) {
@@ -6991,9 +6991,14 @@
       return { folderName: folder.name, files };
     }
 
-    async function importImagesAsSlideshow(phase, images, label) {
+    async function importImagesAsSlideshow(phase, images, label, skippedNames = []) {
       if (images.length > 500) {
         els.status.textContent = "Choose no more than 500 images.";
+        return;
+      }
+      const totalBytes = images.reduce((sum, image) => sum + (Number(image.file?.size) || 0), 0);
+      if (totalBytes > 120 * 1024 * 1024) {
+        els.status.textContent = "The selected images exceed the 120 MB limit.";
         return;
       }
 
@@ -7044,6 +7049,9 @@
         const phaseLabel = PHASE_LABELS[phase] || phase;
         if (await saveOrganizer(sequence, manualSlides, `${label} added to ${phaseLabel}`)) {
           await refreshAllMassAssetSelectors();
+          els.status.textContent = skippedNames.length
+            ? `${imported.length} image${imported.length === 1 ? "" : "s"} added. Skipped ${skippedNames.length}: ${skippedNames.join(", ")}.`
+            : `${imported.length} image${imported.length === 1 ? "" : "s"} added.`;
         }
       } catch (_error) {
         els.status.textContent = "Could not import the images.";
@@ -7052,6 +7060,10 @@
 
     async function importImageFolder(phase, files, folderName) {
       if (!["pre", "gathering", "post"].includes(phase)) return;
+      const skippedNames = files
+        .filter(({ file }) => !isImageFile(file))
+        .map(({ filename, file }) => filename || file.name)
+        .filter(Boolean);
       const images = files
         .filter(({ file }) => isImageFile(file))
         .sort((a, b) => a.filename.localeCompare(b.filename, undefined, { numeric: true, sensitivity: "base" }))
@@ -7060,7 +7072,7 @@
         els.status.textContent = "That folder does not contain supported image files.";
         return;
       }
-      await importImagesAsSlideshow(phase, images, folderName || "Image Folder");
+      await importImagesAsSlideshow(phase, images, folderName || "Image Folder", skippedNames);
     }
 
     async function importImageFiles(phase, files) {

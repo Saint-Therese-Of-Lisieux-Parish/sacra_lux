@@ -86,6 +86,13 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("els.massTitleInput.value = savedTitle;");
   });
 
+  test("filters unsupported folder images and checks the size limit before reading", () => {
+    expect(appHtml).toMatch(/function isImageFile\(file\) \{\n\s+return Boolean\(file\) && IMAGE_FILE_NAME\.test\(file\.name \|\| ""\);/);
+    expect(appHtml).toContain("const skippedNames = files");
+    expect(appHtml).toContain("The selected images exceed the 120 MB limit.");
+    expect(appHtml).toContain("Skipped ${skippedNames.length}");
+  });
+
   test("keeps affected operator gradients below the white mix limit", () => {
     expect(appHtml).toContain("color-mix(in srgb, var(--accent), white 20%)");
     expect(appHtml).not.toContain("color-mix(in srgb, var(--accent), white 86%)");
