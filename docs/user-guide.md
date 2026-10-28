@@ -95,7 +95,8 @@ Select an item and use the Slide Editor dialog. Depending on the type you can:
 
 For a slideshow, set **seconds per image** and **loop count**, and run the
 preflight check to catch duplicates, missing files, and unreadable images
-before the Mass.
+before the Mass. If the check cannot run, the editor shows
+`Preflight could not be completed.`
 
 **Add image folder** keeps files whose names end in `avif`, `gif`, `jpg`,
 `jpeg`, `png`, `svg`, or `webp`. It skips other files and names them in the
