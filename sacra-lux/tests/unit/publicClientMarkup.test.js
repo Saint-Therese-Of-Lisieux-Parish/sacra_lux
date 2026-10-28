@@ -71,6 +71,14 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.saveError))');
   });
 
+  test("confirms Mass replacement before archive load and ZIP import", () => {
+    expect(appHtml).toContain('id="massReplaceConfirmDialog"');
+    expect(appHtml).toContain("function confirmMassReplacement(name)");
+    expect(appHtml).toContain('if (!await confirmMassReplacement(file.name))');
+    expect(appHtml).toContain('if (action === "load" && !await confirmMassReplacement(');
+    expect(appHtml).toContain("The projector will change because a Mass phase is active");
+  });
+
   test("keeps affected operator gradients below the white mix limit", () => {
     expect(appHtml).toContain("color-mix(in srgb, var(--accent), white 20%)");
     expect(appHtml).not.toContain("color-mix(in srgb, var(--accent), white 86%)");

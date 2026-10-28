@@ -4210,6 +4210,30 @@
     </div>
   </dialog>
 
+  <dialog id="massReplaceConfirmDialog" aria-labelledby="massReplaceConfirmTitle">
+    <div class="editor-dialog-inner">
+      <div class="editor-dialog-header">
+        <div class="editor-dialog-header-copy">
+          <h3 id="massReplaceConfirmTitle">Replace the current Mass?</h3>
+          <div class="editor-dialog-subtitle">Confirm this change before the projector content changes.</div>
+        </div>
+        <button class="editor-close-btn" id="massReplaceConfirmCloseBtn" type="button">Close</button>
+      </div>
+      <div class="editor-dialog-body">
+        <div class="modal-panel">
+          <p id="massReplaceConfirmMessage" class="modal-panel-copy"></p>
+          <div class="modal-action-row">
+            <div></div>
+            <div class="modal-action-group">
+              <button id="massReplaceConfirmCancelBtn" type="button">Cancel</button>
+              <button id="massReplaceConfirmBtn" class="primary" type="button">Replace Mass</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="pdfExportDialog">
     <div class="editor-dialog-inner">
       <div class="editor-dialog-header">
@@ -4529,6 +4553,11 @@
       massLibraryNewMassBtn: document.getElementById("massLibraryNewMassBtn"),
       massLibraryStatus: document.getElementById("massLibraryStatus"),
       massHistoryList: document.getElementById("massHistoryList"),
+      massReplaceConfirmDialog: document.getElementById("massReplaceConfirmDialog"),
+      massReplaceConfirmMessage: document.getElementById("massReplaceConfirmMessage"),
+      massReplaceConfirmBtn: document.getElementById("massReplaceConfirmBtn"),
+      massReplaceConfirmCancelBtn: document.getElementById("massReplaceConfirmCancelBtn"),
+      massReplaceConfirmCloseBtn: document.getElementById("massReplaceConfirmCloseBtn"),
       screenPreviewWrap: document.getElementById("screenPreviewWrap"),
       screenPreviewFrame: document.getElementById("screenPreviewFrame"),
       editorPreviewSection: document.getElementById("editorPreviewSection"),
@@ -5985,6 +6014,34 @@
       return dt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
     }
 
+    let massReplacementResolver = null;
+
+    function shouldWarnProjectorChange() {
+      const data = uiState.data || {};
+      if (data.preMassRunning || data.gatheringRunning || data.postMassRunning) return true;
+      const startTime = Date.parse(data.massStartTime || "");
+      return Number.isFinite(startTime) && startTime - Date.now() < 2 * 60 * 60 * 1000;
+    }
+
+    function settleMassReplacement(confirmed) {
+      if (!massReplacementResolver) return;
+      const resolve = massReplacementResolver;
+      massReplacementResolver = null;
+      if (els.massReplaceConfirmDialog.open) els.massReplaceConfirmDialog.close();
+      resolve(confirmed);
+    }
+
+    function confirmMassReplacement(name) {
+      return new Promise((resolve) => {
+        massReplacementResolver = resolve;
+        const projectorWarning = shouldWarnProjectorChange()
+          ? " The projector will change because a Mass phase is active or its start time is within two hours."
+          : "";
+        els.massReplaceConfirmMessage.textContent = `This will replace the current Mass with “${name}”.${projectorWarning}`;
+        els.massReplaceConfirmDialog.showModal();
+      });
+    }
+
     async function refreshMassHistory() {
       els.massLibraryStatus.textContent = "Loading Mass library…";
       const res = await fetch("/api/mass-history");
@@ -6027,7 +6084,7 @@
               </div>
             </div>
             <div class="mass-history-item-actions">
-              <button class="save-btn" type="button" data-archive-action="load" data-archive-id="${escapeHtml(archive.id)}">Load</button>
+              <button class="save-btn" type="button" data-archive-action="load" data-archive-id="${escapeHtml(archive.id)}" data-archive-title="${escapeHtml(archive.title || archive.id)}">Load</button>
               <button class="save-btn" type="button" data-archive-action="compress" data-archive-id="${escapeHtml(archive.id)}" ${compressDisabled ? "disabled" : ""}>Compress</button>
               <button class="save-btn" type="button" data-archive-action="delete" data-archive-id="${escapeHtml(archive.id)}" ${archive.isActive ? "disabled" : ""}>Delete</button>
             </div>
@@ -9187,6 +9244,10 @@
     els.importZipFile.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
+      if (!await confirmMassReplacement(file.name)) {
+        e.target.value = "";
+        return;
+      }
       const reader = new FileReader();
       reader.onload = async () => {
         try {
@@ -9335,6 +9396,14 @@
       if (e.target === els.massLibraryDialog) els.massLibraryDialog.close();
     });
 
+    els.massReplaceConfirmBtn.addEventListener("click", () => settleMassReplacement(true));
+    els.massReplaceConfirmCancelBtn.addEventListener("click", () => settleMassReplacement(false));
+    els.massReplaceConfirmCloseBtn.addEventListener("click", () => settleMassReplacement(false));
+    els.massReplaceConfirmDialog.addEventListener("click", (e) => {
+      if (e.target === els.massReplaceConfirmDialog) settleMassReplacement(false);
+    });
+    els.massReplaceConfirmDialog.addEventListener("close", () => settleMassReplacement(false));
+
     els.massHistoryList.addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-archive-action]");
       if (!btn) return;
@@ -9348,9 +9417,8 @@
       const archiveId = btn.getAttribute("data-archive-id");
       if (!action || !archiveId) return;
 
-      if (action === "delete" && !window.confirm("Delete this archived Mass?")) {
-        return;
-      }
+      if (action === "load" && !await confirmMassReplacement(btn.getAttribute("data-archive-title") || archiveId)) return;
+      if (action === "delete" && !window.confirm("Delete this archived Mass?")) return;
 
       btn.disabled = true;
       els.massLibraryStatus.textContent = action === "load"
