@@ -143,7 +143,7 @@ A countdown slide pauses auto-advance until it reaches zero.
 
 ## Blackout and Manual Navigation
 
-The operator page does not show Prev, Next, or Black Screen buttons. Use the keyboard when focus is not in a text field or an open dialog.
+The operator page does not show Prev, Next, or Black Screen buttons. The keys in [Keyboard](#keyboard) do not run while a control has focus.
 
 - Press `Right Arrow` or `Space` to show the next slide.
 - Press `Left Arrow` to show the previous slide.
@@ -224,7 +224,7 @@ new slide so psalm refrains get their own page.
 
 ## Keyboard
 
-These keys work when focus is not in a text field, a list, or an open dialog:
+These keys work when focus is not in a text field, a select list, a button, a link, a summary, or an open dialog. They also do not run when the focused control has role `button`, `link`, `checkbox`, `radio`, `switch`, `tab`, or `menuitem`.
 
 | Key | Result |
 | --- | --- |
