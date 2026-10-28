@@ -102,7 +102,10 @@ Durable session fields:
 ### `src/uploadLimits.js`
 
 `MAX_SINGLE_UPLOAD_BYTES` is 140 MB. The HTTP upload routes and the Electron
-file pickers share this limit.
+file pickers share this limit. The image picker accepts `jpg`, `jpeg`, `png`,
+`gif`, `webp`, `svg`, and `avif`. A larger image returns `Image file exceeds the 140 MB limit. Please use a smaller file.`
+An unsupported upload returns `Unsupported media type for "<name>".`
+An upload over the limit returns `Media file exceeds the 140 MB limit.`
 
 ### `src/hostGuard.js`
 

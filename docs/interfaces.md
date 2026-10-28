@@ -69,7 +69,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 ### Assets and prayers
 
-- `POST /api/upload-mass-asset` — save one image or video into `current_mass/assets/`
+- `POST /api/upload-mass-asset` — save one image or video into `current_mass/assets/`. Image types are `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, and `avif`. The video type is `mp4`. An unsupported type returns HTTP 400 and `Unsupported media type for "<name>".`
 - `POST /api/upload-image` — backward-compatible alias of the above
 - `POST /api/import-slideshow-images` — save a bounded batch of images for a slideshow
 - `POST /api/image-slideshow/preflight` — report duplicates, missing, unsupported, or unreadable slideshow images
@@ -152,7 +152,7 @@ handled in `src/main.js`:
 | `window.api` member | IPC channel | Purpose |
 | --- | --- | --- |
 | `pickFolder()` | `dialog:pickFolder` | native folder picker |
-| `pickImageFile()` | `dialog:pickImageFile` | native image picker returning `{ name, dataUrl }` |
+| `pickImageFile()` | `dialog:pickImageFile` | native image picker. A supported file returns `{ name, dataUrl }`. An unsupported file or a file over 140 MB returns `{ error }`. |
 | `pickVideoFile()` | `dialog:pickVideoFile` | native video picker returning `{ name, dataUrl }` |
 | `getMonitors()` | `screen:getMonitors` | list available displays |
 | `setTargetMonitor(id)` | `screen:setTargetMonitor` | set and persist one target display |
