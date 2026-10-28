@@ -13,7 +13,7 @@ the rest of this directory.
 | Projector | `http://<host>:17841/screen` | the congregation |
 | Remote | `http://<host>:17841/remote` | you, on a phone |
 
-The operator window also shows a live preview of the projector. All three stay
+The Digital Minister window also shows a live preview of the projector. All three stay
 in sync because the server broadcasts every change to all of them.
 
 ### Packaged app logs
@@ -26,12 +26,12 @@ to the console.
 ## First Run
 
 1. Launch Sacra Lux (the Electron app) or start web mode (`npm run web`).
-2. Open the operator screen. With no Mass loaded, the app opens the Mass
+2. Open the Digital Minister screen. With no Mass loaded, the app opens the Mass
    Library prompt so you can create or load a Mass.
 3. In Electron, open **Screen Settings** and choose the projector display, then
    enable **Fullscreen**. The projector opens the `/screen` page. When Pre-Mass,
    Gathering, or Post-Mass starts, Electron turns fullscreen on if a projector
-   display is not the operator display and fullscreen is still allowed. Turn
+   display is not the Digital Minister display and fullscreen is still allowed. Turn
    fullscreen off to stop that. Turn it on to allow it again.
 
 ## Preparing a Mass
@@ -44,7 +44,7 @@ fills the First Reading, Psalm, Second Reading, Gospel, and Gospel Acclamation
 from `bible.usccb.org` and uses the feed title when you leave the title blank.
 This needs internet access.
 
-Edit the Mass title in the operator header. If that save fails, the field
+Edit the Mass title in the Digital Minister header. If that save fails, the field
 returns to the saved title and the status line shows the error.
 
 Creating a new Mass archives the current one first if it has content, then
@@ -145,7 +145,7 @@ The server validates and clamps these settings. A change that affects reading la
 
 ## Start Time and Phases
 
-Set the Mass start time in the operator UI (or when creating the Mass).
+Set the Mass start time in the Digital Minister UI (or when creating the Mass).
 Sacra Lux then runs the phases:
 
 - **Pre-Mass** — a loop of Pre-Mass items before the lead-in. **▶ Start Pre-Mass**
@@ -161,7 +161,7 @@ A countdown slide pauses auto-advance until it reaches zero.
 
 ## Blackout and Manual Navigation
 
-The operator page does not show Prev, Next, or Black Screen buttons. The keys in [Keyboard](#keyboard) do not run while a control has focus.
+The Digital Minister page does not show Prev, Next, or Black Screen buttons. The keys in [Keyboard](#keyboard) do not run while a control has focus.
 
 - Press `Right Arrow` or `Space` to show the next slide.
 - Press `Left Arrow` to show the previous slide.
@@ -259,7 +259,7 @@ These keys work when focus is not in a text field, a select list, a button, a li
 ## Where Files Live
 
 In Electron, **File > Save** writes the session and the current Mass. The
-operator page then shows `Mass saved`, or the error text when the write fails.
+The Digital Minister page then shows `Mass saved`, or the error text when the write fails.
 Closing the app writes a save that is still waiting. A scheduled save that
 fails shows the error in the status line instead of the slide count. A later
 successful save clears that error.
