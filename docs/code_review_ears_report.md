@@ -23,6 +23,11 @@ At `6775a380d4c840562a0ec2fff6052d05a58b162c`, the Mass ZIP JSON limit is
 `268mb`. An `import-mass-zip` body over that limit returns HTTP 400.
 SL-011 still records the older 68 MB limit.
 
+At the same SHA, CI installs Chromium and WebKit. Playwright runs the
+`remote-webkit` and `xss-webkit` projects. On CI, a failed end-to-end test
+retries once. A pass on that retry is reported as flaky. SL-013 still records
+the older CI description.
+
 ## Verification summary
 
 - `npm test`: passed, 20 unit suites with 239 tests and 9 integration suites with 106 tests.
