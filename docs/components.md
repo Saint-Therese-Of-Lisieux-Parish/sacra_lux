@@ -131,6 +131,7 @@ Security primitives:
 - one-time remote start tokens bound to IP and user-agent
 - control sessions (`issueControlSession`, `noteControlUnlock`) with a 12-hour TTL
 - escalating PIN lockouts (60 s after 3 failures, 5 min after 6, 15 min after 9)
+- PIN failure counts stay for 24 hours after the lock ends. One warning is logged at 50 failures in 24 hours. The warning does not contain a PIN.
 - HTTP and Socket.IO rate-limit buckets, plus upload/heavy concurrency limits
 - periodic cleanup of expired rate-limit and lockout state
 
