@@ -7785,25 +7785,48 @@
         return;
       }
 
-      const uploaded = [];
+      const failed = [];
+      const images = [];
       for (const file of files) {
         try {
-          const dataUrl = await readFileAsDataUrl(file);
-          const { resp, result } = await uploadImageForSlide(file.name, dataUrl);
-          if (!resp.ok) {
-            els.status.textContent = result.error || `Could not upload ${file.name}.`;
-            continue;
-          }
-          uploaded.push({ url: result.url, name: result.name || file.name });
+          images.push({ filename: file.name, dataUrl: await readFileAsDataUrl(file) });
         } catch (_error) {
-          els.status.textContent = `Could not upload ${file.name}.`;
+          failed.push(file.name);
         }
+      }
+
+      let result;
+      try {
+        const response = await fetch("/api/import-slideshow-images", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ images })
+        });
+        result = await response.json();
+        if (!response.ok) {
+          els.status.textContent = `${files.length} slideshow image${files.length === 1 ? "" : "s"} failed: ${files.map((file) => file.name).join(", ")}.`;
+          return;
+        }
+      } catch (_error) {
+        els.status.textContent = `${files.length} slideshow image${files.length === 1 ? "" : "s"} failed: ${files.map((file) => file.name).join(", ")}.`;
+        return;
+      }
+
+      const uploaded = Array.isArray(result.images)
+        ? result.images.map(({ url, name }) => ({ url, name }))
+        : [];
+      for (const item of Array.isArray(result.failed) ? result.failed : []) {
+        failed.push(item.name || "Unnamed image");
       }
 
       if (uploaded.length) {
         const existing = getEditorSlideshowImages();
         applyEditorSlideshowImages([...existing, ...uploaded], { save });
         await refreshAllMassAssetSelectors();
+      }
+      if (failed.length) {
+        els.status.textContent = `${uploaded.length} slideshow image${uploaded.length === 1 ? "" : "s"} added. ${failed.length} failed: ${failed.join(", ")}.`;
+      } else if (uploaded.length) {
         els.status.textContent = `${uploaded.length} slideshow image${uploaded.length === 1 ? "" : "s"} added.`;
       }
     }

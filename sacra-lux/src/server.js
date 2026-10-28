@@ -2458,11 +2458,23 @@ function startServer(port = 17841, options = {}) {
       }
 
       let totalBytes = 0;
-      const uploads = images.map((image) => {
-        const upload = parseMassAssetUpload(image?.filename, image?.dataUrl, IMAGE_ASSET_EXT);
-        totalBytes += upload.bytes.length;
-        return upload;
-      });
+      const uploads = [];
+      const failed = [];
+      for (const image of images) {
+        try {
+          const upload = parseMassAssetUpload(image?.filename, image?.dataUrl, IMAGE_ASSET_EXT);
+          totalBytes += upload.bytes.length;
+          uploads.push(upload);
+        } catch (error) {
+          failed.push({
+            name: String(image?.filename || "Unnamed image"),
+            error: error.message || "Image import failed."
+          });
+        }
+      }
+      if (uploads.length === 0) {
+        return res.status(400).json({ error: failed[0]?.error || "Choose one or more image files." });
+      }
       if (totalBytes > MAX_SLIDESHOW_IMPORT_BYTES) {
         return res.status(400).json({ error: "The selected images are too large to import together." });
       }
@@ -2479,7 +2491,7 @@ function startServer(port = 17841, options = {}) {
         removeSavedMassAssets(imported);
         throw error;
       }
-      return res.json({ ok: true, images: imported });
+      return res.json({ ok: true, images: imported, failed });
     } catch (error) {
       const status = error instanceof ValidationError ? 400 : 500;
       return res.status(status).json({ error: error.message || "Image folder import failed." });

@@ -766,6 +766,12 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
   await expect(page.locator("#editorSectionImageSlideshow")).toBeVisible();
 
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=", "base64");
+  let importRequests = 0;
+  let singleUploadRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/import-slideshow-images")) importRequests += 1;
+    if (request.url().endsWith("/api/upload-mass-asset")) singleUploadRequests += 1;
+  });
   await page.locator("#editorSlideshowFiles").setInputFiles([
     { name: "Zeta.png", mimeType: "image/png", buffer: png },
     { name: "Alpha.png", mimeType: "image/png", buffer: png }
@@ -773,6 +779,8 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
 
   const rows = page.locator("#slideshowImageList .slideshow-image-row");
   await expect(rows).toHaveCount(2);
+  expect(importRequests).toBe(1);
+  expect(singleUploadRequests).toBe(0);
   await expect(rows.locator(".slideshow-image-name")).toHaveText(["1. Alpha.png", "2. Zeta.png"]);
   await expect(page.locator("#slideshowPreflightSummary")).toContainText("preflight warnings");
 
