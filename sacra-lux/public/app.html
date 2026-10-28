@@ -5965,9 +5965,14 @@
       });
       const data = await response.json();
       if (!response.ok) {
-        els.status.textContent = data.error || "Failed to save Mass changes.";
-        if (response.status === 409) {
-          await refreshState();
+        const errorText = data.error || "Failed to save Mass changes.";
+        try {
+          if (response.status === 409) {
+            await refreshState();
+          }
+        } finally {
+          els.status.textContent = errorText;
+          els.status.classList.add("error");
         }
         return false;
       }

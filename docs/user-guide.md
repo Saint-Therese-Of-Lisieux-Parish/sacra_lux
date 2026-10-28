@@ -72,7 +72,8 @@ projector shows the derived slides.
 Each organizer save sends the current `organizerRevision`. If another save
 used that same revision first, the server rejects the new save. The page
 then loads the current Mass again. The rejected change is not kept. After
-that load, the status line shows the slide count.
+that load, the status line shows
+`Another organizer change was saved first. Reload the current state and try again.`
 
 Add slides with **➕ New Slide** and choose a type:
 
