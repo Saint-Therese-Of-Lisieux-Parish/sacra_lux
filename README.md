@@ -122,8 +122,10 @@ The port changes in these cases:
   `Number(process.env.PORT || 17841)`. An unset `PORT` uses `17841`.
 - Electron uses `SACRA_LUX_PORT` when that value is a positive integer.
   Any other value falls back to `17841`.
-- If that port is already in use, Electron shows an error and quits. It does
+- If that port is already in use, Electron shows "Sacra Lux could not start"
+  and the message `Port <port> is already in use.` It then quits. It does
   not choose another port.
+- Web mode writes `Port <port> is already in use. Stop the other process or set PORT to a free port.` and exits.
 - A second launch does not start another server. Electron focuses the open
   window and the new process quits.
 

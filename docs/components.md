@@ -210,6 +210,8 @@ documented in [interfaces.md](./interfaces.md).
 ### `src/web.js`
 
 Headless entry point that starts the shared server without Electron.
+When the port is in use, it writes `Port <port> is already in use. Stop the other process or set PORT to a free port.` and exits.
+Another start error writes `Cannot start the web server: <message>` and exits.
 `SIGINT` and `SIGTERM` call `flushPendingSave()` before the process exits.
 
 ## Browser Surfaces
