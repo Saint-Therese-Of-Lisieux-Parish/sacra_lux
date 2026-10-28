@@ -79,6 +79,13 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("The projector will change because a Mass phase is active");
   });
 
+  test("shows errors for title, PIN, and slideshow preflight requests", () => {
+    expect(appHtml).toContain("Could not save the Mass title.");
+    expect(appHtml).toContain("Could not clear the PIN.");
+    expect(appHtml).toContain('if (!response.ok) {\n          throw new Error(data.error || "Preflight could not be completed.");');
+    expect(appHtml).toContain("els.massTitleInput.value = savedTitle;");
+  });
+
   test("keeps affected operator gradients below the white mix limit", () => {
     expect(appHtml).toContain("color-mix(in srgb, var(--accent), white 20%)");
     expect(appHtml).not.toContain("color-mix(in srgb, var(--accent), white 86%)");

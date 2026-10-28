@@ -7443,8 +7443,11 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ images })
         });
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         if (requestId !== slideshowPreflightRequest) return;
+        if (!response.ok) {
+          throw new Error(data.error || "Preflight could not be completed.");
+        }
         slideshowPreflightResults = Array.isArray(data.results) ? data.results : [];
         renderSlideshowImageList(images, slideshowPreflightResults);
         const warningCount = slideshowPreflightResults.filter((result) => result.warnings?.length).length;
@@ -9056,11 +9059,21 @@
     function commitMassTitle() {
       const title = els.massTitleInput.value.trim();
       if (!title) return;
+      const savedTitle = uiState.data?.presentation?.title || "";
       fetch("/api/update-title", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title })
-      }).catch(() => { });
+      }).then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          els.massTitleInput.value = savedTitle;
+          throw new Error(data.error || "Could not save the Mass title.");
+        }
+      }).catch((error) => {
+        els.massTitleInput.value = savedTitle;
+        els.status.textContent = error.message || "Could not save the Mass title.";
+      });
     }
     els.massTitleInput.addEventListener("change", commitMassTitle);
     els.massTitleInput.addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
@@ -9158,15 +9171,22 @@
     els.clearStartPinBtn.addEventListener("click", async () => {
       const body = { pin: "" };
       if (uiState.data?.hasStartPin) body.currentPin = els.currentPinInput.value.trim();
-      const res = await fetch("/api/start-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
+      try {
+        const res = await fetch("/api/start-pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          els.startPinStatus.textContent = data.error || "Could not clear the PIN.";
+          return;
+        }
         els.startPinStatus.textContent = "PIN cleared";
         els.startPinInput.value = "";
         els.currentPinInput.value = "";
+      } catch (error) {
+        els.startPinStatus.textContent = error.message || "Could not clear the PIN.";
       }
     });
 
