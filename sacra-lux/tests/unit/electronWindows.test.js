@@ -124,7 +124,7 @@ describe("Electron window security settings", () => {
   test("does not auto-fullscreen when the operator turned fullscreen off", async () => {
     const windows = await startMain({ displays: [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }, { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }] });
     const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
-    const toggle = template.find((item) => item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
+    const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
     toggle.click();
     toggle.click();
     for (const win of windows.filter((item) => item.options.title === "Sacra Lux Screen")) {
@@ -151,7 +151,7 @@ describe("Electron window security settings", () => {
     expect(screenWindows.at(-1).setFullScreen).toHaveBeenCalledWith(true);
     expect(state.screenFullscreen).toBe(true);
     const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
-    const toggle = template.find((item) => item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
+    const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
     expect(toggle.label).toBe("Exit Screen Fullscreen");
   });
 
