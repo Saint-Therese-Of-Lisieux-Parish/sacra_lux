@@ -89,6 +89,23 @@
       align-items: center;
     }
 
+    .control-lock-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.8rem;
+      padding: 0.65rem 0.9rem;
+      border: 1px solid color-mix(in srgb, var(--danger), transparent 35%);
+      border-radius: var(--radius);
+      color: var(--danger-text, var(--danger));
+      background: color-mix(in srgb, var(--danger), transparent 90%);
+    }
+
+    .control-lock-banner[hidden] {
+      display: none;
+    }
+
     .sequence-list {
       flex: 1;
       min-height: 0;
@@ -3479,6 +3496,10 @@
       <div class="app-workspace">
         <div class="app-main-panel">
           <!-- ── Slide Actions ─────────────────────────────────────────────── -->
+          <div id="controlLockBanner" class="control-lock-banner" role="alert" aria-live="assertive" hidden>
+            <span>Locked: enter the PIN to control.</span>
+            <button id="unlockControlBtn" type="button">Unlock</button>
+          </div>
           <div class="editor-actions">
             <div class="slide-action-group">
               <select id="newSlideType" class="toolbar-select" aria-label="New slide type">
@@ -4303,7 +4324,8 @@
       black: false,
       selectedOrganizerId: null,
       didPromptForEmptyPresentation: false,
-      emptyPresentationPromptInFlight: false
+      emptyPresentationPromptInFlight: false,
+      controlLocked: false
     };
 
     const dnd = { srcId: null, overEl: null };
@@ -4409,6 +4431,8 @@
       unlockStartPinBtn: document.getElementById("unlockStartPinBtn"),
       clearStartPinBtn: document.getElementById("clearStartPinBtn"),
       startPinStatus: document.getElementById("startPinStatus"),
+      controlLockBanner: document.getElementById("controlLockBanner"),
+      unlockControlBtn: document.getElementById("unlockControlBtn"),
       controlModePanel: document.getElementById("controlModePanel"),
       controlModeStatus: document.getElementById("controlModeStatus"),
       controlModeBtn: document.getElementById("controlModeBtn"),
@@ -5953,6 +5977,24 @@
       return true;
     }
 
+    function showControlLocked() {
+      uiState.controlLocked = true;
+      render(uiState.data);
+    }
+
+    function openPinDialogForUnlock() {
+      els.startPinInput.value = "";
+      els.pinDialog.showModal();
+      els.currentPinInput.focus();
+    }
+
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (...args) => {
+      const response = await nativeFetch(...args);
+      if (response.status === 401) showControlLocked();
+      return response;
+    };
+
     async function refreshState() {
       const response = await fetch("/api/state");
       if (!response.ok) throw new Error("Failed to reload state.");
@@ -6773,7 +6815,7 @@
       // Update PIN status indicator and button icon
       if (els.currentPinField) els.currentPinField.hidden = !data.hasStartPin;
       if (data.hasStartPin) {
-        els.startPinStatus.textContent = "PIN active";
+        els.startPinStatus.textContent = uiState.controlLocked ? "Locked: enter the PIN to control" : "PIN active";
         els.startPinStatus.style.color = "var(--accent-2)";
         els.startPinBtnIcon.innerHTML = "&#128274;";
       } else if (!els.startPinInput.value) {
@@ -6781,6 +6823,7 @@
         els.startPinStatus.style.color = "var(--ink-soft)";
         els.startPinBtnIcon.innerHTML = "&#128275;";
       }
+      els.controlLockBanner.hidden = !uiState.controlLocked;
 
       // Show the network control mode. A PIN replaces the no-PIN modes.
       if (els.controlModePanel) {
@@ -6834,6 +6877,14 @@
     }
 
     socket.on("state:update", render);
+    socket.on("control:required", () => {
+      uiState.controlLocked = true;
+      render(uiState.data);
+    });
+    socket.on("control:ok", () => {
+      uiState.controlLocked = false;
+      render(uiState.data);
+    });
 
 
     async function applyScreenSettings({ silent = false } = {}) {
@@ -9154,6 +9205,7 @@
       els.startPinInput.value = "";
       els.pinDialog.showModal();
     });
+    els.unlockControlBtn.addEventListener("click", openPinDialogForUnlock);
     els.pinCloseBtn.addEventListener("click", () => els.pinDialog.close());
     els.pinDialog.addEventListener("click", (e) => {
       if (e.target === els.pinDialog) els.pinDialog.close();
@@ -9174,6 +9226,8 @@
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         rememberControl(data);
+        uiState.controlLocked = false;
+        els.controlLockBanner.hidden = true;
         els.startPinStatus.textContent = "Unlocked";
         els.currentPinInput.value = "";
       } else {
