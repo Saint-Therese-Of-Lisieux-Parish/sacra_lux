@@ -298,9 +298,9 @@ Stripped before transmission:
 - `interstitialHoldReturnSlideIndex`
 - `interstitialHoldResumeState`
 
-`serverTime` is the server clock at `lastUpdated`, in milliseconds. The
-projector uses it to correct a countdown when the projector clock differs from
-the server clock.
+`serverTime` is the server clock in milliseconds when `getStateSnapshot()`
+builds the snapshot. It is not the `lastUpdated` time. The projector subtracts
+its own clock from `serverTime` and uses that offset for a countdown.
 
 `startupPrompt` is `{ type: "mass-library", reason: string }` when the server
 starts without a valid `current_mass` package, or `null` otherwise.
