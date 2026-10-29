@@ -86,7 +86,9 @@ contain `stem`, `citation`, `title`, `translation`, and `attribution`.
   name that contains a control character, `"`, `<`, `>`, `` ` ``, or `\`.
   A valid name becomes `/api/mass-asset/` plus the percent-encoded file name.
   `assetRefFromUrl()` accepts that encoded form and the legacy
-  `/static/uploads/<filename>` form.
+  `/static/uploads/<filename>` form. For the `/api/mass-asset/` form, it
+  returns no reference when the decoded name is `.` or `..`, or when the name
+  contains a control character, `"`, `<`, `>`, `` ` ``, `\`, or `/`.
 
 ### presentation
 
