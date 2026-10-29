@@ -121,6 +121,8 @@ const GOOGLE_FONTS = new Set([
   "Raleway"
 ]);
 
+const PHASE_LOOP_RESUME_MAX_AGE_MS = 4 * 60 * 60 * 1000;
+
 const logInfo = logger.info;
 const logWarn = logger.warn;
 const logError = logger.error;
@@ -2212,7 +2214,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   // pre-Mass is still running. Leave a Mass slide, a gathering sequence
   // already playing, and a post-Mass loop where they are.
   if (massHasBegun) {
-    if (catchUp) startMassSequence(ioRef);
+    if (catchUp && !state.postMassRunning) startMassSequence(ioRef);
     return;
   }
   if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide) {
@@ -2354,6 +2356,22 @@ function restoreSession(ioRef) {
       state.countdownEndsAt = session.countdownEndsAt;
     }
     restoreSavedSlide(session);
+
+    const savedAt = Date.parse(session?.savedAt || "");
+    const savedAge = Date.now() - savedAt;
+    const mayResumePhaseLoops = Number.isFinite(savedAt) &&
+      savedAge >= 0 && savedAge <= PHASE_LOOP_RESUME_MAX_AGE_MS;
+    const massStart = state.massStartTime ? new Date(state.massStartTime) : null;
+    const massHasBegun = massStart && !Number.isNaN(massStart.getTime()) && Date.now() >= massStart.getTime();
+
+    if (mayResumePhaseLoops && session.preMassRunning && !massHasBegun) {
+      state.preMassRunning = true;
+      scheduleNextPreMassSlide(ioRef);
+    }
+    if (mayResumePhaseLoops && session.postMassRunning) {
+      state.postMassRunning = true;
+      scheduleNextPostMassSlide(ioRef);
+    }
   }
 }
 
