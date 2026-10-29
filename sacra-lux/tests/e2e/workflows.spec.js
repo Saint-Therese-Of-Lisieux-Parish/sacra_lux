@@ -223,6 +223,47 @@ test("Screen Settings Apply Changes & Close saves the settings and closes the di
   }).toBe(64);
 });
 
+test("Screen Settings shows background thumbnails and an accessible larger view", async ({ page, request }) => {
+  const backgrounds = await (await request.get(`${baseUrl}/api/builtin-backgrounds`)).json();
+  const [readingBackground, interstitialBackground] = backgrounds.assets;
+  await request.post(`${baseUrl}/api/screen-settings`, {
+    data: {
+      darkBackgroundUrl: readingBackground.url,
+      lightBackgroundUrl: interstitialBackground.url,
+      resolution: "1080p"
+    }
+  });
+
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+
+  const typography = await page.locator(".settings-section--hero").boundingBox();
+  const resolution = await page.locator("#screenResolution").evaluate((element) => {
+    const rect = element.closest(".settings-section").getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+  const backgroundsSection = await page.locator(".settings-section--backgrounds").boundingBox();
+  expect(Math.abs(typography.y - resolution.y)).toBeLessThanOrEqual(1);
+  expect(backgroundsSection.y).toBeGreaterThanOrEqual(Math.max(typography.y + typography.height, resolution.y + resolution.height));
+
+  await expect(page.locator("#darkBgPreview")).toHaveAttribute("src", readingBackground.url);
+  await expect(page.locator("#lightBgPreview")).toHaveAttribute("src", interstitialBackground.url);
+
+  await page.locator("#darkBgPreviewButton").click();
+  await expect(page.locator("#backgroundPreviewOverlay")).toBeVisible();
+  await expect(page.locator("#backgroundPreviewImage")).toHaveAttribute("src", readingBackground.url);
+  const frame = await page.locator("#backgroundPreviewFrame").boundingBox();
+  expect(frame.width / frame.height).toBeCloseTo(16 / 9, 2);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#backgroundPreviewOverlay")).toBeHidden();
+  await expect(page.locator("#darkBgPreviewButton")).toBeFocused();
+});
+
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
