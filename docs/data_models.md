@@ -267,6 +267,8 @@ runtime state with secrets stripped. Client-visible fields:
   organizerRevision: number,
   screenSettings: object,
   currentSlideIndex: number,
+  currentSlideId: string | null,
+  currentSlideChangedAt: string,
   isBlack: boolean,
   interstitialHoldActive: boolean,
   interstitialHoldSlideIndex: number | null,
@@ -325,6 +327,9 @@ The snapshot includes the current value.
 - `organizerRevision` — saved revision. Restore uses it when it is an integer of 0 or greater. Any other saved value leaves the revision at 0.
 - `lastReadingsFolderPath`
 - `presentationTitle`
+- `currentSlideId` — saved when a slide id exists. Restore uses it when that id is still in the presentation and the age is from 0 through 4 hours. The age uses `currentSlideChangedAt`, or `savedAt` when the change time is missing. A missing id, a future time, or an older time leaves the slide index unchanged.
+- `currentSlideChangedAt` — the time the current slide id last changed. `touch()` sets it when the slide id changes.
+- `countdownEndsAt` — saved when the value is a finite number. Restore copies it. A countdown slide then continues from that end time. An end time that has passed advances to the next slide when one exists.
 - `massStartTime`
 - `startPinHash`
 - `targetScreenId`
