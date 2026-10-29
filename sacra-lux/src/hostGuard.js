@@ -132,6 +132,11 @@ function normalizeClientAddress(value) {
   return address;
 }
 
+function isLoopbackAddress(value) {
+  const address = normalizeClientAddress(value);
+  return address === "::1" || /^127\./.test(address);
+}
+
 function parseSourceNetworkEntries(rawValue) {
   const networks = new net.BlockList();
   const entries = [];
@@ -163,7 +168,7 @@ function createSourceNetworkGuard({ allowedEntries = process.env.SACRA_LUX_SOURC
   }
 
   function isAllowedAddress(value) {
-    if (!parsed.entries.length) return true;
+    if (isLoopbackAddress(value) || !parsed.entries.length) return true;
     const address = normalizeClientAddress(value);
     const family = net.isIP(address);
     return family > 0 && parsed.networks.check(address, family === 4 ? "ipv4" : "ipv6");
