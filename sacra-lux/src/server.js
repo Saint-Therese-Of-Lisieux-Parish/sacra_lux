@@ -3440,7 +3440,10 @@ function startServer(port = 17841, options = {}) {
       // 4. Set title, clear readings, and reset playback
       state.presentation.title = massTitle;
       state.presentation.sourceFile = null;
-      state.readingsSource = { folderPath: null, documents: lectionaryDocuments };
+      state.readingsSource = {
+        folderPath: useLectionaryRss ? CURRENT_MASS_DIR : null,
+        documents: lectionaryDocuments
+      };
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
       stopActiveSlideTimers();
