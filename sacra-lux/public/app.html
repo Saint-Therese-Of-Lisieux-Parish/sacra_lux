@@ -1693,6 +1693,8 @@
     }
 
     .theme-swatch {
+      appearance: none;
+      width: 100%;
       border: 2px solid var(--line);
       border-radius: var(--radius);
       padding: 0.6rem;
@@ -1710,6 +1712,11 @@
     .theme-swatch.active {
       border-color: var(--accent);
       box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .theme-swatch:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: 2px;
     }
 
     .theme-swatch-colors {
@@ -8274,6 +8281,7 @@
       root.style.colorScheme = theme.colorScheme || "light";
       document.querySelectorAll(".theme-swatch").forEach((el) => {
         el.classList.toggle("active", el.dataset.theme === themeId);
+        el.setAttribute("aria-checked", String(el.dataset.theme === themeId));
       });
     }
 
@@ -8281,10 +8289,16 @@
       const picker = document.getElementById("themePicker");
       if (!picker) return;
       picker.innerHTML = "";
+      picker.setAttribute("role", "radiogroup");
+      picker.setAttribute("aria-label", "Theme");
       for (const [id, theme] of Object.entries(THEMES)) {
-        const swatch = document.createElement("div");
+        const swatch = document.createElement("button");
         swatch.className = "theme-swatch" + (id === currentThemeId ? " active" : "");
         swatch.dataset.theme = id;
+        swatch.type = "button";
+        swatch.setAttribute("role", "radio");
+        swatch.setAttribute("aria-checked", String(id === currentThemeId));
+        swatch.setAttribute("aria-label", theme.label);
         const colors = document.createElement("div");
         colors.className = "theme-swatch-colors";
         const dots = [theme.vars["--bg"], theme.vars["--accent"], theme.vars["--accent-2"], theme.vars["--ink"]];
@@ -8298,13 +8312,39 @@
         const label = document.createElement("div");
         label.textContent = theme.label;
         swatch.appendChild(label);
-        swatch.addEventListener("click", () => {
+        swatch.addEventListener("keydown", (event) => {
+          if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(event.key)) return;
+          event.preventDefault();
+          const options = [...picker.querySelectorAll(".theme-swatch")];
+          const currentIndex = options.indexOf(swatch);
+          const offset = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1;
+          options[(currentIndex + offset + options.length) % options.length].focus();
+        });
+        swatch.addEventListener("click", async () => {
           applyTheme(id);
-          fetch("/api/app-settings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ theme: id })
-          }).catch(() => { });
+          try {
+            const response = await fetch("/api/app-settings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ theme: id })
+            });
+            if (!response.ok) {
+              const data = await response.json().catch(() => ({}));
+              throw new Error(data.error || "Could not save the theme.");
+            }
+            els.status.textContent = "Theme saved.";
+            els.status.classList.remove("error");
+          } catch (error) {
+            try {
+              const stateResponse = await fetch("/api/state");
+              const state = await stateResponse.json();
+              applyTheme(state.appSettings?.theme || "carmelite");
+            } catch {
+              applyTheme("carmelite");
+            }
+            els.status.textContent = error.message;
+            els.status.classList.add("error");
+          }
         });
         picker.appendChild(swatch);
       }

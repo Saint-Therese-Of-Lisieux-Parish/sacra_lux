@@ -106,6 +106,31 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("App Settings theme picker supports keyboard selection and reports rejected changes", async ({ page }) => {
+  await page.goto(`${baseUrl}/`);
+  await page.locator("#massLibraryCloseBtn").click();
+  await page.locator("#openAppSettingsBtn").click();
+  const themes = page.locator("#themePicker .theme-swatch");
+  await expect(themes.first()).toHaveAttribute("role", "radio");
+  await expect(page.locator("#themePicker .theme-swatch[aria-checked=\"true\"]")).toHaveCount(1);
+
+  await themes.first().focus();
+  await themes.first().press("ArrowRight");
+  await expect(themes.nth(1)).toBeFocused();
+  await themes.nth(1).press("Enter");
+  await expect.poll(async () => (await (await page.request.get(`${baseUrl}/api/state`)).json()).appSettings.theme)
+    .toBe("carmeliteDark");
+
+  await page.route("**/api/app-settings", (route) => route.fulfill({
+    status: 403,
+    contentType: "application/json",
+    body: JSON.stringify({ error: "Control access required." })
+  }));
+  await themes.nth(2).press("Enter");
+  await expect(page.locator("#status")).toHaveText("Control access required.");
+  await expect(page.locator("#themePicker .theme-swatch[aria-checked=\"true\"]")).toHaveText("Carmel Dark");
+});
+
 test("operator UI shows malformed media URL names without render errors", async ({ page, request }) => {
   const malformedUrl = "/api/mass-asset/50% off.mp4";
   const pageErrors = [];
