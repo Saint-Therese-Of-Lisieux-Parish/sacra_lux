@@ -2007,17 +2007,7 @@ function startCountdownForSlide(ioRef, restoredEndsAt = null) {
   const countdownEndsAt = Number.isFinite(savedEndsAt) ? savedEndsAt : Date.now() + durationMs;
   if (countdownEndsAt <= Date.now()) {
     state.countdownEndsAt = null;
-    const allSlides = state.presentation?.slides || [];
-    if (state.currentSlideIndex < allSlides.length - 1) {
-      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex + 1);
-      touch();
-      ioRef.emit("state:update", getStateSnapshot());
-      scheduleSave();
-      scheduleRuntimeForCurrentSlide(ioRef);
-    } else {
-      touch();
-      ioRef.emit("state:update", getStateSnapshot());
-    }
+    advanceFromCurrentSlide(ioRef);
     return;
   }
   state.countdownEndsAt = countdownEndsAt;
@@ -2032,18 +2022,7 @@ function startCountdownForSlide(ioRef, restoredEndsAt = null) {
     // A new Mass or a manual move supersedes this countdown; do not advance then.
     const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "countdown") return;
-    // Advance only when the current slide is not already the last slide.
-    const allSlides = state.presentation?.slides || [];
-    if (state.currentSlideIndex < allSlides.length - 1) {
-      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex + 1);
-      touch();
-      ioRef.emit("state:update", getStateSnapshot());
-      scheduleSave();
-      scheduleRuntimeForCurrentSlide(ioRef);
-    } else {
-      touch();
-      ioRef.emit("state:update", getStateSnapshot());
-    }
+    advanceFromCurrentSlide(ioRef);
   }, Math.max(0, countdownEndsAt - Date.now()));
 }
 
@@ -2097,8 +2076,38 @@ function stopMovieAutoAdvanceTimer() {
   _moviePlaybackSlideId = null;
 }
 
+function getPhaseLoopNextIndex() {
+  const phase = state.preMassRunning ? "pre" : state.postMassRunning ? "post" : null;
+  if (!phase) return null;
+
+  const indices = getRunnablePhaseIndices(phase);
+  if (indices.length === 0) {
+    if (phase === "pre") stopPreMassTimer();
+    else stopPostMassTimer();
+    return -1;
+  }
+
+  const currentPosition = indices.indexOf(state.currentSlideIndex);
+  return getSafeSlideIndex(indices[(currentPosition + 1) % indices.length]);
+}
+
 function advanceFromCurrentSlide(ioRef) {
   const allSlides = state.presentation?.slides || [];
+  const phaseLoopIndex = getPhaseLoopNextIndex();
+  if (phaseLoopIndex !== null) {
+    if (phaseLoopIndex < 0) {
+      touch();
+      ioRef.emit("state:update", getStateSnapshot());
+      return false;
+    }
+    state.currentSlideIndex = phaseLoopIndex;
+    touch();
+    ioRef.emit("state:update", getStateSnapshot());
+    scheduleSave();
+    scheduleRuntimeForCurrentSlide(ioRef);
+    return true;
+  }
+
   if (state.currentSlideIndex >= allSlides.length - 1) {
     touch();
     ioRef.emit("state:update", getStateSnapshot());
