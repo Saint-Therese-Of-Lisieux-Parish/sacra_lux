@@ -59,6 +59,16 @@ describe("text bounds", () => {
     })).toEqual(DEFAULT_TEXT_BOUNDS);
   });
 
+  test("maps the middle passage position to the vertical center", () => {
+    const bounds = legacyTextBoundsFromSettings({
+      resolution: "1080p",
+      readingPassagePosition: "middle",
+      readingPassageSizePx: 40
+    }).readingPassage;
+
+    expect(bounds.top).toBe(bounds.bottom);
+  });
+
   test("normalizes independent group body and passage overrides", () => {
     expect(normalizeGroupBounds({
       body: { left: 100, right: 200, top: 120, bottom: 140 },

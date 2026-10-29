@@ -185,7 +185,7 @@ describe("screen settings normalization", () => {
       readingTextVAlign: "sideways",
       readingTextFont: "Not A Font",
       readingPassageFont: "Not A Font",
-      readingPassagePosition: "middle",
+      readingPassagePosition: "sideways",
       readingPassageAlign: "justify",
       resolution: "8k",
       transition: "spin",
@@ -222,6 +222,12 @@ describe("screen settings normalization", () => {
     });
     expect(settings.darkBackgroundUrl).toBe("/static/assets/default-text-background.avif");
     expect(settings.lightBackgroundUrl).toBe("/static/assets/default-interstitial.png");
+  });
+
+  test("keeps middle as the vertical alignment for the passage", async () => {
+    const settings = await post({ readingPassagePosition: "middle" });
+
+    expect(settings.readingPassagePosition).toBe("middle");
   });
 
   test("falls back to stored values when the request leaves fields out", async () => {

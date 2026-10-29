@@ -3272,9 +3272,10 @@
                     </label>
                   </div>
                   <div class="settings-field settings-span-3">
-                    <label>Placement
+                    <label>Vertical alignment
                       <select id="readingPassagePosition">
                         <option value="top">Top</option>
+                        <option value="middle">Middle</option>
                         <option value="bottom">Bottom</option>
                       </select>
                     </label>
@@ -5990,7 +5991,9 @@
           : "";
         const passageTop = pPos === "bottom"
           ? `bottom:78px;left:${mx}px;`
-          : `top:${py}px;left:${mx}px;`;
+          : pPos === "middle"
+            ? `top:50%;transform:translateY(-50%);left:${mx}px;`
+            : `top:${py}px;left:${mx}px;`;
 
         const fallbackHtml = !hasReadingContent
           ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:48px;color:rgba(248,248,248,0.72);font-family:'${rFont}',serif;font-weight:700">${escThumb(groupLabel || "Reading")}</div>`
@@ -8713,7 +8716,11 @@
     els.readingPassagePosition.addEventListener("change", () => {
       const current = globalTextBoundsDraft.readingPassage || DEFAULT_TEXT_BOUNDS.readingPassage;
       const height = 1080 - current.top - current.bottom;
-      const top = els.readingPassagePosition.value === "bottom" ? Math.max(0, 1080 - height - 12) : 70;
+      const top = els.readingPassagePosition.value === "bottom"
+        ? Math.max(0, 1080 - height - 12)
+        : els.readingPassagePosition.value === "middle"
+          ? Math.max(0, Math.round((1080 - height) / 2))
+          : 70;
       globalTextBoundsDraft.readingPassage = normalizeTextBoxBounds({ ...current, top, bottom: 1080 - top - height }, current);
       renderBoundsEditor("global");
       scheduleAutoApply();

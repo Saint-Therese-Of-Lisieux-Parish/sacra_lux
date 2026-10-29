@@ -978,7 +978,7 @@ function normalizeScreenSettings(input = {}) {
   const readingTextSizePx = Math.min(200, Math.max(0, finiteOr(input.readingTextSizePx, finiteOr(current.readingTextSizePx, 0))));
   const readingPassageFontRaw = String(input.readingPassageFont ?? current.readingPassageFont ?? "Source Sans 3");
   const readingPassageFont = GOOGLE_FONTS.has(readingPassageFontRaw) ? readingPassageFontRaw : "Source Sans 3";
-  const readingPassagePosition = ["top", "bottom"].includes(String(input.readingPassagePosition || current.readingPassagePosition || "top"))
+  const readingPassagePosition = ["top", "middle", "bottom"].includes(String(input.readingPassagePosition || current.readingPassagePosition || "top"))
     ? String(input.readingPassagePosition || current.readingPassagePosition || "top")
     : "top";
   const readingPassageAlign = ["left", "center", "right"].includes(String(input.readingPassageAlign || current.readingPassageAlign || "center"))
