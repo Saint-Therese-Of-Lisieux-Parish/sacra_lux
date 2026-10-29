@@ -221,6 +221,17 @@ function clearControlAccess() {
   controlSessions.clear();
 }
 
+function clearControlAccessExcept(token) {
+  const keepToken = String(token || "");
+  for (const sessionToken of controlSessions.keys()) {
+    if (sessionToken !== keepToken) controlSessions.delete(sessionToken);
+  }
+}
+
+function clearControlSession(token) {
+  controlSessions.delete(String(token || ""));
+}
+
 function noteControlUnlock() {
   return issueControlSession();
 }
@@ -437,6 +448,10 @@ function createSocketRateLimitGuard({ bucket, windowMs, max, maxConcurrent = 0, 
 function cleanupSecurityState(now = Date.now()) {
   pruneStartTokens(now);
 
+  for (const [token, expiresAt] of controlSessions) {
+    if (expiresAt <= now) controlSessions.delete(token);
+  }
+
   for (const store of Object.values(rateLimitBuckets)) {
     for (const [key, entry] of store) {
       if ((entry.resetAt || 0) <= now) {
@@ -485,6 +500,9 @@ module.exports = {
   PIN_HASH_ITERATIONS,
   RATE_LIMIT_CONFIG,
   clearControlAccess,
+  clearControlAccessExcept,
+  clearControlSession,
+  cleanupSecurityState,
   clearPinFailures,
   clearRateLimitState,
   clearStartToken,

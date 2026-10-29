@@ -733,4 +733,14 @@ describe("security", () => {
     security.clearControlAccess();
     expect(security.getValidControlSessionToken({ headers: { "x-sacra-control": session } })).toBe("");
   });
+
+  test("cleanupSecurityState removes expired control sessions", () => {
+    const session = security.noteControlUnlock();
+    const now = Date.now();
+    jest.spyOn(Date, "now").mockReturnValue(now + 12 * 60 * 60 * 1000 + 1);
+
+    security.cleanupSecurityState();
+
+    expect(security.getValidControlSessionToken({ headers: { "x-sacra-control": session } })).toBe("");
+  });
 });
