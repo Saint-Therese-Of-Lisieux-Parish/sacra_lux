@@ -187,6 +187,39 @@ describe("Electron window security settings", () => {
     expect(windows.filter((win) => win.options.title === "Sacra Lux")).toHaveLength(2);
   });
 
+  test("activation shows recreated app and screen windows", async () => {
+    const windows = await startMain({
+      displays: [
+        { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+        { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }
+      ]
+    });
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    const screenWindows = windows.filter((win) => win.options.title === "Sacra Lux Screen");
+    const activate = windows.electron.app.on.mock.calls.find(([name]) => name === "activate");
+
+    appWindow.listeners.closed();
+    screenWindows.forEach((win) => win.listeners.closed());
+    windows.electron.BrowserWindow.getAllWindows = () => [];
+    activate[1]();
+
+    const recreatedApp = windows.find((win, index) => index > 2 && win.options.title === "Sacra Lux");
+    const recreatedScreens = windows.filter((win, index) => index > 2 && win.options.title === "Sacra Lux Screen");
+    recreatedApp.show = jest.fn();
+    recreatedApp.focus = jest.fn();
+    recreatedScreens.forEach((win) => {
+      win.show = jest.fn();
+      win.focus = jest.fn();
+    });
+
+    recreatedApp.listeners["did-finish-load"]();
+
+    expect(recreatedApp.show).toHaveBeenCalledTimes(1);
+    expect(recreatedApp.focus).toHaveBeenCalledTimes(1);
+    expect(recreatedScreens.every((win) => win.show.mock.calls.length === 1)).toBe(true);
+    expect(recreatedScreens.every((win) => win.focus.mock.calls.length === 1)).toBe(true);
+  });
+
   test("Windows asks before quitting", async () => {
     const windows = await startMain({ platform: "win32" });
     const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
