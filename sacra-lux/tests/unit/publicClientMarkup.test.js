@@ -86,6 +86,15 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("els.massTitleInput.value = savedTitle;");
   });
 
+  test("keeps export failures on the operator page and resets AVIF state", () => {
+    expect(appHtml).toContain('fetch("/api/export-mass-zip")');
+    expect(appHtml).toContain("Mass export failed.");
+    expect(appHtml).toContain("let avifExportInProgress = false;");
+    expect(appHtml).toContain('socket.on("disconnect", () => {');
+    expect(appHtml).toContain("Export failed: connection lost.");
+    expect(appHtml).toContain("resetAvifExport(error || \"Export failed: unlock required.\")");
+  });
+
   test("filters unsupported folder images and checks the size limit before reading", () => {
     expect(appHtml).toMatch(/function isImageFile\(file\) \{\n\s+return Boolean\(file\) && IMAGE_FILE_NAME\.test\(file\.name \|\| ""\);/);
     expect(appHtml).toContain("const skippedNames = files");
