@@ -116,4 +116,4 @@ A state-changing request from another web site gets HTTP 403 and the error
 The source-network allowlist does not include that device. Open **Select Theme**
 on this computer and add the device address, or clear the list to allow every
 source address. You can also set `SACRA_LUX_SOURCE_NETWORKS` before startup.
-See [Source networks](../README.md#source-networks).
+See [Screen Settings](user-guide.md#screen-settings).
