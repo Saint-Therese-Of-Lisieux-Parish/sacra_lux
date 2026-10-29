@@ -1,6 +1,6 @@
 {
   "name": "sacra-lux",
-  "version": "0.0.292-alpha",
+  "version": "0.0.293-alpha",
   "description": "Catholic Mass presentation app with phone remote control",
   "main": "src/main.js",
   "engines": {
