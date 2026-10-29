@@ -201,7 +201,10 @@ Registers the IPC handlers listed in
 `File > Save` writes the session and the current Mass, then shows `Mass saved`
 or the error text. `before-quit` calls `flushPendingSave()` so a debounced
 save is written before exit. On macOS, closing the windows does not quit the
-app. Activating the app opens the Digital Minister window again.
+app. Activation with no open windows creates the windows again and then shows
+the Digital Minister window and the projector windows. When fullscreen is on,
+the projector windows become fullscreen. When a window is already open,
+activation shows the Digital Minister window.
 
 ### `src/pdfFileName.js`
 
