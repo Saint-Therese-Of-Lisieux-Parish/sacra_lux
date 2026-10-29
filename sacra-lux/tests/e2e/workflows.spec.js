@@ -48,6 +48,30 @@ async function dismissRemoteSplash(page) {
   await expect(page.locator("#remoteSplash")).toBeHidden();
 }
 
+test("operator keeps title and start-time drafts during state updates", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/update-title`, { data: { title: "Saved Title" } });
+  await request.post(`${baseUrl}/api/start-time`, { data: { time: "2030-01-05T09:00" } });
+  await page.goto(`${baseUrl}/app`);
+  await page.locator("#massLibraryCloseBtn").click();
+
+  const titleInput = page.locator("#massTitleInput");
+  await expect(titleInput).toHaveValue("Saved Title");
+  await titleInput.fill("New Title Typed");
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { fontSizePx: 61 } });
+  await expect(titleInput).toHaveValue("New Title Typed");
+  await titleInput.press("Enter");
+  await expect.poll(async () => (await (await request.get(`${baseUrl}/api/state`)).json()).presentation.title)
+    .toBe("New Title Typed");
+
+  const startTimeInput = page.locator("#startTimeInput");
+  await startTimeInput.fill("2030-01-05T10:30");
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { fontSizePx: 62 } });
+  await expect(startTimeInput).toHaveValue("2030-01-05T10:30");
+  await page.locator("#setStartTimeBtn").click();
+  await expect.poll(async () => (await (await request.get(`${baseUrl}/api/state`)).json()).massStartTime)
+    .toBe("2030-01-05T10:30");
+});
+
 test("App Settings lists Catholic themes first", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   await expect(page.locator("#massLibraryDialog")).toBeVisible();
