@@ -2,6 +2,7 @@ const { paginateDocuments, clearPaginationCache } = require("../../src/readingsI
 
 // Canvas widths from RESOLUTION_CANVAS_WIDTHS in src/organizer.js.
 const CANVAS_WIDTHS = { "720p": 1280, "1080p": 1920, "1440p": 2560, "4k": 3840 };
+const DEFAULT_READING_HEIGHTS = { "720p": 560, "1080p": 840, "1440p": 1120, "4k": 1680 };
 const FONT_SIZES = [48, 60, 80];
 const BOX_HEIGHT_PX = 840;
 const MARGIN_X_PX = 80;
@@ -72,7 +73,7 @@ function visualLines(pageText, resolution, fontSizePx) {
 }
 
 function maxLinesPerPage(fontSizePx) {
-  return Math.min(20, Math.max(1, Math.floor(BOX_HEIGHT_PX / (fontSizePx * LINE_HEIGHT))));
+  return Math.max(1, Math.floor(BOX_HEIGHT_PX / (fontSizePx * LINE_HEIGHT)));
 }
 
 describe("reading pagination golden tests", () => {
@@ -112,6 +113,30 @@ describe("reading pagination golden tests", () => {
       for (let i = 1; i < counts.length; i += 1) {
         expect(counts[i]).toBeLessThanOrEqual(counts[i - 1]);
       }
+    }
+  });
+
+  test("uses the full reading box height at larger resolutions", () => {
+    const longReading = {
+      ...READING,
+      textLines: Array.from({ length: 40 }, (_, index) => `Line ${index + 1}: The word of the Lord.`)
+    };
+
+    for (const resolution of ["1440p", "4k"]) {
+      const pages = paginateDocuments([longReading], {
+        fontSizePx: 60,
+        readingTextHeightPx: DEFAULT_READING_HEIGHTS[resolution],
+        readingTextMarginXPx: MARGIN_X_PX,
+        canvasWidth: CANVAS_WIDTHS[resolution]
+      });
+      const fullPages = pages.slice(0, -1);
+      const expectedLines = Math.floor(
+        DEFAULT_READING_HEIGHTS[resolution] / (60 * LINE_HEIGHT)
+      );
+
+      expect(expectedLines).toBeGreaterThanOrEqual(resolution === "4k" ? 15 : 11);
+      expect(fullPages.length).toBeGreaterThan(0);
+      expect(fullPages.every((slide) => visualLines(slide.text, resolution, 60) >= expectedLines)).toBe(true);
     }
   });
 
