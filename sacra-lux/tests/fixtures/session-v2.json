@@ -27,6 +27,8 @@
   "targetScreenId": 2,
   "targetScreenIds": [2, 3],
   "screenFullscreen": true,
+  "preMassRunning": false,
+  "postMassRunning": false,
   "activeMassArchiveId": null,
   "appSettings": { "theme": "dark" }
 }

@@ -141,6 +141,8 @@ function saveSession(state) {
       targetScreenId: targetScreenIds[0] ?? state.targetScreenId ?? null,
       targetScreenIds,
       screenFullscreen: Boolean(state.screenFullscreen),
+      preMassRunning: Boolean(state.preMassRunning),
+      postMassRunning: Boolean(state.postMassRunning),
       activeMassArchiveId: state.activeMassArchiveId || null,
       appSettings: state.appSettings || { theme: DEFAULT_THEME }
     };
