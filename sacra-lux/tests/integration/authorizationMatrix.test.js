@@ -235,6 +235,28 @@ describe("authorization matrix", () => {
       expect(await emitAndWatch(client, event)).toBe(true);
     });
 
+    test("a client that claims the projector role is refused from a non-loopback address", async () => {
+      client = await new Promise((resolve, reject) => {
+        const socket = createClient(handle.baseUrl, {
+          transports: ["websocket"],
+          forceNew: true,
+          auth: { screenRole: "projector" }
+        });
+        socket.once("connect", () => resolve(socket));
+        socket.once("connect_error", reject);
+      });
+      const serverSocket = handle.io.sockets.sockets.get(client.id);
+      Object.defineProperty(serverSocket.request.socket, "remoteAddress", {
+        configurable: true,
+        value: "192.0.2.10"
+      });
+      Object.defineProperty(serverSocket.conn, "remoteAddress", {
+        configurable: true,
+        value: "192.0.2.10"
+      });
+      expect(await emitAndWatch(client, "slide:video-ended")).toBe(true);
+    });
+
     test.each(controlEvents)("%s is accepted for a client with a valid session", async (event) => {
       client = await connect(sessionToken);
       expect(await emitAndWatch(client, event)).toBe(false);

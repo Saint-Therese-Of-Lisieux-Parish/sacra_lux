@@ -88,6 +88,7 @@ const {
   registerPinFailure,
   socketHasControlSession,
   socketMayControl,
+  isLoopbackAddress,
   verifyPin
 } = require("./security");
 const { ALLOWED_NETWORKS_ENV, createHostGuard, createSourceNetworkGuard } = require("./hostGuard");
@@ -4018,7 +4019,11 @@ function startServer(port = 17841, options = {}) {
 
   function withScreenReport(socket, handler) {
     return (...args) => {
-      if (!socketMayControl(socket) && socket.data.screenRole !== "projector") {
+      const projectorIsTrusted = socket.data.screenRole === "projector" && (
+        isLoopbackAddress(socket.request?.socket?.remoteAddress)
+        || socketHasControlSession(socket)
+      );
+      if (!socketMayControl(socket) && !projectorIsTrusted) {
         socket.emit("control:required", { error: getUnlockMessage() });
         return undefined;
       }
