@@ -604,6 +604,7 @@
     let carouselSelectedIndex = 0;
     let latestState = null;
     let remoteControlLocked = false;
+    let remoteStartError = "";
     let lastCarouselTap = { index: null, at: 0 };
     let carouselDragStartX = null;
     let carouselDragStartY = null;
@@ -946,7 +947,7 @@
 
       updateSplash(state);
       if (!remoteControlLocked) {
-        showRemoteStatus("");
+        showRemoteStatus(remoteStartError);
       }
 
       const shouldAnimateCarousel =
@@ -1090,7 +1091,7 @@
     });
     socket.on("control:ok", () => {
       remoteControlLocked = false;
-      showRemoteStatus("");
+      showRemoteStatus(remoteStartError);
     });
     socket.on("disconnect", () => {
       remoteControlLocked = false;
@@ -1503,7 +1504,20 @@
 
     if (window.location.hash === "#start-pre-mass") {
       window.history.replaceState(null, "", "/remote");
-      fetch("/api/pre-mass/start", { method: "POST" }).catch(() => { });
+      fetch("/api/pre-mass/start", { method: "POST" })
+        .then(async (response) => {
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            remoteStartError = data.error || "Failed to start pre-Mass.";
+            showRemoteStatus(remoteStartError);
+            return;
+          }
+          remoteStartError = "";
+        })
+        .catch(() => {
+          remoteStartError = "Failed to start pre-Mass.";
+          showRemoteStatus(remoteStartError);
+        });
     }
 
     fetch("/api/state")

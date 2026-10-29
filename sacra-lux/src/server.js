@@ -2182,6 +2182,17 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   }
 }
 
+function preMassStartIsBlocked() {
+  const target = state.massStartTime ? new Date(state.massStartTime) : null;
+  const massHasBegun = target && !Number.isNaN(target.getTime()) && Date.now() >= target.getTime();
+  return Boolean(
+    massHasBegun ||
+    state.preMassRunning ||
+    state.gatheringRunning ||
+    state.postMassRunning
+  );
+}
+
 function runScheduledSave() {
   _savePending = false;
   _saveTimer = null;
@@ -2948,6 +2959,9 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/pre-mass/start", (req, res) => {
     try {
+      if (preMassStartIsBlocked()) {
+        return res.status(409).json({ error: "Mass is already in progress." });
+      }
       const slides = state.presentation?.slides || [];
       const firstPreIdx = slides.findIndex((s) => s.phase === "pre");
       if (firstPreIdx < 0) {
@@ -3009,7 +3023,7 @@ function startServer(port = 17841, options = {}) {
       // A GET only finishes the QR entry flow. The remote page starts pre-Mass
       // with its normal authorized POST request after it loads.
       if (!startAuthorized && (hostGuard.isCrossSite(req) || !clientMayControl(req))) return res.redirect("/remote");
-      return res.redirect("/remote#start-pre-mass");
+      return res.redirect(preMassStartIsBlocked() ? "/remote" : "/remote#start-pre-mass");
     } catch (_error) {
       return res.redirect("/remote");
     }
