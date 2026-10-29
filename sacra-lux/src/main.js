@@ -312,6 +312,18 @@ function createWindows() {
   logger.info(`Phone remote URL: ${remoteUrl}`);
 }
 
+function showRecreatedWindows() {
+  showWindow(appWindow);
+  for (const win of ensureConfiguredScreenWindows()) {
+    showWindow(win);
+  }
+  if (state.screenFullscreen) {
+    for (const win of ensureConfiguredScreenWindows()) {
+      win.setFullScreen(true);
+    }
+  }
+}
+
 function fullscreenScreen() {
   const windows = ensureConfiguredScreenWindows();
   for (const win of windows) {
@@ -1021,6 +1033,7 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindows();
+      appWindow.webContents.on("did-finish-load", showRecreatedWindows);
     } else {
       showAppWindow();
     }
