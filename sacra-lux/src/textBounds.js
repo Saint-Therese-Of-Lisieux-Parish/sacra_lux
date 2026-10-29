@@ -127,13 +127,17 @@ function legacyTextBoundsFromSettings(settings = {}) {
   const readingHeight = Number.isFinite(Number(settings.readingTextHeightPx))
     ? Number(settings.readingTextHeightPx)
     : 840;
+  const passageHeight = Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3);
   const passageTop = Number.isFinite(Number(settings.readingPassageYPx))
     ? Number(settings.readingPassageYPx)
-    : settings.readingPassagePosition === "bottom" ? 970 : 70;
+    : settings.readingPassagePosition === "bottom"
+      ? 970
+      : settings.readingPassagePosition === "middle"
+        ? Math.max(0, Math.round((canvas.height - passageHeight) / 2))
+        : 70;
   const passageWidth = Number.isFinite(Number(settings.readingPassageWidthPx))
     ? Number(settings.readingPassageWidthPx)
     : 650;
-  const passageHeight = Math.ceil((Number(settings.readingPassageSizePx) || 44) * 2.3);
   const textMarginX = Number.isFinite(Number(settings.textSlideMarginXPx))
     ? Number(settings.textSlideMarginXPx)
     : 110;

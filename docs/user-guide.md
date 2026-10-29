@@ -133,16 +133,24 @@ error.
 **⚙ Screen Settings** opens the **Display Settings** dialog. The dialog has four sections.
 
 1. **Typography & Output** sets the primary font, the base size, the transition, and bold global text.
-2. **Slide Backgrounds** sets two images. The first image is the background for Reading, Text, Hymn, and Prayer slides. The second image is the background for Interstitial slides. Each image can use a preset or an uploaded file.
-3. **Text Styles** has five tabs: **Reading Body**, **Reading Reference & Passage**, **Text**, **Hymn**, and **Prayer**. A slide preview shows the selected text area. **Font** sets the type style for that tab. **Window Position** moves that text area. Font, size, bold, and italic are separate for Text, Hymn, and Prayer. The other Text, Hymn, and Prayer settings are shared. The reference tab also sets the section title, such as First Reading. It can show the slide number, the reading label, and the spoken ending. The spoken ending is its own slide. The text is `The Word of the Lord.` or `The Gospel of the Lord.`
-4. **Resolution** is the last section. The choices are 720p, 1080p, 1440p, and 4K. The default is 1080p.
+2. **Resolution** sets the output size. The choices are 720p, 1080p, 1440p, and 4K.
+3. **Slide Backgrounds** sets two images. The first image is the background for Reading, Text, Hymn, and Prayer slides. The second image is the background for Interstitial slides. Each image can use a preset or an uploaded file. Each selected image has a thumbnail. Select a thumbnail to open a larger view in the output aspect ratio. Press **Escape** or **Close** to return to Display Settings.
+4. **Text Styles** has five tabs: **Reading Body**, **Reading Reference & Passage**, **Text**, **Hymn**, and **Prayer**. A slide preview shows the selected text area. **Font** sets the type style for that tab. **Window Position** moves that text area. Font, size, bold, and italic are separate for Text, Hymn, and Prayer. The other Text, Hymn, and Prayer settings are shared. The reference tab also sets the section title, such as First Reading. It can show the slide number, the reading label, and the spoken ending. The spoken ending is its own slide. The text is `The Word of the Lord.` or `The Gospel of the Lord.`
 
 Most changes apply as you edit. **Apply Changes & Close** saves the changes and closes the dialog.
 
 **🎨 Select Theme** opens the theme list. It does not change the projector text.
+
+Each theme is a choice in that list. The Arrow keys move between the choices.
+They do not save a theme. Press Enter or click a choice to save that theme.
+The status line shows `Theme saved.`
+
+If the save fails, the status line shows the error. The list then shows the
+theme saved on the server. If that read fails, the list shows Carmel Light.
+
 The same dialog sets the network address and the source-network allowlist.
 
-1. **Use this address for remote and screen links.** Choose **Default route** or one IPv4 address of this computer. An address that is not on this computer is rejected. The error is `The selected network address is not available.`
+1. **Use this address for remote and screen links.** Choose **Default route** or one IPv4 address of this computer. When no address is saved, the list shows **Default route**. An address that is not on this computer is rejected. The error is `The selected network address is not available.`
 2. **Allow client addresses and networks.** Leave the field empty to allow every source address. Or enter IPv4 or IPv6 addresses and CIDR networks, separated by commas. The list must include this computer's address. A bad list shows `The source-network allowlist must be text.`, `Invalid source network: <entry>.`, or `The source-network allowlist must include the local operator address.`
 
 The server validates and clamps these settings. A change that affects reading layout re-paginates the reading slides.
@@ -162,6 +170,8 @@ Sacra Lux then runs the phases:
 - **Post-Mass** — **▶ Start Post-Mass** loops the Post-Mass items.
 
 A countdown slide pauses auto-advance until it reaches zero.
+When Pre-Mass or Post-Mass is running, the next automatic advance stays in that phase.
+A countdown end, a movie end, and the movie timer use that rule.
 
 ## Blackout and Manual Navigation
 

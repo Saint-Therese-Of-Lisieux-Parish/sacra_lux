@@ -106,6 +106,18 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("App Settings groups network controls under System Settings", async ({ page }) => {
+  await page.goto(`${baseUrl}/`);
+  await page.locator("#massLibraryCloseBtn").click();
+  await page.locator("#openAppSettingsBtn").click();
+
+  await expect(page.locator("#appSettingsDialog .settings-section-label")).toHaveText(["Theme", "System Settings"]);
+  await expect(page.locator("#remoteAddress")).toBeVisible();
+  await expect(page.locator("#sourceNetworks")).toHaveValue("10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16");
+  await expect(page.locator("#appSettingsDialog")).toContainText("Network address");
+  await expect(page.locator("#appSettingsDialog")).toContainText("Source network allowlist");
+});
+
 test("App Settings theme picker supports keyboard selection and reports rejected changes", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   await page.locator("#massLibraryCloseBtn").click();
@@ -221,6 +233,47 @@ test("Screen Settings Apply Changes & Close saves the settings and closes the di
     const state = await (await request.get(`${baseUrl}/api/state`)).json();
     return state.screenSettings.fontSizePx;
   }).toBe(64);
+});
+
+test("Screen Settings shows background thumbnails and an accessible larger view", async ({ page, request }) => {
+  const backgrounds = await (await request.get(`${baseUrl}/api/builtin-backgrounds`)).json();
+  const [readingBackground, interstitialBackground] = backgrounds.assets;
+  await request.post(`${baseUrl}/api/screen-settings`, {
+    data: {
+      darkBackgroundUrl: readingBackground.url,
+      lightBackgroundUrl: interstitialBackground.url,
+      resolution: "1080p"
+    }
+  });
+
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+  await page.locator("#openSettingsBtn").click();
+
+  const typography = await page.locator(".settings-section--hero").boundingBox();
+  const resolution = await page.locator("#screenResolution").evaluate((element) => {
+    const rect = element.closest(".settings-section").getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+  const backgroundsSection = await page.locator(".settings-section--backgrounds").boundingBox();
+  expect(Math.abs(typography.y - resolution.y)).toBeLessThanOrEqual(1);
+  expect(backgroundsSection.y).toBeGreaterThanOrEqual(Math.max(typography.y + typography.height, resolution.y + resolution.height));
+
+  await expect(page.locator("#darkBgPreview")).toHaveAttribute("src", readingBackground.url);
+  await expect(page.locator("#lightBgPreview")).toHaveAttribute("src", interstitialBackground.url);
+
+  await page.locator("#darkBgPreviewButton").click();
+  await expect(page.locator("#backgroundPreviewOverlay")).toBeVisible();
+  await expect(page.locator("#backgroundPreviewImage")).toHaveAttribute("src", readingBackground.url);
+  const frame = await page.locator("#backgroundPreviewFrame").boundingBox();
+  expect(frame.width / frame.height).toBeCloseTo(16 / 9, 2);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#backgroundPreviewOverlay")).toBeHidden();
+  await expect(page.locator("#darkBgPreviewButton")).toBeFocused();
 });
 
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
@@ -384,13 +437,21 @@ test("Text Area tool draws its handles over the projector renderer", async ({ pa
 
   // A handle drag moves the number fields and the real preview together.
   const handle = page.locator('#textBoundsBox [data-handle="w"]');
+  await handle.scrollIntoViewIfNeeded();
   const handleBox = await handle.boundingBox();
+  await handle.hover();
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(handleBox.x + handleBox.width / 2 + 30, handleBox.y + handleBox.height / 2, { steps: 4 });
+  await page.mouse.move(handleBox.x + handleBox.width / 2 + 60, handleBox.y + handleBox.height / 2, { steps: 8 });
   await page.mouse.up();
   const draggedLeft = Number(await page.locator("#textBoundsLeft").inputValue());
-  expect(draggedLeft).toBeGreaterThan(300);
+  const dragDiagnostics = await page.evaluate(() => ({
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    preview: document.getElementById("textBoundsPreview")?.getBoundingClientRect().toJSON(),
+    bounds: document.getElementById("textBoundsBox")?.getBoundingClientRect().toJSON(),
+    frame: document.getElementById("textBoundsPreviewFrame")?.getBoundingClientRect().toJSON()
+  }));
+  expect(draggedLeft, `Text Area drag did not move the left bound: ${JSON.stringify(dragDiagnostics)}`).toBeGreaterThan(300);
   await expect.poll(() => previewReadingLeft(page, "textBoundsPreviewFrame")).toBe(draggedLeft);
 
   await page.locator("#textBoundsReset").click();

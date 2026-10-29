@@ -7,7 +7,7 @@ harness. Every source file has an entry.
 
 ### `src/server.js`
 
-HTTP and Socket.IO composition root, 4360 lines. Owns:
+HTTP and Socket.IO composition root, 4408 lines. Owns:
 
 - route registration and the control-auth `/api` middleware
 - socket event handling and the `withControl()` guard
@@ -83,7 +83,7 @@ Archive lifecycle:
 - archive ID allocation and filename sanitization. The comparison uses lower case, so `Sunday` and `sunday` are one id.
 - archive path containment checks (path-traversal rejection)
 - archive metadata read/write
-- syncing `current_mass/` into an archive package
+- syncing `current_mass/` into an archive package. A file is copied when its size or modification time differs. A file that is no longer in `current_mass/` is removed.
 - listing, sizing, compressing (via the server), and deleting archives
 
 ### `src/atomicWrite.js`
@@ -119,9 +119,10 @@ not allowed gets HTTP 403. A state-changing request with
 `Sec-Fetch-Site: cross-site` also gets HTTP 403.
 
 `createSourceNetworkGuard()` checks the client address. The starting list is
-`SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A blocked
-request gets HTTP 403 and `Source network not allowed.` Socket.IO uses the
-same check. `POST /api/app-settings` can replace the list.
+`SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A loopback
+address is allowed even when the list is not empty. A blocked request gets
+HTTP 403 and `Source network not allowed.` Socket.IO uses the same check.
+`POST /api/app-settings` can replace the list.
 
 ### `src/networkAddress.js`
 
