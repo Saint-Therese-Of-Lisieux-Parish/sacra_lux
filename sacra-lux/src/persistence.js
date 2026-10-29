@@ -134,6 +134,7 @@ function saveSession(state) {
         ? { currentSlideId: state.currentSlideId || state.presentation.slides[state.currentSlideIndex].id }
         : {}),
       ...(state.currentSlideChangedAt ? { currentSlideChangedAt: state.currentSlideChangedAt } : {}),
+      ...(Number.isFinite(state.countdownEndsAt) ? { countdownEndsAt: state.countdownEndsAt } : {}),
       massStartTime: state.massStartTime || null,
       startPinHash: state.startPinHash || null,
       controlMode: state.controlMode || "unset",

@@ -1972,7 +1972,7 @@ function stopAllRuntimeTimers() {
  * Sets countdownEndsAt so clients can render the visual timer, and schedules
  * auto-advance when time expires.
  */
-function startCountdownForSlide(ioRef) {
+function startCountdownForSlide(ioRef, restoredEndsAt = null) {
   stopCountdownTimer();
   const slides = state.presentation?.slides || [];
   const slide = slides[state.currentSlideIndex];
@@ -1987,7 +1987,24 @@ function startCountdownForSlide(ioRef) {
   }
 
   const durationMs = Math.min(COUNTDOWN_MAX_SEC * 1000, seconds * 1000);
-  state.countdownEndsAt = Date.now() + durationMs;
+  const savedEndsAt = restoredEndsAt == null ? null : Number(restoredEndsAt);
+  const countdownEndsAt = Number.isFinite(savedEndsAt) ? savedEndsAt : Date.now() + durationMs;
+  if (countdownEndsAt <= Date.now()) {
+    state.countdownEndsAt = null;
+    const allSlides = state.presentation?.slides || [];
+    if (state.currentSlideIndex < allSlides.length - 1) {
+      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex + 1);
+      touch();
+      ioRef.emit("state:update", getStateSnapshot());
+      scheduleSave();
+      scheduleRuntimeForCurrentSlide(ioRef);
+    } else {
+      touch();
+      ioRef.emit("state:update", getStateSnapshot());
+    }
+    return;
+  }
+  state.countdownEndsAt = countdownEndsAt;
   // Broadcast immediately so clients can start rendering the countdown.
   touch();
   ioRef.emit("state:update", getStateSnapshot());
@@ -2011,7 +2028,7 @@ function startCountdownForSlide(ioRef) {
       touch();
       ioRef.emit("state:update", getStateSnapshot());
     }
-  }, durationMs);
+  }, Math.max(0, countdownEndsAt - Date.now()));
 }
 
 function shouldMovieSlideControlAdvance(slide) {
@@ -2311,7 +2328,12 @@ function restoreSession(ioRef) {
   }
 
   const restored = restoreCurrentMassOrPrompt(ioRef, session?.activeMassArchiveId);
-  if (restored) restoreSavedSlide(session);
+  if (restored) {
+    if (Number.isFinite(session?.countdownEndsAt)) {
+      state.countdownEndsAt = session.countdownEndsAt;
+    }
+    restoreSavedSlide(session);
+  }
 }
 
 // ── Express / Socket.IO server ────────────────────────────────────────────────
@@ -4277,7 +4299,7 @@ function startServer(port = 17841, options = {}) {
 
     const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (currentSlide?.type === "countdown") {
-      startCountdownForSlide(io);
+      startCountdownForSlide(io, state.countdownEndsAt);
     } else if (currentSlide?.type === "imageSlideshow") {
       scheduleImageSlideshowSlide(io);
     }
