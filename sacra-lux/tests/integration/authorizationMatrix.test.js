@@ -34,6 +34,7 @@ const ROUTES = [
   ["GET", "/api/start-redirect", "public"], // It checks a one-time start token.
   ["POST", "/api/verify-pin", "public"], // It checks the PIN and has lockouts.
   ["POST", "/api/start-pin", "public"], // It checks the current PIN in the handler.
+  ["POST", "/api/control-sessions/end", "control"],
   ["POST", "/api/preview-reading", "public"], // Read-only preview. It does not change state.
   ["POST", "/api/preview-manual-slide", "public"], // Read-only preview. It does not change state.
 
@@ -78,7 +79,8 @@ const SOCKET_EVENTS = [
   ["image-slideshow:preload-error", "control"],
   ["screen:interstitial-hold", "control"],
   ["screen:black", "control"],
-  ["export:avif:start", "control"]
+  ["export:avif:start", "control"],
+  ["control:lock", "control"]
 ];
 
 const routeKey = (method, routePath) => `${method} ${routePath}`;
@@ -259,7 +261,8 @@ describe("authorization matrix", () => {
 
     test.each(controlEvents)("%s is accepted for a client with a valid session", async (event) => {
       client = await connect(sessionToken);
-      expect(await emitAndWatch(client, event)).toBe(false);
+      expect(await emitAndWatch(client, event)).toBe(event === "control:lock");
+      if (event === "control:lock") sessionToken = security.noteControlUnlock();
     });
 
     test("a forged token is refused", async () => {

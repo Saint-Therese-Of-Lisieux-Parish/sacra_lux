@@ -62,6 +62,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 - `POST /api/start-time` — set or clear `massStartTime` and arm the start timers
 - `POST /api/start-pin` — set, change, or clear the start PIN
+- `POST /api/control-sessions/end` — end every remote control session except the requesting session
 - `POST /api/verify-pin` — verify a PIN, issue a one-time start token and a control session
 - `GET /api/start-redirect` — validate a start token and redirect to `/remote`. This GET does not start pre-Mass. After a valid token, the redirect is `/remote#start-pre-mass`, and the remote page sends `POST /api/pre-mass/start`.
 - `POST /api/pre-mass/start`, `POST /api/pre-mass/stop`
@@ -134,6 +135,7 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 ### Client to server
 
 - `control:auth` — present a control token to unlock control events
+- `control:lock` — lock the connected remote and end its control session
 - `screen:settings` — update screen settings and repaginate readings if needed. A background URL with a bad prefix is ignored.
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index

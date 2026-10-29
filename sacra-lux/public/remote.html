@@ -507,6 +507,7 @@
     <div id="remoteStatus" class="remote-status" role="status" aria-live="polite">
       <span id="remoteStatusMessage"></span>
       <a id="remoteUnlockLink" href="/start" hidden>Unlock the remote</a>
+      <button id="remoteLockButton" type="button" hidden>Lock this remote</button>
     </div>
 
     <section class="card" style="padding: 0.35rem 0.35rem 0.12rem">
@@ -528,6 +529,7 @@
       remoteStatus: document.getElementById("remoteStatus"),
       remoteStatusMessage: document.getElementById("remoteStatusMessage"),
       remoteUnlockLink: document.getElementById("remoteUnlockLink"),
+      remoteLockButton: document.getElementById("remoteLockButton"),
       previewDock: document.getElementById("previewDock"),
       previewCarousel: document.getElementById("previewCarousel"),
       carouselTrack: document.getElementById("carouselTrack"),
@@ -683,6 +685,7 @@
     function showRemoteStatus(message, { showUnlock = false } = {}) {
       els.remoteStatusMessage.textContent = message || "";
       els.remoteUnlockLink.hidden = !showUnlock;
+      els.remoteLockButton.hidden = showUnlock || remoteControlLocked !== false;
     }
 
     function dismissSplash() {
@@ -1092,6 +1095,9 @@
     socket.on("control:ok", () => {
       remoteControlLocked = false;
       showRemoteStatus(remoteStartError);
+    });
+    els.remoteLockButton.addEventListener("click", () => {
+      socket.emit("control:lock");
     });
     socket.on("disconnect", () => {
       remoteControlLocked = false;

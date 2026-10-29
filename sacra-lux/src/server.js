@@ -70,6 +70,8 @@ const {
   RATE_LIMIT_CONFIG,
   clearPinFailures,
   clearStartToken,
+  clearControlAccessExcept,
+  clearControlSession,
   createConcurrentLimitMiddleware,
   createPinHashRecord,
   createRateLimitMiddleware,
@@ -2410,6 +2412,19 @@ function startServer(port = 17841, options = {}) {
   });
   activeIo = io;
 
+  function endRemoteControlSessionsExcept(keepToken = "") {
+    const notifiedSockets = [...io.sockets.sockets.values()].filter((socket) => {
+      const token = getValidControlSessionToken(socket);
+      return token && token !== keepToken;
+    });
+    clearControlAccessExcept(keepToken);
+    for (const socket of notifiedSockets) {
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: "The operator ended remote sessions." });
+    }
+    return notifiedSockets.length;
+  }
+
   const globalApiRateLimit = createRateLimitMiddleware({
     ...RATE_LIMIT_CONFIG.global,
     keyFn: getClientIp
@@ -2972,6 +2987,15 @@ function startServer(port = 17841, options = {}) {
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to set PIN." });
     }
+  });
+
+  app.post("/api/control-sessions/end", (req, res) => {
+    if (!clientMayControl(req)) {
+      return res.status(401).json({ error: getUnlockMessage() });
+    }
+    const keepToken = getValidControlSessionToken(req);
+    const ended = endRemoteControlSessionsExcept(keepToken);
+    return res.json({ ok: true, ended });
   });
 
   // ── Network control mode (used when no PIN is set) ─────────────────────────
@@ -4126,6 +4150,16 @@ function startServer(port = 17841, options = {}) {
       }
       socket.data.controlToken = "";
       socket.emit("control:required", { error: "Unlock required." });
+    });
+    socket.on("control:lock", () => {
+      const token = getValidControlSessionToken(socket);
+      if (!token) {
+        socket.emit("control:required", { error: getUnlockMessage() });
+        return;
+      }
+      clearControlSession(token);
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: "This remote is locked." });
     });
 
     socket.on("screen:settings", withControl(socket, (settings) => {
