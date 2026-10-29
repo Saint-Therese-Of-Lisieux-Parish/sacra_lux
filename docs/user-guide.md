@@ -170,6 +170,8 @@ Sacra Lux then runs the phases:
 - **Post-Mass** — **▶ Start Post-Mass** loops the Post-Mass items.
 
 A countdown slide pauses auto-advance until it reaches zero.
+When Pre-Mass or Post-Mass is running, the next automatic advance stays in that phase.
+A countdown end, a movie end, and the movie timer use that rule.
 
 ## Blackout and Manual Navigation
 

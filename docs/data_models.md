@@ -330,7 +330,7 @@ also adds 1. Startup restore, ZIP import, and archive load call that function.
 - `presentationTitle`
 - `currentSlideId` — saved when a slide id exists. Restore uses it when that id is still in the presentation and the age is from 0 through 4 hours. The age uses `currentSlideChangedAt`, or `savedAt` when the change time is missing. A missing id, a future time, or an older time leaves the slide index unchanged.
 - `currentSlideChangedAt` — the time the current slide id last changed. `touch()` sets it when the slide id changes.
-- `countdownEndsAt` — saved when the value is a finite number. Restore copies it. A countdown slide then continues from that end time. An end time that has passed advances to the next slide when one exists.
+- `countdownEndsAt` — saved when the value is a finite number. Restore copies it. A countdown slide then continues from that end time. An end time that has passed advances. During Pre-Mass or Post-Mass, that advance stays in the phase.
 - `massStartTime`
 - `startPinHash`
 - `targetScreenId`
