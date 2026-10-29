@@ -85,6 +85,31 @@ describe("organizer", () => {
     expect(narrowPages[0].styleOverrides.bounds.body).toEqual({ left: 600, right: 600, top: 130, bottom: 110 });
   });
 
+  test("gives repeated reading items unique slide IDs", () => {
+    const documents = [{
+      stem: "Gospel",
+      section: "Gospel",
+      passage: "John 1:1",
+      textLines: ["In the beginning was the Word."],
+      ending: "The Gospel of the Lord"
+    }];
+    const presentation = buildPresentationFromOrganizer({
+      title: "Repeated reading",
+      documents,
+      sequence: [
+        { id: "reading:Gospel", type: "reading", sourceStem: "Gospel", phase: "mass" },
+        { id: "reading:Gospel~2", type: "reading", sourceStem: "Gospel", phase: "mass" }
+      ],
+      manualSlides: {},
+      screenSettings: { fontSizePx: 60, fontFamily: "Merriweather", resolution: "1080p" }
+    });
+
+    const ids = presentation.slides.map((slide) => slide.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids[0]).toBe("reading-Gospel-p1");
+    expect(ids[2]).toBe("reading-Gospel-p1~reading:Gospel~2~2");
+  });
+
   test("normalizes legacy values", () => {
     expect(normalizeType("reading-group")).toBe("reading");
     expect(normalizeType("graphic")).toBe("image");
