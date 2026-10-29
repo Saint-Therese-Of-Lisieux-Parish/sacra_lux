@@ -100,15 +100,15 @@ function getArchivePaths(archiveId) {
 function allocateArchiveId(title, excludeId = null) {
   ensureHistoryDir();
   const base = sanitizeForFilename(title) || "Mass";
-  const existing = new Set(listArchiveIds());
-  if (excludeId) {
-    existing.delete(normalizeArchiveId(excludeId));
-  }
-  if (!existing.has(base)) {
+  const excluded = excludeId ? normalizeArchiveId(excludeId).toLowerCase() : null;
+  const existing = new Set(listArchiveIds()
+    .filter((archiveId) => archiveId.toLowerCase() !== excluded)
+    .map((archiveId) => archiveId.toLowerCase()));
+  if (!existing.has(base.toLowerCase())) {
     return base;
   }
   let index = 2;
-  while (existing.has(`${base}-${index}`)) {
+  while (existing.has(`${base}-${index}`.toLowerCase())) {
     index += 1;
   }
   return `${base}-${index}`;
@@ -175,7 +175,7 @@ function ensureActiveArchive({ currentArchiveId, title, startTime }) {
     paths = getArchivePaths(archiveId);
   }
 
-  const desiredId = currentArchiveId
+  const desiredId = currentArchiveId && preferredId.toLowerCase() !== archiveId.toLowerCase()
     ? allocateArchiveId(title, archiveId)
     : archiveId;
 

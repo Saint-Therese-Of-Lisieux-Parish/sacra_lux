@@ -124,6 +124,33 @@ describe("massHistory", () => {
       .toBe("Mass-3");
   });
 
+  test("allocates a new ID when an existing archive differs only by case", () => {
+    const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");
+    fs.mkdirSync(path.join(historyDir, "Sunday-Mass"), { recursive: true });
+
+    const history = require("../../src/massHistory");
+
+    expect(history.ensureActiveArchive({ currentArchiveId: null, title: "sunday mass", startTime: null }).archiveId)
+      .toBe("sunday-mass-2");
+  });
+
+  test("keeps the active archive when only the title case changes", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "current", "utf8");
+    const history = require("../../src/massHistory");
+    const first = history.syncCurrentMassToArchive({ currentArchiveId: null, title: "Sunday Mass", startTime: null });
+
+    const second = history.syncCurrentMassToArchive({
+      currentArchiveId: first.id,
+      title: "sunday mass",
+      startTime: null
+    });
+
+    expect(second.id).toBe(first.id);
+    expect(history.listMassArchives().map((archive) => archive.id)).toEqual(["Sunday-Mass"]);
+  });
+
   test("replaces a missing active archive and removes old package data", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");

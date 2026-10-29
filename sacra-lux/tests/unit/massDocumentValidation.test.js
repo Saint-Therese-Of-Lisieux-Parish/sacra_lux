@@ -281,6 +281,12 @@ describe("massDocument helpers and round trips", () => {
     expect(() => assetUrlFromRef(undefined)).toThrow(ValidationError);
   });
 
+  test("rejects encoded path separators in asset URLs", () => {
+    expect(assetRefFromUrl("/api/mass-asset/..%2Fx.png")).toBeNull();
+    expect(assetRefFromUrl("/api/mass-asset/%2E%2E%5Cx.png")).toBeNull();
+    expect(assetRefFromUrl("/api/mass-asset/a%2Fb.png")).toBeNull();
+  });
+
   test("detects v3 documents", () => {
     expect(isMassDocumentV3({ format: "sacra-lux.mass", version: 3 })).toBe(true);
     expect(isMassDocumentV3({ format: "sacra-lux.mass", version: 2 })).toBe(false);

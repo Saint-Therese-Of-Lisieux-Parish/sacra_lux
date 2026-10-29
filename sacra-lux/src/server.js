@@ -24,6 +24,7 @@ const {
   buildRuntimeStateFromMassDocument,
   decodeAssetName,
   isMassDocumentV3,
+  isSafeAssetName,
   serializeReadingDocument
 } = require("./massDocument");
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
@@ -459,7 +460,14 @@ function rewriteLegacyUploadRefs(value) {
 const ALLOWED_MEDIA_URL_PREFIXES = ["/api/mass-asset/", "/static/assets/", "/static/backgrounds/"];
 
 function isAllowedMediaUrl(value) {
-  return ALLOWED_MEDIA_URL_PREFIXES.some((prefix) => value.startsWith(prefix));
+  if (!ALLOWED_MEDIA_URL_PREFIXES.some((prefix) => value.startsWith(prefix))) return false;
+  if (value.startsWith("/api/mass-asset/")) {
+    const match = value.match(/\/api\/mass-asset\/([^/]+)$/);
+    if (!match) return false;
+    const name = decodeAssetName(match[1]);
+    return name !== "." && name !== ".." && !/[\\/\u0000-\u001f\u007f]/.test(name);
+  }
+  return true;
 }
 
 const BACKGROUND_URL_KEYS = ["darkBackgroundUrl", "lightBackgroundUrl", "colorBackgroundUrl", "imageBackgroundUrl", "wordBackgroundUrl", "graphicBackgroundUrl"];
@@ -717,17 +725,17 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
     const assetRefMatch = String(ref).match(/^assets\/([^/]+)$/);
     if (assetRefMatch) {
       originalName = assetRefMatch[1];
-      filePath = path.join(packageDir, "assets", originalName);
+      if (isSafeAssetName(originalName)) filePath = path.join(packageDir, "assets", originalName);
     }
     const assetMatch = String(ref).match(/\/api\/mass-asset\/([^/]+)$/);
     if (assetMatch) {
       originalName = decodeAssetName(assetMatch[1]);
-      filePath = path.join(packageDir, "assets", originalName);
+      if (isSafeAssetName(originalName)) filePath = path.join(packageDir, "assets", originalName);
     }
     const uploadMatch = String(ref).match(/\/static\/uploads\/([^/]+)$/);
     if (uploadMatch) {
       originalName = uploadMatch[1];
-      filePath = path.join(packageDir, "uploads", originalName);
+      if (isSafeAssetName(originalName)) filePath = path.join(packageDir, "uploads", originalName);
     }
     if (!filePath || !originalName || !fs.existsSync(filePath)) continue;
     const ext = path.extname(originalName).toLowerCase();
@@ -4141,7 +4149,7 @@ function startServer(port = 17841, options = {}) {
           const assetMatch = url.match(/\/api\/mass-asset\/([^/]+)$/);
           if (assetMatch) {
             originalName = decodeAssetName(assetMatch[1]);
-            filePath = path.join(assetsDir, originalName);
+            if (isSafeAssetName(originalName)) filePath = path.join(assetsDir, originalName);
           }
           if (url.startsWith("/static/assets/")) continue;
           if (!filePath || !originalName || !fs.existsSync(filePath)) continue;
