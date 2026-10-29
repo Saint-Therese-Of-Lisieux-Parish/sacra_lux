@@ -10,6 +10,7 @@ const {
   loadReadingsFolder,
   startIsolatedServer
 } = require("../helpers/testHarness");
+const { DEFAULT_SOURCE_NETWORKS } = require("../../src/state");
 
 describe("server api integration", () => {
   let handle;
@@ -66,6 +67,7 @@ describe("server api integration", () => {
     state.startPinHash = null;
     state.controlMode = "unset";
     state.appSettings.remoteAddress = "";
+    state.appSettings.sourceNetworks = DEFAULT_SOURCE_NETWORKS;
     warnSpy = jest.spyOn(console, "warn").mockImplementation(() => { });
   });
 
@@ -123,6 +125,11 @@ describe("server api integration", () => {
     expect((await request(app).get("/api/network-addresses").expect(200)).body.selectedAddress).toBe(selected);
     await request(app).post("/api/app-settings").send({ remoteAddress: "192.0.2.1" }).expect(400);
     expect(state.appSettings.remoteAddress).toBe(selected);
+  });
+
+  test("uses the RFC 1918 source network default when no allowlist is saved", async () => {
+    const response = await request(app).get("/api/state").expect(200);
+    expect(response.body.appSettings.sourceNetworks).toBe(DEFAULT_SOURCE_NETWORKS);
   });
 
   describe("first PIN setup from a non-loopback client", () => {

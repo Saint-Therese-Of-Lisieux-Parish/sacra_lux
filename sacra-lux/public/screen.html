@@ -851,7 +851,9 @@
       const maxVisibleY = Math.max(0, wrapHeight - safePassageHeight - 12);
       const defaultY = passagePosition === "bottom"
         ? Math.min(970, maxVisibleY)
-        : 70;
+        : passagePosition === "middle"
+          ? Math.max(0, Math.round((wrapHeight - safePassageHeight) / 2))
+          : 70;
 
       let resolvedY = Number.isFinite(requestedY) ? requestedY : defaultY;
 
@@ -861,6 +863,9 @@
       }
       if (passagePosition === "bottom" && resolvedY < 420) {
         resolvedY = Math.min(970, maxVisibleY);
+      }
+      if (passagePosition === "middle" && (resolvedY < 200 || resolvedY > wrapHeight - safePassageHeight - 200)) {
+        resolvedY = Math.max(0, Math.round((wrapHeight - safePassageHeight) / 2));
       }
 
       return Math.min(Math.max(0, resolvedY), maxVisibleY);

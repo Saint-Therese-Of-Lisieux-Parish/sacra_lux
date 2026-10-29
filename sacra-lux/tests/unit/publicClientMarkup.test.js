@@ -161,6 +161,12 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('data-control-tab="position"');
   });
 
+  test("reading reference settings use vertical alignment", () => {
+    expect(appHtml).toContain("<label>Vertical alignment");
+    expect(appHtml).not.toContain("<label>Placement");
+    expect(appHtml).toContain('<option value="middle">Middle</option>');
+  });
+
   test("text bounds editors draw the handles over the projector renderer", () => {
     const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
 

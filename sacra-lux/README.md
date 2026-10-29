@@ -67,11 +67,11 @@ npm run test:e2e:install
 ## Releases
 
 The `Release` GitHub Actions workflow publishes the release files. Push a tag
-that matches the `package.json` version. The current package version is `0.0.313-alpha`.
+that matches the `package.json` version. The current package version is `0.0.317-alpha`.
 
 ```bash
-git tag v0.0.301-alpha
-git push origin v0.0.301-alpha
+git tag v0.0.313-alpha
+git push origin v0.0.313-alpha
 ```
 
 The workflow builds these files:
