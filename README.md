@@ -171,8 +171,8 @@ replaces the environment value. The list must include the address of the
 Digital Minister who saves it. An invalid entry in the environment is ignored.
 The log says `Ignoring invalid source network entry: <entry>`. A saved list
 that is not valid is cleared. The log says `Ignoring invalid saved
-source-network allowlist.` The active check then stays on the list that was
-already loaded.
+source-network allowlist.` The active check is cleared too, so every source
+address is allowed.
 
 ## Repository layout
 
