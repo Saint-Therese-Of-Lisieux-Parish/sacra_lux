@@ -2281,6 +2281,30 @@ function flushPendingSave() {
 }
 
 /**
+ * Clear the start PIN from the Electron operator menu.
+ *
+ * This path is intentionally not exposed through HTTP or Socket.IO.
+ */
+function resetStartPin() {
+  const notifiedSockets = activeIo
+    ? [...activeIo.sockets.sockets.values()].filter(socketHasControlSession)
+    : [];
+  state.startPin = "";
+  state.startPinHash = null;
+  clearControlAccess();
+  for (const socket of notifiedSockets) {
+    socket.data.controlToken = "";
+    socket.emit("control:required", { error: "The start PIN was reset. Unlock again." });
+  }
+  touch();
+  if (saveSession(state) === false) {
+    throw new Error("Could not save session.json.");
+  }
+  activeIo?.emit("state:update", getStateSnapshot());
+  return { ok: true, hasPin: false };
+}
+
+/**
  * Attempt to restore the last saved session.
  * Re-imports readings from the saved folder path if it still exists on disk.
  */
@@ -4432,6 +4456,7 @@ module.exports = {
   startServer,
   saveCurrentMass,
   flushPendingSave,
+  resetStartPin,
   validateMassZipArchive,
   MASS_ZIP_LIMITS: Object.freeze({
     maxCompressedBytes: MAX_MASS_ZIP_COMPRESSED_BYTES,

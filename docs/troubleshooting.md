@@ -25,6 +25,13 @@ server holds the only authoritative state, so always inspect server state
 - Rate limits return `429` for too many requests (global), too many auth
   attempts, too many uploads, or too many heavy exports. Wait and retry.
 
+## The start PIN is forgotten
+
+- In the Electron app, open **File** and select **Reset Start PIN**.
+- Confirm the reset. Sacra Lux clears the PIN, ends all control sessions, and
+  saves the change to `session.json`.
+- Unlock the remote again if a PIN is needed.
+
 ## A reading's text overflows or underfills the page
 
 - Reading pagination is heuristic and estimates visual lines from the font

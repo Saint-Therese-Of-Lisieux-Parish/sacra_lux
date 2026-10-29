@@ -90,12 +90,14 @@ async function startMain({
   jest.doMock("electron", () => electron, { virtual: true });
   const saveCurrentMass = jest.fn();
   const flushPendingSave = jest.fn();
+  const resetStartPin = jest.fn();
   const io = { on: jest.fn(), emit: jest.fn() };
   const startServer = jest.fn(() => ({ io, server }));
   jest.doMock("../../src/server", () => ({
     startServer,
     saveCurrentMass,
-    flushPendingSave
+    flushPendingSave,
+    resetStartPin
   }));
   jest.doMock("../../src/persistence", () => ({ saveSession: jest.fn() }));
   jest.doMock("../../src/cliBanner", () => ({ writeStartupBanner: jest.fn() }));
@@ -117,6 +119,7 @@ async function startMain({
   windows.startServer = startServer;
   windows.saveCurrentMass = saveCurrentMass;
   windows.flushPendingSave = flushPendingSave;
+  windows.resetStartPin = resetStartPin;
   return windows;
 }
 
@@ -305,6 +308,24 @@ describe("Electron window security settings", () => {
     expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
       expect.stringContaining("Mass saved")
     );
+  });
+
+  test("the Reset Start PIN menu item resets the PIN after confirmation", async () => {
+    const windows = await startMain();
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const file = template.find((item) => item.label === "File");
+    const reset = file.submenu.find((item) => item.label === "Reset Start PIN");
+
+    reset.click();
+
+    expect(windows.electron.dialog.showMessageBoxSync).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        title: "Reset Start PIN",
+        buttons: ["Cancel", "Reset Start PIN"]
+      })
+    );
+    expect(windows.resetStartPin).toHaveBeenCalledTimes(1);
   });
 
   test("the Save menu item shows an error status without throwing", async () => {
