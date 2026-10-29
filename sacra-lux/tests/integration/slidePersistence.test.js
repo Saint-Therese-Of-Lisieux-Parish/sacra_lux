@@ -151,4 +151,88 @@ describe("current slide persistence", () => {
       await restarted.stop();
     }
   });
+
+  test("restores the remaining countdown time after a restart", async () => {
+    const first = await boot();
+    await request(first.app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "countdown", type: "countdown", label: "Countdown", phase: "mass", backgroundTheme: "dark" },
+          { id: "after", type: "text", label: "After", phase: "mass", backgroundTheme: "dark" }
+        ],
+        manualSlides: {
+          countdown: { countdownSec: 600 },
+          after: { text: "After" }
+        }
+      })
+      .expect(200);
+    const firstState = (await request(first.app).get("/api/state").expect(200)).body;
+    const countdownSlide = firstState.presentation.slides.find((slide) => slide.organizerItemId === "countdown");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await first.stop();
+
+    const fs = require("fs");
+    const path = require("path");
+    const sessionPath = path.join(homeDir, ".sacra-lux", "session.json");
+    const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+    const savedEndsAt = Date.now() + 300000;
+    Object.assign(session, {
+      currentSlideId: countdownSlide.id,
+      currentSlideChangedAt: new Date().toISOString(),
+      countdownEndsAt: savedEndsAt
+    });
+    fs.writeFileSync(sessionPath, JSON.stringify(session), "utf8");
+
+    const restarted = await boot();
+    try {
+      const state = (await request(restarted.app).get("/api/state").expect(200)).body;
+      expect(state.presentation.slides[state.currentSlideIndex].organizerItemId).toBe("countdown");
+      expect(state.countdownEndsAt).toBeGreaterThanOrEqual(savedEndsAt - 2000);
+      expect(state.countdownEndsAt).toBeLessThanOrEqual(savedEndsAt + 2000);
+    } finally {
+      await restarted.stop();
+    }
+  });
+
+  test("advances past a countdown that expired during a restart", async () => {
+    const first = await boot();
+    await request(first.app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "countdown", type: "countdown", label: "Countdown", phase: "mass", backgroundTheme: "dark" },
+          { id: "after", type: "text", label: "After", phase: "mass", backgroundTheme: "dark" }
+        ],
+        manualSlides: {
+          countdown: { countdownSec: 600 },
+          after: { text: "After" }
+        }
+      })
+      .expect(200);
+    const firstState = (await request(first.app).get("/api/state").expect(200)).body;
+    const countdownSlide = firstState.presentation.slides.find((slide) => slide.organizerItemId === "countdown");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await first.stop();
+
+    const fs = require("fs");
+    const path = require("path");
+    const sessionPath = path.join(homeDir, ".sacra-lux", "session.json");
+    const session = JSON.parse(fs.readFileSync(sessionPath, "utf8"));
+    Object.assign(session, {
+      currentSlideId: countdownSlide.id,
+      currentSlideChangedAt: new Date().toISOString(),
+      countdownEndsAt: Date.now() - 1000
+    });
+    fs.writeFileSync(sessionPath, JSON.stringify(session), "utf8");
+
+    const restarted = await boot();
+    try {
+      const state = (await request(restarted.app).get("/api/state").expect(200)).body;
+      expect(state.presentation.slides[state.currentSlideIndex].organizerItemId).toBe("after");
+      expect(state.countdownEndsAt).toBeNull();
+    } finally {
+      await restarted.stop();
+    }
+  });
 });
