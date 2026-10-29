@@ -19,6 +19,7 @@ describe("server api integration", () => {
   let state;
   let validateMassZipArchive;
   let MASS_ZIP_LIMITS;
+  let resetStartPin;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
 
   function extractTokenFromRedirect(redirectPath) {
@@ -56,7 +57,7 @@ describe("server api integration", () => {
     app.set("trust proxy", true);
     ({ resetSecurityState } = require("../../src/security"));
     ({ state } = require("../../src/state"));
-    ({ validateMassZipArchive, MASS_ZIP_LIMITS } = require("../../src/server"));
+    ({ validateMassZipArchive, MASS_ZIP_LIMITS, resetStartPin } = require("../../src/server"));
   });
 
   beforeEach(() => {
@@ -84,6 +85,31 @@ describe("server api integration", () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.hasStartPin).toBe(true);
     expect(stateRes.body.startPin).toBeUndefined();
+  });
+
+  test("the Electron reset clears the PIN, ends sockets, and saves the session", async () => {
+    const pinResponse = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+    const client = createSocket(handle.baseUrl, {
+      transports: ["websocket"],
+      auth: { token: pinResponse.body.controlToken }
+    });
+    try {
+      await new Promise((resolve, reject) => {
+        client.once("connect", resolve);
+        client.once("connect_error", reject);
+      });
+      const required = new Promise((resolve) => client.once("control:required", resolve));
+
+      expect(resetStartPin()).toEqual({ ok: true, hasPin: false });
+      await expect(required).resolves.toEqual({
+        error: "The start PIN was reset. Unlock again."
+      });
+      expect((await request(app).get("/api/state").expect(200)).body.hasStartPin).toBe(false);
+      const session = JSON.parse(fs.readFileSync(path.join(handle.homeDir, ".sacra-lux", "session.json"), "utf8"));
+      expect(session.startPinHash).toBeNull();
+    } finally {
+      client.disconnect();
+    }
   });
 
   test("lists network addresses and saves a valid selected address", async () => {
