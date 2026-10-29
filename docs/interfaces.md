@@ -138,9 +138,11 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index
 - `slide:goto:remote` — jump from the remote and allow post-mass loop activation
-- `slide:video-ended` — a screen reports a movie finished; the first report for a slide advances, later reports for the same slide are ignored
-- `slide:video-ready` — a screen reports a movie's real length (`durationMs`) so the server can arm a fallback advance
-- `image-slideshow:preload-error` — a screen reports an image that failed to preload
+- `slide:video-ended` — a projector reports a movie finished; the first report for a slide advances, later reports for the same slide are ignored
+- `slide:video-ready` — a projector reports a movie's real length (`durationMs`) so the server can arm a fallback advance
+- `image-slideshow:preload-error` — a projector reports an image that failed to preload
+
+The server accepts those three reports only from a socket whose handshake `screenRole` is `projector`, and only when that socket is on a loopback address or has a control session. Any other socket gets `control:required`.
 - `screen:interstitial-hold` — toggle remote interstitial hold
 - `screen:black` — toggle blackout mode
 - `export:avif:start` — start an AVIF ZIP export
