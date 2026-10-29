@@ -83,7 +83,7 @@ Archive lifecycle:
 - archive ID allocation and filename sanitization. The comparison uses lower case, so `Sunday` and `sunday` are one id.
 - archive path containment checks (path-traversal rejection)
 - archive metadata read/write
-- syncing `current_mass/` into an archive package
+- syncing `current_mass/` into an archive package. A file is copied when its size or modification time differs. A file that is no longer in `current_mass/` is removed.
 - listing, sizing, compressing (via the server), and deleting archives
 
 ### `src/atomicWrite.js`
