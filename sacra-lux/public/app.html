@@ -1048,9 +1048,105 @@
     }
 
     .settings-section--hero {
+      grid-column: 1;
+      grid-row: 1;
       background:
         radial-gradient(circle at top right, color-mix(in srgb, var(--accent), white 20%) 0%, transparent 34%),
         linear-gradient(180deg, color-mix(in srgb, var(--panel), white 4%), color-mix(in srgb, var(--panel-alt), white 2%));
+    }
+
+    .settings-section--backgrounds {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .settings-section--resolution {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .settings-background-preview {
+      width: min(100%, 25rem);
+    }
+
+    .settings-background-preview-button {
+      position: relative;
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius);
+      background: var(--control-bg);
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+
+    .settings-background-preview-button:disabled {
+      cursor: default;
+      opacity: 0.8;
+    }
+
+    .settings-background-preview-button img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .settings-background-preview-button img[hidden],
+    .settings-background-preview-button span[hidden] {
+      display: none;
+    }
+
+    .background-preview-overlay[hidden] {
+      display: none;
+    }
+
+    .background-preview-overlay {
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      background: rgb(0 0 0 / 78%);
+    }
+
+    .background-preview-frame {
+      position: relative;
+      width: min(90vw, 1200px);
+      aspect-ratio: var(--preview-aspect-ratio, 16 / 9);
+      border: 1px solid rgb(255 255 255 / 50%);
+      background: #101010;
+      box-shadow: 0 1rem 3rem rgb(0 0 0 / 45%);
+    }
+
+    .background-preview-frame img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .background-preview-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 1;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
     }
 
     .text-bounds-toolbar,
@@ -1740,6 +1836,17 @@
 
       .settings-section--span-2 {
         grid-column: auto;
+      }
+
+      .settings-section--hero,
+      .settings-section--backgrounds {
+        grid-column: auto;
+        grid-row: auto;
+      }
+
+      .settings-section--resolution {
+        grid-column: auto;
+        grid-row: auto;
       }
     }
 
@@ -2892,7 +2999,7 @@
               </div>
             </section>
 
-            <section class="settings-section">
+            <section class="settings-section settings-section--backgrounds">
               <div class="settings-section-header">
                 <div>
                   <div class="settings-section-label">Backgrounds</div>
@@ -2902,6 +3009,12 @@
               </div>
               <div class="settings-upload-card">
                 <div class="settings-subsection-label">Reading, Text, Hymns, and Prayers Background</div>
+                <div class="settings-background-preview">
+                  <button id="darkBgPreviewButton" class="settings-background-preview-button" type="button" disabled aria-label="Preview Reading, Text, Hymns, and Prayers background">
+                    <img id="darkBgPreview" alt="Selected Reading, Text, Hymns, and Prayers background" hidden>
+                    <span id="darkBgPreviewEmpty">No background selected</span>
+                  </button>
+                </div>
                 <div class="settings-upload-row">
                   <label style="flex:1 1 260px">Preset
                     <select id="darkBgPreset">
@@ -2916,6 +3029,12 @@
               </div>
               <div class="settings-upload-card">
                 <div class="settings-subsection-label">Interstitial Background</div>
+                <div class="settings-background-preview">
+                  <button id="lightBgPreviewButton" class="settings-background-preview-button" type="button" disabled aria-label="Preview Interstitial background">
+                    <img id="lightBgPreview" alt="Selected Interstitial background" hidden>
+                    <span id="lightBgPreviewEmpty">No background selected</span>
+                  </button>
+                </div>
                 <div class="settings-upload-row">
                   <label style="flex:1 1 260px">Preset
                     <select id="lightBgPreset">
@@ -3420,7 +3539,7 @@
               </div>
             </section>
 
-            <section class="settings-section settings-section--span-2">
+            <section class="settings-section settings-section--resolution" id="screenResolutionSection">
               <div class="settings-section-header">
                 <div>
                   <div class="settings-section-label">Output</div>
@@ -3441,6 +3560,7 @@
                 </div>
               </div>
             </section>
+
           </div>
 
           <div class="settings-apply-row">
@@ -3449,6 +3569,14 @@
           </div>
         </div>
       </dialog>
+
+      <div id="backgroundPreviewOverlay" class="background-preview-overlay" role="dialog" aria-modal="true" aria-labelledby="backgroundPreviewTitle" hidden>
+        <div id="backgroundPreviewFrame" class="background-preview-frame">
+          <button id="backgroundPreviewClose" class="save-btn background-preview-close" type="button">Close</button>
+          <h2 id="backgroundPreviewTitle" class="sr-only">Background preview</h2>
+          <img id="backgroundPreviewImage" alt="" hidden>
+        </div>
+      </div>
 
       <dialog id="appSettingsDialog" class="settings-dialog">
         <div class="settings-dialog-header">
@@ -4370,6 +4498,17 @@
       darkBgUpload: document.getElementById("darkBgUpload"),
       lightBgPreset: document.getElementById("lightBgPreset"),
       lightBgUpload: document.getElementById("lightBgUpload"),
+      darkBgPreviewButton: document.getElementById("darkBgPreviewButton"),
+      darkBgPreview: document.getElementById("darkBgPreview"),
+      darkBgPreviewEmpty: document.getElementById("darkBgPreviewEmpty"),
+      lightBgPreviewButton: document.getElementById("lightBgPreviewButton"),
+      lightBgPreview: document.getElementById("lightBgPreview"),
+      lightBgPreviewEmpty: document.getElementById("lightBgPreviewEmpty"),
+      backgroundPreviewOverlay: document.getElementById("backgroundPreviewOverlay"),
+      backgroundPreviewFrame: document.getElementById("backgroundPreviewFrame"),
+      backgroundPreviewImage: document.getElementById("backgroundPreviewImage"),
+      backgroundPreviewTitle: document.getElementById("backgroundPreviewTitle"),
+      backgroundPreviewClose: document.getElementById("backgroundPreviewClose"),
       boldText: document.getElementById("boldText"),
       readingTextAlign: document.getElementById("readingTextAlign"),
       readingTextVAlign: document.getElementById("readingTextVAlign"),
@@ -7828,7 +7967,87 @@
         });
         if (currentUrl) choosePresetForUrl(sel, currentUrl);
       }
+      updateBackgroundPreview("dark", els.darkBgPreset?.value || "");
+      updateBackgroundPreview("light", els.lightBgPreset?.value || "");
     }
+
+    const backgroundPreviewElements = {
+      dark: {
+        button: els.darkBgPreviewButton,
+        image: els.darkBgPreview,
+        empty: els.darkBgPreviewEmpty,
+        label: "Reading, Text, Hymns, and Prayers background"
+      },
+      light: {
+        button: els.lightBgPreviewButton,
+        image: els.lightBgPreview,
+        empty: els.lightBgPreviewEmpty,
+        label: "Interstitial background"
+      }
+    };
+
+    function updateBackgroundPreview(kind, url) {
+      const preview = backgroundPreviewElements[kind];
+      if (!preview) return;
+      const value = String(url || "");
+      preview.button.dataset.previewUrl = value;
+      preview.button.disabled = !value;
+      preview.image.hidden = !value;
+      preview.empty.hidden = Boolean(value);
+      preview.image.src = value;
+      preview.image.onerror = () => {
+        preview.image.hidden = true;
+        preview.empty.hidden = false;
+        preview.empty.textContent = "Preview unavailable";
+        preview.button.disabled = true;
+      };
+    }
+
+    function getBackgroundPreviewAspectRatio() {
+      const ratios = { "720p": "16 / 9", "1080p": "16 / 9", "1440p": "16 / 9", "4k": "16 / 9" };
+      return ratios[els.screenResolution?.value] || "16 / 9";
+    }
+
+    function openBackgroundPreview(kind) {
+      const preview = backgroundPreviewElements[kind];
+      const url = preview?.button?.dataset.previewUrl || "";
+      if (!url || preview.image.hidden) return;
+      els.backgroundPreviewImage.src = url;
+      els.backgroundPreviewImage.alt = preview.image.alt;
+      els.backgroundPreviewImage.hidden = false;
+      els.backgroundPreviewTitle.textContent = `${preview.label} preview`;
+      els.backgroundPreviewFrame.style.setProperty("--preview-aspect-ratio", getBackgroundPreviewAspectRatio());
+      els.backgroundPreviewOverlay.hidden = false;
+      els.backgroundPreviewClose.focus();
+      els.backgroundPreviewOverlay.dataset.returnFocusId = preview.button.id;
+    }
+
+    function closeBackgroundPreview() {
+      const returnFocusId = els.backgroundPreviewOverlay.dataset.returnFocusId;
+      els.backgroundPreviewOverlay.hidden = true;
+      els.backgroundPreviewImage.hidden = true;
+      document.getElementById(returnFocusId)?.focus();
+    }
+
+    els.darkBgPreviewButton.addEventListener("click", () => openBackgroundPreview("dark"));
+    els.lightBgPreviewButton.addEventListener("click", () => openBackgroundPreview("light"));
+    for (const [button, kind] of [[els.darkBgPreviewButton, "dark"], [els.lightBgPreviewButton, "light"]]) {
+      button.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openBackgroundPreview(kind);
+      });
+    }
+    els.backgroundPreviewClose.addEventListener("click", closeBackgroundPreview);
+    els.backgroundPreviewOverlay.addEventListener("click", (event) => {
+      if (event.target === els.backgroundPreviewOverlay) closeBackgroundPreview();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || els.backgroundPreviewOverlay.hidden) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeBackgroundPreview();
+    });
 
     /**
      * Populate the asset picker dropdown from /api/mass-assets.
@@ -8164,6 +8383,8 @@
     });
     els.darkBgPreset.addEventListener("change", () => applyScreenSettings());
     els.lightBgPreset.addEventListener("change", () => applyScreenSettings());
+    els.darkBgPreset.addEventListener("change", () => updateBackgroundPreview("dark", els.darkBgPreset.value));
+    els.lightBgPreset.addEventListener("change", () => updateBackgroundPreview("light", els.lightBgPreset.value));
 
     // Screen Settings dialog open/close
     document.getElementById("openSettingsBtn").addEventListener("click", () => {
