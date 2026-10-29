@@ -159,6 +159,24 @@ describe("screen settings normalization", () => {
     expect(after).toEqual(before);
   });
 
+  test("repaginates manual text slides when a Mass has no readings", async () => {
+    const text = Array.from({ length: 40 }, (_, index) => `Prayer line ${index + 1}`).join("\n");
+    const sequence = [{ id: "prayer", type: "prayer", label: "Prayer", phase: "mass", backgroundTheme: "dark" }];
+    const manualSlides = { prayer: { text } };
+
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    const before = await request(app).get("/api/state").expect(200);
+    const settings = await post({ prayerTextSizePx: 200 });
+    const after = await request(app).get("/api/state").expect(200);
+
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    const rebuilt = await request(app).get("/api/state").expect(200);
+
+    expect(settings.prayerTextSizePx).toBe(200);
+    expect(after.body.presentation.slides.length).toBeGreaterThan(before.body.presentation.slides.length);
+    expect(after.body.presentation.slides.length).toBe(rebuilt.body.presentation.slides.length);
+  });
+
   test("replaces invalid values with defaults or clamps them", async () => {
     state.screenSettings = {};
     const settings = await post({

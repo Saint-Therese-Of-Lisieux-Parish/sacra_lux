@@ -1126,13 +1126,9 @@ function normalizeTypeFontSettings(input, current, prefix) {
 }
 
 function repaginateReadingSlidesIfNeeded() {
-  if (!Array.isArray(state.readingsSource.documents) || state.readingsSource.documents.length === 0) {
-    return;
-  }
-
   state.presentation = buildPresentationFromOrganizer({
     title: state.presentation.title,
-    documents: state.readingsSource.documents,
+    documents: Array.isArray(state.readingsSource?.documents) ? state.readingsSource.documents : [],
     sequence: state.organizerSequence,
     manualSlides: state.manualSlides,
     screenSettings: state.screenSettings
