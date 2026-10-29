@@ -180,6 +180,58 @@ describe("phase slide timers", () => {
     expect(response.body.postMassRunning).toBe(false);
   });
 
+  test("loops pre-Mass when the last slide is a countdown", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Pre countdown", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [textItem("pre-a", "pre"), {
+        id: "pre-countdown",
+        type: "countdown",
+        label: "Pre countdown",
+        phase: "pre",
+        backgroundTheme: "dark",
+        durationSec: 1
+      }, textItem("mass", "mass", 10)],
+      { "pre-a": { text: "A" }, "pre-countdown": { countdownSec: 1 }, mass: { text: "Mass" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    jest.advanceTimersByTime(1000);
+    await flushSocket();
+    jest.advanceTimersByTime(1000);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("pre-a");
+    expect(response.body.preMassRunning).toBe(true);
+  });
+
+  test("loops post-Mass when the last slide is a movie", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Post movie", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [textItem("mass", "mass", 10), textItem("post-a", "post"), {
+        id: "post-movie",
+        type: "movie",
+        label: "Post movie",
+        phase: "post",
+        backgroundTheme: "dark",
+        durationSec: 1
+      }],
+      { mass: { text: "Mass" }, "post-a": { text: "A" }, "post-movie": { videoUrl: "/static/assets/movie.mp4" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/post-mass/start").expect(200);
+    jest.advanceTimersByTime(1000);
+    await flushSocket();
+    jest.advanceTimersByTime(1000);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("post-a");
+    expect(response.body.postMassRunning).toBe(true);
+  });
+
   test("skips an empty slideshow forward and back", async () => {
     await request(app).post("/api/new-mass").send({ title: "Slideshow direction", startTime: "" }).expect(200);
     await saveOrganizer(
