@@ -140,6 +140,14 @@ error.
 Most changes apply as you edit. **Apply Changes & Close** saves the changes and closes the dialog.
 
 **🎨 Select Theme** opens the theme list. It does not change the projector text.
+
+Each theme is a choice in that list. The Arrow keys move between the choices.
+They do not save a theme. Press Enter or click a choice to save that theme.
+The status line shows `Theme saved.`
+
+If the save fails, the status line shows the error. The list then shows the
+theme saved on the server. If that read fails, the list shows Carmel Light.
+
 The same dialog sets the network address and the source-network allowlist.
 
 1. **Use this address for remote and screen links.** Choose **Default route** or one IPv4 address of this computer. When no address is saved, the list shows **Default route**. An address that is not on this computer is rejected. The error is `The selected network address is not available.`
