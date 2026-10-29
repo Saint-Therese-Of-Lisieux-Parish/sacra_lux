@@ -186,6 +186,16 @@ describe("socket handlers", () => {
       await pending;
     });
 
+    test("screen:settings saves the changed settings to the current Mass", async () => {
+      client.emit("screen:settings", { fontSizePx: 80 });
+      await waitForState(client, (next) => next.screenSettings.fontSizePx === 80);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const massPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+      const mass = JSON.parse(fs.readFileSync(massPath, "utf8"));
+      expect(mass.presentationDefaults.fontSizePx).toBe(80);
+    });
+
     test("screen:settings ignores a background URL outside the allow-list", async () => {
       const { state } = require("../../src/state");
       const before = JSON.stringify(state.screenSettings);

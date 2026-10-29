@@ -3961,11 +3961,11 @@ function startServer(port = 17841, options = {}) {
     res.json({ addresses, selectedAddress: state.appSettings?.remoteAddress || "" });
   });
 
-  function broadcast() {
+  function broadcast(syncCurrentMass = false) {
     touch();
     invalidateStateCache();
     io.emit("state:update", getCachedStateSnapshot());
-    scheduleSave();
+    scheduleSave(syncCurrentMass);
   }
 
   function releaseInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
@@ -4120,7 +4120,7 @@ function startServer(port = 17841, options = {}) {
       }
       state.screenSettings = normalizeScreenSettings(settings || {});
       repaginateReadingSlidesIfNeeded();
-      broadcast();
+      broadcast(true);
     }));
 
     socket.on("slide:next", withControl(socket, () => stepSlide(1)));
