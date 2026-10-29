@@ -463,7 +463,9 @@ function isAllowedMediaUrl(value) {
   if (!ALLOWED_MEDIA_URL_PREFIXES.some((prefix) => value.startsWith(prefix))) return false;
   if (value.startsWith("/api/mass-asset/")) {
     const match = value.match(/\/api\/mass-asset\/([^/]+)$/);
-    return Boolean(match && isSafeAssetName(decodeAssetName(match[1])));
+    if (!match) return false;
+    const name = decodeAssetName(match[1]);
+    return name !== "." && name !== ".." && !/[\\/\u0000-\u001f\u007f]/.test(name);
   }
   return true;
 }
