@@ -208,10 +208,11 @@ function countVisualLines(lines, fontSizePx, boxWidthPx) {
  */
 function estimateLinesPerPage(fontSizePx, readingTextHeightPx, lineHeight) {
   const size = clamp(Number(fontSizePx) || 60, 24, 200);
-  const boxHeight = clamp(Number(readingTextHeightPx) || 840, 120, 980);
+  const requestedHeight = Number(readingTextHeightPx);
+  const boxHeight = Number.isFinite(requestedHeight) ? Math.max(120, requestedHeight) : 840;
   const lh = Number(lineHeight) || DEFAULT_LINE_HEIGHT;
   const lineHeightPx = size * lh;
-  return clamp(Math.floor(boxHeight / lineHeightPx), 1, 20);
+  return Math.max(1, Math.floor(boxHeight / lineHeightPx));
 }
 
 function isOrMarker(line) {
