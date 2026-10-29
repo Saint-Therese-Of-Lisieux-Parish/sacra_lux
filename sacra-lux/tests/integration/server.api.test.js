@@ -1076,6 +1076,44 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(path.dirname(storedPath), "Over.mp4"))).toBe(false);
   });
 
+  test("upload route rejects a Mass that exceeds the media size limit", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const existingPath = path.join(assetsDir, "existing.mp4");
+    fs.writeFileSync(existingPath, "");
+    const currentBytes = fs.readdirSync(assetsDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name !== "existing.mp4")
+      .reduce((total, entry) => total + fs.statSync(path.join(assetsDir, entry.name)).size, 0);
+    fs.truncateSync(existingPath, Math.max(0, MASS_ZIP_LIMITS.maxCompressedBytes - currentBytes));
+
+    const res = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Too-large.png", dataUrl: tinyPngDataUrl })
+      .expect(400);
+
+    expect(res.body.error).toContain(`${MASS_ZIP_LIMITS.maxCompressedBytes} byte limit`);
+    expect(fs.existsSync(path.join(assetsDir, "Too-large.png"))).toBe(false);
+  });
+
+  test("folder slideshow import rejects a Mass that exceeds the media size limit", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const existingPath = path.join(assetsDir, "slideshow-existing.mp4");
+    fs.writeFileSync(existingPath, "");
+    const currentBytes = fs.readdirSync(assetsDir, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name !== "slideshow-existing.mp4")
+      .reduce((total, entry) => total + fs.statSync(path.join(assetsDir, entry.name)).size, 0);
+    fs.truncateSync(existingPath, Math.max(0, MASS_ZIP_LIMITS.maxCompressedBytes - currentBytes));
+
+    const res = await request(app)
+      .post("/api/import-slideshow-images")
+      .send({ images: [{ filename: "Too-large.png", dataUrl: tinyPngDataUrl }] })
+      .expect(400);
+
+    expect(res.body.error).toContain(`${MASS_ZIP_LIMITS.maxCompressedBytes} byte limit`);
+    expect(fs.existsSync(path.join(assetsDir, "Too-large.png"))).toBe(false);
+  });
+
   test("upload routes accept bodies above the default JSON limit", async () => {
     const padding = "A".repeat(11 * 1024 * 1024);
     const res = await request(app)

@@ -605,6 +605,22 @@ function saveMassAssetUpload(upload) {
   };
 }
 
+function getCurrentMassAssetBytes() {
+  const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+  if (!fs.existsSync(assetsDir)) return 0;
+  return fs.readdirSync(assetsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .reduce((total, entry) => total + fs.statSync(path.join(assetsDir, entry.name)).size, 0);
+}
+
+function massAssetSizeError(additionalBytes) {
+  const currentBytes = getCurrentMassAssetBytes();
+  const totalBytes = currentBytes + additionalBytes;
+  if (totalBytes <= MAX_MASS_ZIP_COMPRESSED_BYTES) return null;
+  return `Mass media exceeds the ${MAX_MASS_ZIP_COMPRESSED_BYTES} byte limit; ` +
+    `current total is ${currentBytes} bytes and the new upload is ${additionalBytes} bytes.`;
+}
+
 function loadReadingsFromFolder(folderPath, screenSettings) {
   const hasReadings = fs.existsSync(folderPath) &&
     fs.readdirSync(folderPath).some((file) => file.endsWith(".txt"));
@@ -2496,7 +2512,10 @@ function startServer(port = 17841, options = {}) {
       fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
       const { filename, dataUrl } = req.body || {};
       if (!dataUrl) return res.status(400).json({ error: "dataUrl is required." });
-      const asset = saveMassAssetUpload(parseMassAssetUpload(filename, dataUrl));
+      const upload = parseMassAssetUpload(filename, dataUrl);
+      const sizeError = massAssetSizeError(upload.bytes.length);
+      if (sizeError) return res.status(400).json({ error: sizeError });
+      const asset = saveMassAssetUpload(upload);
       return res.json({
         ok: true,
         ...asset
@@ -2546,6 +2565,8 @@ function startServer(port = 17841, options = {}) {
       if (totalBytes > MAX_SLIDESHOW_IMPORT_BYTES) {
         return res.status(400).json({ error: "The selected images are too large to import together." });
       }
+      const sizeError = massAssetSizeError(totalBytes);
+      if (sizeError) return res.status(400).json({ error: sizeError });
 
       fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
       // Remove every file this request created if a later write fails, so a
