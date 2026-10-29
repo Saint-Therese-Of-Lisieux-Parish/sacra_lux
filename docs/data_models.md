@@ -313,7 +313,8 @@ save sets `Could not save mass.json: <message>`. A failed session save sets
 The session file does not store `saveError`.
 
 `organizerRevision` starts at 0. A successful organizer save adds 1.
-The snapshot includes the current value.
+The snapshot includes the current value. `applyMassPackageFromCurrentDir()`
+also adds 1. Startup restore, ZIP import, and archive load call that function.
 
 ## Session File
 
