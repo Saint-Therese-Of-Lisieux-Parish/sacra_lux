@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
+const { clearRateLimitState } = require("../../src/security");
 const { createTempHome, startIsolatedServer } = require("../helpers/testHarness");
 
 let handle;
@@ -8,6 +9,10 @@ let baseUrl;
 test.beforeAll(async () => {
   handle = await startIsolatedServer({ port: 0, homeDir: createTempHome("sacra-lux-keyboard-") });
   baseUrl = handle.baseUrl;
+});
+
+test.beforeEach(() => {
+  clearRateLimitState();
 });
 
 test.afterAll(async () => {

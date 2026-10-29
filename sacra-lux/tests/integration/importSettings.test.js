@@ -9,6 +9,7 @@ describe("settings import and export", () => {
   let handle;
   let app;
   let state;
+  let clearRateLimitState;
 
   const sequence = [
     { id: "one", type: "text", label: "One", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
@@ -21,11 +22,13 @@ describe("settings import and export", () => {
     handle = await startIsolatedServer({ port: 0, homeDir: createTempHome("sacra-lux-import-") });
     app = handle.app;
     ({ state } = require("../../src/state"));
+    ({ clearRateLimitState } = require("../../src/security"));
   });
 
   beforeEach(async () => {
     state.startPin = "";
     state.startPinHash = null;
+    clearRateLimitState();
     await request(app).post("/api/new-mass").send({ title: "Import Mass", startTime: "" }).expect(200);
   });
 
@@ -80,6 +83,18 @@ describe("settings import and export", () => {
       sequence,
       manualSlides: { v: { videoUrl: "https://evil.example/a.mp4" } }
     }).expect(400);
+  });
+
+  test("rejects an encoded path separator in an asset URL", async () => {
+    const before = JSON.stringify(state.manualSlides);
+    await request(app).post("/api/organizer").send({
+      sequence,
+      manualSlides: { one: { imageUrl: "/api/mass-asset/..%2Fx.png" } }
+    }).expect(400);
+    await request(app).post("/api/import-settings").send({
+      manualSlides: { one: { imageUrl: "/api/mass-asset/..%2Fx.png" } }
+    }).expect(400);
+    expect(JSON.stringify(state.manualSlides)).toBe(before);
   });
 
   test("accepts built-in background URLs", async () => {
