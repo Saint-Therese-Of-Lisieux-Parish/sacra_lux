@@ -7,7 +7,7 @@ harness. Every source file has an entry.
 
 ### `src/server.js`
 
-HTTP and Socket.IO composition root, 4195 lines. Owns:
+HTTP and Socket.IO composition root, 4360 lines. Owns:
 
 - route registration and the control-auth `/api` middleware
 - socket event handling and the `withControl()` guard
@@ -45,6 +45,7 @@ Pure organizer logic (no I/O):
 - derive presentation slides per type, including text hard-break splitting and
   image-slideshow expansion
 - compute image-slideshow runtime as image count times seconds per image times loop count. A crossfade does not add time.
+- give each built slide its own id. When an id is already used, the later id is the original id, `~`, the organizer item id, `~`, and a number that starts at 2.
 
 ### `src/readingsImporter.js`
 
@@ -52,7 +53,7 @@ Reading pipeline:
 
 - parse liturgy `.txt` files and derive sections from file stems
 - normalize ordering and labels
-- paginate psalms and readings with a visual-line estimator
+- paginate psalms and readings with a visual-line estimator. The page estimate uses the requested text-box height when that height is finite. The minimum height is 120 px. A missing height uses 840 px. The line count is the height divided by the line height, and the count is at least 1.
 - memoize visual-line estimates and cache pagination results (keyed by
   content hash + layout options) with TTL and LRU eviction
 
@@ -79,7 +80,7 @@ USCCB Daily Readings RSS integration:
 
 Archive lifecycle:
 
-- archive ID allocation and filename sanitization
+- archive ID allocation and filename sanitization. The comparison uses lower case, so `Sunday` and `sunday` are one id.
 - archive path containment checks (path-traversal rejection)
 - archive metadata read/write
 - syncing `current_mass/` into an archive package
@@ -116,6 +117,20 @@ loopback addresses, addresses of local network interfaces, and the networks
 and host names in `SACRA_LUX_ALLOWED_NETWORKS`. A request with a host that is
 not allowed gets HTTP 403. A state-changing request with
 `Sec-Fetch-Site: cross-site` also gets HTTP 403.
+
+`createSourceNetworkGuard()` checks the client address. The starting list is
+`SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A blocked
+request gets HTTP 403 and `Source network not allowed.` Socket.IO uses the
+same check. `POST /api/app-settings` can replace the list.
+
+### `src/networkAddress.js`
+
+`getPreferredIpv4Address()` chooses the host for remote and screen URLs.
+It uses the saved `remoteAddress` when that address is a current IPv4
+address. Otherwise it uses the IPv4 address on the default route. On macOS
+it reads `route -n get default`. On other systems it reads `ip route show
+default`. When that lookup fails, it uses the first IPv4 address. When no
+IPv4 address exists, it returns `localhost`.
 
 ### `src/readingEndings.js`
 
@@ -187,7 +202,16 @@ Registers the IPC handlers listed in
 `File > Save` writes the session and the current Mass, then shows `Mass saved`
 or the error text. `before-quit` calls `flushPendingSave()` so a debounced
 save is written before exit. On macOS, closing the windows does not quit the
-app. Activating the app opens the Digital Minister window again.
+app. Activation with no open windows creates the windows again and then shows
+the Digital Minister window and the projector windows. When fullscreen is on,
+the projector windows become fullscreen. When a window is already open,
+activation shows the Digital Minister window.
+
+### `src/pdfCaptureState.js`
+
+`buildPdfSlideState()` builds the state for one PDF page. It sets the slide
+index. It turns blackout off. It clears the countdown end time. It clears
+the interstitial hold fields.
 
 ### `src/pdfFileName.js`
 
@@ -274,7 +298,8 @@ Unit test files:
 `atomicWrite`, `buildDefaultBackground`, `checkVersionBump`, `checkVersionSync`,
 `cliBanner`, `electronWindows`, `hostGuard`, `ipcHandlers`, `lectionaryRss`,
 `logger`, `massDocument`, `massDocumentFuzz`, `massDocumentValidation`,
-`massHistory`, `movieAdvance`, `organizer`, `paginationGolden`, `pdfFileName`, `persistence`,
+`massHistory`, `movieAdvance`, `networkAddress`, `organizer`, `paginationGolden`,
+`pdfCaptureState`, `pdfFileName`, `persistence`,
 `preload`, `publicClientMarkup`, `readingEndings`, `readingsImporter`,
 `readingsImporterErrors`, `scanReleaseZips`, `security`, `sharedClient`,
 `startupListenLog`, `state`, `textBounds`, `themeContrast`, `themes`, `web`,
@@ -285,15 +310,16 @@ Unit test files:
 Integration test files:
 
 `activeArchiveGuard`, `archiveRestart`, `assetUrlEncoding`, `atomicMassWrites`,
-`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`, `flushOnQuit`,
-`flushPendingSave`, `hostOriginGuard`, `importSettings`, `interstitialHold`,
-`longTitleSave`, `massStartClock`, `mediaTiming`, `migrationFixtures`,
-`movieAdvance`, `phaseTimers`, `publicHtml`, `remoteBlackout`,
-`screenSettings`, `securityHeaders`, `server.api`, `socketHandlers`,
-`startPinLockout`, `zipImportFuzz`.
+`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`, `compressArchiveOriginals`,
+`flushOnQuit`, `flushPendingSave`, `hostOriginGuard`, `importSettings`, `interstitialHold`,
+`largeMassZipRoundTrip`, `longTitleSave`, `massStartClock`, `mediaTiming`, `migrationFixtures`,
+`movieAdvance`, `organizerConflict`, `phaseTimers`, `publicHtml`, `readingPersistence`,
+`remoteBlackout`, `screenSettings`, `securityHeaders`, `server.api`, `slidePersistence`,
+`socketHandlers`, `startPinLockout`, `webPortInUse`, `zipImportFuzz`.
 
 ### `tests/e2e/`
 
-Playwright spec files: `accessibility.spec.js`, `massRehearsal.spec.js`,
-`offline.spec.js`, `screenshots.spec.js`, `workflows.spec.js`, and
-`xssPayloads.spec.js`.
+Playwright spec files: `accessibility.spec.js`, `keyboardShortcuts.spec.js`,
+`lockedOperator.spec.js`, `massRehearsal.spec.js`, `offline.spec.js`,
+`organizerConflict.spec.js`, `remoteStartErrors.spec.js`, `screenshots.spec.js`,
+`themeFallback.spec.js`, `workflows.spec.js`, and `xssPayloads.spec.js`.

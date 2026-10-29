@@ -140,6 +140,10 @@ error.
 Most changes apply as you edit. **Apply Changes & Close** saves the changes and closes the dialog.
 
 **🎨 Select Theme** opens the theme list. It does not change the projector text.
+The same dialog sets the network address and the source-network allowlist.
+
+1. **Use this address for remote and screen links.** Choose **Default route** or one IPv4 address of this computer. An address that is not on this computer is rejected. The error is `The selected network address is not available.`
+2. **Allow client addresses and networks.** Leave the field empty to allow every source address. Or enter IPv4 or IPv6 addresses and CIDR networks, separated by commas. The list must include this computer's address. A bad list shows `The source-network allowlist must be text.`, `Invalid source network: <entry>.`, or `The source-network allowlist must include the local operator address.`
 
 The server validates and clamps these settings. A change that affects reading layout re-paginates the reading slides.
 
@@ -213,7 +217,7 @@ that has already passed.
 - **↪︎ Export** downloads the current Mass as a ZIP.
 - **Export AVIF** converts eligible images to AVIF and downloads an optimized
   ZIP.
-- **📄 Export PDF** (Electron only) produces a full-deck PDF.
+- **📄 Export PDF** (Electron only) produces a full-deck PDF. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
 - **Export Slide to PDF** (Electron only) exports the current slide preview.
 
 All export ZIPs contain a version 3 `mass.json`; see
@@ -259,7 +263,7 @@ These keys work when focus is not in a text field, a select list, a button, a li
 ## Where Files Live
 
 In Electron, **File > Save** writes the session and the current Mass. The
-The Digital Minister page then shows `Mass saved`, or the error text when the write fails.
+Digital Minister page then shows `Mass saved`, or the error text when the write fails.
 Closing the app writes a save that is still waiting. A scheduled save that
 fails shows the error in the status line instead of the slide count. A later
 successful save clears that error.

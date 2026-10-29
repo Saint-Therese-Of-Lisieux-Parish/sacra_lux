@@ -259,7 +259,7 @@ runtime state with secrets stripped. Client-visible fields:
 
 ```js
 {
-  appSettings: { theme: string },
+  appSettings: { theme: string, remoteAddress: string, sourceNetworks: string },
   presentation: object,
   readingsSource: object,
   organizerSequence: array,
@@ -267,6 +267,8 @@ runtime state with secrets stripped. Client-visible fields:
   organizerRevision: number,
   screenSettings: object,
   currentSlideIndex: number,
+  currentSlideId: string | null,
+  currentSlideChangedAt: string,
   isBlack: boolean,
   interstitialHoldActive: boolean,
   interstitialHoldSlideIndex: number | null,
@@ -298,9 +300,9 @@ Stripped before transmission:
 - `interstitialHoldReturnSlideIndex`
 - `interstitialHoldResumeState`
 
-`serverTime` is the server clock at `lastUpdated`, in milliseconds. The
-projector uses it to correct a countdown when the projector clock differs from
-the server clock.
+`serverTime` is the server clock in milliseconds when `getStateSnapshot()`
+builds the snapshot. It is not the `lastUpdated` time. The projector subtracts
+its own clock from `serverTime` and uses that offset for a countdown.
 
 `startupPrompt` is `{ type: "mass-library", reason: string }` when the server
 starts without a valid `current_mass` package, or `null` otherwise.
@@ -311,7 +313,8 @@ save sets `Could not save mass.json: <message>`. A failed session save sets
 The session file does not store `saveError`.
 
 `organizerRevision` starts at 0. A successful organizer save adds 1.
-The snapshot includes the current value.
+The snapshot includes the current value. `applyMassPackageFromCurrentDir()`
+also adds 1. Startup restore, ZIP import, and archive load call that function.
 
 ## Session File
 
@@ -325,6 +328,9 @@ The snapshot includes the current value.
 - `organizerRevision` — saved revision. Restore uses it when it is an integer of 0 or greater. Any other saved value leaves the revision at 0.
 - `lastReadingsFolderPath`
 - `presentationTitle`
+- `currentSlideId` — saved when a slide id exists. Restore uses it when that id is still in the presentation and the age is from 0 through 4 hours. The age uses `currentSlideChangedAt`, or `savedAt` when the change time is missing. A missing id, a future time, or an older time leaves the slide index unchanged.
+- `currentSlideChangedAt` — the time the current slide id last changed. `touch()` sets it when the slide id changes.
+- `countdownEndsAt` — saved when the value is a finite number. Restore copies it. A countdown slide then continues from that end time. An end time that has passed advances to the next slide when one exists.
 - `massStartTime`
 - `startPinHash`
 - `targetScreenId`
@@ -332,7 +338,7 @@ The snapshot includes the current value.
 - `screenFullscreen`
 - `activeMassArchiveId`
 - `controlMode`
-- `appSettings` — `{ theme }`
+- `appSettings` — `theme`, `remoteAddress`, and `sourceNetworks`
 
 Parsed reading documents are omitted because they are reloaded from
 `current_mass/`. Session version `1` is migrated automatically by

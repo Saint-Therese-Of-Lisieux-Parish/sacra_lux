@@ -110,3 +110,10 @@ restart the app. See [Allowed hosts and origins](https://github.com/Saint-Theres
 
 A state-changing request from another web site gets HTTP 403 and the error
 `Cross-site request not allowed.` Open the app from this computer instead.
+
+## A device gets "Source network not allowed"
+
+The source-network allowlist does not include that device. Open **Select Theme**
+on this computer and add the device address, or clear the list to allow every
+source address. You can also set `SACRA_LUX_SOURCE_NETWORKS` before startup.
+See [Screen Settings](user-guide.md#screen-settings).
