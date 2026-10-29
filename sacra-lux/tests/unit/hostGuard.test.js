@@ -111,6 +111,14 @@ describe("source network guard", () => {
     expect(guard.isAllowedAddress("192.168.2.1")).toBe(false);
   });
 
+  test.each(["127.0.0.1", "127.42.0.9", "::1", "::ffff:127.0.0.1"])(
+    "allows loopback address %s with an active allowlist",
+    (address) => {
+      const guard = createSourceNetworkGuard({ allowedEntries: "192.168.1.0/24" });
+      expect(guard.isAllowedAddress(address)).toBe(true);
+    }
+  );
+
   test("reports malformed IPv4 and IPv6 entries", () => {
     expect(createSourceNetworkGuard({ allowedEntries: "192.168.1.0/33,2001:db8::/129" }).entries).toEqual([]);
     expect(createSourceNetworkGuard({ allowedEntries: "192.168.1.0/33,2001:db8::/129" }).parse("x").invalid).toEqual(["x"]);
