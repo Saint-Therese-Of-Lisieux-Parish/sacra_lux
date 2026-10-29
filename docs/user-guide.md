@@ -259,7 +259,7 @@ These keys work when focus is not in a text field, a select list, a button, a li
 ## Where Files Live
 
 In Electron, **File > Save** writes the session and the current Mass. The
-The Digital Minister page then shows `Mass saved`, or the error text when the write fails.
+Digital Minister page then shows `Mass saved`, or the error text when the write fails.
 Closing the app writes a save that is still waiting. A scheduled save that
 fails shows the error in the status line instead of the slide count. A later
 successful save clears that error.
