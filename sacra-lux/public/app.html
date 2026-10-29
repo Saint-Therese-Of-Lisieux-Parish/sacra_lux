@@ -4727,8 +4727,8 @@
     const BOUNDS_PREVIEW_READY_TIMEOUT_MS = 5000;
     const BOUNDS_PREVIEW_ERROR_TEXT = "The slide preview is not available. The edge fields still save values.";
     const boundsPreviewState = {
-      global: { slides: [], index: 0, ready: false, frameError: false, fetchError: false, requestKey: "", inFlight: false, pending: false },
-      group: { slides: [], index: 0, ready: false, frameError: false, fetchError: false, requestKey: "", inFlight: false, pending: false }
+      global: { slides: [], index: 0, ready: false, frameError: false, fetchError: false, blockedByControl: false, requestKey: "", inFlight: false, pending: false },
+      group: { slides: [], index: 0, ready: false, frameError: false, fetchError: false, blockedByControl: false, requestKey: "", inFlight: false, pending: false }
     };
 
     function boundsPreviewSettings() {
@@ -4785,6 +4785,7 @@
 
     async function fetchGlobalBoundsPreview() {
       const preview = boundsPreviewState.global;
+      if (preview.blockedByControl) return;
       const key = els.textBoundsLayout.value || "readingBody";
       const isReading = key === "readingBody" || key === "readingPassage";
       const body = isReading
@@ -4822,6 +4823,7 @@
     // start one more request when it ends, so the last change always shows.
     function scheduleBoundsPreviewRefresh(mode) {
       const preview = boundsPreviewState[mode];
+      if (preview.blockedByControl) return;
       if (preview.inFlight) {
         preview.pending = true;
         return;
@@ -6001,7 +6003,18 @@
 
     function showControlLocked() {
       uiState.controlLocked = true;
+      for (const preview of Object.values(boundsPreviewState)) {
+        preview.blockedByControl = true;
+        preview.pending = false;
+      }
       render(uiState.data);
+    }
+
+    function clearBoundsPreviewControlBlock() {
+      for (const preview of Object.values(boundsPreviewState)) {
+        preview.blockedByControl = false;
+        preview.fetchError = false;
+      }
     }
 
     function openPinDialogForUnlock() {
@@ -6920,6 +6933,7 @@
     });
     socket.on("control:ok", () => {
       uiState.controlLocked = false;
+      clearBoundsPreviewControlBlock();
       render(uiState.data);
     });
 
@@ -9310,6 +9324,7 @@
       if (res.ok) {
         rememberControl(data);
         uiState.controlLocked = false;
+        clearBoundsPreviewControlBlock();
         els.controlLockBanner.hidden = true;
         els.startPinStatus.textContent = "Unlocked";
         els.currentPinInput.value = "";
