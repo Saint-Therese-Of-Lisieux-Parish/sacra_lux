@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 const AxeBuilder = require("@axe-core/playwright").default;
 
 const { state } = require("../../src/state");
-const { createPinHashRecord } = require("../../src/security");
+const { clearRateLimitState, createPinHashRecord } = require("../../src/security");
 const { createTempHome, startIsolatedServer } = require("../helpers/testHarness");
 
 const PAGES = ["/", "/app", "/screen", "/remote", "/start"];
@@ -15,6 +15,10 @@ test.beforeAll(async () => {
   baseUrl = handle.baseUrl;
   // Set a PIN so /start renders its page and does not redirect to /remote.
   state.startPinHash = createPinHashRecord("123456");
+});
+
+test.beforeEach(() => {
+  clearRateLimitState();
 });
 
 test.afterAll(async () => {
