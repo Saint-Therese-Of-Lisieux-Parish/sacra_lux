@@ -4653,6 +4653,8 @@
       text: { left: 110, right: 110, top: 90, bottom: 90 }
     };
     let globalTextBoundsDraft = JSON.parse(JSON.stringify(DEFAULT_TEXT_BOUNDS));
+    let massTitleDraftDirty = false;
+    let startTimeDraftDirty = false;
     let editorBoundsDraft = {};
 
     function normalizeTextBoxBounds(value, fallback = DEFAULT_TEXT_BOUNDS.text) {
@@ -6803,14 +6805,20 @@
         choosePresetForUrl(els.lightBgPreset, screen.lightBackgroundUrl || "");
       }
 
-      els.massTitleInput.value = data.presentation?.title || "No presentation";
+      const savedMassTitle = data.presentation?.title || "No presentation";
+      const keepMassTitleDraft = massTitleDraftDirty && els.massTitleInput.value !== savedMassTitle;
+      if (document.activeElement !== els.massTitleInput && !keepMassTitleDraft) {
+        els.massTitleInput.value = data.presentation?.title || "No presentation";
+      }
       els.status.textContent = data.saveError || `${slides.length} slides`;
       els.status.classList.toggle("error", Boolean(data.saveError));
 
       // Update start-time status display
       const mst = data.massStartTime || null;
+      const savedStartTime = mst || "";
+      const keepStartTimeDraft = startTimeDraftDirty && els.startTimeInput.value !== savedStartTime;
       if (mst) {
-        els.startTimeInput.value = mst;
+        if (!keepStartTimeDraft) els.startTimeInput.value = mst;
         const target = new Date(mst);
         const diff = target - Date.now();
         if (diff > 0) {
@@ -6848,6 +6856,7 @@
           els.startTimeStatus.textContent = "(passed)";
         }
       } else {
+        if (!keepStartTimeDraft) els.startTimeInput.value = "";
         els.startTimeStatus.textContent = "";
       }
 
@@ -9280,11 +9289,15 @@
           els.massTitleInput.value = savedTitle;
           throw new Error(data.error || "Could not save the Mass title.");
         }
+        massTitleDraftDirty = false;
       }).catch((error) => {
         els.massTitleInput.value = savedTitle;
         els.status.textContent = error.message || "Could not save the Mass title.";
       });
     }
+    els.massTitleInput.addEventListener("input", () => {
+      massTitleDraftDirty = true;
+    });
     els.massTitleInput.addEventListener("change", commitMassTitle);
     els.massTitleInput.addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
 
@@ -9295,8 +9308,16 @@
         body: JSON.stringify({ time })
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) els.status.textContent = data.error || "Start-time error";
+      if (!res.ok) {
+        els.status.textContent = data.error || "Start-time error";
+        return;
+      }
+      startTimeDraftDirty = false;
     }
+
+    els.startTimeInput.addEventListener("input", () => {
+      startTimeDraftDirty = true;
+    });
 
     els.setStartTimeBtn.addEventListener("click", () => {
       const val = els.startTimeInput.value;

@@ -71,6 +71,16 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.saveError))');
   });
 
+  test("preserves title and start-time drafts during state updates", () => {
+    expect(appHtml).toContain('if (document.activeElement !== els.massTitleInput && !keepMassTitleDraft) {');
+    expect(appHtml).toContain("let massTitleDraftDirty = false;");
+    expect(appHtml).toContain("const keepMassTitleDraft = massTitleDraftDirty && els.massTitleInput.value !== savedMassTitle;");
+    expect(appHtml).toContain("let startTimeDraftDirty = false;");
+    expect(appHtml).toContain("const keepStartTimeDraft = startTimeDraftDirty && els.startTimeInput.value !== savedStartTime;");
+    expect(appHtml).toContain('els.startTimeInput.addEventListener("input", () => {');
+    expect(appHtml).toContain("startTimeDraftDirty = false;");
+  });
+
   test("confirms Mass replacement before archive load and ZIP import", () => {
     expect(appHtml).toContain('id="massReplaceConfirmDialog"');
     expect(appHtml).toContain("function confirmMassReplacement(name)");
