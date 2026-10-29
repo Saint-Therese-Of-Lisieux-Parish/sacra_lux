@@ -8301,13 +8301,25 @@
       }
     }
 
-    // Load themes from server and build picker
-    fetch("/api/theme-vars").then(r => r.json()).then(data => {
-      THEMES = data.themes;
-      currentThemeId = data.current;
-      applyTheme(currentThemeId);
-      buildThemePicker();
-    }).catch(() => { });
+    const THEME_RETRY_MS = 60000;
+
+    function loadThemeVars() {
+      fetch("/api/theme-vars")
+        .then((response) => {
+          if (!response.ok) throw new Error("Theme request failed.");
+          return response.json();
+        })
+        .then((data) => {
+          THEMES = data.themes;
+          currentThemeId = data.current;
+          applyTheme(currentThemeId);
+          buildThemePicker();
+        })
+        .catch(() => window.setTimeout(loadThemeVars, THEME_RETRY_MS));
+    }
+
+    // Load themes from server and build picker.
+    loadThemeVars();
 
     els.textBoundsLayout.addEventListener("change", () => renderBoundsEditor("global"));
     [els.textBoundsLeft, els.textBoundsRight, els.textBoundsTop, els.textBoundsBottom].forEach((input) => {

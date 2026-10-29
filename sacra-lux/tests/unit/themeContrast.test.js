@@ -31,6 +31,13 @@ describe("theme text contrast", () => {
   });
 });
 
+test("the shared fallback soft text meets 4.5:1 contrast on light surfaces", () => {
+  const fallback = "#6e5442";
+  for (const surface of ["#ffffff", "#fefdfb", "#fbf6f0", "#f0e8d8"]) {
+    expect(contrast(fallback, surface)).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 describe("theme accent and danger text contrast", () => {
   test.each(Object.entries(themes))("%s accent and danger text meet 4.5:1", (id, theme) => {
     const vars = theme.vars;

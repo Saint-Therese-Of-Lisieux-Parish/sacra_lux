@@ -200,17 +200,27 @@
 
     warnAckBtn.addEventListener("click", () => warnDialog.close());
 
-    // Load and apply theme
-    fetch("/api/theme-vars").then(r => r.json()).then(data => {
-      const theme = data.themes[data.current];
-      if (theme) {
-        const root = document.documentElement;
-        for (const [prop, val] of Object.entries(theme.vars)) {
-          root.style.setProperty(prop, val);
-        }
-        root.style.colorScheme = theme.colorScheme || "light";
-      }
-    }).catch(() => { });
+    const THEME_RETRY_MS = 60000;
+
+    function loadThemeVars() {
+      fetch("/api/theme-vars")
+        .then((response) => {
+          if (!response.ok) throw new Error("Theme request failed.");
+          return response.json();
+        })
+        .then((data) => {
+          const theme = data.themes[data.current];
+          if (!theme) return;
+          const root = document.documentElement;
+          for (const [prop, val] of Object.entries(theme.vars)) {
+            root.style.setProperty(prop, val);
+          }
+          root.style.colorScheme = theme.colorScheme || "light";
+        })
+        .catch(() => window.setTimeout(loadThemeVars, THEME_RETRY_MS));
+    }
+
+    loadThemeVars();
 
     // Load mass title and start time
     fetch("/api/state")
