@@ -106,6 +106,18 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
   ]);
 });
 
+test("App Settings groups network controls under System Settings", async ({ page }) => {
+  await page.goto(`${baseUrl}/`);
+  await page.locator("#massLibraryCloseBtn").click();
+  await page.locator("#openAppSettingsBtn").click();
+
+  await expect(page.locator("#appSettingsDialog .settings-section-label")).toHaveText(["Theme", "System Settings"]);
+  await expect(page.locator("#remoteAddress")).toBeVisible();
+  await expect(page.locator("#sourceNetworks")).toHaveValue("10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16");
+  await expect(page.locator("#appSettingsDialog")).toContainText("Network address");
+  await expect(page.locator("#appSettingsDialog")).toContainText("Source network allowlist");
+});
+
 test("App Settings theme picker supports keyboard selection and reports rejected changes", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   await page.locator("#massLibraryCloseBtn").click();

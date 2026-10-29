@@ -4,6 +4,15 @@ const { io: createClient } = require("socket.io-client");
 const request = require("supertest");
 
 const { createTempHome, startIsolatedServer } = require("../helpers/testHarness");
+const { DEFAULT_SOURCE_NETWORKS } = require("../../src/state");
+const { createSourceNetworkGuard } = require("../../src/hostGuard");
+
+test("the default source network allowlist accepts RFC 1918 addresses and rejects public addresses", () => {
+  const guard = createSourceNetworkGuard({ allowedEntries: DEFAULT_SOURCE_NETWORKS });
+
+  expect(guard.isAllowedAddress("192.168.1.5")).toBe(true);
+  expect(guard.isAllowedAddress("8.8.8.8")).toBe(false);
+});
 
 describe("source-network guard loopback access", () => {
   let handle;

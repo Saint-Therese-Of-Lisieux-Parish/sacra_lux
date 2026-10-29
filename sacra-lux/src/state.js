@@ -1,11 +1,13 @@
 const { DEFAULT_THEME } = require("./themes");
 const { DEFAULT_TEXT_BOUNDS } = require("./textBounds");
 
+const DEFAULT_SOURCE_NETWORKS = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
+
 const state = {
   appSettings: {
     theme: DEFAULT_THEME,
     remoteAddress: "",
-    sourceNetworks: ""
+    sourceNetworks: DEFAULT_SOURCE_NETWORKS
   },
   presentation: {
     title: "No presentation loaded",
@@ -139,6 +141,7 @@ function getStateSnapshot() {
 }
 
 module.exports = {
+  DEFAULT_SOURCE_NETWORKS,
   state,
   getSafeSlideIndex,
   touch,
