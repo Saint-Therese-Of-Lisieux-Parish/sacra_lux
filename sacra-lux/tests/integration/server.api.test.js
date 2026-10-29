@@ -89,10 +89,12 @@ describe("server api integration", () => {
   test("lists network addresses and saves a valid selected address", async () => {
     const addresses = await request(app).get("/api/network-addresses").expect(200);
     expect(addresses.body.addresses.length).toBeGreaterThan(0);
+    expect(addresses.body.selectedAddress).toBe("");
     const selected = addresses.body.addresses[0].address;
 
     await request(app).post("/api/app-settings").send({ remoteAddress: selected }).expect(200);
     expect(state.appSettings.remoteAddress).toBe(selected);
+    expect((await request(app).get("/api/network-addresses").expect(200)).body.selectedAddress).toBe(selected);
     await request(app).post("/api/app-settings").send({ remoteAddress: "192.0.2.1" }).expect(400);
     expect(state.appSettings.remoteAddress).toBe(selected);
   });

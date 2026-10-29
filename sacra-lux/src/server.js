@@ -3925,7 +3925,7 @@ function startServer(port = 17841, options = {}) {
 
   app.get("/api/network-addresses", (_, res) => {
     const addresses = listIpv4Addresses();
-    res.json({ addresses, selectedAddress: state.appSettings?.remoteAddress || getLocalIpv4Address() });
+    res.json({ addresses, selectedAddress: state.appSettings?.remoteAddress || "" });
   });
 
   function broadcast() {
