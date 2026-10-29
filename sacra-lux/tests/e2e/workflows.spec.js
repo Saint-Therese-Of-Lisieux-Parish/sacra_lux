@@ -425,13 +425,21 @@ test("Text Area tool draws its handles over the projector renderer", async ({ pa
 
   // A handle drag moves the number fields and the real preview together.
   const handle = page.locator('#textBoundsBox [data-handle="w"]');
+  await handle.scrollIntoViewIfNeeded();
   const handleBox = await handle.boundingBox();
+  await handle.hover();
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(handleBox.x + handleBox.width / 2 + 30, handleBox.y + handleBox.height / 2, { steps: 4 });
+  await page.mouse.move(handleBox.x + handleBox.width / 2 + 60, handleBox.y + handleBox.height / 2, { steps: 8 });
   await page.mouse.up();
   const draggedLeft = Number(await page.locator("#textBoundsLeft").inputValue());
-  expect(draggedLeft).toBeGreaterThan(300);
+  const dragDiagnostics = await page.evaluate(() => ({
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    preview: document.getElementById("textBoundsPreview")?.getBoundingClientRect().toJSON(),
+    bounds: document.getElementById("textBoundsBox")?.getBoundingClientRect().toJSON(),
+    frame: document.getElementById("textBoundsPreviewFrame")?.getBoundingClientRect().toJSON()
+  }));
+  expect(draggedLeft, `Text Area drag did not move the left bound: ${JSON.stringify(dragDiagnostics)}`).toBeGreaterThan(300);
   await expect.poll(() => previewReadingLeft(page, "textBoundsPreviewFrame")).toBe(draggedLeft);
 
   await page.locator("#textBoundsReset").click();
