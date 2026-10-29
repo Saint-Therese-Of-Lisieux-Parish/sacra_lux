@@ -13,6 +13,7 @@ const { createIpcHandlers, registerIpcHandlers } = require("./ipcHandlers");
 const { secureWindow } = require("./windowSecurity");
 const { sanitizePdfFileName } = require("./pdfFileName");
 const { getPreferredIpv4Address } = require("./networkAddress");
+const { buildPdfSlideState } = require("./pdfCaptureState");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -460,12 +461,7 @@ async function exportCurrentMassPdf(phases, quality) {
       // Use the absolute index into the full slide list so the screen page's
       // render() and font-fit caches see the correct surrounding context.
       const absoluteIndex = allSlides.indexOf(slides[i]);
-      const slideState = {
-        ...currentState,
-        currentSlideIndex: absoluteIndex,
-        isBlack: false,
-        countdownEndsAt: null
-      };
+      const slideState = buildPdfSlideState(currentState, absoluteIndex);
 
       // Render the slide with transitions disabled for an instant paint.
       await win.webContents.executeJavaScript(`

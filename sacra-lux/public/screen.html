@@ -995,7 +995,7 @@
           <div class="video-placeholder">
             <div class="video-placeholder-icon">&#9654;</div>
             <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
-            <div class="video-placeholder-copy">${escHtml(slide.videoLoop ? "Looping on projector screen" : "Playing on projector screen")}</div>
+            ${isPreviewMode ? "" : `<div class="video-placeholder-copy">${escHtml(slide.videoLoop ? "Looping on projector screen" : "Playing on projector screen")}</div>`}
           </div>
         `;
         return;
