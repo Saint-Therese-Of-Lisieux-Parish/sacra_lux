@@ -117,6 +117,20 @@ and host names in `SACRA_LUX_ALLOWED_NETWORKS`. A request with a host that is
 not allowed gets HTTP 403. A state-changing request with
 `Sec-Fetch-Site: cross-site` also gets HTTP 403.
 
+`createSourceNetworkGuard()` checks the client address. The starting list is
+`SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A blocked
+request gets HTTP 403 and `Source network not allowed.` Socket.IO uses the
+same check. `POST /api/app-settings` can replace the list.
+
+### `src/networkAddress.js`
+
+`getPreferredIpv4Address()` chooses the host for remote and screen URLs.
+It uses the saved `remoteAddress` when that address is a current IPv4
+address. Otherwise it uses the IPv4 address on the default route. On macOS
+it reads `route -n get default`. On other systems it reads `ip route show
+default`. When that lookup fails, it uses the first IPv4 address. When no
+IPv4 address exists, it returns `localhost`.
+
 ### `src/readingEndings.js`
 
 `endingForSection()` returns the spoken ending for a reading section, for

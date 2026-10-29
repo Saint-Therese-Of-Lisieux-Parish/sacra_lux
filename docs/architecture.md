@@ -81,6 +81,8 @@ Persistent source of truth:
 - `screenSettings`
 - selected runtime metadata such as `massStartTime`
 - `appSettings.theme`
+- `appSettings.remoteAddress`
+- `appSettings.sourceNetworks`
 
 Persisted to `~/.sacra-lux/current_mass/mass.json` as a version 3 Mass
 Document (see [mass_document.md](./mass_document.md)).

@@ -259,7 +259,7 @@ runtime state with secrets stripped. Client-visible fields:
 
 ```js
 {
-  appSettings: { theme: string },
+  appSettings: { theme: string, remoteAddress: string, sourceNetworks: string },
   presentation: object,
   readingsSource: object,
   organizerSequence: array,
@@ -337,7 +337,7 @@ The snapshot includes the current value.
 - `screenFullscreen`
 - `activeMassArchiveId`
 - `controlMode`
-- `appSettings` — `{ theme }`
+- `appSettings` — `theme`, `remoteAddress`, and `sourceNetworks`
 
 Parsed reading documents are omitted because they are reloaded from
 `current_mass/`. Session version `1` is migrated automatically by
