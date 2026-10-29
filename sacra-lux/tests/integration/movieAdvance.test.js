@@ -73,6 +73,9 @@ describe("movie slides auto-advance", () => {
     resetSecurityState();
     state.startPin = "";
     state.startPinHash = null;
+    state.preMassRunning = false;
+    state.gatheringRunning = false;
+    state.postMassRunning = false;
     jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
   });
 

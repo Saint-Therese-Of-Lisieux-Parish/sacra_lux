@@ -584,7 +584,14 @@ describe("server api integration", () => {
     await request(app)
       .get("/api/start-redirect")
       .expect(302)
-      .expect("Location", "/remote#start-pre-mass");
+      .expect("Location", "/remote");
+
+    await request(app)
+      .post("/api/pre-mass/start")
+      .expect(409)
+      .expect((response) => {
+        expect(response.body.error).toMatch(/already in progress/i);
+      });
 
     const after = await request(app).get("/api/state").expect(200);
     expect(after.body.currentSlideIndex).toBe(1);
