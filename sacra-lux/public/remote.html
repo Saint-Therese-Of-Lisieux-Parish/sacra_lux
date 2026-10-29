@@ -603,6 +603,7 @@
     let carouselFocusIndex = 0;
     let carouselSelectedIndex = 0;
     let latestState = null;
+    let remoteControlLocked = false;
     let lastCarouselTap = { index: null, at: 0 };
     let carouselDragStartX = null;
     let carouselDragStartY = null;
@@ -944,7 +945,9 @@
       const active = currentActive;
 
       updateSplash(state);
-      showRemoteStatus("");
+      if (!remoteControlLocked) {
+        showRemoteStatus("");
+      }
 
       const shouldAnimateCarousel =
         hadSlides &&
@@ -1082,13 +1085,19 @@
       render(state);
     });
     socket.on("control:required", ({ error } = {}) => {
+      remoteControlLocked = true;
       showRemoteStatus(error || "Unlock the remote to control slides.", { showUnlock: true });
     });
+    socket.on("control:ok", () => {
+      remoteControlLocked = false;
+      showRemoteStatus("");
+    });
     socket.on("disconnect", () => {
+      remoteControlLocked = false;
       showRemoteStatus("Disconnected. Waiting for the server to reconnect.");
     });
     socket.on("connect", () => {
-      showRemoteStatus("");
+      socket.emit("control:auth", { token: "" });
     });
     socket.on("interstitial:hold:error", ({ error } = {}) => {
       if (error) {

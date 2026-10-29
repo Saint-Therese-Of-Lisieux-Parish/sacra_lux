@@ -91,6 +91,10 @@ describe("public html integration", () => {
     expect(res.text).toContain('id="remoteUnlockLink" href="/start" hidden');
     expect(res.text).toContain('socket.on("control:required"');
     expect(res.text).toContain('showRemoteStatus(error || "Unlock the remote to control slides.", { showUnlock: true })');
+    expect(res.text).toContain("let remoteControlLocked = false;");
+    expect(res.text).toContain("if (!remoteControlLocked) {");
+    expect(res.text).toContain('socket.on("control:ok", () => {');
+    expect(res.text).toContain('socket.emit("control:auth", { token: "" });');
     expect(res.text).toContain('socket.on("disconnect"');
     expect(res.text).toContain('showRemoteStatus("Disconnected. Waiting for the server to reconnect.")');
     expect(res.text).toContain('socket.on("connect"');
