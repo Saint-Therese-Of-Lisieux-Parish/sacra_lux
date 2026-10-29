@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
-const { startServer, saveCurrentMass, flushPendingSave } = require("./server");
+const { startServer, saveCurrentMass, flushPendingSave, resetStartPin } = require("./server");
 const { state } = require("./state");
 const { saveSession } = require("./persistence");
 const { listThemes, getTheme } = require("./themes");
@@ -705,6 +705,27 @@ function buildAppMenu(ioRef) {
           showAppStatus("Mass saved");
         } catch (error) {
           showAppStatus(error?.message || "Could not save the Mass.");
+        }
+      }
+    },
+    {
+      label: "Reset Start PIN",
+      click: () => {
+        const choice = dialog.showMessageBoxSync(appWindow, {
+          type: "warning",
+          buttons: ["Cancel", "Reset Start PIN"],
+          defaultId: 0,
+          cancelId: 0,
+          title: "Reset Start PIN",
+          message: "Reset the start PIN?",
+          detail: "This ends all control sessions."
+        });
+        if (choice !== 1) return;
+        try {
+          resetStartPin();
+          showAppStatus("Start PIN reset");
+        } catch (error) {
+          showAppStatus(error?.message || "Could not reset the start PIN.");
         }
       }
     },
