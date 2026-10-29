@@ -28,8 +28,8 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
   emits `control:required` when the client is not authorized.
 - `POST /api/start-pin`, `POST /api/verify-pin`, and a validated
   `GET /api/start-redirect` all issue a control session and set the cookie.
-- With no PIN configured, control checks pass for loopback clients. The
-  A Digital Minister can also select `trusted-lan` through `POST /api/control-mode` to
+- With no PIN configured, control checks pass for loopback clients. A
+  Digital Minister can also select `trusted-lan` through `POST /api/control-mode` to
   allow control from non-loopback clients.
 
 ## HTTP API
@@ -53,7 +53,8 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/screen-settings` — validate, persist, and repaginate. A background URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Background URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.`
 - `GET /api/themes` — theme `{ id, label }` list plus the current theme
 - `GET /api/theme-vars` — full CSS variable map per theme
-- `POST /api/app-settings` — set the app UI theme
+- `GET /api/network-addresses` — `{ addresses, selectedAddress }`. Each item in `addresses` is `{ interfaceName, address }` for one non-internal IPv4 address. `selectedAddress` is the saved `remoteAddress` when that value is not empty. Otherwise it is the address the server uses for remote and screen links.
+- `POST /api/app-settings` — set `theme`, `remoteAddress`, or `sourceNetworks`. An unknown theme returns HTTP 400 and `Unknown theme.` `remoteAddress` must be empty or a current IPv4 address of this computer. Any other value returns HTTP 400 and `The selected network address is not available.` `sourceNetworks` must be a string. A value that is not a string returns HTTP 400 and `The source-network allowlist must be text.` An invalid entry returns HTTP 400 and `Invalid source network: <entry>.` A non-empty list that does not include the client address returns HTTP 400 and `The source-network allowlist must include the local operator address.`
 - `POST /api/control-mode` — set `unset` or `trusted-lan` when no PIN is configured
 - `POST /api/update-title` — set the presentation title
 
@@ -137,12 +138,14 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index
 - `slide:goto:remote` — jump from the remote and allow post-mass loop activation
-- `slide:video-ended` — a screen reports a movie finished; the first report for a slide advances, later reports for the same slide are ignored
-- `slide:video-ready` — a screen reports a movie's real length (`durationMs`) so the server can arm a fallback advance
-- `image-slideshow:preload-error` — a screen reports an image that failed to preload
+- `slide:video-ended` — a projector reports a movie finished; the first report for a slide advances, later reports for the same slide are ignored
+- `slide:video-ready` — a projector reports a movie's real length (`durationMs`) so the server can arm a fallback advance
+- `image-slideshow:preload-error` — a projector reports an image that failed to preload
 - `screen:interstitial-hold` — toggle remote interstitial hold
 - `screen:black` — toggle blackout mode
 - `export:avif:start` — start an AVIF ZIP export
+
+The server accepts `slide:video-ended`, `slide:video-ready`, and `image-slideshow:preload-error` only from a socket whose handshake `screenRole` is `projector`, and only when that socket is on a loopback address or has a control session. Any other socket gets `control:required`.
 
 ## Electron IPC
 
