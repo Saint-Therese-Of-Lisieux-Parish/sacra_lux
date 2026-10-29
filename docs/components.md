@@ -207,6 +207,12 @@ the Digital Minister window and the projector windows. When fullscreen is on,
 the projector windows become fullscreen. When a window is already open,
 activation shows the Digital Minister window.
 
+### `src/pdfCaptureState.js`
+
+`buildPdfSlideState()` builds the state for one PDF page. It sets the slide
+index. It turns blackout off. It clears the countdown end time. It clears
+the interstitial hold fields.
+
 ### `src/pdfFileName.js`
 
 `sanitizePdfFileName()` removes characters that are not allowed in a file

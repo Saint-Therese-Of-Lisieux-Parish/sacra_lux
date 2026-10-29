@@ -217,7 +217,7 @@ that has already passed.
 - **↪︎ Export** downloads the current Mass as a ZIP.
 - **Export AVIF** converts eligible images to AVIF and downloads an optimized
   ZIP.
-- **📄 Export PDF** (Electron only) produces a full-deck PDF.
+- **📄 Export PDF** (Electron only) produces a full-deck PDF. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
 - **Export Slide to PDF** (Electron only) exports the current slide preview.
 
 All export ZIPs contain a version 3 `mass.json`; see
