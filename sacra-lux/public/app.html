@@ -4343,6 +4343,7 @@
       emptyPresentationPromptInFlight: false,
       controlLocked: false
     };
+    let avifExportInProgress = false;
 
     const dnd = { srcId: null, overEl: null };
 
@@ -6904,9 +6905,18 @@
     }
 
     socket.on("state:update", render);
-    socket.on("control:required", () => {
+    function resetAvifExport(errorMessage) {
+      avifExportInProgress = false;
+      els.exportAvifBtn.disabled = false;
+      els.avifProgressBar.style.width = "0%";
+      els.avifProgressLabel.textContent = errorMessage;
+      els.avifProgressWrap.style.display = "";
+    }
+
+    socket.on("control:required", ({ error } = {}) => {
       uiState.controlLocked = true;
       render(uiState.data);
+      if (avifExportInProgress) resetAvifExport(error || "Export failed: unlock required.");
     });
     socket.on("control:ok", () => {
       uiState.controlLocked = false;
@@ -9399,11 +9409,29 @@
       if (!res.ok) els.status.textContent = data.error || "Post-mass error";
     });
 
-    els.exportZipBtn.addEventListener("click", () => {
-      window.location.href = "/api/export-mass-zip";
+    els.exportZipBtn.addEventListener("click", async () => {
+      els.status.textContent = "Exporting Mass…";
+      try {
+        const response = await fetch("/api/export-mass-zip");
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Mass export failed.");
+        }
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = "mass.zip";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+        els.status.textContent = "Mass export complete.";
+      } catch (error) {
+        els.status.textContent = error.message || "Mass export failed.";
+      }
     });
 
     els.exportAvifBtn.addEventListener("click", () => {
+      avifExportInProgress = true;
       els.exportAvifBtn.disabled = true;
       els.avifProgressWrap.style.display = "";
       els.avifProgressBar.style.width = "0%";
@@ -9418,6 +9446,7 @@
     });
 
     socket.on("export:avif:done", ({ token }) => {
+      avifExportInProgress = false;
       els.avifProgressBar.style.width = "100%";
       els.avifProgressLabel.textContent = "Download starting…";
       window.location.href = "/api/export-mass-zip-avif?token=" + encodeURIComponent(token);
@@ -9428,10 +9457,12 @@
     });
 
     socket.on("export:avif:error", ({ error }) => {
-      els.avifProgressLabel.textContent = "Export failed: " + error;
-      els.avifProgressBar.style.width = "0%";
-      els.exportAvifBtn.disabled = false;
+      resetAvifExport("Export failed: " + error);
       setTimeout(() => { els.avifProgressWrap.style.display = "none"; }, 4000);
+    });
+
+    socket.on("disconnect", () => {
+      if (avifExportInProgress) resetAvifExport("Export failed: connection lost.");
     });
 
     document.getElementById("importZipBtn").addEventListener("click", () => {
