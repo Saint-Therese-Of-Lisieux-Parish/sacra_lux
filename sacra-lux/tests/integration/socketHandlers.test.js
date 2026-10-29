@@ -367,6 +367,38 @@ describe("socket handlers", () => {
         projector.disconnect();
       }
     });
+
+    test("rejects a non-loopback client that claims the projector role", async () => {
+      const index = movieIndex();
+      await goto("slide:goto", index);
+      const slideId = state.presentation.slides[index].id;
+      const projector = await connect({ auth: { screenRole: "projector" } });
+      try {
+        const serverProjector = handle.io.sockets.sockets.get(projector.id);
+        Object.defineProperty(serverProjector.request.socket, "remoteAddress", {
+          configurable: true,
+          value: "192.0.2.10"
+        });
+        Object.defineProperty(serverProjector.conn, "remoteAddress", {
+          configurable: true,
+          value: "192.0.2.10"
+        });
+        const denied = nextEvent(projector, "control:required");
+        projector.emit("slide:video-ended", { slideId });
+        await denied;
+        expect(state.currentSlideIndex).toBe(index);
+
+        const errorBefore = state.imageSlideshowError;
+        projector.emit("image-slideshow:preload-error", {
+          slideId: state.presentation.slides[index + 1].id,
+          imageUrl: state.presentation.slides[index + 1].imageUrl
+        });
+        await flush();
+        expect(state.imageSlideshowError).toBe(errorBefore);
+      } finally {
+        projector.disconnect();
+      }
+    });
   });
 
   describe("image slideshow preload errors", () => {
