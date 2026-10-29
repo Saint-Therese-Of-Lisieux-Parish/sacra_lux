@@ -593,16 +593,32 @@ function buildPresentationFromOrganizer({
   screenSettings
 }) {
   const slides = [];
+  const usedSlideIds = new Set();
+
+  function appendUniqueSlides(newSlides) {
+    for (const slide of newSlides) {
+      const originalId = String(slide.id || "slide");
+      let uniqueId = originalId;
+      let duplicateNumber = 2;
+      while (usedSlideIds.has(uniqueId)) {
+        uniqueId = `${originalId}~${slide.organizerItemId || "duplicate"}~${duplicateNumber}`;
+        duplicateNumber += 1;
+      }
+      if (uniqueId !== slide.id) slide.id = uniqueId;
+      usedSlideIds.add(uniqueId);
+      slides.push(slide);
+    }
+  }
 
   for (const item of sequence) {
     if (item.type === "reading") {
-      slides.push(...buildReadingSlides(item, documents, screenSettings));
+      appendUniqueSlides(buildReadingSlides(item, documents, screenSettings));
       continue;
     }
 
     if (VALID_TYPES.includes(item.type) && item.type !== "reading") {
       const built = buildManualSlide(item, manualSlides[item.id], slides.length, screenSettings);
-      slides.push(...built);
+      appendUniqueSlides(built);
     }
   }
 
