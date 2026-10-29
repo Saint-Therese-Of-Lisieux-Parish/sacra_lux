@@ -161,6 +161,51 @@ function getArchiveSize(paths) {
   return 0;
 }
 
+function copyFileAtomically(sourcePath, targetPath) {
+  const temporaryPath = `${targetPath}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    fs.copyFileSync(sourcePath, temporaryPath);
+    fs.renameSync(temporaryPath, targetPath);
+    const sourceStats = fs.statSync(sourcePath);
+    fs.utimesSync(targetPath, sourceStats.atime, sourceStats.mtime);
+  } catch (error) {
+    if (fs.existsSync(temporaryPath)) fs.rmSync(temporaryPath, { force: true });
+    throw error;
+  }
+}
+
+function syncDirectory(sourceDir, targetDir) {
+  fs.mkdirSync(targetDir, { recursive: true });
+  const sourceEntries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  const sourceNames = new Set(sourceEntries.map((entry) => entry.name));
+
+  for (const entry of sourceEntries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const targetPath = path.join(targetDir, entry.name);
+    if (entry.isDirectory()) {
+      if (fs.existsSync(targetPath) && !fs.statSync(targetPath).isDirectory()) {
+        fs.rmSync(targetPath, { force: true });
+      }
+      syncDirectory(sourcePath, targetPath);
+      continue;
+    }
+
+    const targetStats = fs.existsSync(targetPath) ? fs.statSync(targetPath) : null;
+    const sourceStats = fs.statSync(sourcePath);
+    if (targetStats?.isFile() && targetStats.size === sourceStats.size && targetStats.mtimeMs === sourceStats.mtimeMs) {
+      continue;
+    }
+    if (targetStats && !targetStats.isFile()) fs.rmSync(targetPath, { recursive: true, force: true });
+    copyFileAtomically(sourcePath, targetPath);
+  }
+
+  for (const entry of fs.readdirSync(targetDir, { withFileTypes: true })) {
+    if (!sourceNames.has(entry.name)) {
+      fs.rmSync(path.join(targetDir, entry.name), { recursive: true, force: true });
+    }
+  }
+}
+
 function ensureActiveArchive({ currentArchiveId, title, startTime }) {
   ensureHistoryDir();
 
@@ -206,12 +251,19 @@ function syncCurrentMassToArchive({ currentArchiveId, title, startTime }) {
   const { archiveId, paths, metadata } = ensured;
   fs.mkdirSync(paths.archiveDir, { recursive: true });
   if (fs.existsSync(paths.packageDir)) {
-    fs.rmSync(paths.packageDir, { recursive: true, force: true });
-  }
-  if (fs.existsSync(CURRENT_MASS_DIR)) {
-    fs.cpSync(CURRENT_MASS_DIR, paths.packageDir, { recursive: true });
+    if (!fs.statSync(paths.packageDir).isDirectory()) {
+      fs.rmSync(paths.packageDir, { force: true });
+      fs.mkdirSync(paths.packageDir, { recursive: true });
+    }
   } else {
     fs.mkdirSync(paths.packageDir, { recursive: true });
+  }
+  if (fs.existsSync(CURRENT_MASS_DIR)) {
+    syncDirectory(CURRENT_MASS_DIR, paths.packageDir);
+  } else {
+    for (const entry of fs.readdirSync(paths.packageDir)) {
+      fs.rmSync(path.join(paths.packageDir, entry), { recursive: true, force: true });
+    }
   }
   if (fs.existsSync(paths.compressedZipPath)) {
     fs.rmSync(paths.compressedZipPath, { force: true });

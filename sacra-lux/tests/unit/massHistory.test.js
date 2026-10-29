@@ -98,6 +98,56 @@ describe("massHistory", () => {
     expect(fs.existsSync(path.join(homeDir, ".sacra-lux", "mass_history", "Mass-B"))).toBe(true);
   });
 
+  test("keeps unchanged media modification times during a sync", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(path.join(currentMassDir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "current", "utf8");
+    fs.writeFileSync(path.join(currentMassDir, "assets", "movie.mp4"), "movie", "utf8");
+
+    const history = require("../../src/massHistory");
+    const first = history.syncCurrentMassToArchive({ currentArchiveId: null, title: "Mass", startTime: null });
+    const mediaPath = path.join(history.getArchivePaths(first.id).packageDir, "assets", "movie.mp4");
+    const originalMtime = fs.statSync(mediaPath).mtimeMs;
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "updated", "utf8");
+
+    history.syncCurrentMassToArchive({ currentArchiveId: first.id, title: "Mass", startTime: null });
+
+    expect(fs.statSync(mediaPath).mtimeMs).toBe(originalMtime);
+  });
+
+  test("removes files that no longer exist in the current Mass", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(path.join(currentMassDir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "current", "utf8");
+    fs.writeFileSync(path.join(currentMassDir, "assets", "old.mp4"), "old", "utf8");
+
+    const history = require("../../src/massHistory");
+    const first = history.syncCurrentMassToArchive({ currentArchiveId: null, title: "Mass", startTime: null });
+    fs.rmSync(path.join(currentMassDir, "assets", "old.mp4"));
+
+    history.syncCurrentMassToArchive({ currentArchiveId: first.id, title: "Mass", startTime: null });
+
+    expect(fs.existsSync(path.join(history.getArchivePaths(first.id).packageDir, "assets", "old.mp4"))).toBe(false);
+  });
+
+  test("keeps the previous package when a file copy fails", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), JSON.stringify({ title: "old" }), "utf8");
+
+    const history = require("../../src/massHistory");
+    const first = history.syncCurrentMassToArchive({ currentArchiveId: null, title: "Mass", startTime: null });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), JSON.stringify({ title: "new" }), "utf8");
+    jest.spyOn(fs, "copyFileSync").mockImplementationOnce(() => {
+      throw new Error("copy failed");
+    });
+
+    expect(() => history.syncCurrentMassToArchive({ currentArchiveId: first.id, title: "Mass", startTime: null }))
+      .toThrow("copy failed");
+    const archivedMass = JSON.parse(fs.readFileSync(path.join(history.getArchivePaths(first.id).packageDir, "mass.json"), "utf8"));
+    expect(archivedMass.title).toBe("old");
+  });
+
   test("deleteMassArchive rejects ids that resolve outside mass_history", () => {
     const sacraDir = path.join(homeDir, ".sacra-lux");
     const canary = path.join(sacraDir, "canary.txt");
