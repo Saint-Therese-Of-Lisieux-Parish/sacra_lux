@@ -336,6 +336,8 @@ also adds 1. Startup restore, ZIP import, and archive load call that function.
 - `targetScreenId`
 - `targetScreenIds`
 - `screenFullscreen`
+- `preMassRunning` — saved as true or false. Restore starts Pre-Mass again when the session age is from 0 through 4 hours and the Mass start time has not passed.
+- `postMassRunning` — saved as true or false. Restore starts Post-Mass again when the session age is from 0 through 4 hours. A resumed Post-Mass loop does not jump to the first Mass slide.
 - `activeMassArchiveId`
 - `controlMode`
 - `appSettings` — `theme`, `remoteAddress`, and `sourceNetworks`
