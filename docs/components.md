@@ -52,7 +52,7 @@ Reading pipeline:
 
 - parse liturgy `.txt` files and derive sections from file stems
 - normalize ordering and labels
-- paginate psalms and readings with a visual-line estimator
+- paginate psalms and readings with a visual-line estimator. The page estimate uses the requested text-box height when that height is finite. The minimum height is 120 px. A missing height uses 840 px. The line count is the height divided by the line height, and the count is at least 1.
 - memoize visual-line estimates and cache pagination results (keyed by
   content hash + layout options) with TTL and LRU eviction
 
