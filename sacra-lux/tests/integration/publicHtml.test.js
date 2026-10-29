@@ -56,6 +56,20 @@ describe("public html integration", () => {
     expect(res.text).not.toContain("phaseFolderImportFiles");
   });
 
+  test("operator and start pages retry failed theme requests", async () => {
+    const stateRes = await request(app).get("/api/state").expect(200);
+    if (!stateRes.body.hasStartPin) {
+      await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+    }
+    const appRes = await request(app).get("/").expect(200);
+    const startRes = await request(app).get("/start").expect(200);
+
+    for (const markup of [appRes.text, startRes.text]) {
+      expect(markup).toContain('if (!response.ok) throw new Error("Theme request failed.")');
+      expect(markup).toContain("window.setTimeout(loadThemeVars, THEME_RETRY_MS)");
+    }
+  });
+
   test("start page markup includes a PIN label and live error region", async () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     if (!stateRes.body.hasStartPin) {
