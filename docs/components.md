@@ -45,6 +45,7 @@ Pure organizer logic (no I/O):
 - derive presentation slides per type, including text hard-break splitting and
   image-slideshow expansion
 - compute image-slideshow runtime as image count times seconds per image times loop count. A crossfade does not add time.
+- give each built slide its own id. When an id is already used, the later id is the original id, `~`, the organizer item id, `~`, and a number that starts at 2.
 
 ### `src/readingsImporter.js`
 
