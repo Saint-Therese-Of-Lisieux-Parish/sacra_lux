@@ -162,9 +162,9 @@ host name, add it to the same list.
 
 `SACRA_LUX_SOURCE_NETWORKS` limits which client addresses can open the app.
 The value is a comma-separated list of IPv4 or IPv6 addresses and CIDR
-networks. An empty value allows every source address. A request from another
-address gets HTTP 403 and the error `Source network not allowed.` Socket.IO
-uses the same check.
+networks. An empty value allows every source address. A loopback address is allowed
+even when the list is not empty. A request from another address gets HTTP 403
+and the error `Source network not allowed.` Socket.IO uses the same check.
 
 **Select Theme** can save the same list. After startup, a valid saved list
 replaces the environment value. The list must include the address of the

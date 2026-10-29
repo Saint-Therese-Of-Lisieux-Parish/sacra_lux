@@ -119,9 +119,10 @@ not allowed gets HTTP 403. A state-changing request with
 `Sec-Fetch-Site: cross-site` also gets HTTP 403.
 
 `createSourceNetworkGuard()` checks the client address. The starting list is
-`SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A blocked
-request gets HTTP 403 and `Source network not allowed.` Socket.IO uses the
-same check. `POST /api/app-settings` can replace the list.
+`SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A loopback
+address is allowed even when the list is not empty. A blocked request gets
+HTTP 403 and `Source network not allowed.` Socket.IO uses the same check.
+`POST /api/app-settings` can replace the list.
 
 ### `src/networkAddress.js`
 
