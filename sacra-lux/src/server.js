@@ -4292,6 +4292,7 @@ function startServer(port = 17841, options = {}) {
     const restoredSource = sourceNetworkGuard.setAllowedEntries(restoredSourceNetworks);
     if (restoredSource.invalid.length) {
       state.appSettings.sourceNetworks = "";
+      sourceNetworkGuard.setAllowedEntries("");
       logger.warn("[security] Ignoring invalid saved source-network allowlist.");
     }
     logger.info(`[security] Source-network restriction ${sourceNetworkGuard.entries.length ? "active" : "inactive"}.`);
