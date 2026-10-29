@@ -298,7 +298,8 @@ Unit test files:
 `atomicWrite`, `buildDefaultBackground`, `checkVersionBump`, `checkVersionSync`,
 `cliBanner`, `electronWindows`, `hostGuard`, `ipcHandlers`, `lectionaryRss`,
 `logger`, `massDocument`, `massDocumentFuzz`, `massDocumentValidation`,
-`massHistory`, `movieAdvance`, `organizer`, `paginationGolden`, `pdfFileName`, `persistence`,
+`massHistory`, `movieAdvance`, `networkAddress`, `organizer`, `paginationGolden`,
+`pdfCaptureState`, `pdfFileName`, `persistence`,
 `preload`, `publicClientMarkup`, `readingEndings`, `readingsImporter`,
 `readingsImporterErrors`, `scanReleaseZips`, `security`, `sharedClient`,
 `startupListenLog`, `state`, `textBounds`, `themeContrast`, `themes`, `web`,
@@ -309,15 +310,16 @@ Unit test files:
 Integration test files:
 
 `activeArchiveGuard`, `archiveRestart`, `assetUrlEncoding`, `atomicMassWrites`,
-`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`, `flushOnQuit`,
-`flushPendingSave`, `hostOriginGuard`, `importSettings`, `interstitialHold`,
-`longTitleSave`, `massStartClock`, `mediaTiming`, `migrationFixtures`,
-`movieAdvance`, `phaseTimers`, `publicHtml`, `remoteBlackout`,
-`screenSettings`, `securityHeaders`, `server.api`, `socketHandlers`,
-`startPinLockout`, `zipImportFuzz`.
+`authorizationMatrix`, `badStartTimeMass`, `clientStateSecrets`, `compressArchiveOriginals`,
+`flushOnQuit`, `flushPendingSave`, `hostOriginGuard`, `importSettings`, `interstitialHold`,
+`largeMassZipRoundTrip`, `longTitleSave`, `massStartClock`, `mediaTiming`, `migrationFixtures`,
+`movieAdvance`, `organizerConflict`, `phaseTimers`, `publicHtml`, `readingPersistence`,
+`remoteBlackout`, `screenSettings`, `securityHeaders`, `server.api`, `slidePersistence`,
+`socketHandlers`, `startPinLockout`, `webPortInUse`, `zipImportFuzz`.
 
 ### `tests/e2e/`
 
-Playwright spec files: `accessibility.spec.js`, `massRehearsal.spec.js`,
-`offline.spec.js`, `screenshots.spec.js`, `workflows.spec.js`, and
-`xssPayloads.spec.js`.
+Playwright spec files: `accessibility.spec.js`, `keyboardShortcuts.spec.js`,
+`lockedOperator.spec.js`, `massRehearsal.spec.js`, `offline.spec.js`,
+`organizerConflict.spec.js`, `remoteStartErrors.spec.js`, `screenshots.spec.js`,
+`themeFallback.spec.js`, `workflows.spec.js`, and `xssPayloads.spec.js`.
