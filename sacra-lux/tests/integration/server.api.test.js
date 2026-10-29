@@ -307,6 +307,36 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass USCCB readings can be edited before a restart", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Editable Lectionary Mass</title><description>
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;Original Gospel text.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      await request(app).post("/api/new-mass").send({ useLectionaryRss: true }).expect(200);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      await request(app)
+        .post("/api/save-reading")
+        .send({ stem: "Gospel", text: "Updated Gospel text." })
+        .expect(200);
+
+      const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+      expect(fs.readFileSync(path.join(currentMassDir, "Gospel.txt"), "utf8")).toContain("Updated Gospel text.");
+      const stateResponse = await request(app).get("/api/state").expect(200);
+      expect(stateResponse.body.presentation.slides).toEqual(expect.arrayContaining([
+        expect.objectContaining({ organizerItemId: "mass-gospel", text: expect.stringContaining("Updated Gospel text.") })
+      ]));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("new Mass keeps the current Mass when the USCCB RSS feed is unreachable", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockRejectedValue(new TypeError("fetch failed"));
