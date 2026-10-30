@@ -298,11 +298,51 @@ describe("server api integration", () => {
     await request(app).post("/api/app-settings").send({ sourceNetworks: "not-an-ip" }).expect(400);
     expect(state.appSettings.sourceNetworks).toBe("127.0.0.1/32");
 
-    await request(app).post("/api/app-settings").send({ sourceNetworks: "192.0.2.0/24" }).expect(400);
-    expect(state.appSettings.sourceNetworks).toBe("127.0.0.1/32");
-
     await request(app).post("/api/app-settings").send({ sourceNetworks: "" }).expect(200);
     expect(state.appSettings.sourceNetworks).toBe("");
+  });
+
+  test.each(["127.0.0.1", "::1"])("accepts the private source network list from loopback address %s", async (address) => {
+    app.use((req, res, next) => {
+      Object.defineProperty(req.socket, "remoteAddress", { value: address, configurable: true });
+      next();
+    });
+    const stack = app.router.stack;
+    const layer = stack.pop();
+    stack.unshift(layer);
+
+    try {
+      await request(app)
+        .post("/api/app-settings")
+        .send({ sourceNetworks: DEFAULT_SOURCE_NETWORKS })
+        .expect(200);
+      expect(state.appSettings.sourceNetworks).toBe(DEFAULT_SOURCE_NETWORKS);
+    } finally {
+      app.router.stack.splice(app.router.stack.indexOf(layer), 1);
+    }
+  });
+
+  test("rejects a source network list that excludes a non-loopback address", async () => {
+    await request(app).post("/api/app-settings").send({ sourceNetworks: "" }).expect(200);
+    state.controlMode = "trusted-lan";
+
+    app.use((req, res, next) => {
+      Object.defineProperty(req.socket, "remoteAddress", { value: "192.0.2.10", configurable: true });
+      next();
+    });
+    const stack = app.router.stack;
+    const layer = stack.pop();
+    stack.unshift(layer);
+
+    try {
+      const response = await request(app)
+        .post("/api/app-settings")
+        .send({ sourceNetworks: "10.0.0.0/8" })
+        .expect(400);
+      expect(response.body.error).toBe("The source-network allowlist must include the local operator address.");
+    } finally {
+      app.router.stack.splice(app.router.stack.indexOf(layer), 1);
+    }
   });
 
   test("built-in backgrounds are listed with image dimensions and served", async () => {

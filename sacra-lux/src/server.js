@@ -2987,7 +2987,11 @@ function startServer(port = 17841, options = {}) {
         const clientAddress = String(req.socket?.remoteAddress || req.connection?.remoteAddress || req.ip || "")
           .replace(/^::ffff:/i, "");
         const clientFamily = net.isIP(clientAddress);
-        if (nextSourceNetworks.entries.length && (!clientFamily || !nextSourceNetworks.networks.check(clientAddress, clientFamily === 4 ? "ipv4" : "ipv6"))) {
+        if (
+          nextSourceNetworks.entries.length &&
+          !isLoopbackAddress(clientAddress) &&
+          (!clientFamily || !nextSourceNetworks.networks.check(clientAddress, clientFamily === 4 ? "ipv4" : "ipv6"))
+        ) {
           return res.status(400).json({ error: "The source-network allowlist must include the local operator address." });
         }
         nextSettings.sourceNetworks = sourceNetworks;
