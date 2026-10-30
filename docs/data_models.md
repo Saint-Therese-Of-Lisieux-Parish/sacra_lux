@@ -200,7 +200,7 @@ converted once by `legacyTextBoundsFromSettings()`.
 
 ### Reading scripture reference fields
 
-- `readingPassagePosition` — `top` | `bottom`
+- `readingPassagePosition` — `top` | `middle` | `bottom`, default `top`. `middle` centers the reference when `legacyTextBoundsFromSettings()` builds the box.
 - `readingPassageAlign` — `left` | `center` | `right`
 - `readingPassageFont` — allowlist, default `Source Sans 3`
 - `readingPassageSizePx` — clamped 20–90
