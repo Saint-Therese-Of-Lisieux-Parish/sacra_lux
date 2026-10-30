@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, screen, shell, powerMonitor } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, dialog, screen, shell, powerMonitor, powerSaveBlocker } = require("electron");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
@@ -37,6 +37,7 @@ let splashWindow;
 let appMenu = null;
 let isQuitting = false;
 let allowAutomaticFullscreen = true;
+let displaySleepBlockerId = null;
 
 // Every window may navigate only inside the local app origin.
 function lockWindow(win) {
@@ -186,6 +187,19 @@ function syncPrimaryScreenWindow() {
   screenWindow = getScreenWindowList()[0] || null;
 }
 
+function startDisplaySleepBlocker() {
+  if (displaySleepBlockerId !== null && powerSaveBlocker.isStarted(displaySleepBlockerId)) return;
+  displaySleepBlockerId = powerSaveBlocker.start("prevent-display-sleep");
+}
+
+function stopDisplaySleepBlocker() {
+  if (displaySleepBlockerId === null) return;
+  if (powerSaveBlocker.isStarted(displaySleepBlockerId)) {
+    powerSaveBlocker.stop(displaySleepBlockerId);
+  }
+  displaySleepBlockerId = null;
+}
+
 function createAppWindow() {
   appWindow = new BrowserWindow({
     width: 1400,
@@ -241,6 +255,7 @@ function createScreenWindow(targetScreenId = null) {
   });
 
   lockWindow(win);
+  startDisplaySleepBlocker();
 
   if (targetScreenId != null) {
     const target = screen.getAllDisplays().find((display) => display.id === targetScreenId);
@@ -256,6 +271,7 @@ function createScreenWindow(targetScreenId = null) {
   win.on("closed", () => {
     screenWindows.delete(key);
     syncPrimaryScreenWindow();
+    if (getScreenWindowList().length === 0) stopDisplaySleepBlocker();
   });
 
   win.loadURL(`http://localhost:${PORT}/screen`);
@@ -268,6 +284,7 @@ function destroyAllScreenWindows() {
   }
   screenWindows.clear();
   syncPrimaryScreenWindow();
+  stopDisplaySleepBlocker();
 }
 
 function ensureConfiguredScreenWindows() {
@@ -1063,6 +1080,7 @@ app.whenReady().then(async () => {
 });
 
 app.on("before-quit", () => {
+  stopDisplaySleepBlocker();
   flushPendingSave();
 });
 

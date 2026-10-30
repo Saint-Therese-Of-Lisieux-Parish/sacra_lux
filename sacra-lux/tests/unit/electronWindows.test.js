@@ -79,6 +79,11 @@ async function startMain({
     shell: { openExternal: jest.fn() }
   };
   electron.powerMonitor = new EventEmitter();
+  electron.powerSaveBlocker = {
+    start: jest.fn(() => 17),
+    isStarted: jest.fn(() => true),
+    stop: jest.fn()
+  };
   const server = {
     once: jest.fn((name, handler) => {
       if (name === "listening" && !portInUse) setImmediate(handler);
@@ -294,6 +299,25 @@ describe("Electron window security settings", () => {
     beforeQuit[1]();
 
     expect(windows.flushPendingSave).toHaveBeenCalledTimes(1);
+  });
+
+  test("prevents display sleep while the screen window is open", async () => {
+    const windows = await startMain();
+    const screen = windows.find((win) => win.options.title === "Sacra Lux Screen");
+
+    expect(windows.electron.powerSaveBlocker.start).toHaveBeenCalledWith("prevent-display-sleep");
+
+    screen.listeners.closed();
+    expect(windows.electron.powerSaveBlocker.isStarted).toHaveBeenCalledWith(17);
+    expect(windows.electron.powerSaveBlocker.stop).toHaveBeenCalledWith(17);
+  });
+
+  test("stops preventing display sleep when the app quits", async () => {
+    const windows = await startMain();
+    const beforeQuit = windows.electron.app.on.mock.calls.find(([name]) => name === "before-quit");
+
+    beforeQuit[1]();
+    expect(windows.electron.powerSaveBlocker.stop).toHaveBeenCalledWith(17);
   });
 
   test("reschedules Mass start timers when the computer resumes", async () => {
