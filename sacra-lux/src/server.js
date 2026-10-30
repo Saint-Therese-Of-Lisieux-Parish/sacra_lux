@@ -978,8 +978,8 @@ function normalizeScreenSettings(input = {}) {
   const readingTextFontRaw = String(input.readingTextFont ?? current.readingTextFont ?? "");
   const readingTextFont = GOOGLE_FONTS.has(readingTextFontRaw) ? readingTextFontRaw : "";
   const readingTextSizePx = Math.min(200, Math.max(0, finiteOr(input.readingTextSizePx, finiteOr(current.readingTextSizePx, 0))));
-  const readingPassageFontRaw = String(input.readingPassageFont ?? current.readingPassageFont ?? "Source Sans 3");
-  const readingPassageFont = GOOGLE_FONTS.has(readingPassageFontRaw) ? readingPassageFontRaw : "Source Sans 3";
+  const readingPassageFontRaw = String(input.readingPassageFont ?? current.readingPassageFont ?? "");
+  const readingPassageFont = !readingPassageFontRaw || GOOGLE_FONTS.has(readingPassageFontRaw) ? readingPassageFontRaw : "";
   const readingPassagePosition = ["top", "middle", "bottom"].includes(String(input.readingPassagePosition || current.readingPassagePosition || "top"))
     ? String(input.readingPassagePosition || current.readingPassagePosition || "top")
     : "top";
@@ -1025,7 +1025,8 @@ function normalizeScreenSettings(input = {}) {
   const passageShadow = Boolean(
     input.readingPassageShadow ?? current.readingPassageShadow ?? input.readingTextShadow ?? current.readingTextShadow ?? true
   );
-  const sectionFontRaw = String(input.readingSectionFont ?? current.readingSectionFont ?? readingPassageFont);
+  const hasSavedSectionFont = Object.prototype.hasOwnProperty.call(current, "readingSectionFont");
+  const sectionFontRaw = String(input.readingSectionFont ?? (hasSavedSectionFont ? current.readingSectionFont : readingPassageFont));
   const referenceTextStyle = {
     readingPassageItalic: passageItalic,
     readingPassageShadow: passageShadow,
@@ -1033,7 +1034,9 @@ function normalizeScreenSettings(input = {}) {
     readingPassageLetterSpacingPx: Math.round(Math.min(10, Math.max(-2, finiteOr(input.readingPassageLetterSpacingPx, finiteOr(current.readingPassageLetterSpacingPx, passageSizePx * 0.03)))) * 10) / 10,
     readingSectionFont: GOOGLE_FONTS.has(sectionFontRaw)
       ? sectionFontRaw
-      : (GOOGLE_FONTS.has(current.readingSectionFont) ? current.readingSectionFont : readingPassageFont),
+      : (GOOGLE_FONTS.has(current.readingSectionFont)
+        ? current.readingSectionFont
+        : (!hasSavedSectionFont && GOOGLE_FONTS.has(readingPassageFont) ? readingPassageFont : "")),
     readingSectionSizePx: Math.round(Math.min(90, Math.max(10, Number(input.readingSectionSizePx) || current.readingSectionSizePx || passageSizePx / 2))),
     readingSectionColor: hexOr(input.readingSectionColor, current.readingSectionColor || passageColor),
     readingSectionBold: Boolean(input.readingSectionBold ?? current.readingSectionBold ?? passageBold),
