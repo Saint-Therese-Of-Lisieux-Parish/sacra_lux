@@ -22,6 +22,7 @@ describe("mass creation rejects an unparseable start time", () => {
   let handle;
   let app;
   let state;
+  let clearRateLimitState;
 
   beforeAll(async () => {
     jest.resetModules();
@@ -31,6 +32,7 @@ describe("mass creation rejects an unparseable start time", () => {
     });
     app = handle.app;
     ({ state } = require("../../src/state"));
+    ({ clearRateLimitState } = require("../../src/security"));
   });
 
   afterAll(async () => {
@@ -40,6 +42,7 @@ describe("mass creation rejects an unparseable start time", () => {
   });
 
   beforeEach(() => {
+    clearRateLimitState();
     state.startPin = "";
     state.startPinHash = null;
   });
@@ -139,6 +142,26 @@ describe("mass creation rejects an unparseable start time", () => {
       global.fetch = originalFetch;
     }
   });
+
+  test.each(["2026", "11/1/2026 10:00", "2026-11-01T10:00Z", "2026-02-30T10:00"])(
+    "all start-time routes reject %s without changing live state",
+    async (startTime) => {
+      await seedLiveMass("Strict Start Source");
+      const before = await snapshot();
+      const emitSpy = jest.spyOn(handle.io, "emit");
+
+      await request(app).post("/api/start-time").send({ time: startTime }).expect(400);
+      await request(app).post("/api/duplicate-mass").send({ title: "Should Not Apply", startTime }).expect(400);
+      await request(app).post("/api/new-mass").send({ title: "Should Not Apply", startTime }).expect(400);
+      await request(app).post("/api/import-settings").send({ massStartTime: startTime }).expect(400);
+
+      expect(stateUpdates(emitSpy)).toHaveLength(0);
+      const after = await snapshot();
+      expectStateUnchanged(after.state, before.state);
+      expect(after.history).toEqual(before.history);
+      emitSpy.mockRestore();
+    }
+  );
 
   test("valid start times still succeed for both routes", async () => {
     await seedLiveMass("Valid Source");

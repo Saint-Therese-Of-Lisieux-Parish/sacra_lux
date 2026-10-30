@@ -125,7 +125,7 @@ describe("settings import and export", () => {
       manualSlides: "nope",
       presentationTitle: "",
       massStartTime: 12
-    }).expect(200);
+    }).expect(400);
     expect(JSON.stringify(state.organizerSequence)).toBe(before);
   });
 

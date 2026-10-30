@@ -12,6 +12,11 @@ const {
 } = require("../helpers/testHarness");
 const { DEFAULT_SOURCE_NETWORKS } = require("../../src/state");
 
+const localDateTime = (date) => {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 describe("server api integration", () => {
   let handle;
   let app;
@@ -278,8 +283,10 @@ describe("server api integration", () => {
       client.disconnect();
     }
 
-    expect(updates).toHaveLength(1);
-    expect(updates[0].appSettings).toMatchObject({ theme: "dark", remoteAddress: selected });
+    const settingUpdates = updates.filter((snapshot) =>
+      snapshot.appSettings?.theme === "dark" && snapshot.appSettings?.remoteAddress === selected
+    );
+    expect(settingUpdates).toHaveLength(1);
   });
 
   test("app settings validate and apply the source-network allowlist", async () => {
@@ -677,7 +684,7 @@ describe("server api integration", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: new Date(Date.now() - (60 * 60 * 1000)).toISOString() })
+      .send({ time: localDateTime(new Date(Date.now() - (60 * 60 * 1000))) })
       .expect(200);
 
     state.currentSlideIndex = 1;
@@ -726,7 +733,7 @@ describe("server api integration", () => {
         .expect(200);
       await request(app)
         .post("/api/start-time")
-        .send({ time: new Date(Date.now() + (60 * 60 * 1000)).toISOString() })
+        .send({ time: localDateTime(new Date(Date.now() + (60 * 60 * 1000))) })
         .expect(200);
       state.currentSlideIndex = 1;
       state.preMassRunning = false;

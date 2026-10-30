@@ -2227,6 +2227,29 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   }
 }
 
+function parseLocalDateTime(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  const parsed = new Date(0);
+  parsed.setHours(0, 0, 0, 0);
+  parsed.setFullYear(year, month - 1, day);
+  parsed.setHours(hour, minute, 0, 0);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day ||
+    parsed.getHours() !== hour ||
+    parsed.getMinutes() !== minute
+  ) return null;
+  return parsed;
+}
+
+function isValidLocalDateTime(value) {
+  return parseLocalDateTime(value) !== null;
+}
+
 function preMassStartIsBlocked() {
   const target = state.massStartTime ? new Date(state.massStartTime) : null;
   const massHasBegun = target && !Number.isNaN(target.getTime()) && Date.now() >= target.getTime();
@@ -2948,8 +2971,7 @@ function startServer(port = 17841, options = {}) {
         state.massStartTime = null;
         clearStartTimers();
       } else {
-        const parsed = new Date(String(time));
-        if (isNaN(parsed.getTime())) {
+        if (!isValidLocalDateTime(time)) {
           return res.status(400).json({ error: "time must be a valid datetime string (YYYY-MM-DDTHH:MM) or null to clear." });
         }
         state.massStartTime = String(time);
@@ -3237,8 +3259,8 @@ function startServer(port = 17841, options = {}) {
       const nextManualSlides = payload.manualSlides && typeof payload.manualSlides === "object"
         ? mergeManualSlideState(nextOrganizerSequence, payload.manualSlides)
         : state.manualSlides;
-      if (payload.massStartTime && typeof payload.massStartTime === "string" &&
-        Number.isNaN(new Date(payload.massStartTime).getTime())) {
+      if (payload.massStartTime !== undefined && payload.massStartTime !== null && payload.massStartTime !== "" &&
+        !isValidLocalDateTime(payload.massStartTime)) {
         throw new ValidationError("massStartTime must be a valid datetime string.");
       }
 
@@ -3274,10 +3296,10 @@ function startServer(port = 17841, options = {}) {
       if (payload.presentationTitle && state.presentation) {
         state.presentation.title = String(payload.presentationTitle);
       }
-      if (payload.massStartTime && typeof payload.massStartTime === "string") {
+      if (payload.massStartTime !== undefined && payload.massStartTime !== null && payload.massStartTime !== "") {
         state.massStartTime = payload.massStartTime;
         scheduleStartTimer(io);
-      } else if (payload.massStartTime === null) {
+      } else if (payload.massStartTime === null || payload.massStartTime === "") {
         state.massStartTime = null;
         clearStartTimers();
       }
@@ -3347,8 +3369,7 @@ function startServer(port = 17841, options = {}) {
       // an unparseable value is rejected without changing the current Mass.
       let scheduledStart = null;
       if (startTime) {
-        const parsed = new Date(String(startTime));
-        if (isNaN(parsed.getTime())) {
+        if (!isValidLocalDateTime(startTime)) {
           return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
         }
         scheduledStart = String(startTime);
@@ -3404,8 +3425,7 @@ function startServer(port = 17841, options = {}) {
       // current Mass.
       let scheduledStart = null;
       if (startTime) {
-        const parsed = new Date(String(startTime));
-        if (isNaN(parsed.getTime())) {
+        if (!isValidLocalDateTime(startTime)) {
           return res.status(400).json({ error: "startTime must be a valid datetime (YYYY-MM-DDTHH:MM) or empty." });
         }
         scheduledStart = String(startTime);
