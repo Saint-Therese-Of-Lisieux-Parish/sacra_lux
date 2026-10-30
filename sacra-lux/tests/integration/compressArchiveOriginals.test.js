@@ -83,4 +83,55 @@ describe("compressing a Mass archive", () => {
     expect(entries).toContain("assets/unused.svg");
     expect(entries).toContain("mass.json");
   });
+
+  test("remaps legacy image and slideshow references to AVIF entries", async () => {
+    const { archiveDir, packageDir, compressedZipPath } = massHistory.getArchivePaths("Legacy-Mass");
+    fs.mkdirSync(path.join(packageDir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "metadata.json"), JSON.stringify({ id: "Legacy-Mass" }));
+    fs.writeFileSync(path.join(packageDir, "mass.json"), JSON.stringify({
+      presentationTitle: "Legacy Mass",
+      organizerSequence: [
+        { id: "image", type: "image", label: "Image", phase: "mass", backgroundTheme: "light" },
+        { id: "slideshow", type: "imageSlideshow", label: "Slideshow", phase: "mass", backgroundTheme: "light" }
+      ],
+      manualSlides: {
+        image: { imageUrl: "/api/mass-asset/photo.png" },
+        slideshow: {
+          images: [{ url: "/api/mass-asset/photo.png", name: "Photo" }],
+          slideshowDurationSec: 1,
+          slideshowLoopCount: 1
+        }
+      }
+    }));
+    const legacyPng = await sharp({ create: { width: 8, height: 8, channels: 3, background: "#336699" } }).png().toBuffer();
+    fs.writeFileSync(path.join(packageDir, "assets", "photo.png"), legacyPng);
+
+    await request(app).post("/api/mass-history/Legacy-Mass/compress").expect(200);
+    const legacyArchive = new AdmZip(compressedZipPath);
+    const document = JSON.parse(legacyArchive.getEntry("mass.json").getData().toString("utf8"));
+    expect(legacyArchive.getEntry("assets/photo.avif")).not.toBeNull();
+    expect(document.items[0].asset.ref).toBe("assets/photo.avif");
+    expect(document.items[1].assets[0].ref).toBe("assets/photo.avif");
+
+    await request(app).post("/api/mass-history/Legacy-Mass/load").expect(200);
+    const state = await request(app).get("/api/state").expect(200);
+    expect(state.body.manualSlides.image.imageUrl).toBe("/api/mass-asset/photo.avif");
+    expect(state.body.manualSlides.slideshow.images[0].url).toBe("/api/mass-asset/photo.avif");
+    await request(app).post("/api/new-mass").send({ title: "After Legacy", startTime: "2026-04-03T09:00" }).expect(200);
+  });
+
+  test("keeps the package when a compressed document references a missing asset", async () => {
+    const { archiveDir, packageDir } = massHistory.getArchivePaths("Broken-Mass");
+    fs.mkdirSync(packageDir, { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "metadata.json"), JSON.stringify({ id: "Broken-Mass" }));
+    fs.writeFileSync(path.join(packageDir, "mass.json"), JSON.stringify({
+      presentationTitle: "Broken Mass",
+      organizerSequence: [{ id: "image", type: "image", label: "Image", phase: "mass", backgroundTheme: "light" }],
+      manualSlides: { image: { imageUrl: "/api/mass-asset/missing.png" } }
+    }));
+
+    const response = await request(app).post("/api/mass-history/Broken-Mass/compress").expect(500);
+    expect(response.body.error).toMatch(/assets\/missing\.png/);
+    expect(fs.existsSync(packageDir)).toBe(true);
+  });
 });

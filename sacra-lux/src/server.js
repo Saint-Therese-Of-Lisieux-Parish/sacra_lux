@@ -709,6 +709,24 @@ async function convertImageToAvif(sharp, filePath) {
   return outputPages >= sourcePages ? avifBuffer : null;
 }
 
+function validateMassDocumentAssetEntries(massDocument, zip) {
+  const refs = [];
+  for (const item of massDocument.items || []) {
+    if (item.asset?.ref) refs.push(item.asset.ref);
+    for (const asset of item.assets || []) {
+      if (asset?.ref) refs.push(asset.ref);
+    }
+  }
+  for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+    if (massDocument.presentationDefaults?.[key]) refs.push(massDocument.presentationDefaults[key]);
+  }
+  for (const ref of refs) {
+    if (String(ref).startsWith("assets/") && !zip.getEntry(ref)) {
+      throw new Error(`Compressed Mass document references missing asset "${ref}".`);
+    }
+  }
+}
+
 async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   const zip = new (getAdmZip())();
   const packageInfo = readMassPackageDefinition(packageDir);
@@ -780,6 +798,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
       if (avifBuffer) {
         if (isNewSource) zip.addFile(`assets/${avifName}`, avifBuffer);
         urlRemap.set(ref, `assets/${avifName}`);
+        urlRemap.set(`assets/${originalName}`, `assets/${avifName}`);
         convertedAssetFiles.add(originalName);
       } else {
         zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
@@ -806,6 +825,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
         massDocument.presentationDefaults[key] = urlRemap.get(massDocument.presentationDefaults[key]);
       }
     }
+    validateMassDocumentAssetEntries(massDocument, zip);
     zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
   } else {
     const documents = fs.existsSync(packageDir) ? loadReadingsFromFolder(packageDir, packageInfo.runtime.screenSettings) : [];
@@ -818,12 +838,18 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
       if (item.asset?.ref && urlRemap.has(item.asset.ref)) {
         item.asset.ref = urlRemap.get(item.asset.ref);
       }
+      for (const asset of item.assets || []) {
+        if (asset?.ref && urlRemap.has(asset.ref)) {
+          asset.ref = urlRemap.get(asset.ref);
+        }
+      }
     }
     for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
       if (massDocument.presentationDefaults?.[key] && urlRemap.has(massDocument.presentationDefaults[key])) {
         massDocument.presentationDefaults[key] = urlRemap.get(massDocument.presentationDefaults[key]);
       }
     }
+    validateMassDocumentAssetEntries(massDocument, zip);
     zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
   }
 
