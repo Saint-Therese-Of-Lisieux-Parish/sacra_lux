@@ -148,10 +148,10 @@ The status line shows `Theme saved.`
 If the save fails, the status line shows the error. The list then shows the
 theme saved on the server. If that read fails, the list shows Carmel Light.
 
-The same dialog sets the network address and the source-network allowlist.
+The same dialog has a **System Settings** section. That section sets the network address and the source-network allowlist.
 
 1. **Use this address for remote and screen links.** Choose **Default route** or one IPv4 address of this computer. When no address is saved, the list shows **Default route**. An address that is not on this computer is rejected. The error is `The selected network address is not available.`
-2. **Allow client addresses and networks.** Leave the field empty to allow every source address. Or enter IPv4 or IPv6 addresses and CIDR networks, separated by commas. The list must include this computer's address. A bad list shows `The source-network allowlist must be text.`, `Invalid source network: <entry>.`, or `The source-network allowlist must include the local operator address.`
+2. **Allow client addresses and networks.** When no list is saved, the field shows `10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`. That list is already in use. A phone on one of those networks can connect. This computer can still connect. Clear the field to allow every address. You can also enter IPv4 or IPv6 addresses and CIDR networks, separated by commas. The saved list must include this computer's address. A bad list shows `The source-network allowlist must be text.`, `Invalid source network: <entry>.`, or `The source-network allowlist must include the local operator address.` The message appears under the field. The previous list stays in use.
 
 The server validates and clamps these settings. A change that affects reading layout re-paginates the reading slides.
 
