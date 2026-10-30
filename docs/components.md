@@ -119,6 +119,13 @@ and host names in `SACRA_LUX_ALLOWED_NETWORKS`. A request with a host that is
 not allowed gets HTTP 403. A state-changing request with
 `Sec-Fetch-Site: cross-site` also gets HTTP 403.
 
+A state-changing request with an `Origin` header must use `http` or `https`.
+The origin must not include a user name or a password. The origin port must
+equal the listening port. `getServerPort()` returns that port. An `http`
+origin with no port uses port 80. An `https` origin with no port uses port
+443. A failed check gets HTTP 403 and `Origin not allowed.` A missing
+`Origin` header is accepted. Socket.IO uses the same origin check.
+
 `createSourceNetworkGuard()` checks the client address. The starting list is
 `SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A loopback
 address is allowed even when the list is not empty. A blocked request gets
