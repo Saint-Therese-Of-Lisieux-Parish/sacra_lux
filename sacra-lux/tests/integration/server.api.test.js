@@ -434,6 +434,40 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass keeps the first document for each repeated USCCB section", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Repeated Lectionary Mass</title><description>
+          &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading-one"&gt;Isaiah 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading-two"&gt;Isaiah 2:2&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The second reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Responsorial Psalm &lt;a href="https://example.test/psalm-one"&gt;Psalm 1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first psalm.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Responsorial Psalm &lt;a href="https://example.test/psalm-two"&gt;Psalm 2&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The second psalm.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The Gospel.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      await request(app).post("/api/new-mass").send({ useLectionaryRss: true }).expect(200);
+
+      expect(state.organizerSequence).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "mass-reading-1", sourceStem: "Reading_I" }),
+        expect.objectContaining({ id: "mass-psalm", sourceStem: "Responsorial_Psalm" })
+      ]));
+      expect(state.readingsSource.documents).toEqual(expect.arrayContaining([
+        expect.objectContaining({ stem: "Reading_I_2", passage: "Isaiah 2:2" }),
+        expect.objectContaining({ stem: "Responsorial_Psalm_2", passage: "Psalm 2" })
+      ]));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("new Mass USCCB readings can be edited before a restart", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
