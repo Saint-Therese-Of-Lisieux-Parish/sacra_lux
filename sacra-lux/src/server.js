@@ -4340,12 +4340,13 @@ function startServer(port = 17841, options = {}) {
 
       try {
         saveCurrentMass();
+        const exportState = structuredClone(state);
         const sharp = require("sharp");
         const zip = new (getAdmZip())();
 
         // Collect media URLs referenced by manual slides and image URLs from screen settings.
         const mediaRefs = [];
-        for (const [id, slide] of Object.entries(state.manualSlides || {})) {
+        for (const [id, slide] of Object.entries(exportState.manualSlides || {})) {
           if (slide.imageUrl) {
             mediaRefs.push({ url: slide.imageUrl, type: "slide", id });
           }
@@ -4358,7 +4359,7 @@ function startServer(port = 17841, options = {}) {
           }
         }
         for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
-          const url = state.screenSettings?.[key];
+          const url = exportState.screenSettings?.[key];
           if (url) mediaRefs.push({ url, type: "screenSetting", key });
         }
 
@@ -4385,6 +4386,7 @@ function startServer(port = 17841, options = {}) {
         const urlRemap = new Map();
         const assignAvifName = createAvifNameAllocator(assetsDir);
         const avifBySource = new Map();
+        const convertImage = module.exports.convertImageToAvif || convertImageToAvif;
 
         for (let i = 0; i < resolved.length; i++) {
           const { url, filePath, originalName } = resolved[i];
@@ -4400,7 +4402,7 @@ function startServer(port = 17841, options = {}) {
             const isNewSource = !assignAvifName.has(filePath);
             const avifName = assignAvifName(filePath, originalName, ext);
             if (isNewSource) {
-              avifBySource.set(filePath, await convertImageToAvif(sharp, filePath));
+              avifBySource.set(filePath, await convertImage(sharp, filePath));
             }
             const avifBuffer = avifBySource.get(filePath);
             if (avifBuffer) {
@@ -4414,7 +4416,7 @@ function startServer(port = 17841, options = {}) {
           }
         }
 
-        const massDocument = buildMassDocumentFromState(state);
+        const massDocument = buildMassDocumentFromState(exportState);
         for (const item of massDocument.items || []) {
           if (item.asset?.ref) {
             const url = assetUrlFromName(path.basename(item.asset.ref));
@@ -4443,7 +4445,7 @@ function startServer(port = 17841, options = {}) {
         zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
 
         const zipBuffer = zip.toBuffer();
-        const filename = buildExportFilename(state.presentation?.title, state.massStartTime, "-avif.zip");
+        const filename = buildExportFilename(exportState.presentation?.title, exportState.massStartTime, "-avif.zip");
 
         const token = crypto.randomBytes(16).toString("hex");
         const expiryTimer = setTimeout(() => avifDownloadTokens.delete(token), 5 * 60 * 1000);
