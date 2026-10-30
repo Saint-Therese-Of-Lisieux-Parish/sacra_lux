@@ -160,21 +160,25 @@ host name, add it to the same list.
 
 ### Source networks
 
-`SACRA_LUX_SOURCE_NETWORKS` limits which client addresses can open the app.
-The value is a comma-separated list of IPv4 or IPv6 addresses and CIDR
-networks. An empty value allows every source address. A loopback address is allowed
-even when the list is not empty. A request from another address gets HTTP 403
-and the error `Source network not allowed.` Socket.IO uses the same check.
+`SACRA_LUX_SOURCE_NETWORKS` is the source-network list until the server
+finishes startup. The value is a comma-separated list of IPv4 or IPv6
+addresses and CIDR networks. An empty value allows every source address.
+A loopback address is allowed even when the list is not empty. A request
+from another address gets HTTP 403 and the error
+`Source network not allowed.` Socket.IO uses the same check.
 
-At startup, a valid source-network list saved in `session.json` has first priority.
-When no valid list is saved, the server uses `SACRA_LUX_SOURCE_NETWORKS`.
-When the environment variable is not set, the server uses the default private networks.
+After the server listens, a `sourceNetworks` string in `session.json` replaces
+that list. A saved empty string allows every source address. When
+`session.json` has no `sourceNetworks` string, the server keeps
+`SACRA_LUX_SOURCE_NETWORKS` if that variable is set. When the variable is
+not set, the server uses
+`10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.
 
-**Select Theme** can save the same list. After startup, a valid saved list
-replaces the environment value. The list must include the address of the
-Digital Minister who saves it. An invalid entry in the environment is ignored.
-The log says `Ignoring invalid source network entry: <entry>`. A saved list
-that is not valid is cleared. The log says `Ignoring invalid saved
+**Select Theme** has a **System Settings** section. **Allow client addresses
+and networks** saves the list. The saved list must include the address of
+the Digital Minister who saves it. An invalid entry in the environment is
+ignored. The log says `Ignoring invalid source network entry: <entry>`. A
+saved list that is not valid is cleared. The log says `Ignoring invalid saved
 source-network allowlist.` The active check is cleared too, so every source
 address is allowed.
 
