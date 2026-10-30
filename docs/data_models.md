@@ -202,7 +202,7 @@ converted once by `legacyTextBoundsFromSettings()`.
 
 - `readingPassagePosition` — `top` | `middle` | `bottom`, default `top`. `middle` centers the reference when `legacyTextBoundsFromSettings()` builds the box.
 - `readingPassageAlign` — `left` | `center` | `right`
-- `readingPassageFont` — allowlist, default `Source Sans 3`
+- `readingPassageFont` — allowlist or `""`, default `""`. An empty value uses the primary font.
 - `readingPassageSizePx` — clamped 20–90
 - `readingPassageBold`
 - `readingPassageColor` — `#rrggbb`
@@ -219,7 +219,7 @@ converted once by `legacyTextBoundsFromSettings()`.
 
 A section title setting that is not saved starts at the matching reference value, with half the reference size. After it is saved, it no longer follows the reference.
 
-- `readingSectionFont` — allowlist
+- `readingSectionFont` — allowlist or `""`, default `""`. An empty value uses the scripture reference font on the projector.
 - `readingSectionSizePx` — clamped 10–90
 - `readingSectionColor` — `#rrggbb`
 - `readingSectionBold`
