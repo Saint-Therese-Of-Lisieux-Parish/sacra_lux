@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { EventEmitter } = require("events");
 const path = require("path");
 
 const MAIN_PATH = path.join(__dirname, "../../src/main.js");
@@ -77,6 +78,7 @@ async function startMain({
     },
     shell: { openExternal: jest.fn() }
   };
+  electron.powerMonitor = new EventEmitter();
   const server = {
     once: jest.fn((name, handler) => {
       if (name === "listening" && !portInUse) setImmediate(handler);
@@ -91,8 +93,9 @@ async function startMain({
   const saveCurrentMass = jest.fn();
   const flushPendingSave = jest.fn();
   const resetStartPin = jest.fn();
+  const rescheduleStartTimer = jest.fn();
   const io = { on: jest.fn(), emit: jest.fn() };
-  const startServer = jest.fn(() => ({ io, server }));
+  const startServer = jest.fn(() => ({ io, server, rescheduleStartTimer }));
   jest.doMock("../../src/server", () => ({
     startServer,
     saveCurrentMass,
@@ -120,6 +123,7 @@ async function startMain({
   windows.saveCurrentMass = saveCurrentMass;
   windows.flushPendingSave = flushPendingSave;
   windows.resetStartPin = resetStartPin;
+  windows.rescheduleStartTimer = rescheduleStartTimer;
   return windows;
 }
 
@@ -290,6 +294,14 @@ describe("Electron window security settings", () => {
     beforeQuit[1]();
 
     expect(windows.flushPendingSave).toHaveBeenCalledTimes(1);
+  });
+
+  test("reschedules Mass start timers when the computer resumes", async () => {
+    const windows = await startMain();
+
+    windows.electron.powerMonitor.emit("resume");
+
+    expect(windows.rescheduleStartTimer).toHaveBeenCalledTimes(1);
   });
 
   test("the Save menu item shows a success status", async () => {
