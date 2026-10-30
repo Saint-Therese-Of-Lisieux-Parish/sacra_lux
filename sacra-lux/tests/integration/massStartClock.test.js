@@ -90,7 +90,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     const res = await request(app).get("/api/state").expect(200);
@@ -107,7 +107,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     let res = await request(app).get("/api/state").expect(200);
@@ -126,10 +126,10 @@ describe("mass start from the wall clock", () => {
   // the real wait is not the difference of the two clock readings. Compute the
   // wait from Date, so the test holds in every TZ, with or without DST.
   test.each([
-    ["US spring forward", "2026-03-08T01:59:50", "2026-03-08T03:00:00"],
-    ["US fall back", "2026-11-01T00:59:50", "2026-11-01T02:00:00"],
-    ["EU spring forward", "2026-03-29T00:59:50", "2026-03-29T02:00:00"],
-    ["EU fall back", "2026-10-25T00:59:50", "2026-10-25T02:00:00"]
+    ["US spring forward", "2026-03-08T01:59:50", "2026-03-08T03:00"],
+    ["US fall back", "2026-11-01T00:59:50", "2026-11-01T02:00"],
+    ["EU spring forward", "2026-03-29T00:59:50", "2026-03-29T02:00"],
+    ["EU fall back", "2026-10-25T00:59:50", "2026-10-25T02:00"]
   ])("%s: cuts over to Mass when the local start time arrives", async (_label, nowLocal, startLocal) => {
     const now = new Date(nowLocal);
     const waitMs = new Date(startLocal).getTime() - now.getTime();
@@ -159,7 +159,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     let res = await request(app).get("/api/state").expect(200);
@@ -191,7 +191,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     const res = await request(app).get("/api/state").expect(200);
@@ -223,7 +223,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     let res = await request(app).get("/api/state").expect(200);
@@ -255,7 +255,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/new-mass")
-      .send({ title: "Clock Mass", startTime: "2026-05-03T10:00:00" })
+      .send({ title: "Clock Mass", startTime: "2026-05-03T10:00" })
       .expect(200);
 
     let res = await request(app).get("/api/state").expect(200);
@@ -283,7 +283,7 @@ describe("mass start from the wall clock", () => {
     jest.setSystemTime(new Date("2026-05-03T09:00:00"));
     await request(app)
       .post("/api/new-mass")
-      .send({ title: "Past Mass", startTime: "2026-05-03T10:00:00" })
+      .send({ title: "Past Mass", startTime: "2026-05-03T10:00" })
       .expect(200);
     await request(app)
       .post("/api/new-mass")
@@ -309,7 +309,7 @@ describe("mass start from the wall clock", () => {
     jest.setSystemTime(new Date("2026-05-03T09:00:00"));
     await request(app)
       .post("/api/new-mass")
-      .send({ title: "Window Mass", startTime: "2026-05-03T10:00:00" })
+      .send({ title: "Window Mass", startTime: "2026-05-03T10:00" })
       .expect(200);
     await request(app)
       .post("/api/new-mass")
@@ -330,13 +330,13 @@ describe("mass start from the wall clock", () => {
     jest.setSystemTime(new Date("2026-05-03T09:00:00"));
     await request(app)
       .post("/api/new-mass")
-      .send({ title: "To Copy", startTime: "2026-05-03T10:00:00" })
+      .send({ title: "To Copy", startTime: "2026-05-03T10:00" })
       .expect(200);
 
     jest.setSystemTime(new Date("2026-05-03T09:59:50"));
     await request(app)
       .post("/api/duplicate-mass")
-      .send({ title: "Copied Window", startTime: "2026-05-03T10:00:00" })
+      .send({ title: "Copied Window", startTime: "2026-05-03T10:00" })
       .expect(200);
 
     const res = await request(app).get("/api/state").expect(200);
@@ -352,7 +352,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     // Operator has moved to the second Mass slide.
@@ -392,7 +392,7 @@ describe("mass start from the wall clock", () => {
 
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     res = await request(app).get("/api/state").expect(200);
@@ -419,7 +419,7 @@ describe("mass start from the wall clock", () => {
       .expect(200);
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     let res = await request(app).get("/api/state").expect(200);
@@ -445,7 +445,7 @@ describe("mass start from the wall clock", () => {
     await seedGatheringAndMass();
     await request(app)
       .post("/api/start-time")
-      .send({ time: "2026-05-03T10:00:00" })
+      .send({ time: "2026-05-03T10:00" })
       .expect(200);
 
     let res = await request(app).get("/api/state").expect(200);
@@ -487,7 +487,7 @@ describe("mass start from the wall clock", () => {
     try {
       await request(app)
         .post("/api/start-time")
-        .send({ time: "2026-06-12T10:00:00" })
+      .send({ time: "2026-06-12T10:00" })
         .expect(200);
 
       jest.advanceTimersByTime(60 * 1000);
