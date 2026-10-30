@@ -240,6 +240,48 @@ describe("server api integration", () => {
     expect((await request(app).get("/api/state").expect(200)).body.appSettings.theme).toBe(before);
   });
 
+  test("app settings reject invalid fields without applying another field", async () => {
+    const before = (await request(app).get("/api/state").expect(200)).body.appSettings.theme;
+    const nextTheme = before === "default" ? "dark" : "default";
+
+    await request(app)
+      .post("/api/app-settings")
+      .send({ theme: nextTheme, remoteAddress: "203.0.113.9" })
+      .expect(400);
+    expect((await request(app).get("/api/state").expect(200)).body.appSettings.theme).toBe(before);
+
+    await request(app)
+      .post("/api/app-settings")
+      .send({ theme: nextTheme, sourceNetworks: "bad-entry" })
+      .expect(400);
+    expect((await request(app).get("/api/state").expect(200)).body.appSettings.theme).toBe(before);
+  });
+
+  test("app settings emit one update after applying all valid fields", async () => {
+    const updates = [];
+    const client = createSocket(handle.baseUrl, { transports: ["websocket"] });
+    client.on("state:update", (snapshot) => updates.push(snapshot));
+    const addresses = await request(app).get("/api/network-addresses").expect(200);
+    const selected = addresses.body.addresses[0].address;
+
+    try {
+      await new Promise((resolve, reject) => {
+        client.once("connect", resolve);
+        client.once("connect_error", reject);
+      });
+      updates.length = 0;
+      await request(app)
+        .post("/api/app-settings")
+        .send({ theme: "dark", remoteAddress: selected })
+        .expect(200);
+    } finally {
+      client.disconnect();
+    }
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].appSettings).toMatchObject({ theme: "dark", remoteAddress: selected });
+  });
+
   test("app settings validate and apply the source-network allowlist", async () => {
     await request(app).post("/api/app-settings").send({ sourceNetworks: "127.0.0.1/32" }).expect(200);
     expect(state.appSettings.sourceNetworks).toBe("127.0.0.1/32");
