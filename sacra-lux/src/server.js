@@ -3557,9 +3557,12 @@ function startServer(port = 17841, options = {}) {
 
       state.organizerSequence = normalizeOrganizerSequence(newSequence);
       if (useLectionaryRss) {
-        const documentsBySection = new Map(
-          lectionaryDocuments.map((document) => [document.section, document])
-        );
+        const documentsBySection = new Map();
+        for (const document of lectionaryDocuments) {
+          if (!documentsBySection.has(document.section)) {
+            documentsBySection.set(document.section, document);
+          }
+        }
         const readingSlots = new Map([
           ["mass-reading-1", "Reading I"],
           ["mass-psalm", "Responsorial Psalm"],
