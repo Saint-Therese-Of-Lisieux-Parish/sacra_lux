@@ -194,7 +194,7 @@ idle projector. The remote shows a live projector preview at the top.
 **Lock this remote** ends control on this phone.
 The phone then shows **This remote is locked.**
 Select **Unlock the remote** to open the PIN page.
-The remote has no Blackout, Start Mass, or Interstitial button. It does not send `screen:interstitial-hold`.
+The remote has no Blackout, Start Mass, or Interstitial button.
 
 ## Starting the Remote with a PIN
 
