@@ -2,12 +2,13 @@ const { DEFAULT_THEME } = require("./themes");
 const { DEFAULT_TEXT_BOUNDS } = require("./textBounds");
 
 const DEFAULT_SOURCE_NETWORKS = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
+const INITIAL_SOURCE_NETWORKS = process.env.SACRA_LUX_SOURCE_NETWORKS ?? DEFAULT_SOURCE_NETWORKS;
 
 const state = {
   appSettings: {
     theme: DEFAULT_THEME,
     remoteAddress: "",
-    sourceNetworks: DEFAULT_SOURCE_NETWORKS
+    sourceNetworks: INITIAL_SOURCE_NETWORKS
   },
   presentation: {
     title: "No presentation loaded",

@@ -166,6 +166,10 @@ networks. An empty value allows every source address. A loopback address is allo
 even when the list is not empty. A request from another address gets HTTP 403
 and the error `Source network not allowed.` Socket.IO uses the same check.
 
+At startup, a valid source-network list saved in `session.json` has first priority.
+When no valid list is saved, the server uses `SACRA_LUX_SOURCE_NETWORKS`.
+When the environment variable is not set, the server uses the default private networks.
+
 **Select Theme** can save the same list. After startup, a valid saved list
 replaces the environment value. The list must include the address of the
 Digital Minister who saves it. An invalid entry in the environment is ignored.
@@ -384,4 +388,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.325-alpha`.
+The current package version is `0.0.326-alpha`.
