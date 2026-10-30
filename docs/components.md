@@ -124,11 +124,12 @@ not allowed gets HTTP 403. A state-changing request with
 address is allowed even when the list is not empty. A blocked request gets
 HTTP 403 and `Source network not allowed.` Socket.IO uses the same check.
 After the server listens, `startServer()` replaces that list with
-`state.appSettings.sourceNetworks`. A new process uses
-`10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16` from `DEFAULT_SOURCE_NETWORKS`
-in `src/state.js`. A saved string, including an empty string, replaces that
-default. An invalid saved list is cleared. The log says
-`Ignoring invalid saved source-network allowlist.`
+`state.appSettings.sourceNetworks`. A new process sets that value from
+`SACRA_LUX_SOURCE_NETWORKS` when the variable is set. When the variable is
+not set, the value is `10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`
+(`DEFAULT_SOURCE_NETWORKS` in `src/state.js`). A saved string, including an
+empty string, replaces that value. An invalid saved list is cleared. The log
+says `Ignoring invalid saved source-network allowlist.`
 `POST /api/app-settings` can replace the list.
 
 ### `src/networkAddress.js`
