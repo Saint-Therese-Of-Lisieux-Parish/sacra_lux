@@ -3207,6 +3207,7 @@
                   <div class="settings-field settings-span-4">
                     <label>Font
                       <select id="readingPassageFont">
+                        <option value="">Use global font</option>
                         <option value="Merriweather">Merriweather</option>
                         <option value="Lora">Lora</option>
                         <option value="Playfair Display">Playfair Display</option>
@@ -3216,7 +3217,7 @@
                         <option value="Crimson Pro">Crimson Pro</option>
                         <option value="Noto Serif">Noto Serif</option>
                         <option value="PT Serif">PT Serif</option>
-                        <option value="Source Sans 3" selected>Source Sans 3</option>
+                        <option value="Source Sans 3">Source Sans 3</option>
                         <option value="Inter">Inter</option>
                         <option value="Open Sans">Open Sans</option>
                         <option value="Roboto">Roboto</option>
@@ -3311,6 +3312,7 @@
                   <div class="settings-field settings-span-4">
                     <label>Title Font
                       <select id="readingSectionFont">
+                        <option value="">Use global font</option>
                         <option value="Merriweather">Merriweather</option>
                         <option value="Lora">Lora</option>
                         <option value="Playfair Display">Playfair Display</option>
@@ -3320,7 +3322,7 @@
                         <option value="Crimson Pro">Crimson Pro</option>
                         <option value="Noto Serif">Noto Serif</option>
                         <option value="PT Serif">PT Serif</option>
-                        <option value="Source Sans 3" selected>Source Sans 3</option>
+                        <option value="Source Sans 3">Source Sans 3</option>
                         <option value="Inter">Inter</option>
                         <option value="Open Sans">Open Sans</option>
                         <option value="Roboto">Roboto</option>
@@ -5320,7 +5322,7 @@
     function refreshGlobalDefaultLabels() {
       const font = els.fontFamily?.value || "";
       const size = els.fontSizePx?.value || "";
-      for (const select of [els.readingTextFont, els.textSlideTextFont]) {
+      for (const select of [els.readingTextFont, els.readingPassageFont, els.readingSectionFont, els.textSlideTextFont]) {
         const first = select?.options[0];
         if (first && first.value === "") first.textContent = font ? `Default (${font})` : "Default font";
       }
@@ -5963,7 +5965,7 @@
         const th = ds.readingTextHeightPx || 840;
         const py = ds.readingPassageYPx || 70;
         const pw = ds.readingPassageWidthPx || 650;
-        const pFont = ds.readingPassageFont || "Source Sans 3";
+        const pFont = ds.readingPassageFont || font;
         const pSize = Math.min(ds.readingPassageSizePx || 44, 58);
         const pColor = ds.readingPassageColor || "#e8d5a0";
         const pBold = ds.readingPassageBold !== false ? "font-weight:700;" : "";
@@ -6864,8 +6866,8 @@
         if (screen.readingPassageAlign) {
           els.readingPassageAlign.value = screen.readingPassageAlign;
         }
-        if (screen.readingPassageFont) {
-          els.readingPassageFont.value = screen.readingPassageFont;
+        if (screen.readingPassageFont !== undefined) {
+          els.readingPassageFont.value = screen.readingPassageFont || "";
         }
         if (screen.readingPassageSizePx) {
           els.readingPassageSizePx.value = String(screen.readingPassageSizePx);
@@ -6879,8 +6881,8 @@
         if (screen.readingPassageLetterSpacingPx !== undefined) {
           els.readingPassageLetterSpacingPx.value = String(screen.readingPassageLetterSpacingPx);
         }
-        if (screen.readingSectionFont) {
-          els.readingSectionFont.value = screen.readingSectionFont;
+        if (screen.readingSectionFont !== undefined) {
+          els.readingSectionFont.value = screen.readingSectionFont || "";
         }
         if (screen.readingSectionSizePx) {
           els.readingSectionSizePx.value = String(screen.readingSectionSizePx);

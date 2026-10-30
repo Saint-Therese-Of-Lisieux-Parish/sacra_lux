@@ -1479,8 +1479,8 @@
       stage.style.setProperty("--reading-text-weight", readingTextWeight);
       stage.style.setProperty("--reading-text-color", settings.readingTextColor || "#f8f8f8");
       // Passage name font/weight/color
-      const passageFontSafe = (settings.readingPassageFont || "Source Sans 3").replace(/"/g, "").trim();
-      stage.style.setProperty("--reading-passage-font", `"${passageFontSafe}", sans-serif`);
+      const passageFontSafe = (settings.readingPassageFont || settings.fontFamily || "Merriweather").replace(/"/g, "").trim();
+      stage.style.setProperty("--reading-passage-font", `"${passageFontSafe}", serif`);
       stage.style.setProperty("--reading-passage-weight", settings.readingPassageBold !== false ? "700" : "400");
       stage.style.setProperty("--reading-passage-color", settings.readingPassageColor || "#e8d5a0");
       // Label color is passage color at reduced opacity — derived in CSS
@@ -1544,7 +1544,7 @@
         const sectionFontSafe = String(settings.readingSectionFont).replace(/"/g, "").trim();
         stage.style.setProperty("--reading-section-font", `"${sectionFontSafe}", sans-serif`);
       } else {
-        stage.style.removeProperty("--reading-section-font");
+        stage.style.setProperty("--reading-section-font", `"${passageFontSafe}", serif`);
       }
       if (Number(settings.readingSectionSizePx) > 0) {
         stage.style.setProperty("--reading-section-size", `${Math.min(90, Math.max(10, Number(settings.readingSectionSizePx)))}px`);

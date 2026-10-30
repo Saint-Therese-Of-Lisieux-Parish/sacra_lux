@@ -205,7 +205,7 @@ describe("screen settings normalization", () => {
       readingTextAlign: "left",
       readingTextVAlign: "middle",
       readingTextFont: "",
-      readingPassageFont: "Source Sans 3",
+      readingPassageFont: "",
       readingPassagePosition: "top",
       readingPassageAlign: "center",
       resolution: "1080p",
@@ -222,6 +222,20 @@ describe("screen settings normalization", () => {
     });
     expect(settings.darkBackgroundUrl).toBe("/static/assets/default-text-background.avif");
     expect(settings.lightBackgroundUrl).toBe("/static/assets/default-interstitial.png");
+  });
+
+  test("uses the primary font when reading font overrides are empty", async () => {
+    const settings = await post({
+      fontFamily: "Lora",
+      readingPassageFont: "",
+      readingSectionFont: ""
+    });
+
+    expect(settings).toMatchObject({
+      fontFamily: "Lora",
+      readingPassageFont: "",
+      readingSectionFont: ""
+    });
   });
 
   test("keeps middle as the vertical alignment for the passage", async () => {
