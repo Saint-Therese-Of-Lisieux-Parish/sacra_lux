@@ -118,6 +118,18 @@ test("App Settings groups network controls under System Settings", async ({ page
   await expect(page.locator("#appSettingsDialog")).toContainText("Source network allowlist");
 });
 
+test("App Settings can end all remote sessions", async ({ page }) => {
+  await page.goto(`${baseUrl}/`);
+  await page.locator("#massLibraryCloseBtn").click();
+  await page.locator("#openAppSettingsBtn").click();
+
+  const requestPromise = page.waitForRequest((request) =>
+    request.method() === "POST" && request.url().endsWith("/api/control-sessions/end")
+  );
+  await page.locator("#endRemoteSessionsBtn").click();
+  await requestPromise;
+});
+
 test("App Settings theme picker supports keyboard selection and reports rejected changes", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   await page.locator("#massLibraryCloseBtn").click();
