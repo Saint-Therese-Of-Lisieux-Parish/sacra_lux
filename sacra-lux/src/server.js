@@ -3625,6 +3625,7 @@ function startServer(port = 17841, options = {}) {
       }
       const packageDefinition = parseMassZipDefinition(definitionEntry);
 
+      saveCurrentMass();
       replaceCurrentMassDir((stagingDir) => {
         writeZipMassPackage(zip, stagingDir, packageDefinition);
       });
@@ -3669,6 +3670,7 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
+        saveCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           fs.cpSync(archivePaths.packageDir, stagingDir, { recursive: true });
           readMassPackageDefinition(stagingDir, state.screenSettings);
@@ -3688,6 +3690,7 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
+        saveCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           writeZipMassPackage(zip, stagingDir, packageData);
         });
