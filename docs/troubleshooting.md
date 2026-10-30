@@ -28,9 +28,12 @@ server holds the only authoritative state, so always inspect server state
 ## The start PIN is forgotten
 
 - In the Electron app, open **File** and select **Reset Start PIN**.
-- Confirm the reset. Sacra Lux clears the PIN, ends all control sessions, and
-  saves the change to `session.json`.
-- Unlock the remote again if a PIN is needed.
+- Confirm **Reset Start PIN**. The question is **Reset the start PIN?**
+- The status line shows **Start PIN reset**. Sacra Lux clears the PIN, ends
+  all control sessions, and saves the change to `session.json`.
+- A failed save shows **Could not save session.json.**
+- Set a new PIN in **Start PIN** if the remote must be locked again. A phone
+  that was unlocked shows **The start PIN was reset. Unlock again.**
 
 ## A reading's text overflows or underfills the page
 
