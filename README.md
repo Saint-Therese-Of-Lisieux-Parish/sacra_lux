@@ -140,6 +140,9 @@ first IPv4 address. When no IPv4 address exists, it uses `localhost`.
 The server rejects a request when its `Host` header is not allowed (HTTP 403).
 It also rejects a state-changing request, or a Socket.IO connection, when its
 `Origin` header is not allowed. A request with no `Origin` header is accepted.
+The origin must use `http` or `https`, with no user name and no password.
+The origin port must be the server port. An `http` origin with no port uses
+port 80. An `https` origin with no port uses port 443.
 A state-changing request with `Sec-Fetch-Site: cross-site` gets HTTP 403 and
 the error `Cross-site request not allowed.`
 This stops a web page in the Digital Minister browser, and DNS rebinding, from using
@@ -160,21 +163,25 @@ host name, add it to the same list.
 
 ### Source networks
 
-`SACRA_LUX_SOURCE_NETWORKS` limits which client addresses can open the app.
-The value is a comma-separated list of IPv4 or IPv6 addresses and CIDR
-networks. An empty value allows every source address. A loopback address is allowed
-even when the list is not empty. A request from another address gets HTTP 403
-and the error `Source network not allowed.` Socket.IO uses the same check.
+`SACRA_LUX_SOURCE_NETWORKS` is the source-network list until the server
+finishes startup. The value is a comma-separated list of IPv4 or IPv6
+addresses and CIDR networks. An empty value allows every source address.
+A loopback address is allowed even when the list is not empty. A request
+from another address gets HTTP 403 and the error
+`Source network not allowed.` Socket.IO uses the same check.
 
-At startup, a valid source-network list saved in `session.json` has first priority.
-When no valid list is saved, the server uses `SACRA_LUX_SOURCE_NETWORKS`.
-When the environment variable is not set, the server uses the default private networks.
+After the server listens, a `sourceNetworks` string in `session.json` replaces
+that list. A saved empty string allows every source address. When
+`session.json` has no `sourceNetworks` string, the server keeps
+`SACRA_LUX_SOURCE_NETWORKS` if that variable is set. When the variable is
+not set, the server uses
+`10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.
 
-**Select Theme** can save the same list. After startup, a valid saved list
-replaces the environment value. The list must include the address of the
-Digital Minister who saves it. An invalid entry in the environment is ignored.
-The log says `Ignoring invalid source network entry: <entry>`. A saved list
-that is not valid is cleared. The log says `Ignoring invalid saved
+**Select Theme** has a **System Settings** section. **Allow client addresses
+and networks** saves the list. The saved list must include the address of
+the Digital Minister who saves it. An invalid entry in the environment is
+ignored. The log says `Ignoring invalid source network entry: <entry>`. A
+saved list that is not valid is cleared. The log says `Ignoring invalid saved
 source-network allowlist.` The active check is cleared too, so every source
 address is allowed.
 
@@ -365,8 +372,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.313-alpha
-git push origin v0.0.313-alpha
+git tag v0.0.329-alpha
+git push origin v0.0.329-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -388,4 +395,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.328-alpha`.
+The current package version is `0.0.329-alpha`.

@@ -132,6 +132,13 @@ sequenceDiagram
     Server->>Server: apply mutation
 ```
 
+`POST /api/control-sessions/end` ends every control session except the
+caller. Each ended socket receives `control:required` with
+`The operator ended remote sessions.`
+`control:lock` ends only the session of the remote that sent it.
+That remote receives `This remote is locked.`
+Other sessions stay valid.
+
 ## 7. Mass Asset Upload and Refresh
 
 ```mermaid

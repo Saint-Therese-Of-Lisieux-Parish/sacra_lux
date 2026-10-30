@@ -28,9 +28,12 @@ server holds the only authoritative state, so always inspect server state
 ## The start PIN is forgotten
 
 - In the Electron app, open **File** and select **Reset Start PIN**.
-- Confirm the reset. Sacra Lux clears the PIN, ends all control sessions, and
-  saves the change to `session.json`.
-- Unlock the remote again if a PIN is needed.
+- Confirm **Reset Start PIN**. The question is **Reset the start PIN?**
+- The status line shows **Start PIN reset**. Sacra Lux clears the PIN, ends
+  all control sessions, and saves the change to `session.json`.
+- A failed save shows **Could not save session.json.**
+- Set a new PIN in **Start PIN** if the remote must be locked again. A phone
+  that was unlocked shows **The start PIN was reset. Unlock again.**
 
 ## A reading's text overflows or underfills the page
 
@@ -115,14 +118,23 @@ address that is not an address of this computer. Set
 `SACRA_LUX_ALLOWED_NETWORKS` to the network, for example `192.168.1.0/24`, and
 restart the app. See [Allowed hosts and origins](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/README.md#allowed-hosts-and-origins).
 
+The same error `Origin not allowed.` appears when the origin port is not the
+server port. Open the remote with the port in the server URL.
+
 A state-changing request from another web site gets HTTP 403 and the error
 `Cross-site request not allowed.` Open the app from this computer instead.
 
 ## A device gets "Source network not allowed"
 
 The source-network allowlist does not include that device. Open **Select Theme**
-on this computer and add the device address, or clear the list to allow every
-source address. A valid list saved in `session.json` has first priority at startup.
-When no valid list is saved, the server uses `SACRA_LUX_SOURCE_NETWORKS`.
-When the environment variable is not set, the server uses the default private networks.
+on this computer. In **System Settings**, add the device address under
+**Allow client addresses and networks**, or clear the list to allow every
+address. The message under the field shows a rejected save. The previous list
+stays in use.
+
+A `sourceNetworks` string in `session.json` is used after startup. A saved
+empty string allows every source address. When `session.json` has no
+`sourceNetworks` string, the server uses `SACRA_LUX_SOURCE_NETWORKS` if that
+variable is set. When the variable is not set, the server uses
+`10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.
 See [Screen Settings](user-guide.md#screen-settings).

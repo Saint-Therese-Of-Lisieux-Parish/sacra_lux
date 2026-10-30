@@ -62,7 +62,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 - `POST /api/start-time` — set or clear `massStartTime` and arm the start timers
 - `POST /api/start-pin` — set, change, or clear the start PIN
-- `POST /api/control-sessions/end` — end every remote control session except the requesting session
+- `POST /api/control-sessions/end` — end every remote control session except the requesting session. Each ended socket gets `control:required` with `The operator ended remote sessions.`
 - `POST /api/verify-pin` — verify a PIN, issue a one-time start token and a control session
 - `GET /api/start-redirect` — validate a start token and redirect to `/remote`. This GET does not start pre-Mass. After a valid token, the redirect is `/remote#start-pre-mass`, and the remote page sends `POST /api/pre-mass/start`.
 - `POST /api/pre-mass/start`, `POST /api/pre-mass/stop`
@@ -86,11 +86,11 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/import-settings` — apply a settings JSON payload. Background URLs use the screen-settings rule. Image and movie URLs in `manualSlides` use the organizer rule. A bad URL returns HTTP 400.
 - `GET /api/export-mass-zip` — download the current Mass package as a ZIP
 - `GET /api/export-mass-zip-avif?token=` — download a completed AVIF export via its one-time token
-- `POST /api/import-mass-zip` — replace the current Mass from an uploaded ZIP
+- `POST /api/import-mass-zip` — save the open Mass, then replace the current Mass from an uploaded ZIP
 - `POST /api/duplicate-mass` — archive the current Mass and open a copy
 - `POST /api/new-mass` — archive the current Mass and build a blank organizer; accepts `useLectionaryRss`
 - `GET /api/mass-history` — list archives with active/archived metadata
-- `POST /api/mass-history/:archiveId/load`
+- `POST /api/mass-history/:archiveId/load` — save the open Mass, then load that archive
 - `POST /api/mass-history/:archiveId/compress` — convert an archive to a compressed AVIF ZIP
 - `DELETE /api/mass-history/:archiveId`
 
@@ -135,8 +135,8 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 ### Client to server
 
 - `control:auth` — present a control token to unlock control events
-- `control:lock` — lock the connected remote and end its control session
-- `screen:settings` — update screen settings and repaginate readings if needed. A background URL with a bad prefix is ignored.
+- `control:lock` — end the control session of the connected remote. Other sessions stay valid. The remote gets `control:required` with `This remote is locked.`
+- `screen:settings` — update screen settings, rebuild the presentation, and save the current Mass. The save waits 600 ms, then writes `mass.json` and `session.json`. A background URL with a bad prefix is ignored.
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index
 - `slide:goto:remote` — jump from the remote and allow post-mass loop activation

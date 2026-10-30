@@ -152,7 +152,9 @@ client-only display hacks.
 When a start PIN is configured, the server issues a control session token on
 PIN verification or start-pin change. Mutating HTTP requests and
 control-sensitive socket events require that token (cookie or
-`x-sacra-control` header). The full surface and its current limitations are in
+`x-sacra-control` header). `POST /api/control-sessions/end` ends every
+session except the caller. `control:lock` ends only the caller's session.
+The full surface and its current limitations are in
 [interfaces.md](./interfaces.md) and
 [code_review_ears_report.md](./code_review_ears_report.md).
 

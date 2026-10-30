@@ -200,9 +200,9 @@ converted once by `legacyTextBoundsFromSettings()`.
 
 ### Reading scripture reference fields
 
-- `readingPassagePosition` — `top` | `bottom`
+- `readingPassagePosition` — `top` | `middle` | `bottom`, default `top`. `middle` centers the reference when `legacyTextBoundsFromSettings()` builds the box.
 - `readingPassageAlign` — `left` | `center` | `right`
-- `readingPassageFont` — allowlist, default `Source Sans 3`
+- `readingPassageFont` — allowlist or `""`, default `""`. An empty value uses the primary font.
 - `readingPassageSizePx` — clamped 20–90
 - `readingPassageBold`
 - `readingPassageColor` — `#rrggbb`
@@ -219,7 +219,7 @@ converted once by `legacyTextBoundsFromSettings()`.
 
 A section title setting that is not saved starts at the matching reference value, with half the reference size. After it is saved, it no longer follows the reference.
 
-- `readingSectionFont` — allowlist
+- `readingSectionFont` — allowlist or `""`, default `""`. An empty value uses the scripture reference font on the projector.
 - `readingSectionSizePx` — clamped 10–90
 - `readingSectionColor` — `#rrggbb`
 - `readingSectionBold`
@@ -310,6 +310,7 @@ starts without a valid `current_mass` package, or `null` otherwise.
 `saveError` is empty when the last scheduled save succeeded. A failed Mass
 save sets `Could not save mass.json: <message>`. A failed session save sets
 `Could not save session.json.` or `Could not save session.json: <message>`.
+An absolute path in `<message>` is replaced with `[path]`.
 The session file does not store `saveError`.
 
 `organizerRevision` starts at 0. A successful organizer save adds 1.
@@ -340,7 +341,7 @@ also adds 1. Startup restore, ZIP import, and archive load call that function.
 - `postMassRunning` — saved as true or false. Restore starts Post-Mass again when the session age is from 0 through 4 hours. A resumed Post-Mass loop does not jump to the first Mass slide.
 - `activeMassArchiveId`
 - `controlMode`
-- `appSettings` — `theme`, `remoteAddress`, and `sourceNetworks`
+- `appSettings` — `theme`, `remoteAddress`, and `sourceNetworks`. When `session.json` has no `sourceNetworks` string, the value is `SACRA_LUX_SOURCE_NETWORKS` if that variable is set. When the variable is not set, the value is `10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`. A saved empty string allows every source address.
 
 Parsed reading documents are omitted because they are reloaded from
 `current_mass/`. Session version `1` is migrated automatically by

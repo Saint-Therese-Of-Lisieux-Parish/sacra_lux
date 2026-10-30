@@ -134,8 +134,8 @@ error.
 
 1. **Typography & Output** sets the primary font, the base size, the transition, and bold global text.
 2. **Resolution** sets the output size. The choices are 720p, 1080p, 1440p, and 4K.
-3. **Slide Backgrounds** sets two images. The first image is the background for Reading, Text, Hymn, and Prayer slides. The second image is the background for Interstitial slides. Each image can use a preset or an uploaded file. Each selected image has a thumbnail. Select a thumbnail to open a larger view in the output aspect ratio. Press **Escape** or **Close** to return to Display Settings.
-4. **Text Styles** has five tabs: **Reading Body**, **Reading Reference & Passage**, **Text**, **Hymn**, and **Prayer**. A slide preview shows the selected text area. **Font** sets the type style for that tab. **Window Position** moves that text area. Font, size, bold, and italic are separate for Text, Hymn, and Prayer. The other Text, Hymn, and Prayer settings are shared. The reference tab also sets the section title, such as First Reading. It can show the slide number, the reading label, and the spoken ending. The spoken ending is its own slide. The text is `The Word of the Lord.` or `The Gospel of the Lord.`
+3. **Slide Backgrounds** sets two images. The first image is the background for Reading, Text, Hymn, and Prayer slides. The second image is the background for Interstitial slides. Each image can use a preset or an uploaded file. Each selected image has a thumbnail. Select a thumbnail to open a larger view in the output aspect ratio. Press **Escape** or **Close** to return to Display Settings. If no image is selected, the thumbnail says **No background selected**. If the image cannot be shown, the thumbnail says **Preview unavailable**.
+4. **Text Styles** has five tabs: **Reading Body**, **Reading Reference & Passage**, **Text**, **Hymn**, and **Prayer**. A slide preview shows the selected text area. **Font** sets the type style for that tab. **Use global font** uses the primary font. The section title uses the scripture reference font when its font is **Use global font**. **Window Position** moves that text area. Font, size, bold, and italic are separate for Text, Hymn, and Prayer. The other Text, Hymn, and Prayer settings are shared. On **Reading Reference & Passage**, **Vertical alignment** can be **Top**, **Middle**, or **Bottom**. The reference tab also sets the section title, such as First Reading. It can show the slide number, the reading label, and the spoken ending. The spoken ending is its own slide. The text is `The Word of the Lord.` or `The Gospel of the Lord.`
 
 Most changes apply as you edit. **Apply Changes & Close** saves the changes and closes the dialog.
 
@@ -148,10 +148,10 @@ The status line shows `Theme saved.`
 If the save fails, the status line shows the error. The list then shows the
 theme saved on the server. If that read fails, the list shows Carmel Light.
 
-The same dialog sets the network address and the source-network allowlist.
+The same dialog has a **System Settings** section. That section sets the network address and the source-network allowlist.
 
 1. **Use this address for remote and screen links.** Choose **Default route** or one IPv4 address of this computer. When no address is saved, the list shows **Default route**. An address that is not on this computer is rejected. The error is `The selected network address is not available.`
-2. **Allow client addresses and networks.** Leave the field empty to allow every source address. Or enter IPv4 or IPv6 addresses and CIDR networks, separated by commas. The list must include this computer's address. A bad list shows `The source-network allowlist must be text.`, `Invalid source network: <entry>.`, or `The source-network allowlist must include the local operator address.`
+2. **Allow client addresses and networks.** The field shows the list that is already in use. The standard list is `10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`. A phone on a network in the field can connect. This computer can still connect. Clear the field to allow every address. You can also enter IPv4 or IPv6 addresses and CIDR networks, separated by commas. The saved list must include this computer's address. A bad list shows `The source-network allowlist must be text.`, `Invalid source network: <entry>.`, or `The source-network allowlist must include the local operator address.` The message appears under the field. The previous list stays in use.
 
 The server validates and clamps these settings. A change that affects reading layout re-paginates the reading slides.
 
@@ -191,7 +191,10 @@ idle projector. The remote shows a live projector preview at the top.
 - Use the carousel under the preview. Double-tap a card to show that slide.
 - Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements. The active row has `aria-current="true"`. A slide change keeps your scroll position, open groups, and keyboard focus. The list scrolls to the active row when the rows change and you have not scrolled the list for 10 seconds.
 
-The remote has no Blackout, Start Mass, or Interstitial button. It does not send `screen:interstitial-hold`.
+**Lock this remote** ends control on this phone.
+The phone then shows **This remote is locked.**
+Select **Unlock the remote** to open the PIN page.
+The remote has no Blackout, Start Mass, or Interstitial button.
 
 ## Starting the Remote with a PIN
 

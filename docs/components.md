@@ -7,7 +7,7 @@ harness. Every source file has an entry.
 
 ### `src/server.js`
 
-HTTP and Socket.IO composition root, 4408 lines. Owns:
+HTTP and Socket.IO composition root, 4526 lines. Owns:
 
 - route registration and the control-auth `/api` middleware
 - socket event handling and the `withControl()` guard
@@ -17,6 +17,7 @@ HTTP and Socket.IO composition root, 4408 lines. Owns:
 - import/export flows (settings JSON, Mass ZIP, AVIF)
 - archive operations
 - remote interstitial-hold behavior
+- `resetStartPin()` for the Electron File menu. This function is not an HTTP route.
 - the 100 ms serialized-snapshot cache (`getCachedStateSnapshot()`)
 
 ### `src/textBounds.js`
@@ -118,10 +119,24 @@ and host names in `SACRA_LUX_ALLOWED_NETWORKS`. A request with a host that is
 not allowed gets HTTP 403. A state-changing request with
 `Sec-Fetch-Site: cross-site` also gets HTTP 403.
 
+A state-changing request with an `Origin` header must use `http` or `https`.
+The origin must not include a user name or a password. The origin port must
+equal the listening port. `getServerPort()` returns that port. An `http`
+origin with no port uses port 80. An `https` origin with no port uses port
+443. A failed check gets HTTP 403 and `Origin not allowed.` A missing
+`Origin` header is accepted. Socket.IO uses the same origin check.
+
 `createSourceNetworkGuard()` checks the client address. The starting list is
 `SACRA_LUX_SOURCE_NETWORKS`. An empty list allows every address. A loopback
 address is allowed even when the list is not empty. A blocked request gets
 HTTP 403 and `Source network not allowed.` Socket.IO uses the same check.
+After the server listens, `startServer()` replaces that list with
+`state.appSettings.sourceNetworks`. A new process sets that value from
+`SACRA_LUX_SOURCE_NETWORKS` when the variable is set. When the variable is
+not set, the value is `10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`
+(`DEFAULT_SOURCE_NETWORKS` in `src/state.js`). A saved string, including an
+empty string, replaces that value. An invalid saved list is cleared. The log
+says `Ignoring invalid saved source-network allowlist.`
 `POST /api/app-settings` can replace the list.
 
 ### `src/networkAddress.js`
@@ -146,6 +161,7 @@ Security primitives:
 - PBKDF2-SHA512 PIN hashing (150000 iterations) with timing-safe verification
 - one-time remote start tokens bound to IP and user-agent
 - control sessions (`issueControlSession`, `noteControlUnlock`) with a 12-hour TTL
+- `clearControlSession()` ends one session. `clearControlAccessExcept()` ends every session except one token. `cleanupSecurityState()` deletes expired control sessions.
 - escalating PIN lockouts (60 s after 3 failures, 5 min after 6, 15 min after 9)
 - PIN failure counts stay for 24 hours after the lock ends. One warning is logged at 50 failures in 24 hours. The warning does not contain a PIN.
 - HTTP and Socket.IO rate-limit buckets, plus upload/heavy concurrency limits
@@ -201,7 +217,12 @@ Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
 `File > Save` writes the session and the current Mass, then shows `Mass saved`
-or the error text. `before-quit` calls `flushPendingSave()` so a debounced
+or the error text. `File > Reset Start PIN` asks `Reset the start PIN?`
+The detail text is `This ends all control sessions.`
+**Reset Start PIN** calls `resetStartPin()`.
+The status line shows `Start PIN reset`.
+A failed save shows `Could not save session.json.`
+`before-quit` calls `flushPendingSave()` so a debounced
 save is written before exit. On macOS, closing the windows does not quit the
 app. Activation with no open windows creates the windows again and then shows
 the Digital Minister window and the projector windows. When fullscreen is on,
@@ -262,7 +283,8 @@ remaining time follows the server clock.
 Phone remote: a live screen preview, swipe and arrow-key slide changes, a
 slide carousel, and a phase-grouped jump list. The active row sets
 `aria-current="true"`. A slide change keeps the list scroll position for 10
-seconds after a scroll. It does not send
+seconds after a scroll. **Lock this remote** sends `control:lock` and ends
+that phone's control session. It does not send
 `screen:interstitial-hold`. PIN entry is the `/start` page.
 
 ### `public/start.html`
