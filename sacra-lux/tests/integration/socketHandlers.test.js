@@ -14,6 +14,7 @@ describe("socket handlers", () => {
   let app;
   let state;
   let resetSecurityState;
+  let serverModule;
   let client;
 
   const sequence = [
@@ -99,6 +100,7 @@ describe("socket handlers", () => {
     jest.resetModules();
     handle = await startIsolatedServer({ port: 0, homeDir: createTempHome("sacra-lux-socket-") });
     app = handle.app;
+    serverModule = require("../../src/server");
     ({ state } = require("../../src/state"));
     ({ resetSecurityState } = require("../../src/security"));
   });
@@ -495,6 +497,63 @@ describe("socket handlers", () => {
         const names = zip.getEntries().map((entry) => entry.entryName);
         expect(names).toEqual(expect.arrayContaining(["mass.json", "assets/one.avif", "assets/two.avif", "assets/film.mp4"]));
       } finally {
+        operator.disconnect();
+      }
+    });
+
+    test("exports the Mass snapshot when the Mass changes during conversion", async () => {
+      const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+      fs.mkdirSync(assetsDir, { recursive: true });
+      fs.writeFileSync(path.join(assetsDir, "one.png"), tinyPng);
+      fs.writeFileSync(path.join(assetsDir, "two.png"), tinyPng);
+      fs.writeFileSync(path.join(assetsDir, "late.png"), tinyPng);
+
+      const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const headers = { "x-sacra-control": pin.body.controlToken };
+      let releaseConversion;
+      const gate = new Promise((resolve) => { releaseConversion = resolve; });
+      let conversionStarted;
+      const started = new Promise((resolve) => { conversionStarted = resolve; });
+      const originalConvertImageToAvif = serverModule.convertImageToAvif;
+      const convertSpy = jest.spyOn(serverModule, "convertImageToAvif").mockImplementation(async (...args) => {
+        conversionStarted();
+        await gate;
+        return originalConvertImageToAvif(...args);
+      });
+      const operator = await connect({ auth: { token: pin.body.controlToken } });
+      try {
+        const done = nextEvent(operator, "export:avif:done", 20000);
+        operator.emit("export:avif:start");
+        await started;
+        await request(app).post("/api/organizer").set(headers).send({
+          sequence: [
+            ...sequence,
+            { id: "late", type: "image", label: "Late", phase: "mass", backgroundTheme: "light", durationSec: 10 }
+          ],
+          manualSlides: {
+            ...manualSlides,
+            late: { text: "Late", imageUrl: "/api/mass-asset/late.png" }
+          }
+        }).expect(200);
+        releaseConversion();
+        const { token } = await done;
+        const zipRes = await request(app)
+          .get(`/api/export-mass-zip-avif?token=${token}`)
+          .set(headers)
+          .buffer(true)
+          .parse((res, callback) => {
+            const chunks = [];
+            res.on("data", (chunk) => chunks.push(chunk));
+            res.on("end", () => callback(null, Buffer.concat(chunks)));
+          })
+          .expect(200);
+        const zip = new AdmZip(zipRes.body);
+        const document = JSON.parse(zip.getEntry("mass.json").getData().toString("utf8"));
+        expect(document.items.some((item) => item.id === "late")).toBe(false);
+        expect(zip.getEntry("assets/one.avif")).not.toBeNull();
+        expect(zip.getEntry("assets/two.avif")).not.toBeNull();
+      } finally {
+        convertSpy.mockRestore();
         operator.disconnect();
       }
     });
