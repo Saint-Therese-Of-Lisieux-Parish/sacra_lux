@@ -26,6 +26,22 @@ describe("interstitial hold return slide", () => {
     later: { text: "Later" }
   };
 
+  const phaseSequence = [
+    { id: "pre", type: "text", label: "Pre", phase: "pre", backgroundTheme: "dark", durationSec: 10 },
+    { id: "pre-hold", type: "interstitial", label: "Hold", phase: "pre", backgroundTheme: "light", durationSec: 10 },
+    { id: "gathering", type: "text", label: "Gathering", phase: "gathering", backgroundTheme: "dark", durationSec: 10 },
+    { id: "mass", type: "text", label: "Mass", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+    { id: "post", type: "text", label: "Post", phase: "post", backgroundTheme: "dark", durationSec: 10 }
+  ];
+
+  const phaseManualSlides = {
+    pre: { text: "Pre" },
+    "pre-hold": { text: "" },
+    gathering: { text: "Gathering" },
+    mass: { text: "Mass" },
+    post: { text: "Post" }
+  };
+
   async function connectClient() {
     client = createClient(handle.baseUrl, { transports: ["websocket"] });
     await new Promise((resolve, reject) => {
@@ -69,6 +85,14 @@ describe("interstitial hold return slide", () => {
     const snapshot = await emitAndWait("slide:goto", 2, (next) => next.currentSlideIndex === 2);
     expect(snapshot.presentation.slides[1].type).toBe("interstitial");
     expect(snapshot.presentation.slides[2].organizerItemId).toBe("live");
+  }
+
+  async function loadMassAtPhaseHold() {
+    await request(app).post("/api/new-mass").send({ title: "Phase Hold", startTime: "" }).expect(200);
+    await request(app).post("/api/organizer").send({ sequence: phaseSequence, manualSlides: phaseManualSlides }).expect(200);
+    await connectClient();
+    await emitAndWait("slide:goto", 1, (next) => next.currentSlideIndex === 1);
+    await emitAndWait("screen:interstitial-hold", undefined, (next) => next.interstitialHoldActive === true);
   }
 
   beforeAll(async () => {
@@ -141,5 +165,47 @@ describe("interstitial hold return slide", () => {
     );
 
     expect(released.currentSlideIndex).toBe(0);
+  });
+
+  test("keeps the Mass start phase when it runs during a hold", async () => {
+    await loadMassAtPhaseHold();
+
+    await request(app).post("/api/start-time").send({ time: "2020-01-01T09:00" }).expect(200);
+    const released = await emitAndWait(
+      "screen:interstitial-hold",
+      undefined,
+      (next) => next.interstitialHoldActive === false
+    );
+
+    expect(released.presentation.slides[released.currentSlideIndex].phase).toBe("mass");
+    expect(released.preMassRunning).toBe(false);
+  });
+
+  test("keeps the gathering phase when it starts during a hold", async () => {
+    await loadMassAtPhaseHold();
+
+    await request(app).post("/api/gathering/start").expect(200);
+    const released = await emitAndWait(
+      "screen:interstitial-hold",
+      undefined,
+      (next) => next.interstitialHoldActive === false
+    );
+
+    expect(released.presentation.slides[released.currentSlideIndex].phase).toBe("gathering");
+    expect(released.gatheringRunning).toBe(true);
+  });
+
+  test("keeps the post-Mass phase when it starts during a hold", async () => {
+    await loadMassAtPhaseHold();
+
+    await request(app).post("/api/post-mass/start").expect(200);
+    const released = await emitAndWait(
+      "screen:interstitial-hold",
+      undefined,
+      (next) => next.interstitialHoldActive === false
+    );
+
+    expect(released.presentation.slides[released.currentSlideIndex].phase).toBe("post");
+    expect(released.postMassRunning).toBe(true);
   });
 });
