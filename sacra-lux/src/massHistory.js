@@ -34,8 +34,17 @@ function sanitizeForFilename(str) {
     .replace(/[<>:"/\\|?*]+/g, "")
     .replace(/\s+/g, "-")
     .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "");
-  return truncateToBytes(cleaned, MAX_ARCHIVE_ID_BYTES).replace(/-$/, "");
+    .replace(/^-|-$/g, "")
+    .replace(/[ .]+$/, "");
+  const reservedDeviceNames = new Set(["con", "prn", "aux", "nul"]);
+  for (let index = 1; index <= 9; index += 1) {
+    reservedDeviceNames.add(`com${index}`);
+    reservedDeviceNames.add(`lpt${index}`);
+  }
+  const safeName = reservedDeviceNames.has(cleaned.toLowerCase().split(".")[0])
+    ? `${cleaned}-archive`
+    : cleaned;
+  return truncateToBytes(safeName, MAX_ARCHIVE_ID_BYTES).replace(/-$/, "");
 }
 
 function normalizeArchiveId(value) {

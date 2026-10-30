@@ -12,6 +12,16 @@ describe("massHistory", () => {
     process.env.HOME = homeDir;
   });
 
+  test.each([
+    ["Mass of St. John Jr.", "Mass-of-St.-John-Jr"],
+    ["CON", "CON-archive"],
+    ["aux", "aux-archive"],
+    ["Com1", "Com1-archive"]
+  ])("sanitizes Windows archive name %s", (title, expected) => {
+    const history = require("../../src/massHistory");
+    expect(history.sanitizeForFilename(title)).toBe(expected);
+  });
+
   test("syncCurrentMassToArchive creates and lists a title-based archive", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     fs.mkdirSync(currentMassDir, { recursive: true });
