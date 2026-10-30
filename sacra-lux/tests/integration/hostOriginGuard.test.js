@@ -112,8 +112,31 @@ describe("Host and Origin guard", () => {
   });
 
   test("R5: a local Origin is accepted on a state-changing request", async () => {
-    const res = await request(handle.app).post("/api/verify-pin").set("Origin", "http://10.12.3.4:17841").send({ pin: "0000" });
+    const res = await request(handle.app).post("/api/verify-pin").set("Origin", `http://10.12.3.4:${port}`).send({ pin: "0000" });
     expect(res.status).not.toBe(403);
+  });
+
+  test("R1: a local Origin with a different port returns 403", async () => {
+    const res = await request(handle.app)
+      .post("/api/pre-mass/start")
+      .set("Origin", `http://localhost:${port + 1}`)
+      .send();
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("Origin not allowed.");
+  });
+
+  test("R2: a socket handshake with a local Origin on a different port fails", async () => {
+    const client = createClient(`http://127.0.0.1:${port}`, {
+      transports: ["websocket"],
+      reconnection: false,
+      extraHeaders: { Origin: `http://127.0.0.1:${port + 1}` }
+    });
+    const outcome = await new Promise((resolve) => {
+      client.on("connect", () => resolve("connected"));
+      client.on("connect_error", () => resolve("rejected"));
+    });
+    client.close();
+    expect(outcome).toBe("rejected");
   });
 
   test("a host outside the configured network is rejected", async () => {

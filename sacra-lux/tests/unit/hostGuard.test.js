@@ -2,8 +2,8 @@ const { createHostGuard, createSourceNetworkGuard, parseAllowedEntries } = requi
 
 const LOCAL = ["192.168.50.7", "fe80::1"];
 
-function guard(allowedEntries, onInvalidEntry) {
-  return createHostGuard({ allowedEntries, getLocalAddresses: () => LOCAL, onInvalidEntry });
+function guard(allowedEntries, onInvalidEntry, serverPort = 17841) {
+  return createHostGuard({ allowedEntries, getLocalAddresses: () => LOCAL, getServerPort: () => serverPort, onInvalidEntry });
 }
 
 describe("host guard hosts", () => {
@@ -80,7 +80,7 @@ describe("host guard origins", () => {
     "http://127.0.0.1:17841",
     "http://[::1]:17841",
     "http://192.168.1.44:17841",
-    "https://192.168.50.7"
+    "https://192.168.50.7:17841"
   ])("allows %s", (origin) => {
     expect(g.isOriginAllowed(origin)).toBe(true);
   });
@@ -88,11 +88,18 @@ describe("host guard origins", () => {
   test.each([
     "https://evil.example",
     "http://192.168.2.1:17841",
+    "http://localhost:17842",
+    "https://192.168.50.7",
     "null",
     "file://localhost/",
     "not a url"
   ])("rejects %s", (origin) => {
     expect(g.isOriginAllowed(origin)).toBe(false);
+  });
+
+  test("rejects an Origin with a port different from the server", () => {
+    expect(guard("").isOriginAllowed("http://127.0.0.1:17842")).toBe(false);
+    expect(guard("").isOriginAllowed("http://127.0.0.1:17841")).toBe(true);
   });
 });
 
@@ -163,7 +170,7 @@ describe("host guard middleware", () => {
     const g = guard("");
     const callback = jest.fn();
     g.allowRequest({ headers: { host: "localhost:1", origin: "https://evil.example" } }, callback);
-    g.allowRequest({ headers: { host: "localhost:1", origin: "http://localhost:1" } }, callback);
+    g.allowRequest({ headers: { host: "localhost:1", origin: "http://localhost:17841" } }, callback);
     g.allowRequest({ headers: { host: "evil.example" } }, callback);
     expect(callback.mock.calls).toEqual([[null, false], [null, true], [null, false]]);
   });

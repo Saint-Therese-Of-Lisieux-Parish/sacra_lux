@@ -77,7 +77,12 @@ function parseAllowedEntries(rawValue) {
   return { networks, hostnames, invalid };
 }
 
-function createHostGuard({ allowedEntries = process.env[ALLOWED_NETWORKS_ENV], getLocalAddresses = listLocalAddresses, onInvalidEntry = () => {} } = {}) {
+function createHostGuard({
+  allowedEntries = process.env[ALLOWED_NETWORKS_ENV],
+  getLocalAddresses = listLocalAddresses,
+  getServerPort = () => undefined,
+  onInvalidEntry = () => {}
+} = {}) {
   const { networks, hostnames, invalid } = parseAllowedEntries(allowedEntries);
   for (const entry of invalid) onInvalidEntry(entry);
 
@@ -98,7 +103,17 @@ function createHostGuard({ allowedEntries = process.env[ALLOWED_NETWORKS_ENV], g
   // A missing Origin is allowed. Native clients and same-origin GET requests do not send one.
   function isOriginAllowed(origin) {
     if (origin === undefined || origin === "") return true;
-    return isHostnameAllowed(parseHostname(origin, { origin: true }));
+    const text = String(origin || "").trim();
+    try {
+      const url = new URL(text);
+      if (!/^https?:$/.test(url.protocol) || url.username || url.password) return false;
+      const serverPort = Number(getServerPort());
+      const originPort = Number(url.port || (url.protocol === "https:" ? 443 : 80));
+      return Number.isInteger(serverPort) && serverPort > 0 && originPort === serverPort &&
+        isHostnameAllowed(url.hostname.toLowerCase().replace(/\.$/, ""));
+    } catch {
+      return false;
+    }
   }
 
   // Browsers set Sec-Fetch-Site on every request. A page from another site sets "cross-site".

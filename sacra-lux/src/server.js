@@ -2409,12 +2409,14 @@ function restoreSession(ioRef) {
 function startServer(port = 17841, options = {}) {
   // Defer session restore until after the server is listening.
   logger.setQuietLogs(options.quietLogs);
+  let listeningPort = port;
 
   function getLocalIpv4Address() {
     return getPreferredIpv4Address({ selectedAddress: state.appSettings?.remoteAddress });
   }
 
   const hostGuard = createHostGuard({
+    getServerPort: () => listeningPort,
     onInvalidEntry: (entry) => logger.warn(`[security] Ignoring invalid ${ALLOWED_NETWORKS_ENV} entry: ${entry}`)
   });
   const sourceNetworkGuard = createSourceNetworkGuard({
@@ -4380,8 +4382,6 @@ function startServer(port = 17841, options = {}) {
       }
     });
   });
-
-  let listeningPort = port;
 
   server.listen(port, "0.0.0.0", () => {
     const address = server.address();
