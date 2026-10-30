@@ -27,6 +27,7 @@ describe("server api integration", () => {
   let MASS_ZIP_LIMITS;
   let resetStartPin;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
+  const twoFrameGifDataUrl = "data:image/gif;base64,R0lGODlhAgACAPAAAP8AAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQACgAAACwAAAAAAgACAAACAoRRACH5BAAKAAAALAAAAAACAAIAgAAA/wAAAAIChFEAOw==";
 
   function extractTokenFromRedirect(redirectPath) {
     const match = String(redirectPath || "").match(/token=([A-Za-z0-9]+)/);
@@ -2684,6 +2685,38 @@ describe("server api integration", () => {
     // Red JPEG first, blue PNG second; each reference keeps its own pixels.
     expect(pixels[0][0]).toBeGreaterThan(pixels[0][2]);
     expect(pixels[1][2]).toBeGreaterThan(pixels[1][0]);
+  });
+
+  test("AVIF export keeps every frame of an animated image", async () => {
+    const animatedUpload = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "animated.gif", dataUrl: twoFrameGifDataUrl })
+      .expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "animated", type: "image", label: "Animated", phase: "mass", backgroundTheme: "light" }],
+        manualSlides: { animated: { imageUrl: animatedUpload.body.url } }
+      })
+      .expect(200);
+
+    const { token } = await createAvifExport(undefined);
+    const zipRes = await request(app)
+      .get(`/api/export-mass-zip-avif?token=${token}`)
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    const exportedZip = new AdmZip(zipRes.body);
+
+    expect(exportedZip.getEntry("assets/animated.gif")).toBeTruthy();
+    expect(exportedZip.getEntry("assets/animated.avif")).toBeNull();
+    await expect(require("sharp")(exportedZip.getEntry("assets/animated.gif").getData()).metadata())
+      .resolves.toMatchObject({ pages: 2 });
   });
 
   test("image slideshow assets and settings round-trip through a Mass ZIP", async () => {
