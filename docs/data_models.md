@@ -310,6 +310,7 @@ starts without a valid `current_mass` package, or `null` otherwise.
 `saveError` is empty when the last scheduled save succeeded. A failed Mass
 save sets `Could not save mass.json: <message>`. A failed session save sets
 `Could not save session.json.` or `Could not save session.json: <message>`.
+An absolute path in `<message>` is replaced with `[path]`.
 The session file does not store `saveError`.
 
 `organizerRevision` starts at 0. A successful organizer save adds 1.
