@@ -43,6 +43,7 @@ const ROUTES = [
   ["POST", "/api/upload-mass-asset", "control"],
   ["POST", "/api/upload-image", "control"],
   ["POST", "/api/import-slideshow-images", "control"],
+  ["POST", "/api/remove-unused-mass-assets", "control"],
   ["POST", "/api/image-slideshow/preflight", "control"],
   ["POST", "/api/screen-settings", "control"],
   ["POST", "/api/app-settings", "control"],

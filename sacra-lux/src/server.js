@@ -1389,6 +1389,53 @@ function removeSavedMassAssets(savedAssets) {
   }
 }
 
+function getReferencedMassAssetNames() {
+  const names = new Set();
+  const addReference = (reference) => {
+    const value = String(reference || "").split(/[?#]/, 1)[0];
+    const apiMatch = value.match(/^\/api\/mass-asset\/([^/]+)$/);
+    const packageMatch = value.match(/^assets\/([^/]+)$/);
+    const encodedName = apiMatch?.[1] || packageMatch?.[1];
+    if (!encodedName) return;
+    const name = path.basename(decodeAssetName(encodedName));
+    if (isSafeAssetName(name)) names.add(name);
+  };
+
+  for (const slide of Object.values(state.manualSlides || {})) {
+    addReference(slide?.imageUrl);
+    addReference(slide?.videoUrl);
+    for (const image of slide?.images || []) {
+      addReference(typeof image === "string" ? image : image?.url);
+    }
+  }
+  for (const slide of state.presentation?.slides || []) {
+    addReference(slide?.imageUrl);
+    addReference(slide?.videoUrl);
+  }
+  for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+    addReference(state.screenSettings?.[key]);
+  }
+  return names;
+}
+
+function removeUnusedMassAssets() {
+  const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+  if (!fs.existsSync(assetsDir)) return { deletedFiles: 0, deletedBytes: 0 };
+
+  const referencedNames = getReferencedMassAssetNames();
+  let deletedFiles = 0;
+  let deletedBytes = 0;
+  for (const entry of fs.readdirSync(assetsDir, { withFileTypes: true })) {
+    if (!entry.isFile() || referencedNames.has(entry.name)) continue;
+    const filePath = path.join(assetsDir, entry.name);
+    const size = fs.statSync(filePath).size;
+    fs.rmSync(filePath);
+    deletedFiles += 1;
+    deletedBytes += size;
+  }
+  return { deletedFiles, deletedBytes };
+}
+
 function slideshowAssetPathFromUrl(url) {
   const match = String(url || "").match(/^\/api\/mass-asset\/([^/]+)$/);
   if (!match) return null;
@@ -2762,6 +2809,15 @@ function startServer(port = 17841, options = {}) {
       return res.json({ assets });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list assets." });
+    }
+  });
+
+  app.post("/api/remove-unused-mass-assets", (req, res) => {
+    try {
+      const result = removeUnusedMassAssets();
+      return res.json({ ok: true, ...result });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || "Failed to remove unused Mass assets." });
     }
   });
 

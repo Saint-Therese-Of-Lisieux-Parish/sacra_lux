@@ -44,6 +44,14 @@ describe("public html integration", () => {
     expect(res.text).toContain("if (response.status === 401) showControlLocked()");
   });
 
+  test("operator app exposes unused media cleanup", async () => {
+    const res = await request(app).get("/").expect(200);
+
+    expect(res.text).toContain('id="removeUnusedMassAssetsBtn"');
+    expect(res.text).toContain('fetch("/api/remove-unused-mass-assets", { method: "POST" })');
+    expect(res.text).toContain("freed ${Number(data.deletedBytes || 0).toLocaleString()} bytes.");
+  });
+
   test("operator app supports drag-and-drop media imports into announcement sections", async () => {
     const res = await request(app).get("/").expect(200);
 
