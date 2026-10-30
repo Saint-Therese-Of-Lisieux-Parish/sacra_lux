@@ -147,6 +147,7 @@ Security primitives:
 - PBKDF2-SHA512 PIN hashing (150000 iterations) with timing-safe verification
 - one-time remote start tokens bound to IP and user-agent
 - control sessions (`issueControlSession`, `noteControlUnlock`) with a 12-hour TTL
+- `clearControlSession()` ends one session. `clearControlAccessExcept()` ends every session except one token. `cleanupSecurityState()` deletes expired control sessions.
 - escalating PIN lockouts (60 s after 3 failures, 5 min after 6, 15 min after 9)
 - PIN failure counts stay for 24 hours after the lock ends. One warning is logged at 50 failures in 24 hours. The warning does not contain a PIN.
 - HTTP and Socket.IO rate-limit buckets, plus upload/heavy concurrency limits
@@ -268,7 +269,8 @@ remaining time follows the server clock.
 Phone remote: a live screen preview, swipe and arrow-key slide changes, a
 slide carousel, and a phase-grouped jump list. The active row sets
 `aria-current="true"`. A slide change keeps the list scroll position for 10
-seconds after a scroll. It does not send
+seconds after a scroll. **Lock this remote** sends `control:lock` and ends
+that phone's control session. It does not send
 `screen:interstitial-hold`. PIN entry is the `/start` page.
 
 ### `public/start.html`
