@@ -128,7 +128,7 @@ const PHASE_LOOP_RESUME_MAX_AGE_MS = 4 * 60 * 60 * 1000;
 const logInfo = logger.info;
 const logWarn = logger.warn;
 const logError = logger.error;
-const DEFAULT_SCREEN_SETTINGS = structuredClone(state.screenSettings);
+const DEFAULT_SCREEN_SETTINGS = normalizeScreenSettings();
 let activeIo = null;
 const IMAGE_ASSET_EXT = new Set(IMAGE_ASSET_EXTENSIONS.map((extension) => `.${extension}`));
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
@@ -1138,7 +1138,7 @@ function normalizeScreenSettings(input = {}) {
  */
 function normalizeTypeFontSettings(input, current, prefix) {
   const pick = (key, fallback) => input[`${prefix}${key}`] ?? current[`${prefix}${key}`] ?? input[`textSlide${key}`] ?? fallback;
-  const font = String(pick("TextFont", current.textSlideTextFont ?? ""));
+  const font = String(input[`${prefix}TextFont`] ?? (current[`${prefix}TextFont`] || input.textSlideTextFont || current.textSlideTextFont || ""));
   return {
     [`${prefix}TextFont`]: GOOGLE_FONTS.has(font) ? font : "",
     [`${prefix}TextSizePx`]: Math.min(200, Math.max(0, Number(pick("TextSizePx", current.textSlideTextSizePx ?? 0)) || 0)),
