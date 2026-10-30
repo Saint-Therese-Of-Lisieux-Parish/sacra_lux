@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, screen, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, dialog, screen, shell, powerMonitor } = require("electron");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
@@ -61,14 +61,14 @@ function startDesktopServer() {
   });
 
   return new Promise((resolve, reject) => {
-    const { io, server } = startServer(PORT);
+    const { io, server, rescheduleStartTimer } = startServer(PORT);
 
     const onListening = () => {
       const address = server.address();
       if (address && typeof address === "object") {
         PORT = address.port;
       }
-      resolve(io);
+      resolve({ io, rescheduleStartTimer });
     };
 
     const onInitialError = (error) => {
@@ -989,7 +989,8 @@ app.whenReady().then(async () => {
   }
   createSplash();
   const splashCreatedAt = Date.now();
-  const io = await startDesktopServer();
+  const { io, rescheduleStartTimer } = await startDesktopServer();
+  powerMonitor.on("resume", rescheduleStartTimer);
   buildAppMenu(io);
 
   // Create windows immediately — close splash once the app page loads

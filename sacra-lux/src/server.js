@@ -4568,6 +4568,7 @@ function startServer(port = 17841, options = {}) {
     app,
     io,
     server,
+    rescheduleStartTimer: () => scheduleStartTimer(io),
     get port() {
       return listeningPort;
     },
