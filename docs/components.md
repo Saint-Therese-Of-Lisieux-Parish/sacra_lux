@@ -17,6 +17,7 @@ HTTP and Socket.IO composition root, 4470 lines. Owns:
 - import/export flows (settings JSON, Mass ZIP, AVIF)
 - archive operations
 - remote interstitial-hold behavior
+- `resetStartPin()` for the Electron File menu. This function is not an HTTP route.
 - the 100 ms serialized-snapshot cache (`getCachedStateSnapshot()`)
 
 ### `src/textBounds.js`
@@ -201,7 +202,12 @@ Registers the IPC handlers listed in
 [interfaces.md](./interfaces.md).
 
 `File > Save` writes the session and the current Mass, then shows `Mass saved`
-or the error text. `before-quit` calls `flushPendingSave()` so a debounced
+or the error text. `File > Reset Start PIN` asks `Reset the start PIN?`
+The detail text is `This ends all control sessions.`
+**Reset Start PIN** calls `resetStartPin()`.
+The status line shows `Start PIN reset`.
+A failed save shows `Could not save session.json.`
+`before-quit` calls `flushPendingSave()` so a debounced
 save is written before exit. On macOS, closing the windows does not quit the
 app. Activation with no open windows creates the windows again and then shows
 the Digital Minister window and the projector windows. When fullscreen is on,
