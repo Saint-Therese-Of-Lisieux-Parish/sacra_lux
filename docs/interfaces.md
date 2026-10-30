@@ -136,7 +136,7 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 
 - `control:auth` — present a control token to unlock control events
 - `control:lock` — lock the connected remote and end its control session
-- `screen:settings` — update screen settings and repaginate readings if needed. A background URL with a bad prefix is ignored.
+- `screen:settings` — update screen settings, rebuild the presentation, and save the current Mass. The save waits 600 ms, then writes `mass.json` and `session.json`. A background URL with a bad prefix is ignored.
 - `slide:next`, `slide:prev`
 - `slide:goto` — jump to a slide index
 - `slide:goto:remote` — jump from the remote and allow post-mass loop activation
