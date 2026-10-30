@@ -385,6 +385,10 @@ describe("server api integration", () => {
           passage: "Mark 1:15"
         })
       ]));
+      expect(state.organizerSequence.map((item) => item.id)).not.toContain("mass-reading-2");
+      expect(state.organizerSequence.some((item, index) =>
+        item.type === "interstitial" && state.organizerSequence[index + 1]?.type === "interstitial"
+      )).toBe(false);
     } finally {
       global.fetch = originalFetch;
     }

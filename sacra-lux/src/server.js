@@ -3575,6 +3575,22 @@ function startServer(port = 17841, options = {}) {
           }
           return item;
         });
+        const emptyReadingIds = new Set(
+          state.organizerSequence
+            .filter((item) => item.type === "reading" && !item.sourceStem)
+            .map((item) => item.id)
+        );
+        for (const itemId of emptyReadingIds) {
+          const readingIndex = state.organizerSequence.findIndex((item) => item.id === itemId);
+          if (readingIndex < 0) continue;
+          state.organizerSequence.splice(readingIndex, 1);
+          const nextItem = state.organizerSequence[readingIndex];
+          if (nextItem?.type === "interstitial") {
+            state.organizerSequence.splice(readingIndex, 1);
+          } else if (state.organizerSequence[readingIndex - 1]?.type === "interstitial") {
+            state.organizerSequence.splice(readingIndex - 1, 1);
+          }
+        }
       }
       const newManualSlides = {};
       for (const item of state.organizerSequence) {
