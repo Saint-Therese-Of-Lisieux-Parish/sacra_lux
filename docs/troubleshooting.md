@@ -118,6 +118,9 @@ address that is not an address of this computer. Set
 `SACRA_LUX_ALLOWED_NETWORKS` to the network, for example `192.168.1.0/24`, and
 restart the app. See [Allowed hosts and origins](https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux/blob/master/README.md#allowed-hosts-and-origins).
 
+The same error `Origin not allowed.` appears when the origin port is not the
+server port. Open the remote with the port in the server URL.
+
 A state-changing request from another web site gets HTTP 403 and the error
 `Cross-site request not allowed.` Open the app from this computer instead.
 

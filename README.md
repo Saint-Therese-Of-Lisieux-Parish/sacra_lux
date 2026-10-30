@@ -140,6 +140,9 @@ first IPv4 address. When no IPv4 address exists, it uses `localhost`.
 The server rejects a request when its `Host` header is not allowed (HTTP 403).
 It also rejects a state-changing request, or a Socket.IO connection, when its
 `Origin` header is not allowed. A request with no `Origin` header is accepted.
+The origin must use `http` or `https`, with no user name and no password.
+The origin port must be the server port. An `http` origin with no port uses
+port 80. An `https` origin with no port uses port 443.
 A state-changing request with `Sec-Fetch-Site: cross-site` gets HTTP 403 and
 the error `Cross-site request not allowed.`
 This stops a web page in the Digital Minister browser, and DNS rebinding, from using
