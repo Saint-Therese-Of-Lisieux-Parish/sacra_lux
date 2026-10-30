@@ -701,6 +701,14 @@ function createAvifNameAllocator(assetsDir) {
   return assign;
 }
 
+async function convertImageToAvif(sharp, filePath) {
+  const input = sharp(filePath, { animated: true, pages: -1 });
+  const sourcePages = (await input.metadata()).pages || 1;
+  const avifBuffer = await input.avif({ quality: 50 }).toBuffer();
+  const outputPages = (await sharp(avifBuffer, { animated: true }).metadata()).pages || 1;
+  return outputPages >= sourcePages ? avifBuffer : null;
+}
+
 async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   const zip = new (getAdmZip())();
   const packageInfo = readMassPackageDefinition(packageDir);
@@ -737,6 +745,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 
   const CONVERTIBLE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif"]);
   const assignAvifName = createAvifNameAllocator(path.join(packageDir, "assets"));
+  const avifBySource = new Map();
   // Originals that became AVIF copies. The leftover loop below must not add them again.
   const convertedAssetFiles = new Set();
   for (const ref of refs) {
@@ -765,10 +774,16 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
       const isNewSource = !assignAvifName.has(filePath);
       const avifName = assignAvifName(filePath, originalName, ext);
       if (isNewSource) {
-        zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
+        avifBySource.set(filePath, await convertImageToAvif(sharp, filePath));
       }
-      urlRemap.set(ref, `assets/${avifName}`);
-      convertedAssetFiles.add(originalName);
+      const avifBuffer = avifBySource.get(filePath);
+      if (avifBuffer) {
+        if (isNewSource) zip.addFile(`assets/${avifName}`, avifBuffer);
+        urlRemap.set(ref, `assets/${avifName}`);
+        convertedAssetFiles.add(originalName);
+      } else {
+        zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
+      }
     } else {
       zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
     }
@@ -4334,6 +4349,7 @@ function startServer(port = 17841, options = {}) {
         const total = resolved.length;
         const urlRemap = new Map();
         const assignAvifName = createAvifNameAllocator(assetsDir);
+        const avifBySource = new Map();
 
         for (let i = 0; i < resolved.length; i++) {
           const { url, filePath, originalName } = resolved[i];
@@ -4349,9 +4365,15 @@ function startServer(port = 17841, options = {}) {
             const isNewSource = !assignAvifName.has(filePath);
             const avifName = assignAvifName(filePath, originalName, ext);
             if (isNewSource) {
-              zip.addFile(`assets/${avifName}`, await sharp(filePath).avif({ quality: 50 }).toBuffer());
+              avifBySource.set(filePath, await convertImageToAvif(sharp, filePath));
             }
-            urlRemap.set(url, `assets/${avifName}`);
+            const avifBuffer = avifBySource.get(filePath);
+            if (avifBuffer) {
+              if (isNewSource) zip.addFile(`assets/${avifName}`, avifBuffer);
+              urlRemap.set(url, `assets/${avifName}`);
+            } else {
+              zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
+            }
           } else {
             zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
           }
@@ -4484,6 +4506,7 @@ module.exports = {
   saveCurrentMass,
   flushPendingSave,
   resetStartPin,
+  convertImageToAvif,
   validateMassZipArchive,
   MASS_ZIP_LIMITS: Object.freeze({
     maxCompressedBytes: MAX_MASS_ZIP_COMPRESSED_BYTES,
