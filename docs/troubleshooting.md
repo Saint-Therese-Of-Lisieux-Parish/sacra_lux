@@ -121,8 +121,14 @@ A state-changing request from another web site gets HTTP 403 and the error
 ## A device gets "Source network not allowed"
 
 The source-network allowlist does not include that device. Open **Select Theme**
-on this computer and add the device address, or clear the list to allow every
-source address. A valid list saved in `session.json` has first priority at startup.
-When no valid list is saved, the server uses `SACRA_LUX_SOURCE_NETWORKS`.
-When the environment variable is not set, the server uses the default private networks.
+on this computer. In **System Settings**, add the device address under
+**Allow client addresses and networks**, or clear the list to allow every
+address. The message under the field shows a rejected save. The previous list
+stays in use.
+
+A `sourceNetworks` string in `session.json` is used after startup. A saved
+empty string allows every source address. When `session.json` has no
+`sourceNetworks` string, the server uses `SACRA_LUX_SOURCE_NETWORKS` if that
+variable is set. When the variable is not set, the server uses
+`10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16`.
 See [Screen Settings](user-guide.md#screen-settings).
