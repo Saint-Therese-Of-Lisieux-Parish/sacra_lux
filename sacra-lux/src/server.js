@@ -1704,12 +1704,14 @@ function startGatheringSequence(ioRef) {
   if (firstGatheringIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstGatheringIdx);
     state.gatheringRunning = true;
+    updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
     scheduleNextGatheringSlide(ioRef);
   } else if (firstMassIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+    updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
@@ -1839,6 +1841,7 @@ function startPostMassSequence(ioRef) {
   if (firstPostIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstPostIdx);
     state.postMassRunning = true;
+    updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
@@ -1999,6 +2002,16 @@ function activateInterstitialHold() {
   state.isBlack = false;
   stopActiveSlideTimers();
   return true;
+}
+
+function updateInterstitialHoldResumeState() {
+  if (!state.interstitialHoldActive) return;
+  state.interstitialHoldReturnSlideIndex = state.currentSlideIndex;
+  state.interstitialHoldResumeState = {
+    preMassRunning: Boolean(state.preMassRunning),
+    gatheringRunning: Boolean(state.gatheringRunning),
+    postMassRunning: Boolean(state.postMassRunning)
+  };
 }
 
 function stopAllRuntimeTimers() {
@@ -2186,6 +2199,7 @@ function startMassSequence(ioRef) {
   if (!alreadyOnMassSlide) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
   }
+  updateInterstitialHoldResumeState();
   touch();
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
