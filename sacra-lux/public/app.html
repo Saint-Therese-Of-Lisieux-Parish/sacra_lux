@@ -2918,6 +2918,7 @@
                 <button id="startPinBtn" class="save-btn" type="button"><span id="startPinBtnIcon">&#128274;</span> PIN</button>
                 <button id="openMassFolderBtn" class="save-btn" type="button" style="display:none">&#128193; Open Mass Folder</button>
                 <button id="reloadMassFolderBtn" class="save-btn" type="button">&#x1F504; Reload Mass Folder</button>
+                <button id="removeUnusedMassAssetsBtn" class="save-btn" type="button">&#128465; Remove unused media</button>
                 <button id="changeScreenBtn" class="save-btn" type="button" style="display:none">&#x1F5B5; Change Screen</button>
                 <button id="openSettingsBtn" class="save-btn" type="button">&#9881; Screen Settings</button>
                 <button id="openAppSettingsBtn" class="save-btn" type="button">&#127912; Select Theme</button>
@@ -4490,6 +4491,7 @@
       screenResolution: document.getElementById("screenResolution"),
       openMassFolderBtn: document.getElementById("openMassFolderBtn"),
       reloadMassFolderBtn: document.getElementById("reloadMassFolderBtn"),
+      removeUnusedMassAssetsBtn: document.getElementById("removeUnusedMassAssetsBtn"),
       changeScreenBtn: document.getElementById("changeScreenBtn"),
       screenDialog: document.getElementById("screenDialog"),
       screenDialogCloseBtn: document.getElementById("screenDialogCloseBtn"),
@@ -9888,6 +9890,28 @@
     // ── New Mass dialog ────────────────────────────────────────────────────
     els.newMassBtn.addEventListener("click", () => {
       showNewMassDialog();
+    });
+
+    els.removeUnusedMassAssetsBtn.addEventListener("click", async () => {
+      if (!window.confirm("Remove Mass media that no slide or screen background uses?")) return;
+      els.removeUnusedMassAssetsBtn.disabled = true;
+      try {
+        const response = await fetch("/api/remove-unused-mass-assets", { method: "POST" });
+        const data = await response.json();
+        if (!response.ok) {
+          els.status.textContent = data.error || "Could not remove unused media.";
+          els.status.classList.add("error");
+          return;
+        }
+        els.status.classList.remove("error");
+        els.status.textContent = `Removed ${data.deletedFiles} unused media file${data.deletedFiles === 1 ? "" : "s"} and freed ${Number(data.deletedBytes || 0).toLocaleString()} bytes.`;
+        await refreshAllMassAssetSelectors();
+      } catch (error) {
+        els.status.textContent = error.message || "Could not remove unused media.";
+        els.status.classList.add("error");
+      } finally {
+        els.removeUnusedMassAssetsBtn.disabled = false;
+      }
     });
 
     els.newMassCloseBtn.addEventListener("click", () => els.newMassDialog.close());

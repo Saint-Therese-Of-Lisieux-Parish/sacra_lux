@@ -521,6 +521,48 @@ describe("server api integration", () => {
     }
   });
 
+  test("removes unused Mass assets and keeps slide and background references", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const assets = {
+      "used-image.png": Buffer.from("image"),
+      "used-slideshow.png": Buffer.from("slideshow"),
+      "used-movie.mp4": Buffer.from("movie"),
+      "used-background.png": Buffer.from("background"),
+      "unused.png": Buffer.from("unused")
+    };
+    for (const [name, contents] of Object.entries(assets)) {
+      fs.writeFileSync(path.join(assetsDir, name), contents);
+    }
+
+    const previousManualSlides = state.manualSlides;
+    const previousSlides = state.presentation.slides;
+    const previousDarkBackgroundUrl = state.screenSettings.darkBackgroundUrl;
+    state.manualSlides = {
+      image: { imageUrl: "/api/mass-asset/used-image.png" },
+      slideshow: { images: [{ url: "/api/mass-asset/used-slideshow.png" }] },
+      movie: { videoUrl: "/api/mass-asset/used-movie.mp4" }
+    };
+    state.presentation.slides = [];
+    state.screenSettings.darkBackgroundUrl = "/api/mass-asset/used-background.png";
+
+    try {
+      const response = await request(app)
+        .post("/api/remove-unused-mass-assets")
+        .expect(200);
+
+      expect(response.body).toEqual({ ok: true, deletedFiles: 1, deletedBytes: assets["unused.png"].length });
+      expect(fs.existsSync(path.join(assetsDir, "unused.png"))).toBe(false);
+      for (const name of Object.keys(assets).filter((name) => name !== "unused.png")) {
+        expect(fs.existsSync(path.join(assetsDir, name))).toBe(true);
+      }
+    } finally {
+      state.manualSlides = previousManualSlides;
+      state.presentation.slides = previousSlides;
+      state.screenSettings.darkBackgroundUrl = previousDarkBackgroundUrl;
+    }
+  });
+
   test("new Mass clears current assets after it archives the prior Mass", async () => {
     await request(app)
       .post("/api/new-mass")
