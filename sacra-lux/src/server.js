@@ -2877,37 +2877,41 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/app-settings", (req, res) => {
     try {
       const { theme, remoteAddress, sourceNetworks } = req.body || {};
+      const nextSettings = {};
+      let nextSourceNetworks;
       if (theme) {
         if (!listThemes().some((entry) => entry.id === theme)) {
           return res.status(400).json({ error: "Unknown theme." });
         }
-        if (!state.appSettings) state.appSettings = {};
-        state.appSettings.theme = theme;
+        nextSettings.theme = theme;
       }
       if (remoteAddress !== undefined) {
         const validAddress = listIpv4Addresses().some((entry) => entry.address === remoteAddress);
         if (remoteAddress !== "" && !validAddress) {
           return res.status(400).json({ error: "The selected network address is not available." });
         }
-        if (!state.appSettings) state.appSettings = {};
-        state.appSettings.remoteAddress = remoteAddress;
+        nextSettings.remoteAddress = remoteAddress;
       }
       if (sourceNetworks !== undefined) {
         if (typeof sourceNetworks !== "string") {
           return res.status(400).json({ error: "The source-network allowlist must be text." });
         }
-        const next = sourceNetworkGuard.parse(sourceNetworks);
-        if (next.invalid.length) {
-          return res.status(400).json({ error: `Invalid source network: ${next.invalid[0]}.` });
+        nextSourceNetworks = sourceNetworkGuard.parse(sourceNetworks);
+        if (nextSourceNetworks.invalid.length) {
+          return res.status(400).json({ error: `Invalid source network: ${nextSourceNetworks.invalid[0]}.` });
         }
         const clientAddress = String(req.socket?.remoteAddress || req.connection?.remoteAddress || req.ip || "")
           .replace(/^::ffff:/i, "");
         const clientFamily = net.isIP(clientAddress);
-        if (next.entries.length && (!clientFamily || !next.networks.check(clientAddress, clientFamily === 4 ? "ipv4" : "ipv6"))) {
+        if (nextSourceNetworks.entries.length && (!clientFamily || !nextSourceNetworks.networks.check(clientAddress, clientFamily === 4 ? "ipv4" : "ipv6"))) {
           return res.status(400).json({ error: "The source-network allowlist must include the local operator address." });
         }
+        nextSettings.sourceNetworks = sourceNetworks;
+      }
+      if (!state.appSettings) state.appSettings = {};
+      Object.assign(state.appSettings, nextSettings);
+      if (nextSourceNetworks) {
         sourceNetworkGuard.setAllowedEntries(sourceNetworks);
-        state.appSettings.sourceNetworks = sourceNetworks;
         logger.info(`[security] Source-network restriction ${sourceNetworks.trim() ? "enabled" : "disabled"}.`);
       }
       touch();
