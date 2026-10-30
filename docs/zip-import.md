@@ -18,6 +18,7 @@ you import a Mass, and the conditions for a successful import. The code is in
 5. Use only the [media extensions](#media-extensions) in the list.
 6. The importer orders items by phase: `pre`, `gathering`, `mass`, `post`.
    Items keep their relative order inside a phase.
+7. The server saves the open Mass to its archive before it replaces the Mass.
 
 ## Directory Layout
 

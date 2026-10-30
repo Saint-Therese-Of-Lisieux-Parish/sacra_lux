@@ -2126,6 +2126,89 @@ describe("server api integration", () => {
     emitSpy.mockRestore();
   });
 
+  test("archives pending changes before loading a Mass archive", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Load Source", startTime: "2026-04-01T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Load Target", startTime: "2026-04-08T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    await request(app).post("/api/update-title").send({ title: "Edited Load Target" }).expect(200);
+    await request(app).post("/api/mass-history/Load-Source/load").expect(200);
+
+    const packagePath = path.join(
+      handle.homeDir,
+      ".sacra-lux",
+      "mass_history",
+      "Edited-Load-Target",
+      "package",
+      "mass.json"
+    );
+    expect(JSON.stringify(JSON.parse(fs.readFileSync(packagePath, "utf8")))).toContain("Edited Load Target");
+  });
+
+  test("archives pending changes before importing a Mass ZIP", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Import Target", startTime: "2026-04-15T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await request(app).post("/api/update-title").send({ title: "Edited Import Target" }).expect(200);
+
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Imported Mass",
+      screenSettings: {},
+      organizerSequence: [],
+      manualSlides: {}
+    })));
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(200);
+
+    const packagePath = path.join(
+      handle.homeDir,
+      ".sacra-lux",
+      "mass_history",
+      "Edited-Import-Target",
+      "package",
+      "mass.json"
+    );
+    expect(JSON.stringify(JSON.parse(fs.readFileSync(packagePath, "utf8")))).toContain("Edited Import Target");
+  });
+
+  test("keeps the current Mass when saving before replacement fails", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Save Failure", startTime: "2026-04-22T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    const before = snapshotTree(currentMassDir);
+    const realRename = fs.renameSync.bind(fs);
+    const renameSpy = jest.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      if (path.basename(String(to)) === "mass.json") throw new Error("disk full");
+      return realRename(from, to);
+    });
+
+    try {
+      const response = await request(app)
+        .post("/api/mass-history/Save-Failure/load")
+        .expect(500);
+      expect(response.body.error).toContain("disk full");
+      expect(snapshotTree(currentMassDir)).toEqual(before);
+    } finally {
+      renameSpy.mockRestore();
+    }
+  });
+
   test("compress keeps an archive package when a movie exceeds the ZIP entry limit", async () => {
     await request(app)
       .post("/api/new-mass")

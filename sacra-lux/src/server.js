@@ -2276,6 +2276,12 @@ function preMassStartIsBlocked() {
   );
 }
 
+function publicSaveError(label, error) {
+  const message = String(error?.message || "unknown error")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s"'<>]+/g, "[path]");
+  return `Could not save ${label}: ${message}`;
+}
+
 function runScheduledSave() {
   _savePending = false;
   _saveTimer = null;
@@ -2289,7 +2295,7 @@ function runScheduledSave() {
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
-    saveError = `Could not save mass.json: ${error.message}`;
+    saveError = publicSaveError("mass.json", error);
   }
   try {
     if (saveSession(state) === false) {
@@ -2297,7 +2303,7 @@ function runScheduledSave() {
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
-    saveError = saveError || `Could not save session.json: ${error.message}`;
+    saveError = saveError || publicSaveError("session.json", error);
   }
   if (state.saveError !== saveError) {
     state.saveError = saveError;
@@ -3625,6 +3631,7 @@ function startServer(port = 17841, options = {}) {
       }
       const packageDefinition = parseMassZipDefinition(definitionEntry);
 
+      saveCurrentMass();
       replaceCurrentMassDir((stagingDir) => {
         writeZipMassPackage(zip, stagingDir, packageDefinition);
       });
@@ -3669,6 +3676,7 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
+        saveCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           fs.cpSync(archivePaths.packageDir, stagingDir, { recursive: true });
           readMassPackageDefinition(stagingDir, state.screenSettings);
@@ -3688,6 +3696,7 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
+        saveCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           writeZipMassPackage(zip, stagingDir, packageData);
         });
