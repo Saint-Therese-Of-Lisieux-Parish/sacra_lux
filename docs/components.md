@@ -7,7 +7,7 @@ harness. Every source file has an entry.
 
 ### `src/server.js`
 
-HTTP and Socket.IO composition root, 4408 lines. Owns:
+HTTP and Socket.IO composition root, 4470 lines. Owns:
 
 - route registration and the control-auth `/api` middleware
 - socket event handling and the `withControl()` guard
