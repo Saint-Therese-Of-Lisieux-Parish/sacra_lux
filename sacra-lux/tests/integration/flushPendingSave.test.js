@@ -32,7 +32,7 @@ describe("flushPendingSave", () => {
   test("logs a failed final save and returns", async () => {
     jest.resetModules();
     const syncCurrentMassToArchive = jest.fn(() => {
-      throw new Error("ENOSPC: simulated");
+      throw new Error("EACCES: permission denied, open '/Users/example/.sacra-lux/current_mass/mass.json'");
     });
     jest.doMock("../../src/massHistory", () => ({
       ...jest.requireActual("../../src/massHistory"),
@@ -48,9 +48,11 @@ describe("flushPendingSave", () => {
       await request(handle.app).post("/api/update-title").send({ title: "Any" }).expect(200);
 
       expect(() => flushPendingSave()).not.toThrow();
-      expect(errorSpy.mock.calls.some((call) => String(call[0]).includes("Save failed"))).toBe(true);
+      const logMessage = errorSpy.mock.calls.find((call) => String(call[0]).includes("Save failed"));
+      expect(logMessage?.[0]).toContain("/Users/example/.sacra-lux/current_mass/mass.json");
       const failedState = await request(handle.app).get("/api/state").expect(200);
       expect(failedState.body.saveError).toContain("mass.json");
+      expect(failedState.body.saveError).not.toContain("/Users/example/.sacra-lux/current_mass/mass.json");
 
       syncCurrentMassToArchive.mockReturnValue({ id: "archive-1" });
       await request(handle.app).post("/api/update-title").send({ title: "Recovered" }).expect(200);
