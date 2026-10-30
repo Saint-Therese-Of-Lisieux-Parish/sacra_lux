@@ -191,6 +191,9 @@ idle projector. The remote shows a live projector preview at the top.
 - Use the carousel under the preview. Double-tap a card to show that slide.
 - Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements. The active row has `aria-current="true"`. A slide change keeps your scroll position, open groups, and keyboard focus. The list scrolls to the active row when the rows change and you have not scrolled the list for 10 seconds.
 
+**Lock this remote** ends control on this phone.
+The phone then shows **This remote is locked.**
+Select **Unlock the remote** to open the PIN page.
 The remote has no Blackout, Start Mass, or Interstitial button. It does not send `screen:interstitial-hold`.
 
 ## Starting the Remote with a PIN
