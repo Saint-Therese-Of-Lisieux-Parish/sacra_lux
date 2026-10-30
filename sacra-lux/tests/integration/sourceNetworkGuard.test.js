@@ -14,6 +14,28 @@ test("the default source network allowlist accepts RFC 1918 addresses and reject
   expect(guard.isAllowedAddress("8.8.8.8")).toBe(false);
 });
 
+test("the environment allowlist rejects a private address outside the configured network", () => {
+  const previous = process.env.SACRA_LUX_SOURCE_NETWORKS;
+  process.env.SACRA_LUX_SOURCE_NETWORKS = "203.0.113.0/24";
+  const guard = createSourceNetworkGuard();
+
+  expect(guard.isAllowedAddress("10.12.0.63")).toBe(false);
+  expect(guard.isAllowedAddress("203.0.113.10")).toBe(true);
+  if (previous === undefined) delete process.env.SACRA_LUX_SOURCE_NETWORKS;
+  else process.env.SACRA_LUX_SOURCE_NETWORKS = previous;
+});
+
+test("a saved source-network list overrides the environment list", () => {
+  const previous = process.env.SACRA_LUX_SOURCE_NETWORKS;
+  process.env.SACRA_LUX_SOURCE_NETWORKS = "203.0.113.0/24";
+  const guard = createSourceNetworkGuard({ allowedEntries: "10.12.0.63/32" });
+
+  expect(guard.isAllowedAddress("10.12.0.63")).toBe(true);
+  expect(guard.isAllowedAddress("203.0.113.10")).toBe(false);
+  if (previous === undefined) delete process.env.SACRA_LUX_SOURCE_NETWORKS;
+  else process.env.SACRA_LUX_SOURCE_NETWORKS = previous;
+});
+
 describe("source-network guard loopback access", () => {
   let handle;
   let homeDir;

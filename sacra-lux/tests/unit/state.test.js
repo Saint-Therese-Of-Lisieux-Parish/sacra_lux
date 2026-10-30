@@ -23,6 +23,18 @@ describe("state", () => {
     expect(Number.isNaN(Date.parse(state.lastUpdated))).toBe(false);
   });
 
+  test("uses the source-network environment value when no saved value exists", () => {
+    const previous = process.env.SACRA_LUX_SOURCE_NETWORKS;
+    process.env.SACRA_LUX_SOURCE_NETWORKS = "203.0.113.0/24";
+    jest.resetModules();
+
+    const { state } = require("../../src/state");
+
+    expect(state.appSettings.sourceNetworks).toBe("203.0.113.0/24");
+    if (previous === undefined) delete process.env.SACRA_LUX_SOURCE_NETWORKS;
+    else process.env.SACRA_LUX_SOURCE_NETWORKS = previous;
+  });
+
   test("getStateSnapshot hides secrets and internal interstitial fields", () => {
     const { state, getStateSnapshot } = require("../../src/state");
 
