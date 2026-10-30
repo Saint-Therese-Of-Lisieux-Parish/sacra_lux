@@ -11,7 +11,9 @@ async function startMain({
   singleInstanceLock = true,
   portInUse = false,
   platform = process.platform,
-  displays = []
+  displays = [],
+  screenFullscreen = false,
+  targetScreenIds = []
 } = {}) {
   jest.resetModules();
   const windows = [];
@@ -43,7 +45,7 @@ async function startMain({
     restore() {}
     close() {}
     destroy() {}
-    setBounds() {}
+    setBounds(bounds) { this.options.bounds = bounds; }
   }
   FakeBrowserWindow.getAllWindows = () => windows;
 
@@ -114,6 +116,9 @@ async function startMain({
   const originalPlatform = process.platform;
   Object.defineProperty(process, "platform", { configurable: true, value: platform });
   require("../../src/main");
+  const state = require("../../src/state").state;
+  state.screenFullscreen = screenFullscreen;
+  state.targetScreenIds = targetScreenIds;
   resolveReady();
   await new Promise((resolve) => setTimeout(resolve, 50));
   Object.defineProperty(process, "platform", { configurable: true, value: originalPlatform });
@@ -147,6 +152,62 @@ describe("Electron window security settings", () => {
     const windows = await startMain({ displays: [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }] });
     windows.io.emit("state:update", { preMassRunning: true });
     expect(windows.filter((win) => win.options.title === "Sacra Lux Screen").every((win) => !win.setFullScreen.mock.calls.length)).toBe(true);
+  });
+
+  test("does not auto-fullscreen when the saved target display is disconnected", async () => {
+    const windows = await startMain({
+      displays: [
+        { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+        { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }
+      ]
+    });
+    const state = require("../../src/state").state;
+    state.targetScreenIds = [99];
+    windows.io.emit("state:update", { preMassRunning: true });
+
+    const screenWindows = windows.filter((win) => win.options.title === "Sacra Lux Screen");
+    expect(screenWindows.every((win) => !win.setFullScreen.mock.calls.length)).toBe(true);
+  });
+
+  test("places a disconnected target on a display separate from the operator", async () => {
+    const windows = await startMain({
+      displays: [
+        { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+        { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }
+      ]
+    });
+    const state = require("../../src/state").state;
+    state.targetScreenIds = [99];
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    const screenWindows = windows.filter((win) => win.options.title === "Sacra Lux Screen");
+    appWindow.listeners.closed();
+    screenWindows.forEach((win) => win.listeners.closed());
+    windows.electron.BrowserWindow.getAllWindows = () => [];
+    const activate = windows.electron.app.on.mock.calls.find(([name]) => name === "activate");
+    activate[1]();
+
+    const recreatedScreen = windows.filter((win) => win.options.title === "Sacra Lux Screen").at(-1);
+    expect(recreatedScreen.options.bounds).toEqual({ x: 1920, y: 0, width: 1920, height: 1080 });
+  });
+
+  test("clears restored fullscreen and reports a disconnected target", async () => {
+    const windows = await startMain({
+      screenFullscreen: true,
+      targetScreenIds: [99],
+      displays: [
+        { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+        { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }
+      ]
+    });
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+
+    appWindow.listeners["did-finish-load"]();
+    await new Promise((resolve) => setTimeout(resolve, 550));
+
+    expect(screenWindow.setFullScreen).not.toHaveBeenCalled();
+    expect(require("../../src/state").state.screenFullscreen).toBe(false);
+    expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(expect.stringContaining("The projector display is not connected."));
   });
 
   test("auto-fullscreens a separate target display and updates the menu", async () => {
