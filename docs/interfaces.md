@@ -86,11 +86,11 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/import-settings` — apply a settings JSON payload. Background URLs use the screen-settings rule. Image and movie URLs in `manualSlides` use the organizer rule. A bad URL returns HTTP 400.
 - `GET /api/export-mass-zip` — download the current Mass package as a ZIP
 - `GET /api/export-mass-zip-avif?token=` — download a completed AVIF export via its one-time token
-- `POST /api/import-mass-zip` — replace the current Mass from an uploaded ZIP
+- `POST /api/import-mass-zip` — save the open Mass, then replace the current Mass from an uploaded ZIP
 - `POST /api/duplicate-mass` — archive the current Mass and open a copy
 - `POST /api/new-mass` — archive the current Mass and build a blank organizer; accepts `useLectionaryRss`
 - `GET /api/mass-history` — list archives with active/archived metadata
-- `POST /api/mass-history/:archiveId/load`
+- `POST /api/mass-history/:archiveId/load` — save the open Mass, then load that archive
 - `POST /api/mass-history/:archiveId/compress` — convert an archive to a compressed AVIF ZIP
 - `DELETE /api/mass-history/:archiveId`
 
