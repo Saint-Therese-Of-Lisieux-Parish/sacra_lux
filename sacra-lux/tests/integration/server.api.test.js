@@ -2926,6 +2926,92 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(currentMassDir, "Reading_I.txt"))).toBe(true);
   });
 
+  test("Mass loads use application defaults for missing screen settings", async () => {
+    const importDefinition = async (definition) => {
+      const zip = new AdmZip();
+      const fileName = definition.format === "sacra-lux.mass" ? "mass.json" : "settings.json";
+      zip.addFile(fileName, Buffer.from(JSON.stringify(definition)));
+      return request(app)
+        .post("/api/import-mass-zip")
+        .send({ zipData: zip.toBuffer().toString("base64") })
+        .expect(200);
+    };
+
+    await request(app)
+      .post("/api/screen-settings")
+      .send({ transition: "none", resolution: "4k", readingTextBold: true, hymnTextFont: "Lora" })
+      .expect(200);
+
+    await importDefinition({
+      version: 2,
+      presentationTitle: "Legacy Defaults",
+      screenSettings: { fontFamily: "Merriweather" },
+      organizerSequence: [],
+      manualSlides: {}
+    });
+    let stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.screenSettings).toMatchObject({
+      transition: "fade",
+      resolution: "1080p",
+      readingTextBold: false,
+      hymnTextFont: ""
+    });
+
+    await importDefinition({
+      version: 2,
+      presentationTitle: "Saved Settings",
+      screenSettings: { transition: "none", textSlideTextFont: "Merriweather" },
+      organizerSequence: [],
+      manualSlides: {}
+    });
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.screenSettings).toMatchObject({
+      transition: "none",
+      hymnTextFont: "Merriweather",
+      prayerTextFont: "Merriweather"
+    });
+
+    await request(app)
+      .post("/api/screen-settings")
+      .send({ transition: "none", resolution: "4k", readingTextBold: true, hymnTextFont: "Lora" })
+      .expect(200);
+    await importDefinition({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "V3 Defaults" },
+      items: []
+    });
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.screenSettings).toMatchObject({
+      transition: "fade",
+      resolution: "1080p",
+      readingTextBold: false,
+      hymnTextFont: ""
+    });
+
+    await request(app)
+      .post("/api/screen-settings")
+      .send({ transition: "none", resolution: "4k", readingTextBold: true, hymnTextFont: "Lora" })
+      .expect(200);
+    const archiveDir = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Legacy-Load", "package");
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "mass.json"), JSON.stringify({
+      version: 2,
+      presentationTitle: "Archive Defaults",
+      screenSettings: { fontFamily: "Merriweather" },
+      organizerSequence: [],
+      manualSlides: {}
+    }));
+    await request(app).post("/api/mass-history/Legacy-Load/load").expect(200);
+    stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.screenSettings).toMatchObject({
+      transition: "fade",
+      resolution: "1080p",
+      readingTextBold: false,
+      hymnTextFont: ""
+    });
+  });
+
   test("import-mass-zip canonicalizes an out-of-order legacy package by phase", async () => {
     const zip = new AdmZip();
     zip.addFile("settings.json", Buffer.from(JSON.stringify({
