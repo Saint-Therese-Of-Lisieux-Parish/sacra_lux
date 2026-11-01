@@ -997,6 +997,34 @@ function restoreSavedSlide(session) {
   return true;
 }
 
+function restoreDisplayOverrides(session) {
+  const savedAt = Date.parse(session?.savedAt || "");
+  const savedAge = Date.now() - savedAt;
+  if (!Number.isFinite(savedAt) || savedAge < 0 || savedAge > SAVED_SLIDE_MAX_AGE_MS) return false;
+
+  if (session?.interstitialHoldActive) {
+    const holdIndex = Number(session.interstitialHoldSlideIndex);
+    const holdSlide = state.presentation?.slides?.[holdIndex];
+    if (Number.isInteger(holdIndex) && holdSlide?.type === "interstitial") {
+      state.interstitialHoldSlideIndex = holdIndex;
+      state.interstitialHoldReturnSlideIndex = Number.isInteger(session.interstitialHoldReturnSlideIndex)
+        ? getSafeSlideIndex(session.interstitialHoldReturnSlideIndex)
+        : state.currentSlideIndex;
+      state.interstitialHoldResumeState = session.interstitialHoldResumeState || null;
+      state.interstitialHoldActive = true;
+      state.isBlack = false;
+      return true;
+    }
+  }
+
+  state.interstitialHoldActive = false;
+  state.interstitialHoldSlideIndex = null;
+  state.interstitialHoldReturnSlideIndex = null;
+  state.interstitialHoldResumeState = null;
+  state.isBlack = Boolean(session?.isBlack);
+  return true;
+}
+
 /** Return `value` as a number when it is finite, otherwise `fallback`. A null value counts as missing. */
 function finiteOr(value, fallback) {
   if (value == null) return fallback;
@@ -2516,6 +2544,7 @@ function restoreSession(ioRef) {
       state.countdownEndsAt = session.countdownEndsAt;
     }
     restoreSavedSlide(session);
+    restoreDisplayOverrides(session);
 
     const savedAt = Date.parse(session?.savedAt || "");
     const savedAge = Date.now() - savedAt;
