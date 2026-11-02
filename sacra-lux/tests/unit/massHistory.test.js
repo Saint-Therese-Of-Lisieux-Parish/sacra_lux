@@ -22,6 +22,12 @@ describe("massHistory", () => {
     expect(history.sanitizeForFilename(title)).toBe(expected);
   });
 
+  test("compares archive IDs without regard to case", () => {
+    const history = require("../../src/massHistory");
+    expect(history.archiveIdsEqual("Sunday-Mass", "sunday-mass")).toBe(true);
+    expect(history.archiveIdsEqual("Sunday-Mass", "Monday-Mass")).toBe(false);
+  });
+
   test("syncCurrentMassToArchive creates and lists a title-based archive", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     fs.mkdirSync(currentMassDir, { recursive: true });

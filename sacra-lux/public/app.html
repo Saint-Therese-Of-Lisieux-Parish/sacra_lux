@@ -6963,8 +6963,8 @@
       if (document.activeElement !== els.massTitleInput && !keepMassTitleDraft) {
         els.massTitleInput.value = data.presentation?.title || "No presentation";
       }
-      els.status.textContent = data.saveError || `${slides.length} slides`;
-      els.status.classList.toggle("error", Boolean(data.saveError));
+      els.status.textContent = data.moviePlaybackError?.message || data.saveError || `${slides.length} slides`;
+      els.status.classList.toggle("error", Boolean(data.moviePlaybackError || data.saveError));
 
       // Update start-time status display
       const mst = data.massStartTime || null;

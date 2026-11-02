@@ -135,6 +135,15 @@ function saveSession(state) {
         : {}),
       ...(state.currentSlideChangedAt ? { currentSlideChangedAt: state.currentSlideChangedAt } : {}),
       ...(Number.isFinite(state.countdownEndsAt) ? { countdownEndsAt: state.countdownEndsAt } : {}),
+      isBlack: Boolean(state.isBlack),
+      interstitialHoldActive: Boolean(state.interstitialHoldActive),
+      interstitialHoldSlideIndex: Number.isInteger(state.interstitialHoldSlideIndex)
+        ? state.interstitialHoldSlideIndex
+        : null,
+      interstitialHoldReturnSlideIndex: Number.isInteger(state.interstitialHoldReturnSlideIndex)
+        ? state.interstitialHoldReturnSlideIndex
+        : null,
+      interstitialHoldResumeState: state.interstitialHoldResumeState || null,
       massStartTime: state.massStartTime || null,
       startPinHash: state.startPinHash || null,
       controlMode: state.controlMode || "unset",

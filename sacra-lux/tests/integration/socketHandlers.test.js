@@ -164,6 +164,54 @@ describe("socket handlers", () => {
       }
     });
 
+    test("does not stop on a malformed control cookie", async () => {
+      await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const malformed = await connect({
+        extraHeaders: { Cookie: "sacra_lux_control=%E0%A4%A" }
+      });
+      try {
+        const denied = nextEvent(malformed, "control:required");
+        malformed.emit("slide:next");
+        await denied;
+        await request(app).post("/api/gathering/start")
+          .set("Cookie", "sacra_lux_control=%E0%A4%A")
+          .expect(401);
+        await request(app).get("/api/state").expect(200);
+      } finally {
+        malformed.disconnect();
+      }
+    });
+
+    test("disconnects sockets outside a narrowed source-network allowlist", async () => {
+      const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const operator = await connect({ auth: { token: pin.body.controlToken } });
+      const loopback = await connect();
+      const operatorServerSocket = handle.io.sockets.sockets.get(operator.id);
+      Object.defineProperty(operatorServerSocket.request.socket, "remoteAddress", {
+        configurable: true,
+        value: "192.168.1.50"
+      });
+
+      const disconnected = nextEvent(operator, "disconnect");
+      await request(app).post("/api/app-settings")
+        .set("x-sacra-control", pin.body.controlToken)
+        .send({ sourceNetworks: "127.0.0.1/32" })
+        .expect(200);
+      await disconnected;
+
+      await request(app).post("/api/organizer")
+        .set("x-sacra-control", pin.body.controlToken)
+        .send({ sequence, manualSlides })
+        .expect(401);
+      expect(loopback.connected).toBe(true);
+
+      loopback.disconnect();
+      state.startPin = "";
+      state.startPinHash = null;
+      state.controlMode = "unset";
+      await request(app).post("/api/app-settings").send({ sourceNetworks: "" }).expect(200);
+    });
+
     test("requires a control session to export AVIF", async () => {
       await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
       const anonymous = await connect();
@@ -339,6 +387,21 @@ describe("socket handlers", () => {
       client.emit("slide:video-ready", { slideId, durationMs: "soon" });
       client.emit("slide:video-ready", { slideId, durationMs: 600000 });
       await flush();
+      expect(state.currentSlideIndex).toBe(index);
+    });
+
+    test("video-play-failed stops the fallback and reports the movie", async () => {
+      const index = movieIndex();
+      await goto("slide:goto", index);
+      const slideId = state.presentation.slides[index].id;
+      client.emit("slide:video-ready", { slideId, durationMs: 50 });
+      await flush();
+
+      const failed = waitForState(client, (next) => next.moviePlaybackError?.slideId === slideId);
+      client.emit("slide:video-play-failed", { slideId });
+      const snapshot = await failed;
+      expect(snapshot.moviePlaybackError.message).toContain("Movie");
+      await new Promise((resolve) => setTimeout(resolve, 100));
       expect(state.currentSlideIndex).toBe(index);
     });
 

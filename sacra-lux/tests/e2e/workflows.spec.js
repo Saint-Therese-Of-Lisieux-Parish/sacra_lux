@@ -1190,6 +1190,48 @@ test("Black Screen and settings changes keep movie playback", async ({ page, req
   }))).toEqual({ same: true, currentTime: 5, volume: 0.37 });
 });
 
+test("blocked movie autoplay reports the movie and offers a retry", async ({ page, request }) => {
+  await page.addInitScript(() => {
+    let playCalls = 0;
+    window.__moviePlayCalls = () => playCalls;
+    HTMLMediaElement.prototype.load = () => {};
+    HTMLMediaElement.prototype.play = () => {
+      playCalls += 1;
+      return playCalls === 1 ? Promise.reject(new DOMException("Autoplay blocked", "NotAllowedError")) : Promise.resolve();
+    };
+    HTMLMediaElement.prototype.pause = () => {};
+  });
+
+  await request.post(`${baseUrl}/api/screen-settings`, { data: { transition: "none" } });
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{ id: "movie:autoplay-blocked", type: "movie", label: "Movie Night", phase: "mass", backgroundTheme: "light" }],
+      manualSlides: { "movie:autoplay-blocked": { videoUrl: "/api/mass-asset/movie.mp4", videoAutoAdvance: true } }
+    }
+  });
+
+  const operator = await page.context().newPage();
+  await operator.goto(`${baseUrl}/app`);
+  await operator.locator("#massLibraryCloseBtn").click();
+  await page.goto(`${baseUrl}/screen`);
+
+  const retryButton = page.locator(".video-retry-button:visible");
+  await expect(retryButton).toBeVisible();
+  await expect.poll(async () => (await (await request.get(`${baseUrl}/api/state`)).json()).moviePlaybackError?.message)
+    .toContain("Movie Night");
+  await expect(operator.locator("#status")).toContainText("Movie Night");
+
+  const fullscreenPrompt = page.locator("#fullscreenPrompt.visible");
+  if (await fullscreenPrompt.count()) {
+    await fullscreenPrompt.click();
+    await expect(page.locator("#fullscreenPrompt.visible")).toHaveCount(0);
+  }
+  await retryButton.evaluate((element) => element.click());
+  await expect.poll(() => page.evaluate(() => window.__moviePlayCalls())).toBe(2);
+  await expect(page.locator("video.video-player")).toHaveCount(1);
+  await operator.close();
+});
+
 test("remote preview preload failures do not remove projector slideshow images", async ({ page, request }) => {
   async function uploadPng(filename, background) {
     const png = await sharp({

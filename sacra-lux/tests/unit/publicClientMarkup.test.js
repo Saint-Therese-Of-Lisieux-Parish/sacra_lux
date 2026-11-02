@@ -67,8 +67,16 @@ describe("public client markup guards", () => {
 
   test("shows a server save error in the operator status badge", () => {
     expect(appHtml).toContain('id="status" class="status-badge"');
-    expect(appHtml).toContain("data.saveError || `${slides.length} slides`");
-    expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.saveError))');
+    expect(appHtml).toContain("data.moviePlaybackError?.message || data.saveError || `${slides.length} slides`");
+    expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.moviePlaybackError || data.saveError))');
+  });
+
+  test("movie autoplay failures offer a retry control", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    expect(screenHtml).toContain("slide:video-play-failed");
+    expect(screenHtml).toContain("video-retry-button");
+    expect(screenHtml).toContain("showAutoplayBlocked");
   });
 
   test("preserves title and start-time drafts during state updates", () => {

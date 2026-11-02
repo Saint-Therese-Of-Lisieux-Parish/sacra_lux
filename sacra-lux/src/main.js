@@ -258,9 +258,13 @@ function createScreenWindow(targetScreenId = null) {
   startDisplaySleepBlocker();
 
   if (targetScreenId != null) {
-    const target = screen.getAllDisplays().find((display) => display.id === targetScreenId);
-    if (target) {
-      const { x, y, width, height } = target.bounds;
+    const displays = screen.getAllDisplays();
+    const target = displays.find((display) => display.id === targetScreenId);
+    const fallback = !target && displays.length > 1
+      ? displays.find((display) => Number(display.id) !== Number(screen.getPrimaryDisplay?.()?.id))
+      : null;
+    if (target || fallback) {
+      const { x, y, width, height } = (target || fallback).bounds;
       win.setBounds({ x, y, width, height });
     }
   }
@@ -309,7 +313,7 @@ function ensureConfiguredScreenWindows() {
     createScreenWindow(null);
   }
 
-  if (state.screenFullscreen) {
+  if (state.screenFullscreen && hasSeparateTargetDisplay()) {
     for (const win of getScreenWindowList()) {
       win.setFullScreen(true);
     }
@@ -354,6 +358,10 @@ function fullscreenScreen() {
 function hasSeparateTargetDisplay() {
   const targetIds = normalizeTargetScreenIds(state.targetScreenIds);
   if (targetIds.length === 0) return false;
+  const displays = screen.getAllDisplays();
+  const connectedTargetIds = new Set(displays.map((display) => Number(display.id)));
+  const connectedTargets = targetIds.filter((id) => connectedTargetIds.has(Number(id)));
+  if (connectedTargets.length === 0) return false;
   const bounds = appWindow?.getBounds?.();
   const center = bounds
     ? { x: bounds.x + (bounds.width / 2), y: bounds.y + (bounds.height / 2) }
@@ -361,7 +369,7 @@ function hasSeparateTargetDisplay() {
   const mainDisplay = center && screen.getDisplayNearestPoint?.(center)
     || screen.getPrimaryDisplay?.();
   if (!mainDisplay) return targetIds.length > 0;
-  return targetIds.some((id) => Number(id) !== Number(mainDisplay.id));
+  return connectedTargets.some((id) => Number(id) !== Number(mainDisplay.id));
 }
 
 function autoFullscreenScreen() {
@@ -1042,7 +1050,16 @@ app.whenReady().then(async () => {
   ensureConfiguredScreenWindows();
   if (state.screenFullscreen) {
     appWindow.webContents.on("did-finish-load", () => {
-      setTimeout(() => fullscreenScreen(), 500);
+      setTimeout(() => {
+        if (hasSeparateTargetDisplay()) {
+          fullscreenScreen();
+          return;
+        }
+        state.screenFullscreen = false;
+        saveSession(state);
+        updateFullscreenMenuLabel();
+        showAppStatus("The projector display is not connected.");
+      }, 500);
     });
   }
 

@@ -56,6 +56,7 @@ const {
   CURRENT_MASS_DIR,
   InvalidArchiveIdError,
   sanitizeForFilename,
+  archiveIdsEqual,
   getArchivePaths,
   readMetadata,
   writeMetadata,
@@ -997,6 +998,34 @@ function restoreSavedSlide(session) {
   return true;
 }
 
+function restoreDisplayOverrides(session) {
+  const savedAt = Date.parse(session?.savedAt || "");
+  const savedAge = Date.now() - savedAt;
+  if (!Number.isFinite(savedAt) || savedAge < 0 || savedAge > SAVED_SLIDE_MAX_AGE_MS) return false;
+
+  if (session?.interstitialHoldActive) {
+    const holdIndex = Number(session.interstitialHoldSlideIndex);
+    const holdSlide = state.presentation?.slides?.[holdIndex];
+    if (Number.isInteger(holdIndex) && holdSlide?.type === "interstitial") {
+      state.interstitialHoldSlideIndex = holdIndex;
+      state.interstitialHoldReturnSlideIndex = Number.isInteger(session.interstitialHoldReturnSlideIndex)
+        ? getSafeSlideIndex(session.interstitialHoldReturnSlideIndex)
+        : state.currentSlideIndex;
+      state.interstitialHoldResumeState = session.interstitialHoldResumeState || null;
+      state.interstitialHoldActive = true;
+      state.isBlack = false;
+      return true;
+    }
+  }
+
+  state.interstitialHoldActive = false;
+  state.interstitialHoldSlideIndex = null;
+  state.interstitialHoldReturnSlideIndex = null;
+  state.interstitialHoldResumeState = null;
+  state.isBlack = Boolean(session?.isBlack);
+  return true;
+}
+
 /** Return `value` as a number when it is finite, otherwise `fallback`. A null value counts as missing. */
 function finiteOr(value, fallback) {
   if (value == null) return fallback;
@@ -1564,6 +1593,7 @@ function scheduleImageSlideshowSlide(ioRef) {
     position = 0;
   }
   state.imageSlideshowError = null;
+  state.moviePlaybackError = null;
   state.imageSlideshowLoopIteration = Math.max(
     1,
     Math.min(Number(currentSlide.slideshowLoopCount) || 1, Number(state.imageSlideshowLoopIteration) || 1)
@@ -2180,6 +2210,10 @@ function stopMovieAutoAdvanceTimer() {
   _moviePlaybackSlideId = null;
 }
 
+function clearMoviePlaybackError() {
+  state.moviePlaybackError = null;
+}
+
 function getPhaseLoopNextIndex() {
   const phase = state.preMassRunning ? "pre" : state.postMassRunning ? "post" : null;
   if (!phase) return null;
@@ -2516,6 +2550,7 @@ function restoreSession(ioRef) {
       state.countdownEndsAt = session.countdownEndsAt;
     }
     restoreSavedSlide(session);
+    restoreDisplayOverrides(session);
 
     const savedAt = Date.parse(session?.savedAt || "");
     const savedAge = Date.now() - savedAt;
@@ -2583,6 +2618,23 @@ function startServer(port = 17841, options = {}) {
       socket.emit("control:required", { error: "The operator ended remote sessions." });
     }
     return notifiedSockets.length;
+  }
+
+  function getSocketSourceAddress(socket) {
+    return socket?.request?.socket?.remoteAddress
+      || socket?.conn?.remoteAddress
+      || socket?.handshake?.address
+      || "";
+  }
+
+  function disconnectDisallowedSockets() {
+    for (const socket of io.sockets.sockets.values()) {
+      if (sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) continue;
+      const token = getValidControlSessionToken(socket);
+      if (token) clearControlSession(token);
+      socket.data.controlToken = "";
+      socket.disconnect(true);
+    }
   }
 
   const globalApiRateLimit = createRateLimitMiddleware({
@@ -3056,6 +3108,7 @@ function startServer(port = 17841, options = {}) {
       Object.assign(state.appSettings, nextSettings);
       if (nextSourceNetworks) {
         sourceNetworkGuard.setAllowedEntries(sourceNetworks);
+        disconnectDisallowedSockets();
         logger.info(`[security] Source-network restriction ${sourceNetworks.trim() ? "enabled" : "disabled"}.`);
       }
       touch();
@@ -3836,7 +3889,7 @@ function startServer(port = 17841, options = {}) {
     try {
       const archivePaths = getArchivePaths(path.basename(String(req.params.archiveId || "")));
       const { archiveId } = archivePaths;
-      if (archiveId === state.activeMassArchiveId) {
+      if (archiveIdsEqual(archiveId, state.activeMassArchiveId)) {
         return res.status(400).json({ error: "The active Mass cannot be compressed." });
       }
       if (!fs.existsSync(archivePaths.packageDir)) {
@@ -3864,7 +3917,7 @@ function startServer(port = 17841, options = {}) {
   app.delete("/api/mass-history/:archiveId", (req, res) => {
     try {
       const { archiveId } = getArchivePaths(path.basename(String(req.params.archiveId || "")));
-      if (archiveId === state.activeMassArchiveId) {
+      if (archiveIdsEqual(archiveId, state.activeMassArchiveId)) {
         return res.status(400).json({ error: "The active Mass archive cannot be deleted." });
       }
       const deleted = deleteMassArchive(archiveId);
@@ -4253,6 +4306,7 @@ function startServer(port = 17841, options = {}) {
     stopImageSlideshowTimer({ resetProgress: !sameSlideshow, clearError: !sameSlideshow });
     // A movie's fallback advance belongs to the slide that scheduled it.
     stopMovieAutoAdvanceTimer();
+    clearMoviePlaybackError();
     _movieEndGuard.reset();
     if (activateGatheringSequence && slide?.phase === "gathering") {
       stopPreMassTimer();
@@ -4312,6 +4366,10 @@ function startServer(port = 17841, options = {}) {
 
   function withControl(socket, handler) {
     return (...args) => {
+      if (!sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) {
+        socket.disconnect(true);
+        return undefined;
+      }
       if (!socketMayControl(socket)) {
         socket.emit("control:required", { error: getUnlockMessage() });
         return undefined;
@@ -4386,11 +4444,25 @@ function startServer(port = 17841, options = {}) {
       stopMovieAutoAdvanceTimer();
       advanceFromCurrentSlide(io);
     }));
+    socket.on("slide:video-play-failed", withScreenReport(socket, (payload) => {
+      const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const slideId = String(payload?.slideId || "");
+      if (!shouldMovieSlideControlAdvance(currentSlide)) return;
+      if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      stopMovieAutoAdvanceTimer();
+      state.moviePlaybackError = {
+        slideId,
+        message: `Could not start ${currentSlide.title || "the movie"}; autoplay was blocked.`
+      };
+      touch();
+      io.emit("state:update", getStateSnapshot());
+    }));
     socket.on("slide:video-ready", withScreenReport(socket, (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      if (state.moviePlaybackError?.slideId === slideId) return;
       const durationMs = Number(payload?.durationMs);
       if (!Number.isFinite(durationMs) || durationMs <= 0) return;
       const startedAt = _moviePlaybackSlideId === currentSlide.id ? _moviePlaybackStartedAt : null;

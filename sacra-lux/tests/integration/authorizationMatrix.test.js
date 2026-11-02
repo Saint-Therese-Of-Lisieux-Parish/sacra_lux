@@ -76,6 +76,7 @@ const SOCKET_EVENTS = [
   ["slide:goto", "control"],
   ["slide:goto:remote", "control"],
   ["slide:video-ended", "control"],
+  ["slide:video-play-failed", "control"],
   ["slide:video-ready", "control"],
   ["image-slideshow:preload-error", "control"],
   ["screen:interstitial-hold", "control"],
