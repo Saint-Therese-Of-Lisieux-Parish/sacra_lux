@@ -164,6 +164,24 @@ describe("socket handlers", () => {
       }
     });
 
+    test("does not stop on a malformed control cookie", async () => {
+      await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const malformed = await connect({
+        extraHeaders: { Cookie: "sacra_lux_control=%E0%A4%A" }
+      });
+      try {
+        const denied = nextEvent(malformed, "control:required");
+        malformed.emit("slide:next");
+        await denied;
+        await request(app).post("/api/gathering/start")
+          .set("Cookie", "sacra_lux_control=%E0%A4%A")
+          .expect(401);
+        await request(app).get("/api/state").expect(200);
+      } finally {
+        malformed.disconnect();
+      }
+    });
+
     test("disconnects sockets outside a narrowed source-network allowlist", async () => {
       const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
       const operator = await connect({ auth: { token: pin.body.controlToken } });
