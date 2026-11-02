@@ -470,6 +470,15 @@ describe("security", () => {
     expect(security.getValidControlSessionToken({})).toBe("");
   });
 
+  test("treats malformed control cookies as missing tokens", () => {
+    expect(() => security.getValidControlSessionToken({
+      headers: { cookie: "sacra_lux_control=%E0%A4%A" }
+    })).not.toThrow();
+    expect(security.getValidControlSessionToken({
+      headers: { cookie: "sacra_lux_control=%E0%A4%A" }
+    })).toBe("");
+  });
+
   test("reads the socket control token from data, auth, or handshake", () => {
     state.startPinHash = security.createPinHashRecord("1234");
     const token = security.noteControlUnlock();
