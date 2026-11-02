@@ -66,6 +66,11 @@ function normalizeArchiveId(value) {
   return cleaned;
 }
 
+function archiveIdsEqual(left, right) {
+  return typeof left === "string" && typeof right === "string" &&
+    left.toLowerCase() === right.toLowerCase();
+}
+
 function assertArchiveDirInsideHistory(archiveDir) {
   const historyRoot = path.resolve(MASS_HISTORY_DIR);
   const resolved = path.resolve(archiveDir);
@@ -308,7 +313,7 @@ function listMassArchives(activeArchiveId = null) {
         hasPackage: fs.existsSync(paths.packageDir),
         hasCompressedZip: fs.existsSync(paths.compressedZipPath),
         sizeBytes: getArchiveSize(paths),
-        isActive: archiveId === activeArchiveId
+        isActive: archiveIdsEqual(archiveId, activeArchiveId)
       };
     })
     .sort((a, b) => {
@@ -335,6 +340,7 @@ module.exports = {
   MASS_HISTORY_DIR,
   InvalidArchiveIdError,
   sanitizeForFilename,
+  archiveIdsEqual,
   getArchivePaths,
   readMetadata,
   writeMetadata,

@@ -40,6 +40,17 @@ describe("active Mass archive guard", () => {
     expect(fs.existsSync(packageDir)).toBe(true);
   });
 
+  test("rejects case changes for the active archive", async () => {
+    const { archiveDir, packageDir } = massHistory.getArchivePaths("Mass-B");
+    const deleteResponse = await request(app).delete("/api/mass-history/mass-b");
+    expect(deleteResponse.status).toBe(400);
+    expect(fs.existsSync(archiveDir)).toBe(true);
+
+    const compressResponse = await request(app).post("/api/mass-history/MASS-B/compress");
+    expect(compressResponse.status).toBe(400);
+    expect(fs.existsSync(packageDir)).toBe(true);
+  });
+
   test("rejects delete and compress for an active title with a trailing period", async () => {
     await request(app).post("/api/new-mass").send({ title: "Mass C.", startTime: "2026-04-02T09:00" }).expect(200);
     await new Promise((resolve) => setTimeout(resolve, 700));
