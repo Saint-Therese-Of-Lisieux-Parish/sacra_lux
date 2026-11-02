@@ -191,7 +191,12 @@ function readControlToken(source) {
   if (headerToken) return String(Array.isArray(headerToken) ? headerToken[0] : headerToken);
   const cookie = String(headers.cookie || "");
   const match = cookie.match(/(?:^|;\s*)sacra_lux_control=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : "";
+  if (!match) return "";
+  try {
+    return decodeURIComponent(match[1]);
+  } catch (_error) {
+    return "";
+  }
 }
 
 function issueControlSession() {
