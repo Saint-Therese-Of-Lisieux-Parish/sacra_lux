@@ -342,6 +342,21 @@ describe("socket handlers", () => {
       expect(state.currentSlideIndex).toBe(index);
     });
 
+    test("video-play-failed stops the fallback and reports the movie", async () => {
+      const index = movieIndex();
+      await goto("slide:goto", index);
+      const slideId = state.presentation.slides[index].id;
+      client.emit("slide:video-ready", { slideId, durationMs: 50 });
+      await flush();
+
+      const failed = waitForState(client, (next) => next.moviePlaybackError?.slideId === slideId);
+      client.emit("slide:video-play-failed", { slideId });
+      const snapshot = await failed;
+      expect(snapshot.moviePlaybackError.message).toContain("Movie");
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(state.currentSlideIndex).toBe(index);
+    });
+
     test("projector reports work while a PIN blocks operator control", async () => {
       jest.useFakeTimers({ doNotFake: ["nextTick", "queueMicrotask", "setImmediate", "clearImmediate", "hrtime", "performance"] });
       const index = movieIndex();
