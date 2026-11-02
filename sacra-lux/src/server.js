@@ -56,6 +56,7 @@ const {
   CURRENT_MASS_DIR,
   InvalidArchiveIdError,
   sanitizeForFilename,
+  archiveIdsEqual,
   getArchivePaths,
   readMetadata,
   writeMetadata,
@@ -3865,7 +3866,7 @@ function startServer(port = 17841, options = {}) {
     try {
       const archivePaths = getArchivePaths(path.basename(String(req.params.archiveId || "")));
       const { archiveId } = archivePaths;
-      if (archiveId === state.activeMassArchiveId) {
+      if (archiveIdsEqual(archiveId, state.activeMassArchiveId)) {
         return res.status(400).json({ error: "The active Mass cannot be compressed." });
       }
       if (!fs.existsSync(archivePaths.packageDir)) {
@@ -3893,7 +3894,7 @@ function startServer(port = 17841, options = {}) {
   app.delete("/api/mass-history/:archiveId", (req, res) => {
     try {
       const { archiveId } = getArchivePaths(path.basename(String(req.params.archiveId || "")));
-      if (archiveId === state.activeMassArchiveId) {
+      if (archiveIdsEqual(archiveId, state.activeMassArchiveId)) {
         return res.status(400).json({ error: "The active Mass archive cannot be deleted." });
       }
       const deleted = deleteMassArchive(archiveId);
