@@ -1,4 +1,5 @@
 const fs = require("fs");
+const path = require("path");
 const request = require("supertest");
 
 const {
@@ -60,5 +61,21 @@ describe("active Mass archive guard", () => {
     await expect(request(app).delete("/api/mass-history/Mass-C")).resolves.toMatchObject({ status: 400 });
     await expect(request(app).post("/api/mass-history/Mass-C/compress")).resolves.toMatchObject({ status: 400 });
     expect(fs.existsSync(archive.archiveDir)).toBe(true);
+  });
+
+  test("keeps the exact folder ID for a loaded legacy archive", async () => {
+    const legacyDir = path.join(massHistory.MASS_HISTORY_DIR, "Legacy-Mass.");
+    fs.mkdirSync(legacyDir, { recursive: true });
+    fs.cpSync(massHistory.getArchivePaths("Mass-B").packageDir, path.join(legacyDir, "package"), { recursive: true });
+    fs.writeFileSync(path.join(legacyDir, "metadata.json"), JSON.stringify({
+      id: "Legacy-Mass.",
+      title: "Legacy Mass"
+    }), "utf8");
+
+    const loadResponse = await request(app).post("/api/mass-history/Legacy-Mass./load");
+    expect(loadResponse.status).toBe(200);
+    const deleteResponse = await request(app).delete("/api/mass-history/Legacy-Mass.");
+    expect(deleteResponse.status).toBe(400);
+    expect(fs.existsSync(legacyDir)).toBe(true);
   });
 });

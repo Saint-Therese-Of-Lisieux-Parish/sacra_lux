@@ -73,6 +73,38 @@ describe("massHistory", () => {
     warn.mockRestore();
   });
 
+  test("keeps exact folder names for legacy archives", () => {
+    const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");
+    for (const [id, title] of [
+      ["Mass-of-St.-John-Jr.", "Legacy title"],
+      ["Mass-of-St.-John-Jr", "Current title"]
+    ]) {
+      fs.mkdirSync(path.join(historyDir, id), { recursive: true });
+      fs.writeFileSync(path.join(historyDir, id, "metadata.json"), JSON.stringify({ id, title }), "utf8");
+    }
+
+    const history = require("../../src/massHistory");
+    const listed = history.listMassArchives();
+
+    expect(listed.map((archive) => archive.id).sort()).toEqual([
+      "Mass-of-St.-John-Jr",
+      "Mass-of-St.-John-Jr."
+    ]);
+    expect(listed.find((archive) => archive.id === "Mass-of-St.-John-Jr.").title).toBe("Legacy title");
+    expect(history.deleteMassArchive("Mass-of-St.-John-Jr.")).toBe(true);
+    expect(fs.existsSync(path.join(historyDir, "Mass-of-St.-John-Jr"))).toBe(true);
+  });
+
+  test("lists a folder whose name sanitizes to empty", () => {
+    const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");
+    fs.mkdirSync(path.join(historyDir, "???"), { recursive: true });
+    fs.writeFileSync(path.join(historyDir, "???", "metadata.json"), JSON.stringify({ title: "Unusual archive" }), "utf8");
+
+    const history = require("../../src/massHistory");
+
+    expect(history.listMassArchives().map((archive) => archive.id)).toEqual(["???"]);
+  });
+
   test("syncCurrentMassToArchive shortens an archive id for a very long title", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     fs.mkdirSync(currentMassDir, { recursive: true });

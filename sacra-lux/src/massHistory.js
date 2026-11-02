@@ -100,7 +100,21 @@ function listArchiveIds() {
 }
 
 function getArchivePaths(archiveId) {
-  const id = normalizeArchiveId(archiveId);
+  const rawId = String(archiveId ?? "").trim();
+  if (
+    !rawId ||
+    rawId === "." ||
+    rawId === ".." ||
+    rawId.includes("/") ||
+    rawId.includes("\\") ||
+    rawId.includes("\0")
+  ) {
+    throw new InvalidArchiveIdError();
+  }
+  const rawArchiveDir = assertArchiveDirInsideHistory(path.join(MASS_HISTORY_DIR, rawId));
+  const id = fs.existsSync(rawArchiveDir) && fs.statSync(rawArchiveDir).isDirectory()
+    ? rawId
+    : normalizeArchiveId(rawId);
   const archiveDir = assertArchiveDirInsideHistory(path.join(MASS_HISTORY_DIR, id));
   return {
     archiveId: id,
@@ -310,6 +324,7 @@ function listMassArchives(activeArchiveId = null) {
       };
       return {
         ...metadata,
+        id: archiveId,
         hasPackage: fs.existsSync(paths.packageDir),
         hasCompressedZip: fs.existsSync(paths.compressedZipPath),
         sizeBytes: getArchiveSize(paths),
