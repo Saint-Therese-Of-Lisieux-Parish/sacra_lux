@@ -1593,6 +1593,7 @@ function scheduleImageSlideshowSlide(ioRef) {
     position = 0;
   }
   state.imageSlideshowError = null;
+  state.moviePlaybackError = null;
   state.imageSlideshowLoopIteration = Math.max(
     1,
     Math.min(Number(currentSlide.slideshowLoopCount) || 1, Number(state.imageSlideshowLoopIteration) || 1)
@@ -2207,6 +2208,10 @@ function stopMovieAutoAdvanceTimer() {
   if (_movieTimer) { clearTimeout(_movieTimer); _movieTimer = null; }
   _moviePlaybackStartedAt = null;
   _moviePlaybackSlideId = null;
+}
+
+function clearMoviePlaybackError() {
+  state.moviePlaybackError = null;
 }
 
 function getPhaseLoopNextIndex() {
@@ -4283,6 +4288,7 @@ function startServer(port = 17841, options = {}) {
     stopImageSlideshowTimer({ resetProgress: !sameSlideshow, clearError: !sameSlideshow });
     // A movie's fallback advance belongs to the slide that scheduled it.
     stopMovieAutoAdvanceTimer();
+    clearMoviePlaybackError();
     _movieEndGuard.reset();
     if (activateGatheringSequence && slide?.phase === "gathering") {
       stopPreMassTimer();
@@ -4416,11 +4422,25 @@ function startServer(port = 17841, options = {}) {
       stopMovieAutoAdvanceTimer();
       advanceFromCurrentSlide(io);
     }));
+    socket.on("slide:video-play-failed", withScreenReport(socket, (payload) => {
+      const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const slideId = String(payload?.slideId || "");
+      if (!shouldMovieSlideControlAdvance(currentSlide)) return;
+      if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      stopMovieAutoAdvanceTimer();
+      state.moviePlaybackError = {
+        slideId,
+        message: `Could not start ${currentSlide.title || "the movie"}; autoplay was blocked.`
+      };
+      touch();
+      io.emit("state:update", getStateSnapshot());
+    }));
     socket.on("slide:video-ready", withScreenReport(socket, (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
       if (!currentSlide?.id || slideId !== currentSlide.id) return;
+      if (state.moviePlaybackError?.slideId === slideId) return;
       const durationMs = Number(payload?.durationMs);
       if (!Number.isFinite(durationMs) || durationMs <= 0) return;
       const startedAt = _moviePlaybackSlideId === currentSlide.id ? _moviePlaybackStartedAt : null;

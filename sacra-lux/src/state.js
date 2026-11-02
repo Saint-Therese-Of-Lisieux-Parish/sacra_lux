@@ -103,6 +103,7 @@ const state = {
   imageSlideshowEndsAt: null,
   imageSlideshowLoopIteration: 1,
   imageSlideshowError: null,
+  moviePlaybackError: null,
   activeMassArchiveId: null,
   startupPrompt: null,
   saveError: "",

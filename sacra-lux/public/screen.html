@@ -439,6 +439,16 @@
       color: rgba(248, 248, 248, 0.62);
     }
 
+    .video-retry-button {
+      border: 1px solid rgba(248, 248, 248, 0.55);
+      border-radius: 999px;
+      padding: 12px 24px;
+      background: rgba(248, 248, 248, 0.12);
+      color: #f8f8f8;
+      font: inherit;
+      cursor: pointer;
+    }
+
     /* ---- Fullscreen prompt overlay (web mode only) ---- */
     .fullscreen-prompt {
       position: absolute;
@@ -1036,17 +1046,33 @@
         });
       });
       wrap.appendChild(video);
+      let reportedPlayFailure = false;
+      const showAutoplayBlocked = () => {
+        wrap.innerHTML = `
+          <div class="video-placeholder">
+            <div class="video-placeholder-icon">&#9654;</div>
+            <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
+            <div class="video-placeholder-copy">Autoplay was blocked</div>
+            <button class="video-retry-button" type="button">Start movie</button>
+          </div>
+        `;
+        if (!reportedPlayFailure) {
+          reportedPlayFailure = true;
+          socket.emit("slide:video-play-failed", { slideId: slide.id });
+        }
+        const retryButton = wrap.querySelector(".video-retry-button");
+        retryButton?.addEventListener("click", () => {
+          wrap.innerHTML = "";
+          wrap.appendChild(video);
+          const retryAttempt = video.play();
+          if (retryAttempt && typeof retryAttempt.catch === "function") {
+            retryAttempt.catch(showAutoplayBlocked);
+          }
+        }, { once: true });
+      };
       const playAttempt = video.play();
       if (playAttempt && typeof playAttempt.catch === "function") {
-        playAttempt.catch(() => {
-          wrap.innerHTML = `
-            <div class="video-placeholder">
-              <div class="video-placeholder-icon">&#9654;</div>
-              <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
-              <div class="video-placeholder-copy">Autoplay was blocked</div>
-            </div>
-          `;
-        });
+        playAttempt.catch(showAutoplayBlocked);
       }
     }
 
