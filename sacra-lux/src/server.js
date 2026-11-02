@@ -2620,6 +2620,23 @@ function startServer(port = 17841, options = {}) {
     return notifiedSockets.length;
   }
 
+  function getSocketSourceAddress(socket) {
+    return socket?.request?.socket?.remoteAddress
+      || socket?.conn?.remoteAddress
+      || socket?.handshake?.address
+      || "";
+  }
+
+  function disconnectDisallowedSockets() {
+    for (const socket of io.sockets.sockets.values()) {
+      if (sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) continue;
+      const token = getValidControlSessionToken(socket);
+      if (token) clearControlSession(token);
+      socket.data.controlToken = "";
+      socket.disconnect(true);
+    }
+  }
+
   const globalApiRateLimit = createRateLimitMiddleware({
     ...RATE_LIMIT_CONFIG.global,
     keyFn: getClientIp
@@ -3091,6 +3108,7 @@ function startServer(port = 17841, options = {}) {
       Object.assign(state.appSettings, nextSettings);
       if (nextSourceNetworks) {
         sourceNetworkGuard.setAllowedEntries(sourceNetworks);
+        disconnectDisallowedSockets();
         logger.info(`[security] Source-network restriction ${sourceNetworks.trim() ? "enabled" : "disabled"}.`);
       }
       touch();
@@ -4348,6 +4366,10 @@ function startServer(port = 17841, options = {}) {
 
   function withControl(socket, handler) {
     return (...args) => {
+      if (!sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) {
+        socket.disconnect(true);
+        return undefined;
+      }
       if (!socketMayControl(socket)) {
         socket.emit("control:required", { error: getUnlockMessage() });
         return undefined;

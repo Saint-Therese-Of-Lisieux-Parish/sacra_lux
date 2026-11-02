@@ -164,6 +164,36 @@ describe("socket handlers", () => {
       }
     });
 
+    test("disconnects sockets outside a narrowed source-network allowlist", async () => {
+      const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const operator = await connect({ auth: { token: pin.body.controlToken } });
+      const loopback = await connect();
+      const operatorServerSocket = handle.io.sockets.sockets.get(operator.id);
+      Object.defineProperty(operatorServerSocket.request.socket, "remoteAddress", {
+        configurable: true,
+        value: "192.168.1.50"
+      });
+
+      const disconnected = nextEvent(operator, "disconnect");
+      await request(app).post("/api/app-settings")
+        .set("x-sacra-control", pin.body.controlToken)
+        .send({ sourceNetworks: "127.0.0.1/32" })
+        .expect(200);
+      await disconnected;
+
+      await request(app).post("/api/organizer")
+        .set("x-sacra-control", pin.body.controlToken)
+        .send({ sequence, manualSlides })
+        .expect(401);
+      expect(loopback.connected).toBe(true);
+
+      loopback.disconnect();
+      state.startPin = "";
+      state.startPinHash = null;
+      state.controlMode = "unset";
+      await request(app).post("/api/app-settings").send({ sourceNetworks: "" }).expect(200);
+    });
+
     test("requires a control session to export AVIF", async () => {
       await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
       const anonymous = await connect();
