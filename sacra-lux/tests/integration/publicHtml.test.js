@@ -44,6 +44,26 @@ describe("public html integration", () => {
     expect(res.text).toContain("if (response.status === 401) showControlLocked()");
   });
 
+  test("operator and remote pages do not queue slide commands while disconnected", async () => {
+    const appRes = await request(app).get("/").expect(200);
+    const remoteRes = await request(app).get("/remote").expect(200);
+
+    for (const markup of [appRes.text, remoteRes.text]) {
+      expect(markup).toContain("function emitWhenConnected(event, ...args)");
+      expect(markup).toContain("if (!socket.connected) return false;");
+    }
+    expect(appRes.text).toContain('emitWhenConnected("slide:next")');
+    expect(appRes.text).toContain('emitWhenConnected("slide:prev")');
+    expect(appRes.text).toContain('emitWhenConnected("slide:goto", massIndex)');
+    expect(appRes.text).toContain('emitWhenConnected("screen:black", !uiState.black)');
+    expect(remoteRes.text).toContain('emitWhenConnected("slide:goto:remote", index)');
+    expect(appRes.text).not.toContain('socket.emit("slide:next")');
+    expect(appRes.text).not.toContain('socket.emit("slide:prev")');
+    expect(appRes.text).not.toContain('socket.emit("slide:goto"');
+    expect(appRes.text).not.toContain('socket.emit("screen:black"');
+    expect(remoteRes.text).not.toContain('socket.emit("slide:goto:remote"');
+  });
+
   test("operator app exposes unused media cleanup", async () => {
     const res = await request(app).get("/").expect(200);
 

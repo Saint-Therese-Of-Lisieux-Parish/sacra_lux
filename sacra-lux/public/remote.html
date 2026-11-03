@@ -519,6 +519,11 @@
   <script src="/static/client/shared.js"></script>
   <script>
     const socket = io();
+    function emitWhenConnected(event, ...args) {
+      if (!socket.connected) return false;
+      socket.emit(event, ...args);
+      return true;
+    }
     const supportsPointerEvents = "PointerEvent" in window;
     const els = {
       remoteSplash: document.getElementById("remoteSplash"),
@@ -703,7 +708,7 @@
       if (!Number.isFinite(index)) {
         return;
       }
-      socket.emit("slide:goto:remote", index);
+      emitWhenConnected("slide:goto:remote", index);
     }
 
     function stepRemoteSlide(step) {
