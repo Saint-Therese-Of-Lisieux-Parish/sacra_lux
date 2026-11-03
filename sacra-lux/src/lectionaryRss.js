@@ -21,7 +21,9 @@ function decodeHtml(value) {
       const number = String(code).toLowerCase().startsWith("x")
         ? Number.parseInt(String(code).slice(1), 16)
         : Number.parseInt(code, 10);
-      return Number.isFinite(number) ? String.fromCodePoint(number) : _;
+      return Number.isInteger(number) && number >= 0 && number <= 0x10FFFF
+        ? String.fromCodePoint(number)
+        : _;
     })
     .replace(/&(nbsp|amp|quot|apos|lt|gt);/gi, (_, entity) => ({
       nbsp: " ", amp: "&", quot: "\"", apos: "'", lt: "<", gt: ">"

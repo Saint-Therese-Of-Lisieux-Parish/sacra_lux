@@ -110,6 +110,11 @@ describe("lectionaryRss", () => {
       expect(result.documents[0].textLines).toEqual(["A\u00e9 B\u00e9 <ok>"]);
     });
 
+    test("keeps an out-of-range numeric character reference as text", () => {
+      const result = parseDailyReadingsRss(wrap(section("Reading 1", "Genesis 1:1", "Text &amp;#1114112;")));
+      expect(result.documents[0].textLines).toEqual(["Text &#1114112;"]);
+    });
+
     test("fails when no fetch implementation exists", async () => {
       await expect(fetchUsccbDailyReadings(null)).rejects.toThrow("cannot retrieve USCCB readings");
     });
