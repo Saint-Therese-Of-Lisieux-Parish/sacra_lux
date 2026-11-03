@@ -1202,16 +1202,71 @@ function normalizeTypeFontSettings(input, current, prefix) {
   };
 }
 
+function rebuildPresentationFromOrganizer(options) {
+  const previousSlides = state.presentation?.slides || [];
+  const previousCurrentSlide = previousSlides[state.currentSlideIndex];
+  const previousCurrentSlideId = previousCurrentSlide?.id || state.currentSlideId;
+  const previousCurrentItemId = previousCurrentSlide?.organizerItemId || null;
+  const previousHoldSlide = previousSlides[state.interstitialHoldSlideIndex];
+  const previousHoldSlideId = previousHoldSlide?.id || null;
+  const previousHoldItemId = previousHoldSlide?.organizerItemId || null;
+  const previousReturnSlide = previousSlides[state.interstitialHoldReturnSlideIndex];
+  const previousReturnSlideId = previousReturnSlide?.id || null;
+  const previousReturnItemId = previousReturnSlide?.organizerItemId || null;
+
+  state.presentation = buildPresentationFromOrganizer(options);
+  const slides = state.presentation?.slides || [];
+  const findSlideIndex = (slideId, organizerItemId, fallbackIndex) => {
+    const exactIndex = slideId ? slides.findIndex((slide) => slide.id === slideId) : -1;
+    if (exactIndex >= 0) return exactIndex;
+    const itemIndex = organizerItemId
+      ? slides.findIndex((slide) => slide.organizerItemId === organizerItemId)
+      : -1;
+    return itemIndex >= 0 ? itemIndex : getSafeSlideIndex(fallbackIndex);
+  };
+
+  state.currentSlideIndex = findSlideIndex(
+    previousCurrentSlideId,
+    previousCurrentItemId,
+    state.currentSlideIndex
+  );
+  state.currentSlideId = slides[state.currentSlideIndex]?.id || null;
+
+  if (state.interstitialHoldActive) {
+    let holdIndex = previousHoldSlideId
+      ? slides.findIndex((slide) => slide.id === previousHoldSlideId && slide.type === "interstitial")
+      : -1;
+    if (holdIndex < 0 && previousHoldItemId) {
+      holdIndex = slides.findIndex((slide) => slide.organizerItemId === previousHoldItemId && slide.type === "interstitial");
+    }
+    if (holdIndex < 0) {
+      holdIndex = slides.findIndex((slide) => slide.type === "interstitial");
+    }
+    if (holdIndex >= 0) {
+      state.interstitialHoldSlideIndex = holdIndex;
+      state.interstitialHoldReturnSlideIndex = findSlideIndex(
+        previousReturnSlideId,
+        previousReturnItemId,
+        state.currentSlideIndex
+      );
+    } else {
+      state.interstitialHoldActive = false;
+      state.interstitialHoldSlideIndex = null;
+      state.interstitialHoldReturnSlideIndex = null;
+      state.interstitialHoldResumeState = null;
+    }
+  }
+  invalidateStateCache();
+}
+
 function repaginateReadingSlidesIfNeeded() {
-  state.presentation = buildPresentationFromOrganizer({
+  rebuildPresentationFromOrganizer({
     title: state.presentation.title,
     documents: Array.isArray(state.readingsSource?.documents) ? state.readingsSource.documents : [],
     sequence: state.organizerSequence,
     manualSlides: state.manualSlides,
     screenSettings: state.screenSettings
   });
-  state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
-  invalidateStateCache();
 }
 
 function mergeManualSlideState(nextSequence, nextManualSlides) {
@@ -3455,14 +3510,13 @@ function startServer(port = 17841, options = {}) {
         (!Array.isArray(state.readingsSource?.documents) || state.readingsSource.documents.length === 0) &&
         (Array.isArray(payload.organizerSequence) || (payload.manualSlides && typeof payload.manualSlides === "object"))
       ) {
-        state.presentation = buildPresentationFromOrganizer({
+        rebuildPresentationFromOrganizer({
           title: state.presentation?.title || "Mass Presentation",
           documents: [],
           sequence: state.organizerSequence,
           manualSlides: state.manualSlides,
           screenSettings: state.screenSettings
         });
-        state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
       }
       if (payload.presentationTitle && state.presentation) {
         state.presentation.title = String(payload.presentationTitle);
@@ -3963,14 +4017,13 @@ function startServer(port = 17841, options = {}) {
       state.organizerRevision += 1;
       propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       // Always rebuild the presentation so manual content stays current.
-      state.presentation = buildPresentationFromOrganizer({
+      rebuildPresentationFromOrganizer({
         title: state.presentation.title,
         documents: state.readingsSource.documents,
         sequence: state.organizerSequence,
         manualSlides: state.manualSlides,
         screenSettings: state.screenSettings
       });
-      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const sameSlideshow = wasSlideshow && currentSlide?.type === "imageSlideshow" &&
         currentSlide.organizerItemId === previousSlide.organizerItemId;
@@ -4016,7 +4069,7 @@ function startServer(port = 17841, options = {}) {
         documents: imported.documents || []
       };
 
-      state.presentation = buildPresentationFromOrganizer({
+      rebuildPresentationFromOrganizer({
         title: state.presentation?.title || imported.title || "Mass Presentation",
         documents: state.readingsSource.documents,
         sequence: state.organizerSequence,
@@ -4024,7 +4077,6 @@ function startServer(port = 17841, options = {}) {
         screenSettings: state.screenSettings
       });
 
-      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
@@ -4192,7 +4244,7 @@ function startServer(port = 17841, options = {}) {
 
       // The live title wins: mass_title.txt on disk can lag behind it by the save delay.
       const liveTitle = state.presentation?.title;
-      state.presentation = buildPresentationFromOrganizer({
+      rebuildPresentationFromOrganizer({
         title: imported.title || path.basename(folderPath),
         documents: state.readingsSource.documents,
         sequence: state.organizerSequence,
@@ -4203,7 +4255,6 @@ function startServer(port = 17841, options = {}) {
         state.presentation.title = liveTitle;
       }
 
-      state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex);
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);

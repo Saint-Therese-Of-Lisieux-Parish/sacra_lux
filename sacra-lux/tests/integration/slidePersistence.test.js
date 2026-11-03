@@ -235,4 +235,86 @@ describe("current slide persistence", () => {
       await restarted.stop();
     }
   });
+
+  test("keeps the live slide and interstitial hold after an organizer rebuild", async () => {
+    const first = await boot();
+    const sequence = [
+      { id: "first", type: "text", label: "First", phase: "mass" },
+      { id: "live", type: "text", label: "Live", phase: "mass" },
+      { id: "hold", type: "interstitial", label: "Hold", phase: "mass" },
+      { id: "last", type: "text", label: "Last", phase: "mass" }
+    ];
+    const manualSlides = {
+      first: { text: "First" },
+      live: { text: "Live" },
+      hold: { text: "Hold" },
+      last: { text: "Last" }
+    };
+    await request(first.app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+
+    const client = createClient(first.baseUrl, { transports: ["websocket"] });
+    await new Promise((resolve, reject) => {
+      client.once("connect", resolve);
+      client.once("connect_error", reject);
+    });
+    const before = (await request(first.app).get("/api/state").expect(200)).body;
+    const liveIndex = before.presentation.slides.findIndex((slide) => slide.organizerItemId === "live");
+    client.emit("slide:goto", liveIndex);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    client.emit("screen:interstitial-hold");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const insertedSequence = [sequence[0], { id: "new", type: "text", label: "New", phase: "mass" }, ...sequence.slice(1)];
+    await request(first.app).post("/api/organizer").send({
+      sequence: insertedSequence,
+      manualSlides: { ...manualSlides, new: { text: "New" } }
+    }).expect(200);
+
+    const rebuilt = (await request(first.app).get("/api/state").expect(200)).body;
+    expect(rebuilt.presentation.slides[rebuilt.currentSlideIndex].organizerItemId).toBe("live");
+    expect(rebuilt.presentation.slides[rebuilt.interstitialHoldSlideIndex].type).toBe("interstitial");
+
+    const released = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Timed out while releasing the hold.")), 3000);
+      client.on("state:update", (state) => {
+        if (state.interstitialHoldActive) return;
+        clearTimeout(timeout);
+        resolve(state);
+      });
+    });
+    client.emit("screen:interstitial-hold");
+    const afterRelease = await released;
+    expect(afterRelease.presentation.slides[afterRelease.currentSlideIndex].organizerItemId).toBe("live");
+    client.disconnect();
+    await first.stop();
+  });
+
+  test("falls back to the first slide of an item when the current page is removed", async () => {
+    const first = await boot();
+    const sequence = [{ id: "text", type: "text", label: "Text", phase: "mass" }];
+    await request(first.app).post("/api/organizer").send({
+      sequence,
+      manualSlides: { text: { text: "One\n---\nTwo\n---\nThree" } }
+    }).expect(200);
+
+    const before = (await request(first.app).get("/api/state").expect(200)).body;
+    expect(before.presentation.slides).toHaveLength(3);
+    const client = createClient(first.baseUrl, { transports: ["websocket"] });
+    await new Promise((resolve, reject) => {
+      client.once("connect", resolve);
+      client.once("connect_error", reject);
+    });
+    client.emit("slide:goto", 2);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    await request(first.app).post("/api/organizer").send({
+      sequence,
+      manualSlides: { text: { text: "Only one page" } }
+    }).expect(200);
+    const after = (await request(first.app).get("/api/state").expect(200)).body;
+    expect(after.currentSlideIndex).toBe(0);
+    expect(after.presentation.slides[after.currentSlideIndex].organizerItemId).toBe("text");
+    client.disconnect();
+    await first.stop();
+  });
 });
