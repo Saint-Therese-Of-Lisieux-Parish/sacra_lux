@@ -1621,7 +1621,7 @@ function advanceAfterImageSlideshow(ioRef, { direction = 1 } = {}) {
   if (nextIndex >= 0) scheduleRuntimeForCurrentSlide(ioRef);
 }
 
-function scheduleImageSlideshowSlide(ioRef) {
+function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   stopImageSlideshowTimer({ resetProgress: false });
   const slides = state.presentation?.slides || [];
   const currentSlide = slides[state.currentSlideIndex];
@@ -1654,7 +1654,14 @@ function scheduleImageSlideshowSlide(ioRef) {
     Math.min(Number(currentSlide.slideshowLoopCount) || 1, Number(state.imageSlideshowLoopIteration) || 1)
   );
   const durationMs = normalizeSlideshowDurationSec(currentSlide.slideshowDurationSec) * 1000;
-  state.imageSlideshowEndsAt = Date.now() + durationMs;
+  const savedEndsAt = restoredEndsAt == null ? null : Number(restoredEndsAt);
+  const imageSlideshowEndsAt = Number.isFinite(savedEndsAt) ? savedEndsAt : Date.now() + durationMs;
+  if (imageSlideshowEndsAt <= Date.now()) {
+    state.imageSlideshowEndsAt = null;
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+  state.imageSlideshowEndsAt = imageSlideshowEndsAt;
   touch();
   ioRef.emit("state:update", getStateSnapshot());
 
@@ -1687,7 +1694,7 @@ function scheduleImageSlideshowSlide(ioRef) {
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
     scheduleImageSlideshowSlide(ioRef);
-  }, durationMs);
+  }, Math.max(0, imageSlideshowEndsAt - Date.now()));
 }
 
 /**
@@ -2415,6 +2422,20 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   }
 }
 
+function rescheduleRuntimeTimers(ioRef) {
+  scheduleStartTimer(ioRef);
+
+  if (Number.isFinite(state.countdownEndsAt)) {
+    startCountdownForSlide(ioRef, state.countdownEndsAt);
+  }
+  if (Number.isFinite(state.imageSlideshowEndsAt)) {
+    scheduleImageSlideshowSlide(ioRef, state.imageSlideshowEndsAt);
+  }
+  if (state.preMassRunning) scheduleNextPreMassSlide(ioRef);
+  if (state.gatheringRunning) scheduleNextGatheringSlide(ioRef);
+  if (state.postMassRunning) scheduleNextPostMassSlide(ioRef);
+}
+
 function parseLocalDateTime(value) {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
   const [datePart, timePart] = value.split("T");
@@ -2646,6 +2667,8 @@ function startServer(port = 17841, options = {}) {
   // Defer session restore until after the server is listening.
   logger.setQuietLogs(options.quietLogs);
   let listeningPort = port;
+  let runtimeTimerMonitor = null;
+  let lastRuntimeClockAt = Date.now();
 
   function getLocalIpv4Address() {
     return getPreferredIpv4Address({ selectedAddress: state.appSettings?.remoteAddress });
@@ -4719,6 +4742,15 @@ function startServer(port = 17841, options = {}) {
     }
     logger.info(`[security] Source-network restriction ${sourceNetworkGuard.entries.length ? "active" : "inactive"}.`);
     scheduleStartTimer(io);
+    lastRuntimeClockAt = Date.now();
+    runtimeTimerMonitor = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastRuntimeClockAt;
+      lastRuntimeClockAt = now;
+      if (elapsed > 5000) {
+        rescheduleRuntimeTimers(io);
+      }
+    }, 1000);
 
     const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (currentSlide?.type === "countdown") {
@@ -4741,6 +4773,10 @@ function startServer(port = 17841, options = {}) {
   });
 
   async function closeServer() {
+    if (runtimeTimerMonitor) {
+      clearInterval(runtimeTimerMonitor);
+      runtimeTimerMonitor = null;
+    }
     stopAllRuntimeTimers();
 
     await new Promise((resolve) => io.close(resolve));
@@ -4762,7 +4798,7 @@ function startServer(port = 17841, options = {}) {
     app,
     io,
     server,
-    rescheduleStartTimer: () => scheduleStartTimer(io),
+    rescheduleStartTimer: () => rescheduleRuntimeTimers(io),
     get port() {
       return listeningPort;
     },

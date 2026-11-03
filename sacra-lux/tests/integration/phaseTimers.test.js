@@ -127,6 +127,49 @@ describe("phase slide timers", () => {
     watch.stop();
   });
 
+  test("reschedules a pre-Mass timer after a forward clock jump", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Pre resume", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [textItem("pre-a", "pre", 20), textItem("pre-b", "pre", 20), textItem("mass", "mass", 10)],
+      { "pre-a": { text: "A" }, "pre-b": { text: "B" }, mass: { text: "Mass" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    const start = Date.now();
+    jest.setSystemTime(start + 60000);
+    handle.rescheduleStartTimer();
+    jest.advanceTimersByTime(0);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("pre-b");
+    expect(response.body.preMassRunning).toBe(true);
+  });
+
+  test("reschedules a countdown timer after a forward clock jump", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Countdown resume", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [
+        { id: "g-count", type: "countdown", label: "Gather count", phase: "gathering", backgroundTheme: "dark", durationSec: 60 },
+        textItem("mass", "mass", 10)
+      ],
+      { "g-count": { countdownSec: 30 }, mass: { text: "Mass" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/gathering/start").expect(200);
+    const start = Date.now();
+    jest.setSystemTime(start + 60000);
+    handle.rescheduleStartTimer();
+    jest.advanceTimersByTime(0);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("mass");
+    expect(response.body.countdownEndsAt).toBeNull();
+  });
+
   test("starts the Mass when the last gathering slide ends", async () => {
     await request(app).post("/api/new-mass").send({ title: "Gathering sequence", startTime: "" }).expect(200);
     await saveOrganizer(
