@@ -4473,6 +4473,11 @@
   <script src="/static/client/shared.js"></script>
   <script>
     const socket = io();
+    function emitWhenConnected(event, ...args) {
+      if (!socket.connected) return false;
+      socket.emit(event, ...args);
+      return true;
+    }
     const uiState = {
       data: null,
       scrollToSelected: false,
@@ -8804,9 +8809,9 @@
     els.textSlideTextOutlineWidthPx.addEventListener("input", scheduleAutoApply);
     els.textSlideTextOutlineWidthPx.addEventListener("change", scheduleAutoApply);
     els.textSlideShowPageNumber.addEventListener("change", scheduleAutoApply);
-    els.prevBtn.addEventListener("click", () => socket.emit("slide:prev"));
-    els.nextBtn.addEventListener("click", () => socket.emit("slide:next"));
-    els.blackBtn.addEventListener("click", () => socket.emit("screen:black", !uiState.black));
+    els.prevBtn.addEventListener("click", () => emitWhenConnected("slide:prev"));
+    els.nextBtn.addEventListener("click", () => emitWhenConnected("slide:next"));
+    els.blackBtn.addEventListener("click", () => emitWhenConnected("screen:black", !uiState.black));
 
     let _clickTimer = null;
     els.sequenceList.addEventListener("click", (event) => {
@@ -9730,7 +9735,7 @@
       const slides = uiState.data?.presentation?.slides || [];
       const massIndex = slides.findIndex((s) => s.phase === "mass");
       if (massIndex >= 0) {
-        socket.emit("slide:goto", massIndex);
+        emitWhenConnected("slide:goto", massIndex);
       }
     });
 
@@ -10309,10 +10314,10 @@
 
       if (e.key === "ArrowRight" || e.key === " ") {
         e.preventDefault();
-        socket.emit("slide:next");
+        emitWhenConnected("slide:next");
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        socket.emit("slide:prev");
+        emitWhenConnected("slide:prev");
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         moveOrganizerSelection(-1);
@@ -10327,7 +10332,7 @@
         moveOrganizerSelection(5, { block: "center" });
       } else if (e.key === "b" || e.key === "B") {
         e.preventDefault();
-        socket.emit("screen:black", !uiState.black);
+        emitWhenConnected("screen:black", !uiState.black);
       } else if (e.key === "e" || e.key === "E" || e.key === "Enter") {
         if (uiState.selectedOrganizerId) {
           e.preventDefault();
