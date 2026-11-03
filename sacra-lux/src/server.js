@@ -2624,6 +2624,24 @@ function restoreSession(ioRef) {
 
 // ── Express / Socket.IO server ────────────────────────────────────────────────
 
+function safeSocketHandler(socket, eventName, handler) {
+  return (...args) => {
+    try {
+      const result = handler(...args);
+      if (result && typeof result.then === "function") {
+        return result.catch((error) => {
+          logger.error(`[socket] ${eventName} failed: ${error.message || String(error)}`);
+          return undefined;
+        });
+      }
+      return result;
+    } catch (error) {
+      logger.error(`[socket] ${eventName} failed: ${error.message || String(error)}`);
+      return undefined;
+    }
+  };
+}
+
 function startServer(port = 17841, options = {}) {
   // Defer session restore until after the server is listening.
   logger.setQuietLogs(options.quietLogs);
@@ -4412,8 +4430,8 @@ function startServer(port = 17841, options = {}) {
 
   // Initialize session restore and timers only after the HTTP server starts listening.
 
-  function withControl(socket, handler) {
-    return (...args) => {
+  function withControl(socket, eventName, handler) {
+    return safeSocketHandler(socket, eventName, (...args) => {
       if (!sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) {
         socket.disconnect(true);
         return undefined;
@@ -4423,11 +4441,11 @@ function startServer(port = 17841, options = {}) {
         return undefined;
       }
       return handler(...args);
-    };
+    });
   }
 
-  function withScreenReport(socket, handler) {
-    return (...args) => {
+  function withScreenReport(socket, eventName, handler) {
+    return safeSocketHandler(socket, eventName, (...args) => {
       const projectorIsTrusted = socket.data.screenRole === "projector" && (
         isLoopbackAddress(socket.request?.socket?.remoteAddress)
         || socketHasControlSession(socket)
@@ -4437,14 +4455,14 @@ function startServer(port = 17841, options = {}) {
         return undefined;
       }
       return handler(...args);
-    };
+    });
   }
 
   io.on("connection", (socket) => {
     socket.data.screenRole = socket.handshake.auth?.screenRole === "projector" ? "projector" : "client";
     socket.emit("state:update", getCachedStateSnapshot(true));
 
-    socket.on("control:auth", (payload) => {
+    socket.on("control:auth", safeSocketHandler(socket, "control:auth", (payload) => {
       socket.data.controlToken = String(payload?.token || "");
       if (socketMayControl(socket)) {
         socket.emit("control:ok");
@@ -4452,8 +4470,8 @@ function startServer(port = 17841, options = {}) {
       }
       socket.data.controlToken = "";
       socket.emit("control:required", { error: "Unlock required." });
-    });
-    socket.on("control:lock", () => {
+    }));
+    socket.on("control:lock", safeSocketHandler(socket, "control:lock", () => {
       const token = getValidControlSessionToken(socket);
       if (!token) {
         socket.emit("control:required", { error: getUnlockMessage() });
@@ -4462,9 +4480,9 @@ function startServer(port = 17841, options = {}) {
       clearControlSession(token);
       socket.data.controlToken = "";
       socket.emit("control:required", { error: "This remote is locked." });
-    });
+    }));
 
-    socket.on("screen:settings", withControl(socket, (settings) => {
+    socket.on("screen:settings", withControl(socket, "screen:settings", (settings) => {
       if (screenSettingsUrlError(settings)) {
         return;
       }
@@ -4473,14 +4491,14 @@ function startServer(port = 17841, options = {}) {
       broadcast(true);
     }));
 
-    socket.on("slide:next", withControl(socket, () => stepSlide(1)));
-    socket.on("slide:prev", withControl(socket, () => stepSlide(-1)));
-    socket.on("slide:goto", withControl(socket, (index) => setSlide(Number(index) || 0)));
-    socket.on("slide:goto:remote", withControl(socket, (index) => setSlide(Number(index) || 0, {
+    socket.on("slide:next", withControl(socket, "slide:next", () => stepSlide(1)));
+    socket.on("slide:prev", withControl(socket, "slide:prev", () => stepSlide(-1)));
+    socket.on("slide:goto", withControl(socket, "slide:goto", (index) => setSlide(Number(index) || 0)));
+    socket.on("slide:goto:remote", withControl(socket, "slide:goto:remote", (index) => setSlide(Number(index) || 0, {
       activateGatheringSequence: true,
       activatePostMassLoop: true
     })));
-    socket.on("slide:video-ended", withScreenReport(socket, (payload) => {
+    socket.on("slide:video-ended", withScreenReport(socket, "slide:video-ended", (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
@@ -4492,7 +4510,7 @@ function startServer(port = 17841, options = {}) {
       stopMovieAutoAdvanceTimer();
       advanceFromCurrentSlide(io);
     }));
-    socket.on("slide:video-play-failed", withScreenReport(socket, (payload) => {
+    socket.on("slide:video-play-failed", withScreenReport(socket, "slide:video-play-failed", (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
@@ -4505,7 +4523,7 @@ function startServer(port = 17841, options = {}) {
       touch();
       io.emit("state:update", getStateSnapshot());
     }));
-    socket.on("slide:video-ready", withScreenReport(socket, (payload) => {
+    socket.on("slide:video-ready", withScreenReport(socket, "slide:video-ready", (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
       if (!shouldMovieSlideControlAdvance(currentSlide)) return;
@@ -4516,7 +4534,7 @@ function startServer(port = 17841, options = {}) {
       const startedAt = _moviePlaybackSlideId === currentSlide.id ? _moviePlaybackStartedAt : null;
       scheduleMovieAutoAdvance(io, durationMs, { startedAt });
     }));
-    socket.on("image-slideshow:preload-error", withScreenReport(socket, (payload) => {
+    socket.on("image-slideshow:preload-error", withScreenReport(socket, "image-slideshow:preload-error", (payload) => {
       if (socket.data.screenRole !== "projector") return;
       const imageUrl = String(payload?.imageUrl || "");
       const slideId = String(payload?.slideId || "");
@@ -4529,18 +4547,18 @@ function startServer(port = 17841, options = {}) {
       touch();
       io.emit("state:update", getStateSnapshot());
     }));
-    socket.on("screen:interstitial-hold", withControl(socket, (payload) => {
+    socket.on("screen:interstitial-hold", withControl(socket, "screen:interstitial-hold", (payload) => {
       if (!toggleInterstitialHold(payload?.returnSlideIndex, payload?.explicitReturn === true)) {
         socket.emit("interstitial:hold:error", { error: "No interstitial slide is available." });
       }
     }));
 
-    socket.on("screen:black", withControl(socket, (isBlack) => {
+    socket.on("screen:black", withControl(socket, "screen:black", (isBlack) => {
       state.isBlack = Boolean(isBlack);
       broadcast();
     }));
 
-    socket.on("export:avif:start", async () => {
+    socket.on("export:avif:start", safeSocketHandler(socket, "export:avif:start", async () => {
       if (!socketHasControlSession(socket)) {
         socket.emit("control:required", { error: "Unlock required." });
         return;
@@ -4676,7 +4694,7 @@ function startServer(port = 17841, options = {}) {
       } finally {
         limitState.release();
       }
-    });
+    }));
   });
 
   server.listen(port, "0.0.0.0", () => {
@@ -4758,6 +4776,7 @@ module.exports = {
   flushPendingSave,
   resetStartPin,
   convertImageToAvif,
+  safeSocketHandler,
   validateMassZipArchive,
   MASS_ZIP_LIMITS: Object.freeze({
     maxCompressedBytes: MAX_MASS_ZIP_COMPRESSED_BYTES,
