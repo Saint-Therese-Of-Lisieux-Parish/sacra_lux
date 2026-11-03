@@ -129,6 +129,25 @@ describe("socket handlers", () => {
   });
 
   describe("control authorization", () => {
+    test("contains errors from socket handlers", async () => {
+      const logger = require("../../src/logger");
+      const errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {});
+      const receivedEvents = [];
+      client.onAny((event, ...args) => receivedEvents.push([event, args]));
+
+      serverModule.safeSocketHandler(client, "test:throws", () => {
+        throw new Error("synthetic socket failure at /private/test/path");
+      })();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("test:throws"));
+      expect(receivedEvents).not.toEqual(expect.arrayContaining([
+        expect.arrayContaining([expect.any(String), expect.arrayContaining([expect.stringContaining("at ")])])
+      ]));
+      await request(app).get("/api/state").expect(200);
+      errorSpy.mockRestore();
+    });
+
     test("rejects a wrong token and accepts the issued one", async () => {
       const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
       const anonymous = await connect();
