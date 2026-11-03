@@ -1702,10 +1702,7 @@ function scheduleNextPreMassSlide(ioRef) {
     if (!state.preMassRunning) return;
 
     const allSlides = state.presentation?.slides || [];
-    const preSlideIndices = allSlides.reduce((acc, s, i) => {
-      if (s.phase === "pre") acc.push(i);
-      return acc;
-    }, []);
+    const preSlideIndices = getRunnablePhaseIndices("pre");
 
     if (preSlideIndices.length === 0) {
       stopPreMassTimer();
