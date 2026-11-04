@@ -2618,6 +2618,49 @@ describe("server api integration", () => {
     expect(asset.body.toString()).toBe("legacy-image");
   });
 
+  test("import-mass-zip rejects external media URLs and keeps the current Mass", async () => {
+    const before = await request(app).get("/api/state").expect(200);
+    const zip = new AdmZip();
+    zip.addFile("settings.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Unsafe Package",
+      screenSettings: { darkBackgroundUrl: "https://evil.example/background.png" },
+      organizerSequence: [{ id: "image-1", type: "image", label: "Picture", phase: "mass" }],
+      manualSlides: { "image-1": { imageUrl: "/api/mass-asset/safe.png" } }
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.presentation.title).toBe(before.body.presentation.title);
+    expect(after.body.screenSettings).toEqual(before.body.screenSettings);
+  });
+
+  test("import-mass-zip rejects external media URLs in v3 backgrounds", async () => {
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Unsafe v3 Package" },
+      presentationDefaults: { darkBackgroundUrl: "https://evil.example/background.png" },
+      items: [{
+        id: "text-1",
+        kind: "text",
+        label: "Text",
+        section: "mass",
+        content: { text: "Text" }
+      }]
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(400);
+  });
+
   test("a normal Mass save does not write the saved path to the console", () => {
     const { saveCurrentMass } = require("../../src/server");
     const logger = require("../../src/logger");

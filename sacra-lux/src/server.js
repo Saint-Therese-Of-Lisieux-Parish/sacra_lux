@@ -504,6 +504,27 @@ function manualSlideUrlError(manualSlides) {
   return "";
 }
 
+function massPackageUrlError(packageData) {
+  if (isMassDocumentV3(packageData)) {
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      const value = packageData.presentationDefaults?.[key];
+      if (!value) continue;
+      if (String(value).startsWith("assets/")) {
+        const assetName = String(value).slice("assets/".length);
+        if (!isSafeAssetName(assetName) || assetName.includes("/")) {
+          return BACKGROUND_URL_ERROR;
+        }
+        continue;
+      }
+      if (!isAllowedMediaUrl(String(value))) return BACKGROUND_URL_ERROR;
+    }
+    return "";
+  }
+
+  return screenSettingsUrlError(packageData?.screenSettings || packageData?.displaySettings) ||
+    manualSlideUrlError(packageData?.manualSlides || packageData?.manualCues);
+}
+
 function parseMassZipDefinition(definitionEntry) {
   const text = readZipEntryData(definitionEntry).toString("utf8");
   let definition;
@@ -868,6 +889,9 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 }
 
 function applyMassPackageFromCurrentDir(ioRef, packageData) {
+  const urlError = massPackageUrlError(packageData);
+  if (urlError) throw new ValidationError(urlError);
+
   const runtime = isMassDocumentV3(packageData)
     ? buildRuntimeStateFromMassDocument(packageData)
     : {
