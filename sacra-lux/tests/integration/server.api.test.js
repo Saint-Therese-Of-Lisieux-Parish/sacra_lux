@@ -1601,6 +1601,57 @@ describe("server api integration", () => {
     }
   });
 
+  test("settings save does not create a Mass while startup has no Mass loaded", async () => {
+    const homeDir = createTempHome("sacra-lux-save-without-mass-");
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      await request(isolatedHandle.app)
+        .post("/api/screen-settings")
+        .send({ fontSizePx: 61 })
+        .expect(200);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      const appDir = path.join(homeDir, ".sacra-lux");
+      expect(fs.existsSync(path.join(appDir, "current_mass", "mass.json"))).toBe(false);
+      expect(fs.existsSync(path.join(appDir, "mass_history"))).toBe(false);
+      expect(JSON.parse(fs.readFileSync(path.join(appDir, "session.json"), "utf8")).screenSettings.fontSizePx)
+        .toBe(61);
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
+  test("archive load preserves an invalid current Mass in recovery", async () => {
+    const homeDir = createTempHome("sacra-lux-recover-invalid-mass-");
+    const appDir = path.join(homeDir, ".sacra-lux");
+    const currentMassDir = path.join(appDir, "current_mass");
+    const invalidMass = "{\"format\":\"sacra-lux.mass\",\"version\":3,\"items\":[{\"kind\":\"unknown\"}]}";
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), invalidMass, "utf8");
+    const archiveDir = path.join(appDir, "mass_history", "Recovery-Target", "package");
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "mass.json"), JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Recovery Target" },
+      presentationDefaults: {},
+      items: []
+    }), "utf8");
+
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      await request(isolatedHandle.app).post("/api/mass-history/Recovery-Target/load").expect(200);
+      const recoveryDir = path.join(appDir, "recovery");
+      const recoveryFiles = fs.readdirSync(recoveryDir);
+      expect(recoveryFiles).toHaveLength(1);
+      expect(fs.readFileSync(path.join(recoveryDir, recoveryFiles[0]), "utf8")).toBe(invalidMass);
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
   test("preview-manual-slide preserves style overrides for hymn slides", async () => {
     const res = await request(app)
       .post("/api/preview-manual-slide")
@@ -2618,6 +2669,49 @@ describe("server api integration", () => {
     expect(asset.body.toString()).toBe("legacy-image");
   });
 
+  test("import-mass-zip rejects external media URLs and keeps the current Mass", async () => {
+    const before = await request(app).get("/api/state").expect(200);
+    const zip = new AdmZip();
+    zip.addFile("settings.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Unsafe Package",
+      screenSettings: { darkBackgroundUrl: "https://evil.example/background.png" },
+      organizerSequence: [{ id: "image-1", type: "image", label: "Picture", phase: "mass" }],
+      manualSlides: { "image-1": { imageUrl: "/api/mass-asset/safe.png" } }
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.presentation.title).toBe(before.body.presentation.title);
+    expect(after.body.screenSettings).toEqual(before.body.screenSettings);
+  });
+
+  test("import-mass-zip rejects external media URLs in v3 backgrounds", async () => {
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Unsafe v3 Package" },
+      presentationDefaults: { darkBackgroundUrl: "https://evil.example/background.png" },
+      items: [{
+        id: "text-1",
+        kind: "text",
+        label: "Text",
+        section: "mass",
+        content: { text: "Text" }
+      }]
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(400);
+  });
+
   test("a normal Mass save does not write the saved path to the console", () => {
     const { saveCurrentMass } = require("../../src/server");
     const logger = require("../../src/logger");
@@ -2717,6 +2811,64 @@ describe("server api integration", () => {
     const { serverTime: afterServerTime, ...afterState } = after.body;
     expect(afterState).toEqual(beforeState);
     expect(afterServerTime).toBeGreaterThanOrEqual(beforeServerTime);
+  });
+
+  test("import-mass-zip rejects an invalid organizer before replacing the current Mass", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Current Mass", startTime: "" })
+      .expect(200);
+    const before = await request(app).get("/api/state").expect(200);
+    const currentMassPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const currentMassBefore = fs.readFileSync(currentMassPath);
+    const zip = new AdmZip();
+    zip.addFile("settings.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Invalid Package",
+      organizerSequence: "oops"
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.presentation.title).toBe(before.body.presentation.title);
+    expect(after.body.activeMassArchiveId).toBe(before.body.activeMassArchiveId);
+    expect(fs.readFileSync(currentMassPath)).toEqual(currentMassBefore);
+  });
+
+  test("loading an archive with duplicate organizer IDs keeps the current Mass", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Current Mass", startTime: "" })
+      .expect(200);
+    const before = await request(app).get("/api/state").expect(200);
+    const currentMassPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const currentMassBefore = fs.readFileSync(currentMassPath);
+    const archivePackage = path.join(
+      handle.homeDir,
+      ".sacra-lux",
+      "mass_history",
+      "Invalid-Organizer",
+      "package"
+    );
+    fs.mkdirSync(archivePackage, { recursive: true });
+    fs.writeFileSync(path.join(archivePackage, "mass.json"), JSON.stringify({
+      version: 2,
+      presentationTitle: "Invalid Archive",
+      organizerSequence: [{ id: "duplicate" }, { id: "duplicate" }]
+    }));
+
+    await request(app)
+      .post("/api/mass-history/Invalid-Organizer/load")
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.presentation.title).toBe(before.body.presentation.title);
+    expect(after.body.activeMassArchiveId).toBe(before.body.activeMassArchiveId);
+    expect(fs.readFileSync(currentMassPath)).toEqual(currentMassBefore);
   });
 
   test("export-mass-zip writes a v3 mass.json document without PIN data", async () => {

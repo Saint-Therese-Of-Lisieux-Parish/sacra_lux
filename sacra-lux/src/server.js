@@ -134,6 +134,7 @@ let activeIo = null;
 const IMAGE_ASSET_EXT = new Set(IMAGE_ASSET_EXTENSIONS.map((extension) => `.${extension}`));
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
 const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
+const RECOVERY_DIR = path.join(path.dirname(CURRENT_MASS_DIR), "recovery");
 
 // ── ZIP export helpers ───────────────────────────────────────────────────────
 
@@ -265,7 +266,25 @@ function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
   }
 }
 
+function hasLoadedMass() {
+  return !state.startupPrompt;
+}
+
+function preserveInvalidCurrentMass() {
+  if (state.startupPrompt?.reason !== "invalid-current-mass") return null;
+  const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
+  if (!fs.existsSync(massJsonPath)) return null;
+  fs.mkdirSync(RECOVERY_DIR, { recursive: true });
+  const recoveryPath = path.join(
+    RECOVERY_DIR,
+    `mass-${new Date().toISOString().replace(/[:.]/g, "-")}-${crypto.randomBytes(4).toString("hex")}.json`
+  );
+  fs.copyFileSync(massJsonPath, recoveryPath);
+  return recoveryPath;
+}
+
 function saveCurrentMass() {
+  if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
   syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
   const massData = buildMassDocumentFromState(state);
@@ -276,6 +295,7 @@ function saveCurrentMass() {
     startTime: state.massStartTime
   });
   state.activeMassArchiveId = archive.id;
+  return true;
 }
 
 function buildExportFilename(title, startTime, suffix = ".zip") {
@@ -504,6 +524,27 @@ function manualSlideUrlError(manualSlides) {
   return "";
 }
 
+function massPackageUrlError(packageData) {
+  if (isMassDocumentV3(packageData)) {
+    for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+      const value = packageData.presentationDefaults?.[key];
+      if (!value) continue;
+      if (String(value).startsWith("assets/")) {
+        const assetName = String(value).slice("assets/".length);
+        if (!isSafeAssetName(assetName) || assetName.includes("/")) {
+          return BACKGROUND_URL_ERROR;
+        }
+        continue;
+      }
+      if (!isAllowedMediaUrl(String(value))) return BACKGROUND_URL_ERROR;
+    }
+    return "";
+  }
+
+  return screenSettingsUrlError(packageData?.screenSettings || packageData?.displaySettings) ||
+    manualSlideUrlError(packageData?.manualSlides || packageData?.manualCues);
+}
+
 function parseMassZipDefinition(definitionEntry) {
   const text = readZipEntryData(definitionEntry).toString("utf8");
   let definition;
@@ -519,6 +560,22 @@ function parseMassZipDefinition(definitionEntry) {
     throw new ValidationError("Unsupported mass version.");
   }
   return definition.format === "sacra-lux.mass" ? definition : rewriteLegacyUploadRefs(definition);
+}
+
+function validateMassPackageDefinition(packageData, screenSettings = DEFAULT_SCREEN_SETTINGS) {
+  if (isMassDocumentV3(packageData)) {
+    buildRuntimeStateFromMassDocument(packageData);
+    return;
+  }
+
+  if (!Array.isArray(packageData.organizerSequence)) {
+    throw new ValidationError("organizerSequence must be an array.");
+  }
+  normalizeOrganizerSequence(packageData.organizerSequence);
+  if (packageData.massStartTime != null && Number.isNaN(new Date(String(packageData.massStartTime)).getTime())) {
+    throw new ValidationError("massStartTime must be a valid datetime string.");
+  }
+  normalizeScreenSettings(packageData.screenSettings || packageData.displaySettings || screenSettings);
 }
 
 function validateMassZipArchive(zip, compressedBytes) {
@@ -868,6 +925,9 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
 }
 
 function applyMassPackageFromCurrentDir(ioRef, packageData) {
+  const urlError = massPackageUrlError(packageData);
+  if (urlError) throw new ValidationError(urlError);
+
   const runtime = isMassDocumentV3(packageData)
     ? buildRuntimeStateFromMassDocument(packageData)
     : {
@@ -3584,8 +3644,7 @@ function startServer(port = 17841, options = {}) {
       return res.status(401).json({ error: "Unlock required." });
     }
     try {
-      saveCurrentMass();
-      if (!fs.existsSync(path.join(CURRENT_MASS_DIR, "mass.json"))) {
+      if (!saveCurrentMass() || !fs.existsSync(path.join(CURRENT_MASS_DIR, "mass.json"))) {
         return res.status(400).json({ error: "No current Mass package to export." });
       }
       const zipBuffer = await buildMassZipFromPackage(CURRENT_MASS_DIR);
@@ -3647,6 +3706,8 @@ function startServer(port = 17841, options = {}) {
       if (hasArchivableContent) {
         saveCurrentMass();
         archivedMassId = state.activeMassArchiveId || null;
+      } else {
+        preserveInvalidCurrentMass();
       }
 
       // 2. Apply new title
@@ -3715,6 +3776,8 @@ function startServer(port = 17841, options = {}) {
       if (hasContent) {
         saveCurrentMass();
         archivedMassId = state.activeMassArchiveId || null;
+      } else {
+        preserveInvalidCurrentMass();
       }
 
       // 2. Remove Mass-owned media only after the prior Mass archive succeeds.
@@ -3894,8 +3957,10 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "ZIP does not contain mass.json or settings.json." });
       }
       const packageDefinition = parseMassZipDefinition(definitionEntry);
+      validateMassPackageDefinition(packageDefinition, state.screenSettings);
 
       saveCurrentMass();
+      preserveInvalidCurrentMass();
       replaceCurrentMassDir((stagingDir) => {
         writeZipMassPackage(zip, stagingDir, packageDefinition);
       });
@@ -3940,7 +4005,9 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
+        validateMassPackageDefinition(packageData, state.screenSettings);
         saveCurrentMass();
+        preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           fs.cpSync(archivePaths.packageDir, stagingDir, { recursive: true });
           readMassPackageDefinition(stagingDir, state.screenSettings);
@@ -3960,7 +4027,9 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
+        validateMassPackageDefinition(packageData, state.screenSettings);
         saveCurrentMass();
+        preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           writeZipMassPackage(zip, stagingDir, packageData);
         });
@@ -4049,6 +4118,7 @@ function startServer(port = 17841, options = {}) {
       }
 
       _manualNavigationDirection = 1;
+      state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const wasSlideshow = previousSlide?.type === "imageSlideshow";
       stopImageSlideshowTimer({ resetProgress: false, clearError: true });
