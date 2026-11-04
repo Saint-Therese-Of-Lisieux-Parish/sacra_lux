@@ -134,6 +134,7 @@ let activeIo = null;
 const IMAGE_ASSET_EXT = new Set(IMAGE_ASSET_EXTENSIONS.map((extension) => `.${extension}`));
 const VIDEO_ASSET_EXT = new Set([".mp4"]);
 const MEDIA_ASSET_EXT = new Set([...IMAGE_ASSET_EXT, ...VIDEO_ASSET_EXT]);
+const RECOVERY_DIR = path.join(path.dirname(CURRENT_MASS_DIR), "recovery");
 
 // ── ZIP export helpers ───────────────────────────────────────────────────────
 
@@ -265,7 +266,25 @@ function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
   }
 }
 
+function hasLoadedMass() {
+  return !state.startupPrompt;
+}
+
+function preserveInvalidCurrentMass() {
+  if (state.startupPrompt?.reason !== "invalid-current-mass") return null;
+  const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
+  if (!fs.existsSync(massJsonPath)) return null;
+  fs.mkdirSync(RECOVERY_DIR, { recursive: true });
+  const recoveryPath = path.join(
+    RECOVERY_DIR,
+    `mass-${new Date().toISOString().replace(/[:.]/g, "-")}-${crypto.randomBytes(4).toString("hex")}.json`
+  );
+  fs.copyFileSync(massJsonPath, recoveryPath);
+  return recoveryPath;
+}
+
 function saveCurrentMass() {
+  if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
   syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
   const massData = buildMassDocumentFromState(state);
@@ -276,6 +295,7 @@ function saveCurrentMass() {
     startTime: state.massStartTime
   });
   state.activeMassArchiveId = archive.id;
+  return true;
 }
 
 function buildExportFilename(title, startTime, suffix = ".zip") {
@@ -3624,8 +3644,7 @@ function startServer(port = 17841, options = {}) {
       return res.status(401).json({ error: "Unlock required." });
     }
     try {
-      saveCurrentMass();
-      if (!fs.existsSync(path.join(CURRENT_MASS_DIR, "mass.json"))) {
+      if (!saveCurrentMass() || !fs.existsSync(path.join(CURRENT_MASS_DIR, "mass.json"))) {
         return res.status(400).json({ error: "No current Mass package to export." });
       }
       const zipBuffer = await buildMassZipFromPackage(CURRENT_MASS_DIR);
@@ -3687,6 +3706,8 @@ function startServer(port = 17841, options = {}) {
       if (hasArchivableContent) {
         saveCurrentMass();
         archivedMassId = state.activeMassArchiveId || null;
+      } else {
+        preserveInvalidCurrentMass();
       }
 
       // 2. Apply new title
@@ -3755,6 +3776,8 @@ function startServer(port = 17841, options = {}) {
       if (hasContent) {
         saveCurrentMass();
         archivedMassId = state.activeMassArchiveId || null;
+      } else {
+        preserveInvalidCurrentMass();
       }
 
       // 2. Remove Mass-owned media only after the prior Mass archive succeeds.
@@ -3937,6 +3960,7 @@ function startServer(port = 17841, options = {}) {
       validateMassPackageDefinition(packageDefinition, state.screenSettings);
 
       saveCurrentMass();
+      preserveInvalidCurrentMass();
       replaceCurrentMassDir((stagingDir) => {
         writeZipMassPackage(zip, stagingDir, packageDefinition);
       });
@@ -3983,6 +4007,7 @@ function startServer(port = 17841, options = {}) {
         }
         validateMassPackageDefinition(packageData, state.screenSettings);
         saveCurrentMass();
+        preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           fs.cpSync(archivePaths.packageDir, stagingDir, { recursive: true });
           readMassPackageDefinition(stagingDir, state.screenSettings);
@@ -4004,6 +4029,7 @@ function startServer(port = 17841, options = {}) {
         }
         validateMassPackageDefinition(packageData, state.screenSettings);
         saveCurrentMass();
+        preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
           writeZipMassPackage(zip, stagingDir, packageData);
         });
@@ -4092,6 +4118,7 @@ function startServer(port = 17841, options = {}) {
       }
 
       _manualNavigationDirection = 1;
+      state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const wasSlideshow = previousSlide?.type === "imageSlideshow";
       stopImageSlideshowTimer({ resetProgress: false, clearError: true });

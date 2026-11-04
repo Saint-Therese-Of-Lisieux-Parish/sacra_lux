@@ -53,6 +53,7 @@ describe("saving a Mass with a very long title", () => {
       homeDir: createTempHome("sacra-lux-save-fail-")
     });
     try {
+      await request(handle.app).post("/api/new-mass").send({ title: "Loaded", startTime: "" }).expect(200);
       await request(handle.app).post("/api/update-title").send({ title: "Any" }).expect(200);
       await wait(SAVE_SETTLE_MS);
 

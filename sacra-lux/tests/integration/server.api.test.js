@@ -1601,6 +1601,57 @@ describe("server api integration", () => {
     }
   });
 
+  test("settings save does not create a Mass while startup has no Mass loaded", async () => {
+    const homeDir = createTempHome("sacra-lux-save-without-mass-");
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      await request(isolatedHandle.app)
+        .post("/api/screen-settings")
+        .send({ fontSizePx: 61 })
+        .expect(200);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      const appDir = path.join(homeDir, ".sacra-lux");
+      expect(fs.existsSync(path.join(appDir, "current_mass", "mass.json"))).toBe(false);
+      expect(fs.existsSync(path.join(appDir, "mass_history"))).toBe(false);
+      expect(JSON.parse(fs.readFileSync(path.join(appDir, "session.json"), "utf8")).screenSettings.fontSizePx)
+        .toBe(61);
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
+  test("archive load preserves an invalid current Mass in recovery", async () => {
+    const homeDir = createTempHome("sacra-lux-recover-invalid-mass-");
+    const appDir = path.join(homeDir, ".sacra-lux");
+    const currentMassDir = path.join(appDir, "current_mass");
+    const invalidMass = "{\"format\":\"sacra-lux.mass\",\"version\":3,\"items\":[{\"kind\":\"unknown\"}]}";
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), invalidMass, "utf8");
+    const archiveDir = path.join(appDir, "mass_history", "Recovery-Target", "package");
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "mass.json"), JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Recovery Target" },
+      presentationDefaults: {},
+      items: []
+    }), "utf8");
+
+    jest.resetModules();
+    const isolatedHandle = await startIsolatedServer({ port: 0, homeDir });
+    try {
+      await request(isolatedHandle.app).post("/api/mass-history/Recovery-Target/load").expect(200);
+      const recoveryDir = path.join(appDir, "recovery");
+      const recoveryFiles = fs.readdirSync(recoveryDir);
+      expect(recoveryFiles).toHaveLength(1);
+      expect(fs.readFileSync(path.join(recoveryDir, recoveryFiles[0]), "utf8")).toBe(invalidMass);
+    } finally {
+      await isolatedHandle.stop();
+    }
+  });
+
   test("preview-manual-slide preserves style overrides for hymn slides", async () => {
     const res = await request(app)
       .post("/api/preview-manual-slide")
