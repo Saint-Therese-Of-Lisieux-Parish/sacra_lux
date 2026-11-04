@@ -4099,6 +4099,7 @@ function startServer(port = 17841, options = {}) {
       }
 
       _manualNavigationDirection = 1;
+      state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const wasSlideshow = previousSlide?.type === "imageSlideshow";
       stopImageSlideshowTimer({ resetProgress: false, clearError: true });
