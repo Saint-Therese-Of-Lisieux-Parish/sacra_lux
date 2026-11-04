@@ -504,4 +504,21 @@ describe("mass start from the wall clock", () => {
       setTimeoutSpy.mockRestore();
     }
   });
+
+  test("reschedules the Mass start after a forward clock jump", async () => {
+    jest.setSystemTime(new Date("2026-05-03T09:59:00"));
+    await seedGatheringAndMass();
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: "2026-05-03T10:00" })
+      .expect(200);
+
+    jest.setSystemTime(new Date("2026-05-03T10:02:00"));
+    handle.rescheduleStartTimer();
+    jest.advanceTimersByTime(0);
+
+    const res = await request(app).get("/api/state").expect(200);
+    expect(currentPhase(res.body)).toBe("mass");
+    expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "mass"));
+  });
 });
