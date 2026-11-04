@@ -2813,6 +2813,64 @@ describe("server api integration", () => {
     expect(afterServerTime).toBeGreaterThanOrEqual(beforeServerTime);
   });
 
+  test("import-mass-zip rejects an invalid organizer before replacing the current Mass", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Current Mass", startTime: "" })
+      .expect(200);
+    const before = await request(app).get("/api/state").expect(200);
+    const currentMassPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const currentMassBefore = fs.readFileSync(currentMassPath);
+    const zip = new AdmZip();
+    zip.addFile("settings.json", Buffer.from(JSON.stringify({
+      version: 2,
+      presentationTitle: "Invalid Package",
+      organizerSequence: "oops"
+    })));
+
+    await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.presentation.title).toBe(before.body.presentation.title);
+    expect(after.body.activeMassArchiveId).toBe(before.body.activeMassArchiveId);
+    expect(fs.readFileSync(currentMassPath)).toEqual(currentMassBefore);
+  });
+
+  test("loading an archive with duplicate organizer IDs keeps the current Mass", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Current Mass", startTime: "" })
+      .expect(200);
+    const before = await request(app).get("/api/state").expect(200);
+    const currentMassPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const currentMassBefore = fs.readFileSync(currentMassPath);
+    const archivePackage = path.join(
+      handle.homeDir,
+      ".sacra-lux",
+      "mass_history",
+      "Invalid-Organizer",
+      "package"
+    );
+    fs.mkdirSync(archivePackage, { recursive: true });
+    fs.writeFileSync(path.join(archivePackage, "mass.json"), JSON.stringify({
+      version: 2,
+      presentationTitle: "Invalid Archive",
+      organizerSequence: [{ id: "duplicate" }, { id: "duplicate" }]
+    }));
+
+    await request(app)
+      .post("/api/mass-history/Invalid-Organizer/load")
+      .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.presentation.title).toBe(before.body.presentation.title);
+    expect(after.body.activeMassArchiveId).toBe(before.body.activeMassArchiveId);
+    expect(fs.readFileSync(currentMassPath)).toEqual(currentMassBefore);
+  });
+
   test("export-mass-zip writes a v3 mass.json document without PIN data", async () => {
     const pinResponse = await request(app)
       .post("/api/start-pin")

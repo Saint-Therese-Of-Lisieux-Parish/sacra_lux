@@ -562,6 +562,22 @@ function parseMassZipDefinition(definitionEntry) {
   return definition.format === "sacra-lux.mass" ? definition : rewriteLegacyUploadRefs(definition);
 }
 
+function validateMassPackageDefinition(packageData, screenSettings = DEFAULT_SCREEN_SETTINGS) {
+  if (isMassDocumentV3(packageData)) {
+    buildRuntimeStateFromMassDocument(packageData);
+    return;
+  }
+
+  if (!Array.isArray(packageData.organizerSequence)) {
+    throw new ValidationError("organizerSequence must be an array.");
+  }
+  normalizeOrganizerSequence(packageData.organizerSequence);
+  if (packageData.massStartTime != null && Number.isNaN(new Date(String(packageData.massStartTime)).getTime())) {
+    throw new ValidationError("massStartTime must be a valid datetime string.");
+  }
+  normalizeScreenSettings(packageData.screenSettings || packageData.displaySettings || screenSettings);
+}
+
 function validateMassZipArchive(zip, compressedBytes) {
   if (compressedBytes > MAX_MASS_ZIP_COMPRESSED_BYTES) {
     throw new ValidationError(
@@ -3941,6 +3957,7 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "ZIP does not contain mass.json or settings.json." });
       }
       const packageDefinition = parseMassZipDefinition(definitionEntry);
+      validateMassPackageDefinition(packageDefinition, state.screenSettings);
 
       saveCurrentMass();
       preserveInvalidCurrentMass();
@@ -3988,6 +4005,7 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
+        validateMassPackageDefinition(packageData, state.screenSettings);
         saveCurrentMass();
         preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
@@ -4009,6 +4027,7 @@ function startServer(port = 17841, options = {}) {
         } catch {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
+        validateMassPackageDefinition(packageData, state.screenSettings);
         saveCurrentMass();
         preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
