@@ -48,11 +48,17 @@ async function dismissRemoteSplash(page) {
   await expect(page.locator("#remoteSplash")).toBeHidden();
 }
 
+async function closeMassLibraryIfVisible(page) {
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await page.locator("#massLibraryCloseBtn").click();
+  }
+}
+
 test("operator keeps title and start-time drafts during state updates", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/update-title`, { data: { title: "Saved Title" } });
   await request.post(`${baseUrl}/api/start-time`, { data: { time: "2030-01-05T09:00" } });
   await page.goto(`${baseUrl}/app`);
-  await page.locator("#massLibraryCloseBtn").click();
+  await closeMassLibraryIfVisible(page);
 
   const titleInput = page.locator("#massTitleInput");
   await expect(titleInput).toHaveValue("Saved Title");
@@ -74,8 +80,7 @@ test("operator keeps title and start-time drafts during state updates", async ({
 
 test("App Settings lists Catholic themes first", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
-  await expect(page.locator("#massLibraryDialog")).toBeVisible();
-  await page.locator("#massLibraryCloseBtn").click();
+  await closeMassLibraryIfVisible(page);
   await page.locator("#openAppSettingsBtn").click();
   await expect(page.locator("#appSettingsDialog")).toBeVisible();
   await expect(page.locator("#themePicker .theme-swatch")).toHaveCount(22);
@@ -108,7 +113,7 @@ test("App Settings lists Catholic themes first", async ({ page }) => {
 
 test("App Settings groups network controls under System Settings", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
-  await page.locator("#massLibraryCloseBtn").click();
+  await closeMassLibraryIfVisible(page);
   await page.locator("#openAppSettingsBtn").click();
 
   await expect(page.locator("#appSettingsDialog .settings-section-label")).toHaveText(["Theme", "System Settings"]);
@@ -120,7 +125,7 @@ test("App Settings groups network controls under System Settings", async ({ page
 
 test("App Settings can end all remote sessions", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
-  await page.locator("#massLibraryCloseBtn").click();
+  await closeMassLibraryIfVisible(page);
   await page.locator("#openAppSettingsBtn").click();
 
   const requestPromise = page.waitForRequest((request) =>
@@ -132,7 +137,7 @@ test("App Settings can end all remote sessions", async ({ page }) => {
 
 test("App Settings theme picker supports keyboard selection and reports rejected changes", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
-  await page.locator("#massLibraryCloseBtn").click();
+  await closeMassLibraryIfVisible(page);
   await page.locator("#openAppSettingsBtn").click();
   const themes = page.locator("#themePicker .theme-swatch");
   await expect(themes.first()).toHaveAttribute("role", "radio");
@@ -204,7 +209,7 @@ test("Interstitial editor shows the built-in default image and offers it first i
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator('[data-edit-id="interstitial:default"]').click();
 
@@ -232,7 +237,7 @@ test("Screen Settings Apply Changes & Close saves the settings and closes the di
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
   const applyButton = page.getByRole("button", { name: "Apply Changes & Close" });
@@ -261,7 +266,7 @@ test("Screen Settings shows background thumbnails and an accessible larger view"
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
 
@@ -292,7 +297,7 @@ test("Screen Settings edits global text bounds with pointer and keyboard control
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
   await expect(page.locator("#textBoundsSettings")).toBeVisible();
@@ -366,7 +371,7 @@ test("Screen Settings fits the tabs and preview at the minimum window size", asy
   await page.setViewportSize({ width: 900, height: 600 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
   const box = async (selector) => page.locator(selector).evaluate((el) => {
@@ -396,7 +401,7 @@ async function openTextAreaTool(page) {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
   await expect(page.locator("#textBoundsSettings")).toBeVisible();
@@ -491,7 +496,7 @@ test("Text Area tool shows the group text and the projector page breaks", async 
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator(`[data-edit-id="${item.id}"]`).click();
   await expect(page.locator("#editorBoundsPanel")).toBeVisible();
@@ -535,7 +540,7 @@ test("reading editor shows an error when the reading save fails", async ({ page,
 
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator(`[data-edit-id="${item.id}"]`).click();
   await page.route("**/api/save-reading", (route) => route.fulfill({
@@ -596,7 +601,7 @@ test("slide groups save, copy, and remove text bounds overrides", async ({ page,
 
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator('[data-edit-id="text:bounds-e2e"]').click();
   await expect(page.locator("#editorBoundsPanel")).toBeVisible();
@@ -675,7 +680,7 @@ test("Screen Settings color fields pair each code with a visual picker", async (
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
 
@@ -764,7 +769,7 @@ test("reference and section title settings reach the screen and the controls", a
   // The Screen Settings controls show the saved values.
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
   await page.locator('[data-settings-tab="reading-ref"]').click();
@@ -785,7 +790,7 @@ test("reference and section title settings reach the screen and the controls", a
 test("Screen Settings has no legacy position inputs and still saves bounds", async ({ page, request }) => {
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   const legacyIds = [
     "readingTextMarginXPx", "readingTextMarginYPx", "readingTextHeightPx", "readingPassageYPx",
@@ -809,7 +814,7 @@ test("Text, Hymn, and Prayer tabs keep separate font choices", async ({ page, re
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
 
@@ -836,7 +841,7 @@ test("Screen Settings shows one slide type text style at a time", async ({ page 
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator("#openSettingsBtn").click();
 
@@ -882,7 +887,7 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
 
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator('[data-edit-id="imageSlideshow:e2e"]').click();
   await expect(page.locator("#editorSectionImageSlideshow")).toBeVisible();
@@ -950,7 +955,7 @@ test("Dropping multiple images onto an image slide creates a titled slideshow", 
 
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator('[data-edit-id="image:multi-drop"]').click();
   await expect(page.locator("#editorSectionImage")).toBeVisible();
@@ -999,7 +1004,7 @@ test("Dropping multiple images onto a phase header creates a titled slideshow", 
 
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
 
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=", "base64");
@@ -1043,7 +1048,7 @@ test("Image Slideshow editor hides an unavailable preview image", async ({ page,
 
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
   await page.locator('[data-edit-id="imageSlideshow:missing-preview"]').click();
   await expect(page.locator("#editorSectionImageSlideshow")).toBeVisible();
@@ -1212,7 +1217,7 @@ test("blocked movie autoplay reports the movie and offers a retry", async ({ pag
 
   const operator = await page.context().newPage();
   await operator.goto(`${baseUrl}/app`);
-  await operator.locator("#massLibraryCloseBtn").click();
+  await closeMassLibraryIfVisible(operator);
   await page.goto(`${baseUrl}/screen`);
 
   const retryButton = page.locator(".video-retry-button:visible");
@@ -1510,7 +1515,7 @@ test("remote cue list keeps scroll and focus when the live slide changes", async
 test("controls show a focus ring and a clear disabled state", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   if (await page.locator("#massLibraryDialog").isVisible()) {
-    await page.locator("#massLibraryCloseBtn").click();
+    await closeMassLibraryIfVisible(page);
   }
 
   // Keyboard focus draws a visible ring on a button, a select, and an input.
@@ -1573,7 +1578,7 @@ test("Duplicate Mass keeps the start clock time across a daylight saving time ch
 
       await page.goto(`${baseUrl}/`);
       if (await page.locator("#massLibraryDialog").isVisible()) {
-        await page.locator("#massLibraryCloseBtn").click();
+        await closeMassLibraryIfVisible(page);
       }
       await page.locator("#duplicateMassBtn").click();
       await expect(page.locator("#duplicateDialog")).toBeVisible();
