@@ -239,8 +239,12 @@ function ensureActiveArchive({ currentArchiveId, title, startTime }) {
 
   const now = new Date().toISOString();
   const preferredId = allocateArchiveId(title, currentArchiveId || null);
-  let archiveId = currentArchiveId ? normalizeArchiveId(currentArchiveId) : preferredId;
-  let paths = getArchivePaths(archiveId);
+  const requestedArchiveId = String(currentArchiveId ?? "").trim();
+  let paths = currentArchiveId ? getArchivePaths(requestedArchiveId) : getArchivePaths(preferredId);
+  let archiveId = currentArchiveId ? paths.archiveId : preferredId;
+  const isLegacyArchiveId = Boolean(
+    currentArchiveId && archiveId === requestedArchiveId && archiveId !== normalizeArchiveId(requestedArchiveId)
+  );
   let metadata = fs.existsSync(paths.metadataPath) ? readMetadata(archiveId) : null;
 
   if (!metadata && currentArchiveId) {
@@ -248,7 +252,7 @@ function ensureActiveArchive({ currentArchiveId, title, startTime }) {
     paths = getArchivePaths(archiveId);
   }
 
-  const desiredId = currentArchiveId && preferredId.toLowerCase() !== archiveId.toLowerCase()
+  const desiredId = currentArchiveId && !isLegacyArchiveId && preferredId.toLowerCase() !== archiveId.toLowerCase()
     ? allocateArchiveId(title, archiveId)
     : archiveId;
 

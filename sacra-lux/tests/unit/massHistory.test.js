@@ -249,6 +249,30 @@ describe("massHistory", () => {
     expect(history.listMassArchives().map((archive) => archive.id)).toEqual(["Sunday-Mass"]);
   });
 
+  test("keeps a legacy archive ID when a sanitized sibling exists", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");
+    fs.mkdirSync(currentMassDir, { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "current", "utf8");
+    fs.mkdirSync(path.join(historyDir, "Easter Vigil", "package"), { recursive: true });
+    fs.mkdirSync(path.join(historyDir, "Easter-Vigil", "package"), { recursive: true });
+    fs.writeFileSync(path.join(historyDir, "Easter Vigil", "metadata.json"), JSON.stringify({ title: "Easter Vigil" }), "utf8");
+    fs.writeFileSync(path.join(historyDir, "Easter-Vigil", "package", "mass.json"), "other", "utf8");
+
+    const history = require("../../src/massHistory");
+    const result = history.syncCurrentMassToArchive({
+      currentArchiveId: "Easter Vigil",
+      title: "Easter Vigil",
+      startTime: null
+    });
+
+    expect(result.id).toBe("Easter Vigil");
+    expect(fs.readFileSync(path.join(historyDir, "Easter Vigil", "package", "mass.json"), "utf8"))
+      .toBe("current");
+    expect(fs.readFileSync(path.join(historyDir, "Easter-Vigil", "package", "mass.json"), "utf8"))
+      .toBe("other");
+  });
+
   test("replaces a missing active archive and removes old package data", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     const historyDir = path.join(homeDir, ".sacra-lux", "mass_history");
