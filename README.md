@@ -305,6 +305,7 @@ GitHub checks on a pull request to `master`:
 | [version-check.yml](./.github/workflows/version-check.yml) | The pull request version is above the `master` version. Dependabot is skipped. |
 | [docs.yml](./.github/workflows/docs.yml) | Markdown lint and link checks when Markdown or the lint config changes. |
 | [smoke.yml](./.github/workflows/smoke.yml) | A packaged-app smoke test on macOS Intel, macOS ARM, and Windows. |
+| [smoke-retry.yml](./.github/workflows/smoke-retry.yml) | A scheduled rerun of Smoke jobs that GitHub cancels before a runner starts them. |
 | [secret-scan.yml](./.github/workflows/secret-scan.yml) | A gitleaks scan of the pull request history. |
 | [workflow-lint.yml](./.github/workflows/workflow-lint.yml) | A zizmor scan of the workflow files. It fails on medium findings or higher. Accepted findings are in [.github/zizmor.yml](./.github/zizmor.yml). |
 | [codeql.yml](./.github/workflows/codeql.yml) | CodeQL analysis. It also runs on a weekly schedule. |
@@ -395,4 +396,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.360-alpha`.
+The current package version is `0.0.361-alpha`.
