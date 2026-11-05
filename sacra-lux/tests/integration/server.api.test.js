@@ -434,6 +434,38 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass without RSS creates editable reading files", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Editable Mass", startTime: "" })
+      .expect(200);
+
+    const initialState = (await request(app).get("/api/state").expect(200)).body;
+    expect(initialState.readingsSource.hasFolder).toBe(true);
+    expect(initialState.organizerSequence).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "mass-reading-1", sourceStem: "mass-reading-1" }),
+      expect.objectContaining({ id: "mass-psalm", sourceStem: "mass-psalm" }),
+      expect.objectContaining({ id: "mass-reading-2", sourceStem: "mass-reading-2" }),
+      expect.objectContaining({ id: "mass-gospel", sourceStem: "mass-gospel" })
+    ]));
+
+    await request(app)
+      .post("/api/save-reading")
+      .send({ stem: "mass-reading-1", text: "The pasted reading text." })
+      .expect(200);
+
+    const currentMassDir = path.join(handle.homeDir, ".sacra-lux", "current_mass");
+    expect(fs.readFileSync(path.join(currentMassDir, "mass-reading-1.txt"), "utf8"))
+      .toContain("The pasted reading text.");
+    const savedState = (await request(app).get("/api/state").expect(200)).body;
+    expect(savedState.presentation.slides).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        organizerItemId: "mass-reading-1",
+        text: expect.stringContaining("The pasted reading text.")
+      })
+    ]));
+  });
+
   test("new Mass keeps the first document for each repeated USCCB section", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({

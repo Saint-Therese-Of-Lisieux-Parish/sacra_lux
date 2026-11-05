@@ -3820,6 +3820,21 @@ function startServer(port = 17841, options = {}) {
       ];
 
       state.organizerSequence = normalizeOrganizerSequence(newSequence);
+      if (!useLectionaryRss) {
+        const defaultReadingDocuments = state.organizerSequence
+          .filter((item) => item.type === "reading")
+          .map((item) => {
+            item.sourceStem = item.id;
+            return {
+              stem: item.sourceStem,
+              section: item.label,
+              passage: item.label,
+              textLines: []
+            };
+          });
+        syncReadingsDocumentsToCurrentMass(defaultReadingDocuments, massTitle);
+        lectionaryDocuments = loadReadingsFromFolder(CURRENT_MASS_DIR, state.screenSettings);
+      }
       if (useLectionaryRss) {
         const documentsBySection = new Map();
         for (const document of lectionaryDocuments) {
@@ -3880,7 +3895,7 @@ function startServer(port = 17841, options = {}) {
       state.presentation.title = massTitle;
       state.presentation.sourceFile = null;
       state.readingsSource = {
-        folderPath: useLectionaryRss ? CURRENT_MASS_DIR : null,
+        folderPath: CURRENT_MASS_DIR,
         documents: lectionaryDocuments
       };
       state.currentSlideIndex = 0;
