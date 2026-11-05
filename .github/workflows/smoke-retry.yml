@@ -1,0 +1,56 @@
+name: Smoke runner retry
+
+# GitHub cancels a hosted job when no runner takes it. This workflow reruns
+# Smoke runs that failed only for that reason. It uses a schedule because the
+# workflow_run trigger is not safe, and pull_request tokens are read-only for
+# Dependabot. It reads run data only. It does not check out code.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Rerun Smoke jobs that no runner started
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MAX_ATTEMPTS: "3"
+          MAX_AGE_SECONDS: "10800"
+          # Select recent runs that have attempts left.
+          RUN_FILTER: >-
+            .[]
+            | select(.attempt < ($ENV.MAX_ATTEMPTS | tonumber))
+            | select((.updatedAt | fromdate) > (now - ($ENV.MAX_AGE_SECONDS | tonumber)))
+            | .databaseId
+          # True only if every job that did not pass was cancelled with zero steps.
+          JOB_FILTER: >-
+            [.jobs[] | select(.conclusion != "success" and .conclusion != "skipped")] as $bad
+            | ($bad | length) > 0
+            and all($bad[]; .conclusion == "cancelled" and (.steps | length) == 0)
+        run: |
+          run_ids=$(gh run list --workflow smoke.yml --status failure --limit 30 \
+            --json databaseId,attempt,updatedAt --jq "$RUN_FILTER")
+
+          for run_id in $run_ids; do
+            unacquired=$(gh run view "$run_id" --json jobs --jq "$JOB_FILTER")
+            if [ "$unacquired" = "true" ]; then
+              echo "Rerun Smoke run $run_id."
+              gh run rerun "$run_id" --failed \
+                || echo "::warning::Could not rerun Smoke run $run_id."
+            fi
+          done
