@@ -575,6 +575,9 @@ function parseMassZipDefinition(definitionEntry) {
 }
 
 function validateMassPackageDefinition(packageData, screenSettings = DEFAULT_SCREEN_SETTINGS) {
+  const urlError = massPackageUrlError(packageData);
+  if (urlError) throw new ValidationError(urlError);
+
   if (isMassDocumentV3(packageData)) {
     buildRuntimeStateFromMassDocument(packageData);
     return;
