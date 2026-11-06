@@ -25,7 +25,8 @@ const {
   decodeAssetName,
   isMassDocumentV3,
   isSafeAssetName,
-  serializeReadingDocument
+  serializeReadingDocument,
+  validateMassDocument
 } = require("./massDocument");
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
@@ -287,7 +288,7 @@ function saveCurrentMass() {
   if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
   syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
-  const massData = buildMassDocumentFromState(state);
+  const massData = buildValidatedMassDocument(state);
   writeFileAtomic(path.join(CURRENT_MASS_DIR, "mass.json"), JSON.stringify(massData, null, 2));
   const archive = syncCurrentMassToArchive({
     currentArchiveId: state.activeMassArchiveId,
@@ -296,6 +297,12 @@ function saveCurrentMass() {
   });
   state.activeMassArchiveId = archive.id;
   return true;
+}
+
+function buildValidatedMassDocument(nextState) {
+  const massData = buildMassDocumentFromState(nextState);
+  validateMassDocument(massData);
+  return massData;
 }
 
 function buildExportFilename(title, startTime, suffix = ".zip") {
@@ -4186,6 +4193,19 @@ function startServer(port = 17841, options = {}) {
 
       const nextOrganizerSequence = normalizeOrganizerSequence(sequence);
       const nextManualSlides = mergeManualSlideState(nextOrganizerSequence, manualSlides || {});
+      const nextPresentation = buildPresentationFromOrganizer({
+        title: state.presentation.title,
+        documents: state.readingsSource.documents,
+        sequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides,
+        screenSettings: state.screenSettings
+      });
+      buildValidatedMassDocument({
+        ...state,
+        presentation: nextPresentation,
+        organizerSequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides
+      });
       _manualNavigationDirection = 1;
       state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
