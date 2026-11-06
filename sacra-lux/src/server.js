@@ -504,7 +504,11 @@ function screenSettingsUrlError(settings) {
   if (!settings || typeof settings !== "object") {
     return "";
   }
-  const bad = BACKGROUND_URL_KEYS.some((key) => typeof settings[key] === "string" && settings[key] && !isAllowedMediaUrl(settings[key]));
+  const bad = BACKGROUND_URL_KEYS.some((key) => {
+    const value = settings[key];
+    return value !== undefined && value !== null &&
+      (typeof value !== "string" || (value && !isAllowedMediaUrl(value)));
+  });
   return bad ? BACKGROUND_URL_ERROR : "";
 }
 
@@ -512,8 +516,16 @@ function screenSettingsUrlError(settings) {
 function manualSlideUrlError(manualSlides) {
   for (const manual of Object.values(manualSlides && typeof manualSlides === "object" ? manualSlides : {})) {
     const urls = [manual?.imageUrl, manual?.videoUrl];
+    if (urls.some((url) => url !== undefined && url !== null && typeof url !== "string")) {
+      return "Image and movie URLs must be strings or null.";
+    }
     if (Array.isArray(manual?.images)) {
-      urls.push(...manual.images.map((entry) => (typeof entry === "string" ? entry : entry?.url)));
+      for (const entry of manual.images) {
+        if (entry && typeof entry === "object" && "url" in entry && typeof entry.url !== "string") {
+          return "Image slideshow URLs must be strings.";
+        }
+        urls.push(typeof entry === "string" ? entry : entry?.url);
+      }
     }
     for (const url of urls) {
       if (typeof url === "string" && url.trim() && !isAllowedMediaUrl(url.trim())) {

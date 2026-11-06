@@ -369,6 +369,15 @@ describe("screen settings normalization", () => {
       .expect(200);
   });
 
+  test("rejects a background URL that is not a string or null", async () => {
+    const before = { ...state.screenSettings };
+    await request(app)
+      .post("/api/screen-settings")
+      .send({ darkBackgroundUrl: ["/api/mass-asset/a.png"] })
+      .expect(400);
+    expect(state.screenSettings).toEqual(before);
+  });
+
   test("rejects an organizer image URL with an unknown prefix (R1)", async () => {
     const sequence = [{ id: "img-1", type: "image", label: "Image", phase: "mass" }];
     for (const manual of [
