@@ -27,7 +27,7 @@ jobs:
             build: --mac --x64
             appPath: dist/mac/Sacra Lux.app/Contents/MacOS/Sacra Lux
           - name: macos-arm
-            os: macos-14
+            os: macos-latest
             build: --mac --arm64
             appPath: dist/mac-arm64/Sacra Lux.app/Contents/MacOS/Sacra Lux
           - name: windows
