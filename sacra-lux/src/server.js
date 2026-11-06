@@ -3784,6 +3784,11 @@ function startServer(port = 17841, options = {}) {
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
       fs.rmSync(assetsDir, { recursive: true, force: true });
       fs.mkdirSync(assetsDir, { recursive: true });
+      for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+        if (String(state.screenSettings[key] || "").startsWith("/api/mass-asset/")) {
+          state.screenSettings[key] = DEFAULT_SCREEN_SETTINGS[key];
+        }
+      }
 
       // 3. Build a default organizer sequence with placeholder slides
       state.activeMassArchiveId = null;
