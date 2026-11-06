@@ -213,10 +213,7 @@ describe("phase slide timers", () => {
     jest.advanceTimersByTime(1000);
     response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass-count");
-  });
 
-  test("starts the first Mass slideshow at the scheduled cutover", async () => {
-    await request(app).post("/api/new-mass").send({ title: "Mass slideshow", startTime: "" }).expect(200);
     const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
     fs.mkdirSync(assetsDir, { recursive: true });
     fs.writeFileSync(
@@ -231,7 +228,7 @@ describe("phase slide timers", () => {
 
     await request(app).post("/api/gathering/start").expect(200);
 
-    const response = await request(app).get("/api/state").expect(200);
+    response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass-show");
     expect(response.body.imageSlideshowEndsAt).not.toBeNull();
   });
