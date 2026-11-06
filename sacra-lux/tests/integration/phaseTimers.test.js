@@ -196,7 +196,6 @@ describe("phase slide timers", () => {
   });
 
   test("starts the first Mass countdown when gathering ends", async () => {
-    await request(app).post("/api/new-mass").send({ title: "Mass countdown", startTime: "" }).expect(200);
     await saveOrganizer(
       [textItem("gather", "gathering"), { id: "mass-count", type: "countdown", label: "Mass count", phase: "mass", backgroundTheme: "dark", durationSec: 3 }],
       { gather: { text: "Gather" }, "mass-count": { countdownSec: 1 } }
