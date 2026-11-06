@@ -2848,6 +2848,7 @@ function startServer(port = 17841, options = {}) {
     return jsonParsers.get(limit);
   }
   app.use((req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
     const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
     if (req.path !== "/api/import-mass-zip") {
       return jsonParserFor(limit)(req, res, next);
