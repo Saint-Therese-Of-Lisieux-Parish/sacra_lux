@@ -622,6 +622,62 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(archiveAssets, "mass-a-photo.png"))).toBe(true);
   });
 
+  test("new Mass resets deleted asset backgrounds to built-in backgrounds", async () => {
+    const previousDarkBackgroundUrl = state.screenSettings.darkBackgroundUrl;
+    const previousLightBackgroundUrl = state.screenSettings.lightBackgroundUrl;
+    try {
+      await request(app)
+        .post("/api/new-mass")
+        .send({ title: "Background Mass A", startTime: "" })
+        .expect(200);
+      await request(app)
+        .post("/api/upload-mass-asset")
+        .send({ filename: "dark-background.png", dataUrl: tinyPngDataUrl })
+        .expect(200);
+      await request(app)
+        .post("/api/upload-mass-asset")
+        .send({ filename: "light-background.png", dataUrl: tinyPngDataUrl })
+        .expect(200);
+
+      state.screenSettings.darkBackgroundUrl = "/api/mass-asset/dark-background.png";
+      state.screenSettings.lightBackgroundUrl = "/api/mass-asset/light-background.png";
+
+      await request(app)
+        .post("/api/new-mass")
+        .send({ title: "Background Mass B", startTime: "" })
+        .expect(200);
+
+      const nextState = (await request(app).get("/api/state").expect(200)).body;
+      expect(nextState.screenSettings.darkBackgroundUrl).toBe("/static/assets/default-text-background.avif");
+      expect(nextState.screenSettings.lightBackgroundUrl).toBe("/static/assets/default-interstitial.png");
+      await request(app).get(nextState.screenSettings.darkBackgroundUrl).expect(200);
+      await request(app).get(nextState.screenSettings.lightBackgroundUrl).expect(200);
+    } finally {
+      state.screenSettings.darkBackgroundUrl = previousDarkBackgroundUrl;
+      state.screenSettings.lightBackgroundUrl = previousLightBackgroundUrl;
+    }
+  });
+
+  test("new Mass keeps built-in backgrounds", async () => {
+    const previousDarkBackgroundUrl = state.screenSettings.darkBackgroundUrl;
+    const previousLightBackgroundUrl = state.screenSettings.lightBackgroundUrl;
+    try {
+      state.screenSettings.darkBackgroundUrl = "/static/assets/default-text-background.avif";
+      state.screenSettings.lightBackgroundUrl = "/static/assets/default-interstitial.png";
+
+      await request(app)
+        .post("/api/new-mass")
+        .send({ title: "Built-in Background Mass", startTime: "" })
+        .expect(200);
+
+      expect(state.screenSettings.darkBackgroundUrl).toBe("/static/assets/default-text-background.avif");
+      expect(state.screenSettings.lightBackgroundUrl).toBe("/static/assets/default-interstitial.png");
+    } finally {
+      state.screenSettings.darkBackgroundUrl = previousDarkBackgroundUrl;
+      state.screenSettings.lightBackgroundUrl = previousLightBackgroundUrl;
+    }
+  });
+
   test("theme endpoints list Catholic themes first", async () => {
     const expectedCatholicIds = [
       "carmelite",
