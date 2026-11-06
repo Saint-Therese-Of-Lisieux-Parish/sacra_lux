@@ -2915,6 +2915,12 @@ function startServer(port = 17841, options = {}) {
     ? packagedBackgroundsDir
     : path.join(__dirname, "..", "backgrounds");
   app.use("/static/backgrounds", express.static(backgroundsDir, { index: false }));
+  app.use("/static", (req, res, next) => {
+    if (path.extname(req.path).toLowerCase() === ".html") {
+      for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) res.setHeader(name, value);
+    }
+    return next();
+  });
   app.use("/static", express.static(publicDir));
 
   function sendPublicPage(res, next, filename) {

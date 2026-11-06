@@ -43,6 +43,25 @@ describe("HTTP security headers", () => {
     expect(res.headers["x-frame-options"]).toBe("SAMEORIGIN");
   });
 
+  test.each(["app.html", "screen.html", "remote.html", "start.html"])(
+    "/static/%s sends page security headers",
+    async (filename) => {
+      const res = await request(app).get(`/static/${filename}`).expect(200);
+
+      expect(res.headers["content-security-policy"]).toContain("frame-ancestors 'self'");
+      expect(res.headers["referrer-policy"]).toBe("no-referrer");
+      expect(res.headers["x-frame-options"]).toBe("SAMEORIGIN");
+    }
+  );
+
+  test("static app HTML uses the same CSP as the app page", async () => {
+    const page = await request(app).get("/app").expect(200);
+    const staticPage = await request(app).get("/static/app.html").expect(200);
+
+    expect(staticPage.headers["content-security-policy"])
+      .toBe(page.headers["content-security-policy"]);
+  });
+
   test("API responses do not carry the page CSP", async () => {
     const res = await request(app).get("/api/state").expect(200);
     expect(res.headers["content-security-policy"]).toBeUndefined();
