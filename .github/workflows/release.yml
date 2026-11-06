@@ -215,7 +215,21 @@ jobs:
           fi
           codesign --verify --deep --strict --verbose=2 "${app}"
           spctl --assess --type execute --verbose=4 "${app}"
-          xcrun stapler validate "${app}"
+          retry() {
+            for attempt in 1 2 3; do
+              if "$@"; then
+                return 0
+              fi
+              if [ "${attempt}" -eq 3 ]; then
+                echo "::error::The command failed after three attempts: $*"
+                return 1
+              fi
+              delay=$((attempt * 15))
+              echo "::warning::The command failed. Retrying in ${delay} seconds."
+              sleep "${delay}"
+            done
+          }
+          retry xcrun stapler validate "${app}"
           cleanup
           trap - EXIT
 
