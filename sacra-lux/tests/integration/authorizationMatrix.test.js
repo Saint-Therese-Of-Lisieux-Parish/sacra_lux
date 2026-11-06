@@ -191,6 +191,19 @@ describe("authorization matrix", () => {
       // Restore a session for the tests that run after this one.
       sessionToken = security.noteControlUnlock();
     });
+
+    test.each([
+      ["GET", "/api/import-mass-zip"],
+      ["HEAD", "/api/state"],
+      ["OPTIONS", "/api/import-mass-zip"]
+    ])("does not parse a %s request body", async (method, routePath) => {
+      const response = await request(app)
+        [method.toLowerCase()](routePath)
+        .set("Content-Type", "application/json")
+        .send("{bad");
+
+      expect(response.status).not.toBe(400);
+    });
   });
 
   describe("Socket.IO events", () => {
