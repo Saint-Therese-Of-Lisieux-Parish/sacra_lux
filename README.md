@@ -396,4 +396,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.373-alpha`.
+The current package version is `0.0.374-alpha`.

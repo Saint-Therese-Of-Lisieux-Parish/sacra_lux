@@ -1946,6 +1946,7 @@ function startGatheringSequence(ioRef) {
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
+    scheduleRuntimeForCurrentSlide(ioRef);
   }
 }
 
@@ -2021,6 +2022,7 @@ function scheduleNextGatheringSlide(ioRef) {
       touch();
       ioRef.emit("state:update", getStateSnapshot());
       scheduleSave();
+      scheduleRuntimeForCurrentSlide(ioRef);
     } else {
       // Advance to the next gathering slide.
       const nextIndex = getSafeSlideIndex(gatheringIndices[curPos + 1]);
@@ -2438,6 +2440,7 @@ function startMassSequence(ioRef) {
   touch();
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
+  scheduleRuntimeForCurrentSlide(ioRef);
   return true;
 }
 
