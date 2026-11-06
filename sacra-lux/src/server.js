@@ -1393,6 +1393,9 @@ function propagateInterstitialImage(sequence, mergedManualSlides) {
 
 function normalizeOrganizerSequence(sequence = []) {
   const normalized = sequence.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new ValidationError("Each organizer item must be an object.");
+    }
     const phase = normalizePhase(item.phase ?? item.section);
     return {
       id: String(item.id || `item-${index + 1}`),
@@ -4138,14 +4141,16 @@ function startServer(port = 17841, options = {}) {
         }
       }
 
+      const nextOrganizerSequence = normalizeOrganizerSequence(sequence);
+      const nextManualSlides = mergeManualSlideState(nextOrganizerSequence, manualSlides || {});
       _manualNavigationDirection = 1;
       state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const wasSlideshow = previousSlide?.type === "imageSlideshow";
       stopImageSlideshowTimer({ resetProgress: false, clearError: true });
       _imageSlideshowFailedUrls.clear();
-      state.organizerSequence = normalizeOrganizerSequence(sequence);
-      state.manualSlides = mergeManualSlideState(state.organizerSequence, manualSlides || {});
+      state.organizerSequence = nextOrganizerSequence;
+      state.manualSlides = nextManualSlides;
       state.organizerRevision += 1;
       propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       // Always rebuild the presentation so manual content stays current.
