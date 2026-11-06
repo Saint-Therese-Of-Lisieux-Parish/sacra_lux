@@ -2757,6 +2757,18 @@ describe("server api integration", () => {
     expect(asset.body.toString()).toBe("legacy-image");
   });
 
+  test("organizer rejects media URLs that are not strings or null", async () => {
+    const sequence = [{ id: "img-1", type: "image", label: "Image", phase: "mass" }];
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "img-1": { imageUrl: ["/api/mass-asset/a.png"] } } })
+      .expect(400);
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "img-1": { images: [{ url: 7, name: "a.png" }] } } })
+      .expect(400);
+  });
+
   test("import-mass-zip rejects external media URLs and keeps the current Mass", async () => {
     const before = await request(app).get("/api/state").expect(200);
     const zip = new AdmZip();
