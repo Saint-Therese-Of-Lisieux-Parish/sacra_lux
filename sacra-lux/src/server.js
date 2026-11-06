@@ -582,6 +582,9 @@ function parseMassZipDefinition(definitionEntry) {
 }
 
 function validateMassPackageDefinition(packageData, screenSettings = DEFAULT_SCREEN_SETTINGS) {
+  const urlError = massPackageUrlError(packageData);
+  if (urlError) throw new ValidationError(urlError);
+
   if (isMassDocumentV3(packageData)) {
     buildRuntimeStateFromMassDocument(packageData);
     return;
@@ -636,12 +639,16 @@ function validateMassZipArchive(zip, compressedBytes) {
 }
 
 function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET_EXT) {
-  const match = String(dataUrl || "").match(/^data:((?:image\/[a-z+]+)|(?:video\/mp4));base64,([A-Za-z0-9+/=]+)$/);
-  if (!match) {
+  const input = String(dataUrl || "");
+  const base64Marker = ";base64,";
+  const markerIndex = input.indexOf(base64Marker);
+  const mimeType = markerIndex > 5 ? input.slice(5, markerIndex).toLowerCase() : "";
+  const encodedStart = markerIndex + base64Marker.length;
+  if (!/^data:/.test(input) || !/^(?:image\/[a-z+]+|video\/mp4)$/.test(mimeType) ||
+    markerIndex < 0 || !/^[A-Za-z0-9+/=]+$/.test(input.slice(encodedStart))) {
     throw new ValidationError("Invalid media data URL.");
   }
 
-  const mimeType = match[1].toLowerCase();
   const mediaExtension = mimeType === "image/jpeg"
     ? "jpg"
     : mimeType === "image/svg+xml"
@@ -652,7 +659,20 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
     throw new ValidationError(`Unsupported media type for "${displayName}".`);
   }
 
-  const bytes = Buffer.from(match[2], "base64");
+  // Decode in bounded chunks. A whole base64 string creates a second large
+  // temporary string and can cause a valid upload to fail under CI memory limits.
+  const encodedLength = input.length - encodedStart;
+  const padding = input.endsWith("==") ? 2 : input.endsWith("=") ? 1 : 0;
+  const bytes = Buffer.allocUnsafe(Math.floor(encodedLength * 3 / 4) - padding);
+  let offset = 0;
+  let decodedOffset = 0;
+  const chunkLength = 4 * 1024 * 1024;
+  while (offset < encodedLength) {
+    const chunk = Buffer.from(input.slice(encodedStart + offset, encodedStart + Math.min(offset + chunkLength, encodedLength)), "base64");
+    chunk.copy(bytes, decodedOffset);
+    decodedOffset += chunk.length;
+    offset += chunkLength;
+  }
   if (bytes.length > MAX_SINGLE_UPLOAD_BYTES) {
     throw new ValidationError(
       `Media file exceeds the ${Math.floor(MAX_SINGLE_UPLOAD_BYTES / (1024 * 1024))} MB limit.`
@@ -1933,6 +1953,7 @@ function startGatheringSequence(ioRef) {
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
+    scheduleRuntimeForCurrentSlide(ioRef);
   }
 }
 
@@ -2008,6 +2029,7 @@ function scheduleNextGatheringSlide(ioRef) {
       touch();
       ioRef.emit("state:update", getStateSnapshot());
       scheduleSave();
+      scheduleRuntimeForCurrentSlide(ioRef);
     } else {
       // Advance to the next gathering slide.
       const nextIndex = getSafeSlideIndex(gatheringIndices[curPos + 1]);
@@ -2425,6 +2447,7 @@ function startMassSequence(ioRef) {
   touch();
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
+  scheduleRuntimeForCurrentSlide(ioRef);
   return true;
 }
 
@@ -2902,6 +2925,12 @@ function startServer(port = 17841, options = {}) {
     ? packagedBackgroundsDir
     : path.join(__dirname, "..", "backgrounds");
   app.use("/static/backgrounds", express.static(backgroundsDir, { index: false }));
+  app.use("/static", (req, res, next) => {
+    if (path.extname(req.path).toLowerCase() === ".html") {
+      for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) res.setHeader(name, value);
+    }
+    return next();
+  });
   app.use("/static", express.static(publicDir));
 
   function sendPublicPage(res, next, filename) {
@@ -2936,9 +2965,11 @@ function startServer(port = 17841, options = {}) {
   function handleMassAssetUpload(req, res) {
     try {
       fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-      const { filename, dataUrl } = req.body || {};
-      if (!dataUrl) return res.status(400).json({ error: "dataUrl is required." });
-      const upload = parseMassAssetUpload(filename, dataUrl);
+      const body = req.body || {};
+      if (!body.dataUrl) return res.status(400).json({ error: "dataUrl is required." });
+      const upload = parseMassAssetUpload(body.filename, body.dataUrl);
+      // Release the encoded request body before the file write and hash.
+      body.dataUrl = null;
       const sizeError = massAssetSizeError(upload.bytes.length);
       if (sizeError) return res.status(400).json({ error: sizeError });
       const asset = saveMassAssetUpload(upload);
