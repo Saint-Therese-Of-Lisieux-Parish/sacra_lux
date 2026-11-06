@@ -2439,7 +2439,13 @@ function startMassSequence(ioRef) {
   const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
   if (firstMassIdx < 0) return false;
   const alreadyOnMassSlide = slides[state.currentSlideIndex]?.phase === "mass";
-  stopActiveSlideTimers();
+  if (alreadyOnMassSlide) {
+    stopPreMassTimer();
+    stopGatheringTimer();
+    stopPostMassTimer();
+  } else {
+    stopActiveSlideTimers();
+  }
   if (!alreadyOnMassSlide) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
   }
