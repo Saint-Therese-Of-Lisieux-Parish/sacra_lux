@@ -215,7 +215,21 @@ jobs:
           fi
           codesign --verify --deep --strict --verbose=2 "${app}"
           spctl --assess --type execute --verbose=4 "${app}"
-          xcrun stapler validate "${app}"
+          retry() {
+            for attempt in 1 2 3; do
+              if "$@"; then
+                return 0
+              fi
+              if [ "${attempt}" -eq 3 ]; then
+                echo "::error::The command failed after three attempts: $*"
+                return 1
+              fi
+              delay=$((attempt * 15))
+              echo "::warning::The command failed. Retrying in ${delay} seconds."
+              sleep "${delay}"
+            done
+          }
+          retry xcrun stapler validate "${app}"
           cleanup
           trap - EXIT
 
@@ -412,11 +426,36 @@ jobs:
           path: reports/
           if-no-files-found: ignore
 
-      - name: Upload Grype SARIF
+      # The action accepts one SARIF run for each category.
+      - name: Split Grype SARIF by platform
         if: always() && hashFiles('reports/*.sarif') != ''
+        run: |
+          for platform in mac-arm64 mac-x64 win-x64; do
+            mkdir -p "sarif/${platform}"
+            find reports -name "*-${platform}.grype.sarif" \
+              -exec cp {} "sarif/${platform}/" \;
+          done
+
+      - name: Upload Grype SARIF for macOS ARM64
+        if: always() && hashFiles('sarif/mac-arm64/*.sarif') != ''
         uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
         with:
-          sarif_file: reports
+          sarif_file: sarif/mac-arm64
+          category: grype-mac-arm64
+
+      - name: Upload Grype SARIF for macOS x64
+        if: always() && hashFiles('sarif/mac-x64/*.sarif') != ''
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          sarif_file: sarif/mac-x64
+          category: grype-mac-x64
+
+      - name: Upload Grype SARIF for Windows x64
+        if: always() && hashFiles('sarif/win-x64/*.sarif') != ''
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          sarif_file: sarif/win-x64
+          category: grype-win-x64
 
   release:
     name: Publish release
