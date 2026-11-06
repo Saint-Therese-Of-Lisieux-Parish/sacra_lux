@@ -7,6 +7,7 @@ const {
 
 describe("organizer save conflicts", () => {
   let handle;
+  let state;
 
   beforeEach(async () => {
     jest.resetModules();
@@ -14,6 +15,7 @@ describe("organizer save conflicts", () => {
       port: 0,
       homeDir: createTempHome("sacra-lux-organizer-conflict-")
     });
+    ({ state } = require("../../src/state"));
   });
 
   afterEach(async () => {
@@ -85,5 +87,21 @@ describe("organizer save conflicts", () => {
       .post("/api/organizer")
       .send({ sequence: [], manualSlides: {}, organizerRevision: staleRevision })
       .expect(409);
+  });
+
+  test("keeps runtime state when organizer validation fails", async () => {
+    const endsAt = Date.now() + 5000;
+    state.startupPrompt = { reason: "invalid-current-mass" };
+    state.imageSlideshowEndsAt = endsAt;
+    state.imageSlideshowError = "The failed image stays skipped.";
+
+    await request(handle.app)
+      .post("/api/organizer")
+      .send({ sequence: [null], manualSlides: {} })
+      .expect(400);
+
+    expect(state.startupPrompt).toEqual({ reason: "invalid-current-mass" });
+    expect(state.imageSlideshowEndsAt).toBe(endsAt);
+    expect(state.imageSlideshowError).toBe("The failed image stays skipped.");
   });
 });
