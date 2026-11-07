@@ -282,7 +282,7 @@ describe("massDocument", () => {
     expect(runtime.documents).toEqual([
       {
         stem: "Reading_I",
-        section: "First Reading",
+        section: "Reading I",
         passage: "Genesis 1:1-3",
         textLines: ["In the beginning..."],
         ending: "The Word of the Lord."
@@ -302,6 +302,46 @@ describe("massDocument", () => {
       videoAutoAdvance: true,
       styleOverrides: {}
     });
+  });
+
+  test("uses source stems for renamed readings and keeps label fallback", () => {
+    const runtime = buildRuntimeStateFromMassDocument({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Renamed readings" },
+      items: [
+        {
+          id: "gospel",
+          kind: "reading",
+          label: "Passion of Our Lord",
+          section: "mass",
+          content: { text: "In those days." },
+          source: { stem: "Gospel", citation: "John 18" }
+        },
+        {
+          id: "psalm",
+          kind: "reading",
+          label: "Sung Refrain",
+          section: "mass",
+          content: { text: "R. The Lord is my shepherd.\nLine one." },
+          source: { stem: "Responsorial_Psalm", citation: "Psalm 23" }
+        },
+        {
+          id: "custom",
+          kind: "reading",
+          label: "Custom Reading",
+          section: "mass",
+          content: { text: "Custom text." },
+          source: { stem: "Custom_Source", citation: "Custom 1" }
+        }
+      ]
+    });
+
+    expect(runtime.documents).toEqual([
+      expect.objectContaining({ stem: "Gospel", section: "Gospel", ending: "The Gospel of the Lord." }),
+      expect.objectContaining({ stem: "Responsorial_Psalm", section: "Responsorial Psalm", ending: "The Word of the Lord." }),
+      expect.objectContaining({ stem: "Custom_Source", section: "Custom Reading", ending: null })
+    ]);
   });
 
   test("round trips image slideshow ordering, timing, loops, and asset names", () => {
