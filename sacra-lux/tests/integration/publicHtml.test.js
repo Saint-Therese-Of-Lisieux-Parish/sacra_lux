@@ -37,8 +37,8 @@ describe("public html integration", () => {
     const res = await request(app).get("/").expect(200);
 
     expect(res.text).toContain('id="status" class="status-badge" role="status" aria-live="polite"');
-    expect(res.text).toContain('els.status.setAttribute("role", isError ? "alert" : "status")');
-    expect(res.text).toContain('els.status.setAttribute("aria-live", isError ? "assertive" : "polite")');
+    expect(res.text).toContain('const role = isError ? "alert" : "status"');
+    expect(res.text).toContain('const live = isError ? "assertive" : "polite"');
   });
 
   test("operator app exposes the locked control message and unlock action", async () => {
