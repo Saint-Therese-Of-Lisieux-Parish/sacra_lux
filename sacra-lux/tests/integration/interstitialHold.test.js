@@ -187,6 +187,38 @@ describe("interstitial hold return slide", () => {
     expect(released.preMassRunning).toBe(false);
   });
 
+  test("keeps the pre-Mass phase when it starts during a hold", async () => {
+    await loadMassAtPhaseHold();
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    const released = await emitAndWait(
+      "screen:interstitial-hold",
+      undefined,
+      (next) => next.interstitialHoldActive === false
+    );
+
+    expect(released.presentation.slides[released.currentSlideIndex].phase).toBe("pre");
+    expect(released.preMassRunning).toBe(true);
+  });
+
+  test.each([
+    ["pre-Mass", "/api/pre-mass/start", "/api/pre-mass/stop", "preMassRunning"],
+    ["gathering", "/api/gathering/start", "/api/gathering/stop", "gatheringRunning"],
+    ["post-Mass", "/api/post-mass/start", "/api/post-mass/stop", "postMassRunning"]
+  ])("keeps the %s stop state during a hold", async (_label, startRoute, stopRoute, stateKey) => {
+    await loadMassAtPhaseHold();
+
+    await request(app).post(startRoute).expect(200);
+    await request(app).post(stopRoute).expect(200);
+    const released = await emitAndWait(
+      "screen:interstitial-hold",
+      undefined,
+      (next) => next.interstitialHoldActive === false
+    );
+
+    expect(released[stateKey]).toBe(false);
+  });
+
   test("keeps the gathering phase when it starts during a hold", async () => {
     await loadMassAtPhaseHold();
 
