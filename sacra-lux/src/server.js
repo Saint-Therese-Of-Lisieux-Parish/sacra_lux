@@ -3083,7 +3083,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/remove-unused-mass-assets", (req, res) => {
     try {
-      if (!hasLoadedMass()) {
+      if (state.startupPrompt?.reason === "invalid-current-mass") {
         return res.status(409).json({ error: "No Mass is loaded." });
       }
       const result = removeUnusedMassAssets();
@@ -3342,7 +3342,7 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/update-title", (req, res) => {
     try {
-      if (!hasLoadedMass()) {
+      if (state.startupPrompt?.reason === "invalid-current-mass") {
         return res.status(409).json({ error: "No Mass is loaded." });
       }
       const { title } = req.body || {};
