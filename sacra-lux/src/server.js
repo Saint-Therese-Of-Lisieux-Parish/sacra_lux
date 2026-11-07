@@ -4400,8 +4400,8 @@ function startServer(port = 17841, options = {}) {
       if (!sameSlideshow) state.imageSlideshowLoopIteration = 1;
       if (currentSlide?.type === "imageSlideshow") {
         scheduleImageSlideshowSlide(io);
-      } else if (wasSlideshow) {
-        // The slideshow timer was driving the phase loop; hand control back to it.
+      } else if (wasSlideshow || state.preMassRunning || state.gatheringRunning || state.postMassRunning) {
+        // The organizer save changed the current slide; hand control back to the phase loop.
         scheduleRuntimeForCurrentSlide(io);
       }
       // Reschedule because gathering durations may have changed. A Mass already
