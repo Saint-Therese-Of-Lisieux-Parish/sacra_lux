@@ -32,7 +32,7 @@ server holds the only authoritative state, so always inspect server state
 - The status line shows **Start PIN reset**. Sacra Lux clears the PIN, ends
   all control sessions, and saves the change to `session.json`.
 - A failed save shows **Could not save session.json.**
-- Set a new PIN in **Start PIN** if the remote must be locked again. A phone
+- Select **PIN** to set a new PIN if the remote must be locked again. The dialog title is **Start PIN**. A phone
   that was unlocked shows **The start PIN was reset. Unlock again.**
 - In web mode, set `SACRA_LUX_RESET_PIN=1` before startup to clear a forgotten
   PIN. The server saves the reset and logs one message without PIN data.
