@@ -84,6 +84,7 @@ const state = {
   currentSlideIndex: 0,
   currentSlideId: null,
   currentSlideChangedAt: new Date().toISOString(),
+  projectorCount: 0,
   isBlack: false,
   interstitialHoldActive: false,
   interstitialHoldSlideIndex: null,

@@ -64,6 +64,12 @@ describe("public html integration", () => {
     expect(remoteRes.text).not.toContain('socket.emit("slide:goto:remote"');
   });
 
+  test("operator page shows projector connection status", async () => {
+    const res = await request(app).get("/app").expect(200);
+    expect(res.text).toContain('id="projectorStatus"');
+    expect(res.text).toContain('No projector connected');
+  });
+
   test("operator app exposes unused media cleanup", async () => {
     const res = await request(app).get("/").expect(200);
 

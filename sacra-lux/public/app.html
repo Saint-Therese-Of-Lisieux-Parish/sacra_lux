@@ -3690,6 +3690,7 @@
             </div>
             <div class="slide-action-group end">
               <span id="status" class="status-badge"></span>
+              <span id="projectorStatus" class="status-badge" role="status" aria-live="polite"></span>
               <button id="deleteItemBtn" class="danger-outline">&#x1F5D1; Delete</button>
             </div>
           </div>
@@ -4616,6 +4617,7 @@
       startPostMassBtn: document.getElementById("startPostMassBtn"),
       preMassStatus: document.getElementById("preMassStatus"),
       status: document.getElementById("status"),
+      projectorStatus: document.getElementById("projectorStatus"),
       sequenceList: document.getElementById("sequenceList"),
       editorEmpty: document.getElementById("editorEmpty"),
       editorBody: document.getElementById("editorBody"),
@@ -6982,6 +6984,10 @@
       }
       els.status.textContent = data.moviePlaybackError?.message || data.saveError || `${slides.length} slides`;
       els.status.classList.toggle("error", Boolean(data.moviePlaybackError || data.saveError));
+      const projectorCount = Number(data.projectorCount) || 0;
+      els.projectorStatus.textContent = projectorCount
+        ? `${projectorCount} projector${projectorCount === 1 ? "" : "s"} connected`
+        : "No projector connected";
 
       // Update start-time status display
       const mst = data.massStartTime || null;
