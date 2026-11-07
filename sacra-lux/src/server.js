@@ -470,6 +470,7 @@ const JSON_BODY_LIMITS_BY_PATH = new Map([
   ["/api/import-mass-zip", JSON_BODY_LIMIT_MASS_ZIP]
 ]);
 const MAX_MASS_ZIP_ENTRIES = 1000;
+const MAX_MASS_ASSET_FILES = MAX_MASS_ZIP_ENTRIES - 10;
 const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 500 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = MAX_SINGLE_UPLOAD_BYTES;
 
@@ -717,6 +718,21 @@ function getCurrentMassAssetBytes() {
   return fs.readdirSync(assetsDir, { withFileTypes: true })
     .filter((entry) => entry.isFile())
     .reduce((total, entry) => total + fs.statSync(path.join(assetsDir, entry.name)).size, 0);
+}
+
+function getCurrentMassAssetFileCount() {
+  const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
+  if (!fs.existsSync(assetsDir)) return 0;
+  return fs.readdirSync(assetsDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .length;
+}
+
+function massAssetFileCountError(additionalFiles) {
+  const currentCount = getCurrentMassAssetFileCount();
+  if (currentCount + additionalFiles <= MAX_MASS_ASSET_FILES) return null;
+  return `Mass asset file count exceeds the ${MAX_MASS_ASSET_FILES} file limit; ` +
+    `current count is ${currentCount} and the upload adds ${additionalFiles} files.`;
 }
 
 function massAssetSizeError(additionalBytes) {
@@ -3081,6 +3097,8 @@ function startServer(port = 17841, options = {}) {
       const upload = parseMassAssetUpload(body.filename, body.dataUrl);
       // Release the encoded request body before the file write and hash.
       body.dataUrl = null;
+      const fileCountError = massAssetFileCountError(1);
+      if (fileCountError) return res.status(400).json({ error: fileCountError });
       const sizeError = massAssetSizeError(upload.bytes.length);
       if (sizeError) return res.status(400).json({ error: sizeError });
       const asset = saveMassAssetUpload(upload);
@@ -3133,6 +3151,8 @@ function startServer(port = 17841, options = {}) {
       if (totalBytes > MAX_SLIDESHOW_IMPORT_BYTES) {
         return res.status(400).json({ error: "The selected images are too large to import together." });
       }
+      const fileCountError = massAssetFileCountError(uploads.length);
+      if (fileCountError) return res.status(400).json({ error: fileCountError });
       const sizeError = massAssetSizeError(totalBytes);
       if (sizeError) return res.status(400).json({ error: sizeError });
 
