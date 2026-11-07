@@ -436,9 +436,12 @@ function parseReadingFile(filePath) {
 
   if (lines.length === 0) return null;
 
-  const passage = lines[0].trim();
+  const passageIndex = lines.findIndex((line) => line.trim() !== "");
+  if (passageIndex < 0) return { passage: "", textLines: [] };
 
-  let textStart = 1;
+  const passage = lines[passageIndex].trim();
+
+  let textStart = passageIndex + 1;
   while (textStart < lines.length && lines[textStart].trim() === "") {
     textStart++;
   }

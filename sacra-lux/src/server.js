@@ -4545,12 +4545,15 @@ function startServer(port = 17841, options = {}) {
 
       const fileContent = fs.readFileSync(filePath, "utf8");
       const lines = fileContent.split(/\r?\n/);
-      let textStart = 1;
+      const passageIndex = lines.findIndex((line) => line.trim() !== "");
+      let textStart = passageIndex < 0 ? lines.length : passageIndex + 1;
       while (textStart < lines.length && lines[textStart].trim() === "") {
         textStart++;
       }
 
-      const headerLines = lines.slice(0, textStart);
+      const headerLines = passageIndex < 0
+        ? []
+        : [lines[passageIndex], ...lines.slice(passageIndex + 1, textStart)];
       const newContent = headerLines.join("\n") + "\n" + text;
 
       writeFileAtomic(filePath, newContent);
