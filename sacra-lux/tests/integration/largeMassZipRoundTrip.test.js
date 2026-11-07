@@ -35,8 +35,8 @@ describe("Mass ZIP round trip with a large movie", () => {
     const movie = crypto.randomBytes(60 * MIB);
     const upload = await request(app)
       .post("/api/upload-mass-asset")
-      .send({ filename: "big.mp4", dataUrl: `data:video/mp4;base64,${movie.toString("base64")}` });
-    if (upload.status !== 200) throw new Error(`DEBUG upload ${upload.status} ${JSON.stringify(upload.body)}`);
+      .send({ filename: "big.mp4", dataUrl: `data:video/mp4;base64,${movie.toString("base64")}` })
+      .expect(200);
     await request(app)
       .post("/api/organizer")
       .send({

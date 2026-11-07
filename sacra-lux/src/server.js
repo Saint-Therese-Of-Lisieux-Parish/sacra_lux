@@ -645,7 +645,7 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
   const mimeType = markerIndex > 5 ? input.slice(5, markerIndex).toLowerCase() : "";
   const encodedStart = markerIndex + base64Marker.length;
   if (!/^data:/.test(input) || !/^(?:image\/[a-z+]+|video\/mp4)$/.test(mimeType) ||
-    markerIndex < 0 || !/^[A-Za-z0-9+/=]+$/.test(input.slice(encodedStart))) {
+    markerIndex < 0 || encodedStart >= input.length || /[^A-Za-z0-9+/=]/.test(input.slice(encodedStart))) {
     throw new ValidationError("Invalid media data URL.");
   }
 
