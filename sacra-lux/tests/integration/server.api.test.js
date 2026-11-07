@@ -3175,6 +3175,48 @@ describe("server api integration", () => {
       .expect(404);
   });
 
+  test("releases earlier AVIF tokens for a session and caps stored tokens", async () => {
+    const pinResponse = await request(app)
+      .post("/api/start-pin")
+      .send({ pin: "2468" })
+      .expect(200);
+    const firstToken = (await createAvifExport(pinResponse.body.controlToken)).token;
+    const secondToken = (await createAvifExport(pinResponse.body.controlToken)).token;
+
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${firstToken}`)
+      .set("x-sacra-control", pinResponse.body.controlToken)
+      .expect(404);
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${secondToken}`)
+      .set("x-sacra-control", pinResponse.body.controlToken)
+      .expect(200);
+
+    resetSecurityState();
+    const tokens = [];
+    for (let index = 0; index < 4; index++) {
+      const session = await request(app)
+        .post("/api/verify-pin")
+        .send({ pin: "2468" })
+        .expect(200);
+      tokens.push({
+        token: (await createAvifExport(session.body.controlToken)).token,
+        controlToken: session.body.controlToken
+      });
+    }
+
+    await request(app)
+      .get(`/api/export-mass-zip-avif?token=${tokens[0].token}`)
+      .set("x-sacra-control", tokens[0].controlToken)
+      .expect(404);
+    for (const { token, controlToken } of tokens.slice(1)) {
+      await request(app)
+        .get(`/api/export-mass-zip-avif?token=${token}`)
+        .set("x-sacra-control", controlToken)
+        .expect(200);
+    }
+  });
+
   test("AVIF export keeps assets with the same stem as distinct files", async () => {
     const sharp = require("sharp");
     const toDataUrl = async (format, color) => {

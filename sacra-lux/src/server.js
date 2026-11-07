@@ -3834,6 +3834,29 @@ function startServer(port = 17841, options = {}) {
   // The AVIF export is driven via Socket.IO so the client gets per-image
   // progress updates.  When complete the client downloads from a one-time token.
   const avifDownloadTokens = new Map(); // token → { zipBuffer, filename }
+  const MAX_AVIF_DOWNLOAD_TOKENS = 3;
+
+  function releaseAvifDownloadToken(token) {
+    const entry = avifDownloadTokens.get(token);
+    if (!entry) return;
+    clearTimeout(entry.expiryTimer);
+    avifDownloadTokens.delete(token);
+  }
+
+  function storeAvifDownloadToken(token, entry) {
+    if (entry.controlToken) {
+      for (const [existingToken, existingEntry] of avifDownloadTokens) {
+        if (existingEntry.controlToken === entry.controlToken) {
+          releaseAvifDownloadToken(existingToken);
+        }
+      }
+    }
+    while (avifDownloadTokens.size >= MAX_AVIF_DOWNLOAD_TOKENS) {
+      const oldestToken = avifDownloadTokens.keys().next().value;
+      releaseAvifDownloadToken(oldestToken);
+    }
+    avifDownloadTokens.set(token, entry);
+  }
 
   app.get("/api/export-mass-zip-avif", heavyRateLimit, (req, res) => {
     if (!clientHasControlSession(req)) {
@@ -3845,8 +3868,7 @@ function startServer(port = 17841, options = {}) {
     if (entry.controlToken && getValidControlSessionToken(req) !== entry.controlToken) {
       return res.status(401).json({ error: "Unlock required." });
     }
-    avifDownloadTokens.delete(token);
-    clearTimeout(entry.expiryTimer);
+    releaseAvifDownloadToken(token);
     setAttachmentFilename(res, entry.filename);
     res.setHeader("Content-Type", "application/zip");
     res.setHeader("Content-Length", entry.zipBuffer.length);
@@ -5020,7 +5042,7 @@ function startServer(port = 17841, options = {}) {
         const token = crypto.randomBytes(16).toString("hex");
         const expiryTimer = setTimeout(() => avifDownloadTokens.delete(token), 5 * 60 * 1000);
         expiryTimer.unref?.();
-        avifDownloadTokens.set(token, {
+        storeAvifDownloadToken(token, {
           zipBuffer,
           filename,
           controlToken: getValidControlSessionToken(socket) || null,
