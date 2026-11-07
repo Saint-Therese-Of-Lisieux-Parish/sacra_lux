@@ -3083,6 +3083,9 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/remove-unused-mass-assets", (req, res) => {
     try {
+      if (state.startupPrompt?.reason === "invalid-current-mass") {
+        return res.status(409).json({ error: "No Mass is loaded." });
+      }
       const result = removeUnusedMassAssets();
       return res.json({ ok: true, ...result });
     } catch (error) {
@@ -3339,6 +3342,9 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/update-title", (req, res) => {
     try {
+      if (state.startupPrompt?.reason === "invalid-current-mass") {
+        return res.status(409).json({ error: "No Mass is loaded." });
+      }
       const { title } = req.body || {};
       if (typeof title !== "string") {
         return res.status(400).json({ error: "title string is required." });
@@ -4216,6 +4222,7 @@ function startServer(port = 17841, options = {}) {
         organizerSequence: nextOrganizerSequence,
         manualSlides: nextManualSlides
       });
+      preserveInvalidCurrentMass();
       _manualNavigationDirection = 1;
       state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
