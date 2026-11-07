@@ -87,6 +87,57 @@ describe("Mass archive across restarts", () => {
     await restarted.handle.stop();
   });
 
+  test("a recent saved gathering loop resumes after restart", async () => {
+    const first = await boot();
+    const { state } = require("../../src/state");
+    const { saveSession } = require("../../src/persistence");
+    await request(first.handle.app).post("/api/new-mass").send({ title: "Gathering loop", startTime: "" }).expect(200);
+    await request(first.handle.app).post("/api/organizer").send({
+      sequence: [
+        { id: "gather-a", type: "text", label: "Gather A", phase: "gathering", durationSec: 1 },
+        { id: "gather-b", type: "text", label: "Gather B", phase: "gathering", durationSec: 1 },
+        { id: "mass", type: "text", label: "Mass", phase: "mass", durationSec: 10 }
+      ],
+      manualSlides: { "gather-a": { text: "A" }, "gather-b": { text: "B" }, mass: { text: "Mass" } }
+    }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    state.currentSlideIndex = 0;
+    state.currentSlideId = null;
+    state.gatheringRunning = true;
+    saveSession(state);
+    await first.handle.stop();
+
+    const restarted = await boot();
+    expect((await request(restarted.handle.app).get("/api/state")).body.gatheringRunning).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    expect((await request(restarted.handle.app).get("/api/state")).body.currentSlideIndex).toBe(1);
+    await restarted.handle.stop();
+  });
+
+  test("a saved gathering loop does not resume after the Mass start time", async () => {
+    const first = await boot();
+    const { state } = require("../../src/state");
+    const { saveSession } = require("../../src/persistence");
+    const pastDate = new Date(Date.now() - (60 * 60 * 1000));
+    const pad = (value) => String(value).padStart(2, "0");
+    const pastStartTime = `${pastDate.getFullYear()}-${pad(pastDate.getMonth() + 1)}-${pad(pastDate.getDate())}T${pad(pastDate.getHours())}:${pad(pastDate.getMinutes())}`;
+    await request(first.handle.app).post("/api/new-mass").send({ title: "Past gathering", startTime: pastStartTime }).expect(200);
+    await request(first.handle.app).post("/api/organizer").send({
+      sequence: [{ id: "gather", type: "text", label: "Gather", phase: "gathering", durationSec: 1 }],
+      manualSlides: { gather: { text: "Gather" } }
+    }).expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    state.currentSlideIndex = 0;
+    state.currentSlideId = null;
+    state.gatheringRunning = true;
+    saveSession(state);
+    await first.handle.stop();
+
+    const restarted = await boot();
+    expect((await request(restarted.handle.app).get("/api/state")).body.gatheringRunning).toBe(false);
+    await restarted.handle.stop();
+  });
+
   test("an old saved phase loop does not resume after restart", async () => {
     const first = await boot();
     const { state } = require("../../src/state");

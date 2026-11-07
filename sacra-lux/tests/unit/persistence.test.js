@@ -34,6 +34,7 @@ describe("persistence", () => {
       targetScreenId: 9,
       targetScreenIds: [2, 2, "3", "bad", 4],
       screenFullscreen: 1,
+      gatheringRunning: true,
       activeMassArchiveId: "Palm-Sunday",
       appSettings: { theme: "dark", remoteAddress: "10.12.1.1", sourceNetworks: "192.168.1.0/24" }
     });
@@ -56,6 +57,7 @@ describe("persistence", () => {
       targetScreenId: 2,
       targetScreenIds: [2, 3, 4],
       screenFullscreen: true,
+      gatheringRunning: true,
       activeMassArchiveId: "Palm-Sunday",
       appSettings: { theme: "dark", remoteAddress: "10.12.1.1", sourceNetworks: "192.168.1.0/24" }
     });
