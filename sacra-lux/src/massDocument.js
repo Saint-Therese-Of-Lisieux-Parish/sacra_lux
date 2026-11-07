@@ -5,7 +5,8 @@ const { MIN_BOX, REFERENCE_CANVAS, normalizeGroupBounds } = require("./textBound
 const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "imageSlideshow", "movie", "countdown", "interstitial"]);
 const VALID_SECTIONS = new Set(["pre", "gathering", "mass", "post"]);
 const ITEM_KEYS = new Set(["id", "kind", "label", "section", "durationSec", "notes", "content", "source", "asset", "assets", "presentation"]);
-const TOP_LEVEL_KEYS = new Set(["format", "version", "metadata", "presentationDefaults", "items", "assets"]);
+const TOP_LEVEL_KEYS = new Set(["format", "version", "metadata", "presentationDefaults", "items", "readings", "assets"]);
+const READING_KEYS = new Set(["stem", "section", "passage", "textLines", "ending"]);
 const METADATA_KEYS = new Set(["title", "scheduledStart", "locale", "timezone", "rite"]);
 const CONTENT_KEYS = new Set(["text", "seconds", "showLabel", "label", "autoAdvance", "secondsPerImage", "loopCount"]);
 const SOURCE_KEYS = new Set(["stem", "citation", "title", "translation", "attribution"]);
@@ -245,6 +246,22 @@ function validateContentForKind(kind, content) {
   }
 }
 
+function validateReadingDocument(document, label = "reading") {
+  assertObject(document, label);
+  assertKnownKeys(document, READING_KEYS, label);
+  ensureNonEmptyString(document.stem, `${label}.stem`);
+  ensureNonEmptyString(document.section, `${label}.section`);
+  if (document.passage != null && typeof document.passage !== "string") {
+    throw new ValidationError(`${label}.passage must be a string.`);
+  }
+  if (!Array.isArray(document.textLines) || document.textLines.some((line) => typeof line !== "string")) {
+    throw new ValidationError(`${label}.textLines must be an array of strings.`);
+  }
+  if (document.ending != null && typeof document.ending !== "string") {
+    throw new ValidationError(`${label}.ending must be a string or null.`);
+  }
+}
+
 function validateSourceForKind(kind, source) {
   assertObject(source, "item.source");
   assertKnownKeys(source, SOURCE_KEYS, "item.source");
@@ -379,6 +396,19 @@ function validateMassDocument(document) {
   }
   if (!Array.isArray(document.items)) {
     throw new ValidationError("items must be an array.");
+  }
+  if (document.readings != null) {
+    if (!Array.isArray(document.readings)) {
+      throw new ValidationError("readings must be an array.");
+    }
+    const readingStems = new Set();
+    for (const reading of document.readings) {
+      validateReadingDocument(reading);
+      if (readingStems.has(reading.stem)) {
+        throw new ValidationError(`Duplicate reading stem "${reading.stem}".`);
+      }
+      readingStems.add(reading.stem);
+    }
   }
 
   const seenIds = new Set();
@@ -649,6 +679,9 @@ function buildItemFromState(organizerItem, manualSlide, documentsByStem) {
 
 function buildMassDocumentFromState(state) {
   const documentsByStem = new Map((state.readingsSource?.documents || []).map((doc) => [doc.stem, doc]));
+  const usedStems = new Set(state.organizerSequence
+    .filter((item) => item.type === "reading")
+    .map((item) => item.sourceStem));
   const document = {
     format: "sacra-lux.mass",
     version: 3,
@@ -659,6 +692,16 @@ function buildMassDocumentFromState(state) {
     presentationDefaults: remapScreenSettingsForDocument(state.screenSettings || {}),
     items: state.organizerSequence.map((item) => buildItemFromState(item, state.manualSlides?.[item.id], documentsByStem))
   };
+  const unusedDocuments = (state.readingsSource?.documents || []).filter((doc) => !usedStems.has(doc.stem));
+  if (unusedDocuments.length > 0) {
+    document.readings = unusedDocuments.map((doc) => ({
+      stem: doc.stem,
+      section: doc.section,
+      passage: doc.passage,
+      textLines: [...doc.textLines],
+      ending: doc.ending ?? null
+    }));
+  }
   document.assets = buildAssetsManifest(document);
   return document;
 }
@@ -681,6 +724,7 @@ function buildRuntimeStateFromMassDocument(document) {
   const organizerSequence = [];
   const manualSlides = {};
   const documents = [];
+  const documentStems = new Set();
 
   for (const item of document.items) {
     const type = item.kind;
@@ -702,6 +746,7 @@ function buildRuntimeStateFromMassDocument(document) {
       }
       organizerItem.styleOverrides = readStyleOverridesFromPresentation(item.presentation);
       documents.push(doc);
+      documentStems.add(doc.stem);
       organizerSequence.push(organizerItem);
       continue;
     }
@@ -756,6 +801,18 @@ function buildRuntimeStateFromMassDocument(document) {
     }
 
     manualSlides[item.id] = manual;
+  }
+
+  for (const doc of document.readings || []) {
+    if (!documentStems.has(doc.stem)) {
+      documents.push({
+        stem: doc.stem,
+        section: doc.section,
+        passage: doc.passage || "",
+        textLines: [...doc.textLines],
+        ending: doc.ending ?? null
+      });
+    }
   }
 
   return {
