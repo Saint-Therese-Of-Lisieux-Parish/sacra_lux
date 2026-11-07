@@ -6358,6 +6358,13 @@
       );
     }
 
+    function formatMissingMedia(data) {
+      const missing = Array.isArray(data?.missingMedia) ? data.missingMedia : [];
+      if (!missing.length) return "";
+      const names = missing.slice(0, 5).join(", ");
+      return `${missing.length} missing media file${missing.length === 1 ? "" : "s"}: ${names}${missing.length > 5 ? ", …" : ""}`;
+    }
+
     function showNewMassDialog() {
       els.newMassTitle.value = "";
       els.newMassStartTime.value = "";
@@ -9836,6 +9843,8 @@
           } else {
             const data = await resp.json();
             els.status.textContent = `Mass ZIP imported (${data.slideCount} slides).`;
+            const missingMedia = formatMissingMedia(data);
+            if (missingMedia) els.status.textContent += ` ${missingMedia}`;
           }
         } catch (err) {
           els.status.textContent = "ZIP import error: " + err.message;
@@ -10029,6 +10038,8 @@
         }
         if (action === "load") {
           els.status.textContent = `Loaded archived Mass: ${data.title || archiveId}`;
+          const missingMedia = formatMissingMedia(data);
+          if (missingMedia) els.status.textContent += ` ${missingMedia}`;
         } else if (action === "compress") {
           els.status.textContent = "Archived Mass compressed.";
         } else {

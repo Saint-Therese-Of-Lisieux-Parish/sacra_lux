@@ -812,6 +812,15 @@ async function convertImageToAvif(sharp, filePath) {
 }
 
 function validateMassDocumentAssetEntries(massDocument, zip) {
+  const refs = collectMassAssetRefs(massDocument);
+  for (const ref of refs) {
+    if (String(ref).startsWith("assets/") && !zip.getEntry(ref)) {
+      throw new Error(`Compressed Mass document references missing asset "${ref}".`);
+    }
+  }
+}
+
+function collectMassAssetRefs(massDocument) {
   const refs = [];
   for (const item of massDocument.items || []) {
     if (item.asset?.ref) refs.push(item.asset.ref);
@@ -819,14 +828,45 @@ function validateMassDocumentAssetEntries(massDocument, zip) {
       if (asset?.ref) refs.push(asset.ref);
     }
   }
-  for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
-    if (massDocument.presentationDefaults?.[key]) refs.push(massDocument.presentationDefaults[key]);
-  }
-  for (const ref of refs) {
-    if (String(ref).startsWith("assets/") && !zip.getEntry(ref)) {
-      throw new Error(`Compressed Mass document references missing asset "${ref}".`);
+  for (const slide of Object.values(massDocument.manualSlides || massDocument.manualCues || {})) {
+    if (slide.imageUrl) refs.push(slide.imageUrl);
+    if (slide.videoUrl) refs.push(slide.videoUrl);
+    for (const image of slide.images || []) {
+      const ref = typeof image === "string" ? image : image?.url;
+      if (ref) refs.push(ref);
     }
   }
+  for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+    if (massDocument.presentationDefaults?.[key]) refs.push(massDocument.presentationDefaults[key]);
+    if (massDocument.screenSettings?.[key]) refs.push(massDocument.screenSettings[key]);
+  }
+  return [...new Set(refs.map(String))];
+}
+
+function assetNameFromRef(ref) {
+  const value = String(ref);
+  if (value.startsWith("assets/")) return value.slice("assets/".length);
+  const apiMatch = value.match(/^\/api\/mass-asset\/(.+)$/);
+  if (apiMatch) return decodeAssetName(apiMatch[1]);
+  const uploadMatch = value.match(/^\/static\/uploads\/(.+)$/);
+  if (uploadMatch) return decodeAssetName(uploadMatch[1]);
+  return null;
+}
+
+function findMissingMassAssets(massDocument, source) {
+  const missing = [];
+  for (const ref of collectMassAssetRefs(massDocument)) {
+    const name = assetNameFromRef(ref);
+    if (!name || !isSafeAssetName(name)) continue;
+    const locations = source.kind === "zip"
+      ? [`assets/${name}`, `readings/assets/${name}`, `uploads/${name}`]
+      : [path.join(source.root, "assets", name), path.join(source.root, "readings", "assets", name), path.join(source.root, "uploads", name)];
+    const exists = source.kind === "zip"
+      ? locations.some((entryName) => source.zip.getEntry(entryName))
+      : locations.some((filePath) => fs.existsSync(filePath));
+    if (!exists) missing.push(name);
+  }
+  return missing;
 }
 
 async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
@@ -1522,6 +1562,7 @@ let _massSaveError = "";
 // to the first Mass slide at the scheduled wall-clock time.
 let _startTimer = null;
 let _massStartTimer = null;
+let _gatheringStartedForMassKey = null;
 
 function clearStartTimers() {
   if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
@@ -1738,6 +1779,34 @@ function advanceAfterImageSlideshow(ioRef, { direction = 1 } = {}) {
   if (nextIndex >= 0) scheduleRuntimeForCurrentSlide(ioRef);
 }
 
+function advanceImageSlideshowFrame(ioRef, scheduledSlideId) {
+  const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+  if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
+
+  const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
+  const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
+  if (latestPlayable.length === 0 || latestPosition < 0) {
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+
+  if (latestPosition < latestPlayable.length - 1) {
+    state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
+  } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
+    _imageSlideshowFailedUrls.clear();
+    state.imageSlideshowLoopIteration += 1;
+    state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
+  } else {
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+  scheduleSave();
+  scheduleImageSlideshowSlide(ioRef);
+}
+
 function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   stopImageSlideshowTimer({ resetProgress: false });
   const slides = state.presentation?.slides || [];
@@ -1775,7 +1844,7 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   const imageSlideshowEndsAt = Number.isFinite(savedEndsAt) ? savedEndsAt : Date.now() + durationMs;
   if (imageSlideshowEndsAt <= Date.now()) {
     state.imageSlideshowEndsAt = null;
-    advanceAfterImageSlideshow(ioRef);
+    advanceImageSlideshowFrame(ioRef, currentSlide.id);
     return;
   }
   state.imageSlideshowEndsAt = imageSlideshowEndsAt;
@@ -1786,31 +1855,7 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   _imageSlideshowTimer = setTimeout(() => {
     _imageSlideshowTimer = null;
     state.imageSlideshowEndsAt = null;
-    const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
-    if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
-
-    const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
-    const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
-    if (latestPlayable.length === 0 || latestPosition < 0) {
-      advanceAfterImageSlideshow(ioRef);
-      return;
-    }
-
-    if (latestPosition < latestPlayable.length - 1) {
-      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
-    } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
-      _imageSlideshowFailedUrls.clear();
-      state.imageSlideshowLoopIteration += 1;
-      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
-    } else {
-      advanceAfterImageSlideshow(ioRef);
-      return;
-    }
-
-    touch();
-    ioRef.emit("state:update", getStateSnapshot());
-    scheduleSave();
-    scheduleImageSlideshowSlide(ioRef);
+    advanceImageSlideshowFrame(ioRef, scheduledSlideId);
   }, Math.max(0, imageSlideshowEndsAt - Date.now()));
 }
 
@@ -1828,6 +1873,11 @@ function stopPreMassTimer() {
 function getAutomaticSlideDurationMs(slide) {
   const orgItem = state.organizerSequence.find((item) => item.id === slide?.organizerItemId);
   return Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
+}
+
+function keepPhaseDeadlineFromCurrentTime(deadlineAt, durationMs) {
+  const now = Date.now();
+  return deadlineAt < now - durationMs ? now + durationMs : deadlineAt;
 }
 
 function isPhaseOwnedSlide(slide) {
@@ -1874,7 +1924,8 @@ function scheduleNextPreMassSlide(ioRef) {
     _preMassDeadlineAt = Date.now() + durationMs;
     _preMassDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _preMassDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_preMassDeadlineAt, durationMs);
+  _preMassDeadlineAt = deadlineAt;
 
   _preMassTimer = setTimeout(() => {
     _preMassTimer = null;
@@ -1949,6 +2000,7 @@ function startGatheringSequence(ioRef) {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
+  stopPhaseOwnedTimers();
 
   const slides = state.presentation?.slides || [];
   const firstGatheringIdx = slides.findIndex((s) => s.phase === "gathering");
@@ -1957,6 +2009,9 @@ function startGatheringSequence(ioRef) {
   if (firstGatheringIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstGatheringIdx);
     state.gatheringRunning = true;
+    _gatheringStartedForMassKey = state.massStartTime
+      ? `${state.activeMassArchiveId || ""}|${state.massStartTime}`
+      : null;
     updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
@@ -2008,7 +2063,8 @@ function scheduleNextGatheringSlide(ioRef) {
     _gatheringDeadlineAt = Date.now() + durationMs;
     _gatheringDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _gatheringDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_gatheringDeadlineAt, durationMs);
+  _gatheringDeadlineAt = deadlineAt;
 
   _gatheringTimer = setTimeout(() => {
     _gatheringTimer = null;
@@ -2089,6 +2145,7 @@ function startPostMassSequence(ioRef) {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
+  stopPhaseOwnedTimers();
 
   const slides = state.presentation?.slides || [];
   const firstPostIdx = slides.findIndex((s) => s.phase === "post");
@@ -2139,7 +2196,8 @@ function scheduleNextPostMassSlide(ioRef) {
     _postMassDeadlineAt = Date.now() + durationMs;
     _postMassDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _postMassDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_postMassDeadlineAt, durationMs);
+  _postMassDeadlineAt = deadlineAt;
 
   _postMassTimer = setTimeout(() => {
     _postMassTimer = null;
@@ -2496,7 +2554,11 @@ function startMassSequence(ioRef) {
 function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   clearStartTimers();
   const timeStr = state.massStartTime;
-  if (!timeStr) return;
+  if (!timeStr) {
+    _gatheringStartedForMassKey = null;
+    return;
+  }
+  const massStartKey = `${state.activeMassArchiveId || ""}|${timeStr}`;
   const target = new Date(timeStr);
   if (isNaN(target.getTime())) return;
   const now = Date.now();
@@ -2544,7 +2606,8 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
     if (catchUp && !state.postMassRunning && !onPostMassSlide) startMassSequence(ioRef);
     return;
   }
-  if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide) {
+  if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide &&
+      _gatheringStartedForMassKey !== massStartKey) {
     startGatheringSequence(ioRef);
   }
 }
@@ -3972,7 +4035,7 @@ function startServer(port = 17841, options = {}) {
         if (item.type === "text" || item.type === "prayer" || item.type === "hymn") {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: "middle", imageUrl: null };
         } else if (item.type === "countdown") {
-          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 60, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
+          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 30, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
         } else {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null };
         }
@@ -4062,6 +4125,7 @@ function startServer(port = 17841, options = {}) {
       }
       const packageDefinition = parseMassZipDefinition(definitionEntry);
       validateMassPackageDefinition(packageDefinition, state.screenSettings);
+      const missingMedia = findMissingMassAssets(packageDefinition, { kind: "zip", zip });
 
       saveCurrentMass();
       preserveInvalidCurrentMass();
@@ -4072,7 +4136,7 @@ function startServer(port = 17841, options = {}) {
       state.activeMassArchiveId = null;
       applyMassPackageFromCurrentDir(io, packageDefinition);
       scheduleSave(true);
-      return res.json({ ok: true, slideCount: state.presentation.slides.length });
+      return res.json({ ok: true, slideCount: state.presentation.slides.length, missingMedia });
     } catch (error) {
       return sendApiError(res, error, "Failed to import ZIP.");
     }
@@ -4099,6 +4163,7 @@ function startServer(port = 17841, options = {}) {
       }
 
       let packageData = null;
+      let missingMedia = [];
       if (fs.existsSync(archivePaths.packageDir)) {
         const massJsonPath = path.join(archivePaths.packageDir, "mass.json");
         if (!fs.existsSync(massJsonPath)) {
@@ -4110,6 +4175,7 @@ function startServer(port = 17841, options = {}) {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
         validateMassPackageDefinition(packageData, state.screenSettings);
+        missingMedia = findMissingMassAssets(packageData, { kind: "folder", root: archivePaths.packageDir });
         saveCurrentMass();
         preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
@@ -4132,6 +4198,7 @@ function startServer(port = 17841, options = {}) {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
         validateMassPackageDefinition(packageData, state.screenSettings);
+        missingMedia = findMissingMassAssets(packageData, { kind: "zip", zip });
         saveCurrentMass();
         preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
@@ -4144,7 +4211,7 @@ function startServer(port = 17841, options = {}) {
       state.activeMassArchiveId = archiveId;
       applyMassPackageFromCurrentDir(io, packageData);
       scheduleSave(true);
-      return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null });
+      return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null, missingMedia });
     } catch (error) {
       return sendApiError(res, error, "Failed to load Mass archive.");
     }
@@ -4923,6 +4990,10 @@ function startServer(port = 17841, options = {}) {
 
     // Restore the session after the server is bound.
     restoreSession(io);
+    if (process.env.SACRA_LUX_RESET_PIN === "1") {
+      resetStartPin();
+      logger.info("[security] Start PIN reset at startup.");
+    }
     const restoredSourceNetworks = state.appSettings?.sourceNetworks || "";
     const restoredSource = sourceNetworkGuard.setAllowedEntries(restoredSourceNetworks);
     if (restoredSource.invalid.length) {

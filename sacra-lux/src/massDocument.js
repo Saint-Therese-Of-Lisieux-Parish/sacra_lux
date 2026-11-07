@@ -1,4 +1,5 @@
 const { endingForSection } = require("./readingEndings");
+const { isKnownReadingStem, sectionFromStem } = require("./readingsImporter");
 const { MIN_BOX, REFERENCE_CANVAS, normalizeGroupBounds } = require("./textBounds");
 
 const VALID_KINDS = new Set(["text", "prayer", "hymn", "reading", "image", "imageSlideshow", "movie", "countdown", "interstitial"]);
@@ -664,12 +665,13 @@ function buildMassDocumentFromState(state) {
 
 function buildReadingDocumentFromItem(item) {
   const stem = sanitizeStem(item.source?.stem, item.id);
+  const section = isKnownReadingStem(stem) ? sectionFromStem(stem) : item.label;
   return {
     stem,
-    section: item.label,
+    section,
     passage: item.source?.citation || item.label,
     textLines: String(item.content?.text || "").split("\n"),
-    ending: endingForSection(item.label)
+    ending: endingForSection(section)
   };
 }
 

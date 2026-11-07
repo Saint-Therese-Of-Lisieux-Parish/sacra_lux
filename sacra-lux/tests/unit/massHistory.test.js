@@ -163,6 +163,25 @@ describe("massHistory", () => {
     expect(fs.statSync(mediaPath).mtimeMs).toBe(originalMtime);
   });
 
+  test("does not copy unchanged media with sub-millisecond modification times", () => {
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    const mediaPath = path.join(currentMassDir, "assets", "movie.mp4");
+    fs.mkdirSync(path.dirname(mediaPath), { recursive: true });
+    fs.writeFileSync(path.join(currentMassDir, "mass.json"), "current", "utf8");
+    fs.writeFileSync(mediaPath, "movie", "utf8");
+    const timestamp = 1793786967.874887;
+    fs.utimesSync(mediaPath, timestamp, timestamp);
+
+    const history = require("../../src/massHistory");
+    const first = history.syncCurrentMassToArchive({ currentArchiveId: null, title: "Mass", startTime: null });
+    const archiveMediaPath = path.join(history.getArchivePaths(first.id).packageDir, "assets", "movie.mp4");
+    const originalInode = fs.statSync(archiveMediaPath).ino;
+
+    history.syncCurrentMassToArchive({ currentArchiveId: first.id, title: "Mass", startTime: null });
+
+    expect(fs.statSync(archiveMediaPath).ino).toBe(originalInode);
+  });
+
   test("removes files that no longer exist in the current Mass", () => {
     const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
     fs.mkdirSync(path.join(currentMassDir, "assets"), { recursive: true });

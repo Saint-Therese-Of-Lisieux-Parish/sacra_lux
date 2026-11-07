@@ -148,9 +148,9 @@ reads the `format` and `version` keys to choose how to read the file.
   documents when it has no such item.
 - Media references use the form `assets/<file>`. The `<file>` has no `/`. A
   reference with another form is an error: `Unsupported asset ref "...".`
-- Put each referenced file in `assets/` in the ZIP. The import does not fail
-  if a referenced file is missing, and the response does not list missing
-  files. The slide shows no media.
+- Put each referenced file in `assets/` in the ZIP. The import keeps a Mass
+  loadable if a referenced file is missing, and the response lists the missing
+  file names in `missingMedia`.
 
 ### Legacy Packages
 
