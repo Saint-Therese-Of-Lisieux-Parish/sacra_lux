@@ -216,6 +216,39 @@ describe("readingsImporter", () => {
     ]);
     expect(alleluia.some((slide) => /path of life/i.test(slide.text))).toBe(false);
   });
+
+  test("keeps the selected psalm refrain after a hard page break", () => {
+    const docs = [{
+      stem: "Responsorial_Psalm",
+      section: "Responsorial Psalm",
+      passage: "Psalm 23",
+      textLines: [
+        "R. Option A",
+        "or:",
+        "R. Option B",
+        "Stanza one",
+        "---",
+        "Stanza two",
+        "R. Option A"
+      ],
+      ending: null
+    }];
+
+    const slides = paginateDocuments(docs, {
+      fontSizePx: 60,
+      fontFamily: "Merriweather",
+      readingTextHeightPx: 840,
+      readingTextMarginXPx: 80,
+      psalmRefrainIndex: 1
+    });
+
+    expect(slides.map((slide) => slide.text)).toEqual([
+      "R. Option B",
+      "Stanza one",
+      "Stanza two",
+      "R. Option B"
+    ]);
+  });
 });
 
 describe("spoken reading endings", () => {
