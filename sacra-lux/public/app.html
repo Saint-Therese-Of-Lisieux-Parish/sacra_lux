@@ -9774,21 +9774,39 @@
       if (!res.ok) els.status.textContent = data.error || "Post-mass error";
     });
 
+    function getDownloadFileName(response, fallback) {
+      const header = response.headers.get("Content-Disposition") || "";
+      const utf8Match = header.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utf8Match) {
+        try {
+          return decodeURIComponent(utf8Match[1]);
+        } catch {
+          return fallback;
+        }
+      }
+      const filenameMatch = header.match(/filename="?([^";]+)"?/i);
+      return filenameMatch ? filenameMatch[1] : fallback;
+    }
+
+    async function downloadExport(url, fallbackName) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Mass export failed.");
+      }
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = getDownloadFileName(response, fallbackName);
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    }
+
     els.exportZipBtn.addEventListener("click", async () => {
       els.status.textContent = "Exporting Mass…";
       try {
-        const response = await fetch("/api/export-mass-zip");
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.error || "Mass export failed.");
-        }
-        const blob = await response.blob();
-        const downloadUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = "mass.zip";
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+        await downloadExport("/api/export-mass-zip", "mass.zip");
         els.status.textContent = "Mass export complete.";
       } catch (error) {
         els.status.textContent = error.message || "Mass export failed.";
@@ -9811,14 +9829,19 @@
     });
 
     socket.on("export:avif:done", ({ token }) => {
-      avifExportInProgress = false;
       els.avifProgressBar.style.width = "100%";
       els.avifProgressLabel.textContent = "Download starting…";
-      window.location.href = "/api/export-mass-zip-avif?token=" + encodeURIComponent(token);
-      setTimeout(() => {
-        els.avifProgressWrap.style.display = "none";
-        els.exportAvifBtn.disabled = false;
-      }, 1500);
+      downloadExport("/api/export-mass-zip-avif?token=" + encodeURIComponent(token), "mass-avif.zip")
+        .then(() => {
+          avifExportInProgress = false;
+          setTimeout(() => {
+            els.avifProgressWrap.style.display = "none";
+            els.exportAvifBtn.disabled = false;
+          }, 1500);
+        })
+        .catch((error) => {
+          resetAvifExport("Export failed: " + (error.message || "Download failed."));
+        });
     });
 
     socket.on("export:avif:error", ({ error }) => {
