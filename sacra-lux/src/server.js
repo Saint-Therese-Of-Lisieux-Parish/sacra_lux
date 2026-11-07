@@ -4096,12 +4096,14 @@ function startServer(port = 17841, options = {}) {
         return res.status(400).json({ error: "zipData is required." });
       }
       // Accept base64 data URL (data:application/zip;base64,...) or plain base64
-      // eslint-disable-next-line security/detect-unsafe-regex -- no nested quantifier; the pattern is anchored and linear
-      const match = String(zipData).match(/^(?:data:[^;]+;base64,)?([A-Za-z0-9+/=\s]+)$/);
-      if (!match) {
+      // Avoid a whole-string regex match: it overflows the regex stack on large archives.
+      const zipText = String(zipData);
+      const prefix = /^data:[^;]+;base64,/.exec(zipText.slice(0, 256));
+      const encodedPart = prefix ? zipText.slice(prefix[0].length) : zipText;
+      if (!encodedPart || /[^A-Za-z0-9+/=\s]/.test(encodedPart)) {
         return res.status(400).json({ error: "Invalid zip data." });
       }
-      const encodedZip = match[1].replace(/\s/g, "");
+      const encodedZip = encodedPart.replace(/\s/g, "");
       const maxEncodedZipLength = Math.ceil(MAX_MASS_ZIP_COMPRESSED_BYTES / 3) * 4;
       if (encodedZip.length > maxEncodedZipLength) {
         throw new ValidationError(
