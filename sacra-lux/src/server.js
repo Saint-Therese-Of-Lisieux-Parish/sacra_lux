@@ -2490,6 +2490,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   const now = Date.now();
   const massHasBegun = now >= target;
   const onMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "mass";
+  const onPostMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "post";
 
   // Arm the hard cutover at the scheduled time. It leaves a Mass slide that
   // is already showing, and otherwise opens the first Mass slide.
@@ -2526,9 +2527,9 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   // The lead-in is already past. Once Mass has begun, only an explicit
   // catch-up may move the projector. Before that, open gathering even if
   // pre-Mass is still running. Leave a Mass slide, a gathering sequence
-  // already playing, and a post-Mass loop where they are.
+  // already playing, and a post-Mass slide or loop where they are.
   if (massHasBegun) {
-    if (catchUp && !state.postMassRunning) startMassSequence(ioRef);
+    if (catchUp && !state.postMassRunning && !onPostMassSlide) startMassSequence(ioRef);
     return;
   }
   if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide) {

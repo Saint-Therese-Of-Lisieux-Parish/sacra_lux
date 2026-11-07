@@ -222,6 +222,29 @@ describe("mass start from the wall clock", () => {
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "mass"));
   });
 
+  test("catch-up keeps a manually selected post-Mass slide", async () => {
+    jest.setSystemTime(new Date("2026-05-03T10:05:00"));
+    await seedGatheringAndMass();
+    await request(app).post("/api/organizer").send({
+      sequence: [
+        ...gatheringSequence,
+        { id: "post-one", type: "text", label: "Post One", phase: "post", backgroundTheme: "dark", durationSec: 10 }
+      ],
+      manualSlides: { ...gatheringManualSlides, "post-one": { text: "Post One" } }
+    }).expect(200);
+    await request(app).post("/api/start-time").send({ time: "2026-05-03T10:00" }).expect(200);
+
+    const before = await request(app).get("/api/state").expect(200);
+    const postIndex = before.body.presentation.slides.findIndex((slide) => slide.organizerItemId === "post-one");
+    state.currentSlideIndex = postIndex;
+
+    handle.rescheduleStartTimer();
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.currentSlideIndex).toBe(postIndex);
+    expect(after.body.presentation.slides[after.body.currentSlideIndex].organizerItemId).toBe("post-one");
+  });
+
   test("a gathering countdown does not skip the first Mass slide after cutover", async () => {
     // The organizer duration is 30s, which is what the lead-in uses. The
     // countdown itself runs 60s, so it is still going when Mass time arrives.
