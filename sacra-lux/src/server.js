@@ -1995,6 +1995,7 @@ function startGatheringSequence(ioRef) {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
+  stopPhaseOwnedTimers();
 
   const slides = state.presentation?.slides || [];
   const firstGatheringIdx = slides.findIndex((s) => s.phase === "gathering");
@@ -2139,6 +2140,7 @@ function startPostMassSequence(ioRef) {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
+  stopPhaseOwnedTimers();
 
   const slides = state.presentation?.slides || [];
   const firstPostIdx = slides.findIndex((s) => s.phase === "post");

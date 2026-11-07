@@ -316,6 +316,71 @@ describe("phase slide timers", () => {
     expect(response.body.imageSlideshowEndsAt).not.toBeNull();
   });
 
+  test("resets image slideshow progress when a new phase starts", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    fs.writeFileSync(path.join(assetsDir, "phase.png"), image);
+    await saveOrganizer(
+      [
+        {
+          id: "pre-show",
+          type: "imageSlideshow",
+          label: "Pre slideshow",
+          phase: "pre",
+          backgroundTheme: "dark",
+          durationSec: 1
+        },
+        {
+          id: "gather-show",
+          type: "imageSlideshow",
+          label: "Gathering slideshow",
+          phase: "gathering",
+          backgroundTheme: "dark",
+          durationSec: 1
+        },
+        textItem("mass", "mass", 10),
+        {
+          id: "post-show",
+          type: "imageSlideshow",
+          label: "Post slideshow",
+          phase: "post",
+          backgroundTheme: "dark",
+          durationSec: 1
+        }
+      ],
+      {
+        "pre-show": { images: [{ url: "/static/assets/phase.png", name: "phase.png" }], slideshowDurationSec: 1, slideshowLoopCount: 5 },
+        "gather-show": { images: [{ url: "/static/assets/phase.png", name: "phase.png" }], slideshowDurationSec: 1, slideshowLoopCount: 3 },
+        mass: { text: "Mass" },
+        "post-show": { images: [{ url: "/static/assets/phase.png", name: "phase.png" }], slideshowDurationSec: 1, slideshowLoopCount: 3 }
+      }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    jest.advanceTimersByTime(2000);
+    await flushSocket();
+    let response = await request(app).get("/api/state").expect(200);
+    expect(response.body.imageSlideshowLoopIteration).toBe(3);
+
+    await request(app).post("/api/gathering/start").expect(200);
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("gather-show");
+    expect(response.body.imageSlideshowLoopIteration).toBe(1);
+
+    jest.advanceTimersByTime(3000);
+    await flushSocket();
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("mass");
+
+    state.imageSlideshowLoopIteration = 2;
+    await request(app).post("/api/post-mass/start").expect(200);
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("post-show");
+    expect(response.body.imageSlideshowLoopIteration).toBe(1);
+  });
+
   test("advances post-Mass slides and stays in the post-Mass loop", async () => {
     await request(app).post("/api/new-mass").send({ title: "Post sequence", startTime: "" }).expect(200);
     await saveOrganizer(
