@@ -726,8 +726,16 @@ function buildAppMenu(ioRef) {
       accelerator: "CmdOrCtrl+S",
       click: () => {
         try {
-          saveSession(state);
-          saveCurrentMass();
+          const sessionSaved = saveSession(state) !== false;
+          const massSaved = saveCurrentMass() !== false;
+          if (!massSaved) {
+            showAppStatus("No Mass is loaded.");
+            return;
+          }
+          if (!sessionSaved) {
+            showAppStatus("Could not save session.json.");
+            return;
+          }
           showAppStatus("Mass saved");
         } catch (error) {
           showAppStatus(error?.message || "Could not save the Mass.");

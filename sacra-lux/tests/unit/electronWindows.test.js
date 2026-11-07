@@ -97,7 +97,7 @@ async function startMain({
   };
 
   jest.doMock("electron", () => electron, { virtual: true });
-  const saveCurrentMass = jest.fn();
+  const saveCurrentMass = jest.fn(() => true);
   const flushPendingSave = jest.fn();
   const resetStartPin = jest.fn();
   const rescheduleStartTimer = jest.fn();
@@ -109,7 +109,7 @@ async function startMain({
     flushPendingSave,
     resetStartPin
   }));
-  jest.doMock("../../src/persistence", () => ({ saveSession: jest.fn() }));
+  jest.doMock("../../src/persistence", () => ({ saveSession: jest.fn(() => true) }));
   jest.doMock("../../src/cliBanner", () => ({ writeStartupBanner: jest.fn() }));
   jest.doMock("../../src/logger", () => ({
     info: jest.fn(),
@@ -423,6 +423,37 @@ describe("Electron window security settings", () => {
     );
     expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
       expect.stringContaining("Mass saved")
+    );
+  });
+
+  test("the Save menu item reports when no Mass is loaded", async () => {
+    const windows = await startMain();
+    windows.saveCurrentMass.mockReturnValue(false);
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const file = template.find((item) => item.label === "File");
+    const save = file.submenu.find((item) => item.label === "Save");
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+
+    save.click();
+
+    expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
+      expect.stringContaining("No Mass is loaded.")
+    );
+  });
+
+  test("the Save menu item reports a session save failure", async () => {
+    const windows = await startMain();
+    const persistence = require("../../src/persistence");
+    persistence.saveSession.mockReturnValue(false);
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const file = template.find((item) => item.label === "File");
+    const save = file.submenu.find((item) => item.label === "Save");
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+
+    save.click();
+
+    expect(appWindow.webContents.executeJavaScript).toHaveBeenCalledWith(
+      expect.stringContaining("Could not save session.json.")
     );
   });
 
