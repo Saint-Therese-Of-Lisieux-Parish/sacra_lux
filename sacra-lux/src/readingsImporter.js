@@ -123,6 +123,10 @@ function sectionFromStem(stem) {
   return stem.replace(/_/g, " ");
 }
 
+function isKnownReadingStem(stem) {
+  return STEM_KEYS_BY_LENGTH.some((key) => stem === key || stem.startsWith(`${key}-`) || stem.startsWith(`${key}_`));
+}
+
 function sectionSortKey(name) {
   // Match exactly or as a prefix followed by a space.
   const idx = SECTION_ORDER.findIndex(
@@ -605,8 +609,10 @@ function importReadings(folderPath, options = {}) {
 
 module.exports = {
   importReadings,
+  isKnownReadingStem,
   listPsalmRefrainOptions,
   paginateDocuments,
+  sectionFromStem,
   estimateVisualLines,
   clearPaginationCache
 };
