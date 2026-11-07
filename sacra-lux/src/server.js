@@ -1504,6 +1504,7 @@ function getCachedStateSnapshot(forceRefresh = false) {
 let _savePending = false;
 let _saveTimer = null;
 let _syncCurrentMassOnSave = false;
+let _massSaveError = "";
 
 // ── Mass start-time automation ───────────────────────────────────────────────
 // _startTimer arms the gathering lead-in; _massStartTimer is the hard cutover
@@ -2595,25 +2596,27 @@ function runScheduledSave() {
   _savePending = false;
   _saveTimer = null;
   const shouldSyncCurrentMass = _syncCurrentMassOnSave;
-  _syncCurrentMassOnSave = false;
-  let saveError = "";
   try {
     // Save the Mass first: it sets activeMassArchiveId, which the session records.
     if (shouldSyncCurrentMass) {
       saveCurrentMass();
+      _syncCurrentMassOnSave = false;
+      _massSaveError = "";
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
-    saveError = publicSaveError("mass.json", error);
+    _massSaveError = publicSaveError("mass.json", error);
   }
+  let sessionSaveError = "";
   try {
     if (saveSession(state) === false) {
-      saveError = saveError || "Could not save session.json.";
+      sessionSaveError = "Could not save session.json.";
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
-    saveError = saveError || publicSaveError("session.json", error);
+    sessionSaveError = publicSaveError("session.json", error);
   }
+  const saveError = _massSaveError || sessionSaveError;
   if (state.saveError !== saveError) {
     state.saveError = saveError;
     touch();
