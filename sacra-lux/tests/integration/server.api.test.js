@@ -3384,6 +3384,52 @@ describe("server api integration", () => {
     expect(fs.existsSync(path.join(currentMassDir, "Reading_I.txt"))).toBe(true);
   });
 
+  test("import-mass-zip reports referenced media that is not in the ZIP", async () => {
+    const zip = new AdmZip();
+    zip.addFile("mass.json", Buffer.from(JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Missing Media Mass" },
+      items: [{
+        id: "missing-movie",
+        kind: "movie",
+        label: "Missing movie",
+        section: "mass",
+        asset: { ref: "assets/missing.mp4" }
+      }]
+    })));
+
+    const response = await request(app)
+      .post("/api/import-mass-zip")
+      .send({ zipData: zip.toBuffer().toString("base64") })
+      .expect(200);
+
+    expect(response.body.missingMedia).toEqual(["missing.mp4"]);
+    expect((await request(app).get("/api/state")).body.presentation.slides).toHaveLength(1);
+  });
+
+  test("archive loads report referenced media that is not in the archive", async () => {
+    const packageDir = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Archive-Missing-Image", "package");
+    fs.mkdirSync(packageDir, { recursive: true });
+    fs.writeFileSync(path.join(packageDir, "mass.json"), JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Missing Archive Media" },
+      items: [{
+        id: "missing-image",
+        kind: "image",
+        label: "Missing image",
+        section: "mass",
+        asset: { ref: "assets/missing.png" }
+      }]
+    }), "utf8");
+
+    const response = await request(app)
+      .post("/api/mass-history/Archive-Missing-Image/load")
+      .expect(200);
+    expect(response.body.missingMedia).toEqual(["missing.png"]);
+  });
+
   test("Mass loads use application defaults for missing screen settings", async () => {
     const importDefinition = async (definition) => {
       const zip = new AdmZip();

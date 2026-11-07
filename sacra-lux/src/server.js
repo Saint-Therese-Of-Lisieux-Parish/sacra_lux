@@ -807,6 +807,15 @@ async function convertImageToAvif(sharp, filePath) {
 }
 
 function validateMassDocumentAssetEntries(massDocument, zip) {
+  const refs = collectMassAssetRefs(massDocument);
+  for (const ref of refs) {
+    if (String(ref).startsWith("assets/") && !zip.getEntry(ref)) {
+      throw new Error(`Compressed Mass document references missing asset "${ref}".`);
+    }
+  }
+}
+
+function collectMassAssetRefs(massDocument) {
   const refs = [];
   for (const item of massDocument.items || []) {
     if (item.asset?.ref) refs.push(item.asset.ref);
@@ -814,14 +823,45 @@ function validateMassDocumentAssetEntries(massDocument, zip) {
       if (asset?.ref) refs.push(asset.ref);
     }
   }
-  for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
-    if (massDocument.presentationDefaults?.[key]) refs.push(massDocument.presentationDefaults[key]);
-  }
-  for (const ref of refs) {
-    if (String(ref).startsWith("assets/") && !zip.getEntry(ref)) {
-      throw new Error(`Compressed Mass document references missing asset "${ref}".`);
+  for (const slide of Object.values(massDocument.manualSlides || massDocument.manualCues || {})) {
+    if (slide.imageUrl) refs.push(slide.imageUrl);
+    if (slide.videoUrl) refs.push(slide.videoUrl);
+    for (const image of slide.images || []) {
+      const ref = typeof image === "string" ? image : image?.url;
+      if (ref) refs.push(ref);
     }
   }
+  for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
+    if (massDocument.presentationDefaults?.[key]) refs.push(massDocument.presentationDefaults[key]);
+    if (massDocument.screenSettings?.[key]) refs.push(massDocument.screenSettings[key]);
+  }
+  return [...new Set(refs.map(String))];
+}
+
+function assetNameFromRef(ref) {
+  const value = String(ref);
+  if (value.startsWith("assets/")) return value.slice("assets/".length);
+  const apiMatch = value.match(/^\/api\/mass-asset\/(.+)$/);
+  if (apiMatch) return decodeAssetName(apiMatch[1]);
+  const uploadMatch = value.match(/^\/static\/uploads\/(.+)$/);
+  if (uploadMatch) return decodeAssetName(uploadMatch[1]);
+  return null;
+}
+
+function findMissingMassAssets(massDocument, source) {
+  const missing = [];
+  for (const ref of collectMassAssetRefs(massDocument)) {
+    const name = assetNameFromRef(ref);
+    if (!name || !isSafeAssetName(name)) continue;
+    const locations = source.kind === "zip"
+      ? [`assets/${name}`, `readings/assets/${name}`, `uploads/${name}`]
+      : [path.join(source.root, "assets", name), path.join(source.root, "readings", "assets", name), path.join(source.root, "uploads", name)];
+    const exists = source.kind === "zip"
+      ? locations.some((entryName) => source.zip.getEntry(entryName))
+      : locations.some((filePath) => fs.existsSync(filePath));
+    if (!exists) missing.push(name);
+  }
+  return missing;
 }
 
 async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
@@ -4057,6 +4097,7 @@ function startServer(port = 17841, options = {}) {
       }
       const packageDefinition = parseMassZipDefinition(definitionEntry);
       validateMassPackageDefinition(packageDefinition, state.screenSettings);
+      const missingMedia = findMissingMassAssets(packageDefinition, { kind: "zip", zip });
 
       saveCurrentMass();
       preserveInvalidCurrentMass();
@@ -4067,7 +4108,7 @@ function startServer(port = 17841, options = {}) {
       state.activeMassArchiveId = null;
       applyMassPackageFromCurrentDir(io, packageDefinition);
       scheduleSave(true);
-      return res.json({ ok: true, slideCount: state.presentation.slides.length });
+      return res.json({ ok: true, slideCount: state.presentation.slides.length, missingMedia });
     } catch (error) {
       return sendApiError(res, error, "Failed to import ZIP.");
     }
@@ -4094,6 +4135,7 @@ function startServer(port = 17841, options = {}) {
       }
 
       let packageData = null;
+      let missingMedia = [];
       if (fs.existsSync(archivePaths.packageDir)) {
         const massJsonPath = path.join(archivePaths.packageDir, "mass.json");
         if (!fs.existsSync(massJsonPath)) {
@@ -4105,6 +4147,7 @@ function startServer(port = 17841, options = {}) {
           return res.status(400).json({ error: "Archive package is missing mass.json." });
         }
         validateMassPackageDefinition(packageData, state.screenSettings);
+        missingMedia = findMissingMassAssets(packageData, { kind: "folder", root: archivePaths.packageDir });
         saveCurrentMass();
         preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
@@ -4127,6 +4170,7 @@ function startServer(port = 17841, options = {}) {
           return res.status(400).json({ error: "Compressed archive is missing mass.json or settings.json." });
         }
         validateMassPackageDefinition(packageData, state.screenSettings);
+        missingMedia = findMissingMassAssets(packageData, { kind: "zip", zip });
         saveCurrentMass();
         preserveInvalidCurrentMass();
         replaceCurrentMassDir((stagingDir) => {
@@ -4139,7 +4183,7 @@ function startServer(port = 17841, options = {}) {
       state.activeMassArchiveId = archiveId;
       applyMassPackageFromCurrentDir(io, packageData);
       scheduleSave(true);
-      return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null });
+      return res.json({ ok: true, activeArchiveId: archiveId, title: state.presentation?.title || null, missingMedia });
     } catch (error) {
       return sendApiError(res, error, "Failed to load Mass archive.");
     }
