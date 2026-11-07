@@ -309,6 +309,14 @@ describe("socket handlers", () => {
       await pending;
     });
 
+    test("slide goto ignores fractional indexes", async () => {
+      await goto("slide:goto", 3);
+      client.emit("slide:goto", 1.5);
+      client.emit("slide:goto:remote", 2.5);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(state.currentSlideIndex).toBe(3);
+    });
+
     test("slide:next and slide:prev step by one", async () => {
       await goto("slide:goto", 1);
       let pending = waitForState(client, (next) => next.currentSlideIndex === 2);

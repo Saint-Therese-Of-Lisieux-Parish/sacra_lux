@@ -4732,6 +4732,12 @@ function startServer(port = 17841, options = {}) {
     setSlide(nextIndex, { direction: step });
   }
 
+  function parseSlideCommandIndex(index) {
+    const numeric = Number(index);
+    if (Number.isFinite(numeric) && !Number.isInteger(numeric)) return null;
+    return numeric || 0;
+  }
+
   // Initialize session restore and timers only after the HTTP server starts listening.
 
   function withControl(socket, eventName, handler) {
@@ -4807,11 +4813,19 @@ function startServer(port = 17841, options = {}) {
 
     socket.on("slide:next", withControl(socket, "slide:next", () => stepSlide(1)));
     socket.on("slide:prev", withControl(socket, "slide:prev", () => stepSlide(-1)));
-    socket.on("slide:goto", withControl(socket, "slide:goto", (index) => setSlide(Number(index) || 0)));
-    socket.on("slide:goto:remote", withControl(socket, "slide:goto:remote", (index) => setSlide(Number(index) || 0, {
-      activateGatheringSequence: true,
-      activatePostMassLoop: true
-    })));
+    socket.on("slide:goto", withControl(socket, "slide:goto", (index) => {
+      const parsedIndex = parseSlideCommandIndex(index);
+      if (parsedIndex === null) return;
+      setSlide(parsedIndex);
+    }));
+    socket.on("slide:goto:remote", withControl(socket, "slide:goto:remote", (index) => {
+      const parsedIndex = parseSlideCommandIndex(index);
+      if (parsedIndex === null) return;
+      setSlide(parsedIndex, {
+        activateGatheringSequence: true,
+        activatePostMassLoop: true
+      });
+    }));
     socket.on("slide:video-ended", withScreenReport(socket, "slide:video-ended", (payload) => {
       const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const slideId = String(payload?.slideId || "");
