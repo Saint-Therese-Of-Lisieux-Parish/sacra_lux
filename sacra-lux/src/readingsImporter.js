@@ -251,14 +251,16 @@ function listPsalmRefrainOptions(lines) {
 
 // Project one selected refrain between stanzas. A line that is only "or:"
 // is the parish marker between refrain choices and never becomes a slide.
-function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760, refrainIndex = 0) {
-  const options = listPsalmRefrainOptions(lines);
+function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760, refrainIndex = 0, refrainSourceLines = lines) {
+  const options = listPsalmRefrainOptions(refrainSourceLines);
   const index = options.length
     ? Math.min(Math.max(Number(refrainIndex) || 0, 0), options.length - 1)
     : 0;
   const chosen = options[index] || null;
   const chosenKey = chosen ? refrainIdentity(chosen) : null;
   const slides = [];
+  let selectedAdded = false;
+  let fallbackRefrainIndex = null;
   let stanza = [];
 
   function flushStanza() {
@@ -291,6 +293,9 @@ function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760, refrain
       if (!chosenKey || refrainIdentity(line) === chosenKey) {
         const text = chosen || String(line).trim();
         if (slides[slides.length - 1] !== text) slides.push(text);
+        selectedAdded = true;
+      } else if (fallbackRefrainIndex == null) {
+        fallbackRefrainIndex = slides.length;
       }
       continue;
     }
@@ -299,6 +304,9 @@ function paginatePsalm(lines, limit, fontSizePx = 60, boxWidthPx = 1760, refrain
   }
 
   flushStanza();
+  if (chosen && !selectedAdded) {
+    slides.splice(fallbackRefrainIndex ?? 0, 0, chosen);
+  }
   return slides;
 }
 
@@ -527,9 +535,10 @@ function paginateDocuments(documents, options = {}) {
     // then autopaging resumes normally within the following segment.
     const segments = splitAtHardBreaks(doc.textLines);
     const pages = [];
+    const psalmRefrainLines = isPsalm ? doc.textLines : null;
     for (const segment of segments) {
       const segPages = isPsalm
-        ? paginatePsalm(segment, visualLimit, fontSizePx, boxWidthPx, options.psalmRefrainIndex)
+        ? paginatePsalm(segment, visualLimit, fontSizePx, boxWidthPx, options.psalmRefrainIndex, psalmRefrainLines)
         : paginateReading(segment, visualLimit, fontSizePx, boxWidthPx);
       pages.push(...segPages);
     }
