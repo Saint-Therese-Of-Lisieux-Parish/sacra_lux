@@ -663,10 +663,16 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
   // temporary string and can cause a valid upload to fail under CI memory limits.
   const encodedLength = input.length - encodedStart;
   const padding = input.endsWith("==") ? 2 : input.endsWith("=") ? 1 : 0;
+  const chunkLength = 4 * 1024 * 1024;
+  for (let offset = 0; offset < encodedLength; offset += chunkLength) {
+    const chunk = input.slice(encodedStart + offset, encodedStart + Math.min(offset + chunkLength, encodedLength));
+    if (!/^[A-Za-z0-9+/=]+$/.test(chunk)) {
+      throw new ValidationError("Invalid media data URL.");
+    }
+  }
   const bytes = Buffer.allocUnsafe(Math.floor(encodedLength * 3 / 4) - padding);
   let offset = 0;
   let decodedOffset = 0;
-  const chunkLength = 4 * 1024 * 1024;
   while (offset < encodedLength) {
     const chunk = Buffer.from(input.slice(encodedStart + offset, encodedStart + Math.min(offset + chunkLength, encodedLength)), "base64");
     chunk.copy(bytes, decodedOffset);
@@ -4601,6 +4607,12 @@ function startServer(port = 17841, options = {}) {
     scheduleSave(syncCurrentMass);
   }
 
+  function broadcastProjectorCount() {
+    touch();
+    invalidateStateCache();
+    io.emit("state:update", getCachedStateSnapshot());
+  }
+
   function releaseInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
     if (!state.interstitialHoldActive) return false;
 
@@ -4740,7 +4752,17 @@ function startServer(port = 17841, options = {}) {
 
   io.on("connection", (socket) => {
     socket.data.screenRole = socket.handshake.auth?.screenRole === "projector" ? "projector" : "client";
+    if (socket.data.screenRole === "projector") {
+      state.projectorCount += 1;
+      broadcastProjectorCount();
+    }
     socket.emit("state:update", getCachedStateSnapshot(true));
+
+    socket.on("disconnect", () => {
+      if (socket.data.screenRole !== "projector") return;
+      state.projectorCount = Math.max(0, state.projectorCount - 1);
+      broadcastProjectorCount();
+    });
 
     socket.on("control:auth", safeSocketHandler(socket, "control:auth", (payload) => {
       socket.data.controlToken = String(payload?.token || "");

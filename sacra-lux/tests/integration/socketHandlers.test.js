@@ -466,6 +466,20 @@ describe("socket handlers", () => {
       }
     });
 
+    test("broadcasts the connected projector count", async () => {
+      expect((await request(app).get("/api/state")).body.projectorCount).toBe(0);
+      const projector = await connect({ auth: { screenRole: "projector" } });
+      try {
+        const connected = await waitForState(client, (next) => next.projectorCount === 1);
+        expect(connected.projectorCount).toBe(1);
+        projector.disconnect();
+        const disconnected = await waitForState(client, (next) => next.projectorCount === 0);
+        expect(disconnected.projectorCount).toBe(0);
+      } finally {
+        projector.disconnect();
+      }
+    });
+
     test("rejects a non-loopback client that claims the projector role", async () => {
       const index = movieIndex();
       await goto("slide:goto", index);
