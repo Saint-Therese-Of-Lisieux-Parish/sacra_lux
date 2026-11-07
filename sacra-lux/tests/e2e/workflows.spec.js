@@ -1306,6 +1306,7 @@ test("remote preview preload failures do not remove projector slideshow images",
 });
 
 test("remote splash dismisses into preview-first layout and arrow next advances slide", async ({ page, request }) => {
+  await request.post(`${baseUrl}/api/update-title`, { data: { title: "Mass Presentation" } });
   await request.post(`${baseUrl}/api/organizer`, {
     data: {
       sequence: [
