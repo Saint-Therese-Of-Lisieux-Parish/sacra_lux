@@ -195,7 +195,7 @@ function copyFileAtomically(sourcePath, targetPath) {
     fs.copyFileSync(sourcePath, temporaryPath);
     fs.renameSync(temporaryPath, targetPath);
     const sourceStats = fs.statSync(sourcePath);
-    fs.utimesSync(targetPath, sourceStats.atime, sourceStats.mtime);
+    fs.utimesSync(targetPath, sourceStats.atimeMs / 1000, sourceStats.mtimeMs / 1000);
   } catch (error) {
     if (fs.existsSync(temporaryPath)) fs.rmSync(temporaryPath, { force: true });
     throw error;
