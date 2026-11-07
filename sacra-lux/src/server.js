@@ -4573,6 +4573,12 @@ function startServer(port = 17841, options = {}) {
     scheduleSave(syncCurrentMass);
   }
 
+  function broadcastProjectorCount() {
+    touch();
+    invalidateStateCache();
+    io.emit("state:update", getCachedStateSnapshot());
+  }
+
   function releaseInterstitialHold(returnSlideIndexOverride = null, explicitReturn = false) {
     if (!state.interstitialHoldActive) return false;
 
@@ -4712,7 +4718,17 @@ function startServer(port = 17841, options = {}) {
 
   io.on("connection", (socket) => {
     socket.data.screenRole = socket.handshake.auth?.screenRole === "projector" ? "projector" : "client";
+    if (socket.data.screenRole === "projector") {
+      state.projectorCount += 1;
+      broadcastProjectorCount();
+    }
     socket.emit("state:update", getCachedStateSnapshot(true));
+
+    socket.on("disconnect", () => {
+      if (socket.data.screenRole !== "projector") return;
+      state.projectorCount = Math.max(0, state.projectorCount - 1);
+      broadcastProjectorCount();
+    });
 
     socket.on("control:auth", safeSocketHandler(socket, "control:auth", (payload) => {
       socket.data.controlToken = String(payload?.token || "");
