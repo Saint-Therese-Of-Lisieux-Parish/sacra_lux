@@ -25,7 +25,8 @@ const {
   decodeAssetName,
   isMassDocumentV3,
   isSafeAssetName,
-  serializeReadingDocument
+  serializeReadingDocument,
+  validateMassDocument
 } = require("./massDocument");
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
@@ -287,7 +288,7 @@ function saveCurrentMass() {
   if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
   syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
-  const massData = buildMassDocumentFromState(state);
+  const massData = buildValidatedMassDocument(state);
   writeFileAtomic(path.join(CURRENT_MASS_DIR, "mass.json"), JSON.stringify(massData, null, 2));
   const archive = syncCurrentMassToArchive({
     currentArchiveId: state.activeMassArchiveId,
@@ -296,6 +297,12 @@ function saveCurrentMass() {
   });
   state.activeMassArchiveId = archive.id;
   return true;
+}
+
+function buildValidatedMassDocument(nextState) {
+  const massData = buildMassDocumentFromState(nextState);
+  validateMassDocument(massData);
+  return massData;
 }
 
 function buildExportFilename(title, startTime, suffix = ".zip") {
@@ -1376,6 +1383,9 @@ function mergeManualSlideState(nextSequence, nextManualSlides) {
     };
     merged[item.id].styleOverrides = normalizeStyleOverrides(merged[item.id].styleOverrides);
     merged[item.id].countdownFont = normalizeCountdownFont(merged[item.id].countdownFont);
+    if (item.type === "countdown") {
+      merged[item.id].countdownSec = normalizeCountdownSec(merged[item.id].countdownSec);
+    }
     if (item.type === "imageSlideshow") {
       merged[item.id].images = normalizeSlideshowImages(merged[item.id].images);
       merged[item.id].slideshowDurationSec = normalizeSlideshowDurationSec(merged[item.id].slideshowDurationSec);
@@ -1445,7 +1455,7 @@ function normalizeOrganizerSequence(sequence = []) {
         (item.presentation?.background === "dark" ? "dark" : item.presentation?.background === "light" ? "light" : item.presentation?.background),
         item.type ?? item.kind
       ),
-      durationSec: Math.max(1, Math.min(3600, Number(item.durationSec) || 10))
+      durationSec: Math.max(1, Math.min(3600, Math.trunc(Number(item.durationSec) || 10)))
     };
   });
 
@@ -2432,7 +2442,13 @@ function startMassSequence(ioRef) {
   const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
   if (firstMassIdx < 0) return false;
   const alreadyOnMassSlide = slides[state.currentSlideIndex]?.phase === "mass";
-  stopActiveSlideTimers();
+  if (alreadyOnMassSlide) {
+    stopPreMassTimer();
+    stopGatheringTimer();
+    stopPostMassTimer();
+  } else {
+    stopActiveSlideTimers();
+  }
   if (!alreadyOnMassSlide) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
   }
@@ -4187,6 +4203,19 @@ function startServer(port = 17841, options = {}) {
 
       const nextOrganizerSequence = normalizeOrganizerSequence(sequence);
       const nextManualSlides = mergeManualSlideState(nextOrganizerSequence, manualSlides || {});
+      const nextPresentation = buildPresentationFromOrganizer({
+        title: state.presentation.title,
+        documents: state.readingsSource.documents,
+        sequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides,
+        screenSettings: state.screenSettings
+      });
+      buildValidatedMassDocument({
+        ...state,
+        presentation: nextPresentation,
+        organizerSequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides
+      });
       _manualNavigationDirection = 1;
       state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];

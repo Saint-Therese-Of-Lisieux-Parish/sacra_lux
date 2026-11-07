@@ -64,7 +64,7 @@ describe("server api integration", () => {
     app.set("trust proxy", true);
     ({ resetSecurityState } = require("../../src/security"));
     ({ state } = require("../../src/state"));
-    ({ validateMassZipArchive, MASS_ZIP_LIMITS, resetStartPin } = require("../../src/server"));
+    ({ validateMassZipArchive, MASS_ZIP_LIMITS, resetStartPin, saveCurrentMass, flushPendingSave } = require("../../src/server"));
   });
 
   beforeEach(() => {
@@ -2622,6 +2622,20 @@ describe("server api integration", () => {
     expect(stateRes.body.presentation.slides[0].countdownSec).toBe(600);
   });
 
+  test("the organizer stores integer duration and countdown values", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "fractional", type: "countdown", label: "Timer", phase: "pre", backgroundTheme: "dark", durationSec: 2.5 }],
+        manualSlides: { fractional: { text: "", countdownSec: 1.5 } }
+      })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.organizerSequence[0].durationSec).toBe(2);
+    expect(stateRes.body.presentation.slides[0].countdownSec).toBe(1);
+  });
+
   test("the organizer drops countdown font markup before it reaches the state", async () => {
     await request(app)
       .post("/api/organizer")
@@ -2767,6 +2781,32 @@ describe("server api integration", () => {
       .post("/api/organizer")
       .send({ sequence, manualSlides: { "img-1": { images: [{ url: 7, name: "a.png" }] } } })
       .expect(400);
+  });
+
+  test("rejects an invalid organizer document before changing the Mass", async () => {
+    const sequence = [{ id: "text-1", type: "text", label: "Good label", phase: "mass" }];
+    const manualSlides = { "text-1": { text: "Saved text" } };
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    flushPendingSave();
+
+    const massPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const before = fs.readFileSync(massPath, "utf8");
+    const invalidResponse = await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ ...sequence[0], label: "   " }],
+        manualSlides
+      })
+      .expect(400);
+
+    expect(invalidResponse.body.error).toMatch(/item\.label/i);
+    expect((await request(app).get("/api/state")).body.organizerSequence[0].label).toBe("Good label");
+    expect(fs.readFileSync(massPath, "utf8")).toBe(before);
+
+    state.organizerSequence[0].label = "   ";
+    expect(() => saveCurrentMass()).toThrow(/item\.label/i);
+    expect(fs.readFileSync(massPath, "utf8")).toBe(before);
+    state.organizerSequence[0].label = "Good label";
   });
 
   test("import-mass-zip rejects external media URLs and keeps the current Mass", async () => {

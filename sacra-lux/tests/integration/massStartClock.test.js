@@ -100,6 +100,28 @@ describe("mass start from the wall clock", () => {
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "gathering"));
   });
 
+  test("keeps a Mass countdown end time during start catch-up", async () => {
+    jest.setSystemTime(new Date("2026-05-03T10:05:00"));
+    await request(app).post("/api/start-time").send({ time: "" }).expect(200);
+    await request(app).post("/api/organizer").send({
+      sequence: [
+        { id: "m-count", type: "countdown", label: "Mass countdown", phase: "mass", backgroundTheme: "dark" },
+        { id: "m-next", type: "text", label: "Next", phase: "mass", backgroundTheme: "dark" }
+      ],
+      manualSlides: { "m-count": { countdownSec: 3 }, "m-next": { text: "Next" } }
+    }).expect(200);
+
+    const countdownIndex = state.presentation.slides.findIndex((slide) => slide.organizerItemId === "m-count");
+    const endsAt = Date.now() + 3000;
+    state.currentSlideIndex = countdownIndex;
+    state.massStartTime = "2026-05-03T10:00";
+    state.countdownEndsAt = endsAt;
+
+    handle.rescheduleStartTimer();
+
+    expect(state.countdownEndsAt).toBe(endsAt);
+  });
+
   test("gathering overrunning the clock cuts over to the first Mass slide at Mass time", async () => {
     // Gathering is 30 s long but only 10 s remain, so it overruns the clock.
     jest.setSystemTime(new Date("2026-05-03T09:59:50"));
