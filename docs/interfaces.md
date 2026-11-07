@@ -138,8 +138,8 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 - `control:lock` — end the control session of the connected remote. Other sessions stay valid. The remote gets `control:required` with `This remote is locked.`
 - `screen:settings` — update screen settings, rebuild the presentation, and save the current Mass. The save waits 600 ms, then writes `mass.json` and `session.json`. A background URL with a bad prefix is ignored.
 - `slide:next`, `slide:prev`
-- `slide:goto` — jump to a slide index
-- `slide:goto:remote` — jump from the remote and allow post-mass loop activation
+- `slide:goto` — jump to a slide index. A fractional index is ignored. The current slide stays.
+- `slide:goto:remote` — jump from the remote and allow post-mass loop activation. A fractional index is ignored. The current slide stays.
 - `slide:video-ended` — a projector reports a movie finished; the first report for a slide advances, later reports for the same slide are ignored
 - `slide:video-ready` — a projector reports a movie's real length (`durationMs`) so the server can arm a fallback advance
 - `image-slideshow:preload-error` — a projector reports an image that failed to preload
