@@ -1041,11 +1041,17 @@ function resetPresentationRuntimeState() {
   clearStartTimers();
 }
 
-function setStartupPrompt(reason) {
+function setStartupPrompt(reason, message = null) {
   state.startupPrompt = {
     type: "mass-library",
     reason: String(reason || "missing-current-mass")
   };
+  if (message) state.startupPrompt.message = String(message);
+}
+
+function publicStartupMessage(error) {
+  return String(error?.message || "The current Mass did not load.")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s"'<>]+/g, "[path]");
 }
 
 function archiveExistsOnDisk(archiveId) {
@@ -1074,7 +1080,7 @@ function restoreCurrentMassOrPrompt(ioRef, savedArchiveId = null) {
     return true;
   } catch (error) {
     resetPresentationRuntimeState();
-    setStartupPrompt("invalid-current-mass");
+    setStartupPrompt("invalid-current-mass", publicStartupMessage(error));
     logWarn(`[persistence] Could not restore current_mass package from "${CURRENT_MASS_DIR}": ${error.message}`);
     return false;
   }
