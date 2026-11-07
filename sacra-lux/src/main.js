@@ -789,7 +789,7 @@ function buildAppMenu(ioRef) {
     {
       label: "Export ZIP",
       accelerator: "CmdOrCtrl+Shift+E",
-      click: () => runInAppWindow("window.location.href = '/api/export-mass-zip'")
+      click: () => clickAppButton("exportZipBtn")
     },
     {
       label: "Export PDF",
