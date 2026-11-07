@@ -285,17 +285,22 @@ describe("phase slide timers", () => {
       { gather: { text: "Gather" }, "mass-count": { countdownSec: 1 } }
     );
     jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+    await connectClient();
+    const watch = watchUpdates();
 
     await request(app).post("/api/gathering/start").expect(200);
     jest.advanceTimersByTime(1000);
+    await flushSocket();
 
     let response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass-count");
     expect(response.body.countdownEndsAt).not.toBeNull();
+    expect(watch.updates.at(-1).gatheringRunning).toBe(false);
 
     jest.advanceTimersByTime(1000);
     response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass-count");
+    watch.stop();
 
     const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
     fs.mkdirSync(assetsDir, { recursive: true });

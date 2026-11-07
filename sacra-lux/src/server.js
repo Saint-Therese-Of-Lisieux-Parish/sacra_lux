@@ -1911,6 +1911,9 @@ function scheduleNextPreMassSlide(ioRef) {
 
   if (!currentSlide || currentSlide.phase !== "pre") {
     stopPreMassTimer();
+    touch();
+    ioRef.emit("state:update", getStateSnapshot());
+    scheduleSave();
     return;
   }
 
