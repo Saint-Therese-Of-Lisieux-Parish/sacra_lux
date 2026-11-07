@@ -22,6 +22,52 @@ describe("massHistory", () => {
     expect(history.sanitizeForFilename(title)).toBe(expected);
   });
 
+  test("removes non-whitespace control characters from archive names", () => {
+    const history = require("../../src/massHistory");
+
+    expect(history.sanitizeForFilename("Easter\u0001AVigil")).toBe("EasterAVigil");
+    expect(history.sanitizeForFilename("Mass\u001fTitle")).toBe("MassTitle");
+    expect(history.sanitizeForFilename("Easter\tVigil")).toBe("Easter-Vigil");
+    expect(history.sanitizeForFilename("Mass\u0001Title")).not.toMatch(/[\u0000-\u001f]/);
+  });
+
+  test("does not leave a trailing period after truncating to 200 bytes", () => {
+    const history = require("../../src/massHistory");
+    const archiveId = history.sanitizeForFilename(`${"x".repeat(199)}.yyy`);
+
+    expect(archiveId).toBe("x".repeat(199));
+    expect(archiveId).not.toMatch(/[ .]$/);
+    expect(Buffer.byteLength(archiveId, "utf8")).toBeLessThanOrEqual(200);
+  });
+
+  test("does not leave a trailing space or dash after truncating to 200 bytes", () => {
+    const history = require("../../src/massHistory");
+
+    expect(history.sanitizeForFilename("Mass   ")).toBe("Mass");
+    expect(history.sanitizeForFilename(`${"x".repeat(199)} y`)).toBe("x".repeat(199));
+    expect(history.sanitizeForFilename(`${"x".repeat(199)} y`)).not.toMatch(/[ .-]$/);
+  });
+
+  test("does not split a multibyte UTF-8 character when truncating to 200 bytes", () => {
+    const history = require("../../src/massHistory");
+    const archiveId = history.sanitizeForFilename(`${"x".repeat(199)}\u00e9`);
+    const emojiId = history.sanitizeForFilename(`${"x".repeat(199)}\u{1f600}`);
+
+    expect(archiveId).toBe("x".repeat(199));
+    expect(emojiId).toBe("x".repeat(199));
+    expect(Buffer.byteLength(archiveId, "utf8")).toBeLessThanOrEqual(200);
+    expect(Buffer.byteLength(emojiId, "utf8")).toBeLessThanOrEqual(200);
+    expect(Buffer.from(archiveId, "utf8").toString("utf8")).toBe(archiveId);
+    expect(Buffer.from(emojiId, "utf8").toString("utf8")).toBe(emojiId);
+  });
+
+  test("uses the Mass archive ID when a title holds only control characters", () => {
+    const history = require("../../src/massHistory");
+
+    expect(history.ensureActiveArchive({ currentArchiveId: null, title: "\u0001\u0002", startTime: null }).archiveId)
+      .toBe("Mass");
+  });
+
   test("compares archive IDs without regard to case", () => {
     const history = require("../../src/massHistory");
     expect(history.archiveIdsEqual("Sunday-Mass", "sunday-mass")).toBe(true);
