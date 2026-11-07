@@ -207,6 +207,55 @@ describe("phase slide timers", () => {
     expect(response.body.countdownEndsAt).toBeNull();
   });
 
+  test.each([
+    { name: "next image", current: 0, iteration: 1, loops: 1, expected: 1, expectedIteration: 1 },
+    { name: "next loop", current: 2, iteration: 1, loops: 2, expected: 0, expectedIteration: 2 },
+    { name: "next organizer item", current: 2, iteration: 2, loops: 2, expected: 3, expectedIteration: 1 }
+  ])("keeps the slideshow after a wake at the $name", async ({ current, iteration, loops, expected, expectedIteration }) => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    for (const name of ["one.png", "two.png", "three.png"]) fs.writeFileSync(path.join(assetsDir, name), image);
+    await saveOrganizer(
+      [
+        {
+          id: "wake-show",
+          type: "imageSlideshow",
+          label: "Wake slideshow",
+          phase: "mass",
+          backgroundTheme: "light",
+          durationSec: 10
+        },
+        textItem("after", "mass", 10)
+      ],
+      {
+        "wake-show": {
+          images: [
+            { url: "/static/assets/one.png", name: "one.png" },
+            { url: "/static/assets/two.png", name: "two.png" },
+            { url: "/static/assets/three.png", name: "three.png" }
+          ],
+          slideshowDurationSec: 10,
+          slideshowLoopCount: loops
+        },
+        after: { text: "After" }
+      }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+    const slideshowIndices = state.presentation.slides
+      .map((slide, index) => slide.organizerItemId === "wake-show" ? index : -1)
+      .filter((index) => index >= 0);
+    state.currentSlideIndex = slideshowIndices[current] ?? state.presentation.slides.findIndex((slide) => slide.organizerItemId === "after");
+    state.imageSlideshowLoopIteration = iteration;
+    state.imageSlideshowEndsAt = Date.now() - 1000;
+
+    handle.rescheduleStartTimer();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(slideshowIndices[expected] ?? response.body.presentation.slides.findIndex((slide) => slide.organizerItemId === "after"));
+    expect(response.body.imageSlideshowLoopIteration).toBe(expectedIteration);
+  });
+
   test("starts the Mass when the last gathering slide ends", async () => {
     await request(app).post("/api/new-mass").send({ title: "Gathering sequence", startTime: "" }).expect(200);
     await saveOrganizer(

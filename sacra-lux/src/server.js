@@ -1773,6 +1773,34 @@ function advanceAfterImageSlideshow(ioRef, { direction = 1 } = {}) {
   if (nextIndex >= 0) scheduleRuntimeForCurrentSlide(ioRef);
 }
 
+function advanceImageSlideshowFrame(ioRef, scheduledSlideId) {
+  const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+  if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
+
+  const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
+  const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
+  if (latestPlayable.length === 0 || latestPosition < 0) {
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+
+  if (latestPosition < latestPlayable.length - 1) {
+    state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
+  } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
+    _imageSlideshowFailedUrls.clear();
+    state.imageSlideshowLoopIteration += 1;
+    state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
+  } else {
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+  scheduleSave();
+  scheduleImageSlideshowSlide(ioRef);
+}
+
 function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   stopImageSlideshowTimer({ resetProgress: false });
   const slides = state.presentation?.slides || [];
@@ -1810,7 +1838,7 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   const imageSlideshowEndsAt = Number.isFinite(savedEndsAt) ? savedEndsAt : Date.now() + durationMs;
   if (imageSlideshowEndsAt <= Date.now()) {
     state.imageSlideshowEndsAt = null;
-    advanceAfterImageSlideshow(ioRef);
+    advanceImageSlideshowFrame(ioRef, currentSlide.id);
     return;
   }
   state.imageSlideshowEndsAt = imageSlideshowEndsAt;
@@ -1821,31 +1849,7 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   _imageSlideshowTimer = setTimeout(() => {
     _imageSlideshowTimer = null;
     state.imageSlideshowEndsAt = null;
-    const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
-    if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
-
-    const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
-    const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
-    if (latestPlayable.length === 0 || latestPosition < 0) {
-      advanceAfterImageSlideshow(ioRef);
-      return;
-    }
-
-    if (latestPosition < latestPlayable.length - 1) {
-      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
-    } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
-      _imageSlideshowFailedUrls.clear();
-      state.imageSlideshowLoopIteration += 1;
-      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
-    } else {
-      advanceAfterImageSlideshow(ioRef);
-      return;
-    }
-
-    touch();
-    ioRef.emit("state:update", getStateSnapshot());
-    scheduleSave();
-    scheduleImageSlideshowSlide(ioRef);
+    advanceImageSlideshowFrame(ioRef, scheduledSlideId);
   }, Math.max(0, imageSlideshowEndsAt - Date.now()));
 }
 
