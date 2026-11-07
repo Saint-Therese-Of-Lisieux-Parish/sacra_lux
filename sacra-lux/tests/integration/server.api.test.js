@@ -2622,6 +2622,20 @@ describe("server api integration", () => {
     expect(stateRes.body.presentation.slides[0].countdownSec).toBe(600);
   });
 
+  test("the organizer stores integer duration and countdown values", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "fractional", type: "countdown", label: "Timer", phase: "pre", backgroundTheme: "dark", durationSec: 2.5 }],
+        manualSlides: { fractional: { text: "", countdownSec: 1.5 } }
+      })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.organizerSequence[0].durationSec).toBe(2);
+    expect(stateRes.body.presentation.slides[0].countdownSec).toBe(1);
+  });
+
   test("the organizer drops countdown font markup before it reaches the state", async () => {
     await request(app)
       .post("/api/organizer")

@@ -93,7 +93,7 @@ function normalizeType(value) {
 }
 
 function normalizeCountdownSec(value) {
-  return Math.max(COUNTDOWN_MIN_SEC, Math.min(COUNTDOWN_MAX_SEC, Number(value) || 60));
+  return Math.max(COUNTDOWN_MIN_SEC, Math.min(COUNTDOWN_MAX_SEC, Math.trunc(Number(value) || 60)));
 }
 
 // Returns an error message for a countdown length outside the allowed range.

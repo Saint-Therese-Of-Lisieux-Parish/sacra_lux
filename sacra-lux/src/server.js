@@ -1452,7 +1452,7 @@ function normalizeOrganizerSequence(sequence = []) {
         (item.presentation?.background === "dark" ? "dark" : item.presentation?.background === "light" ? "light" : item.presentation?.background),
         item.type ?? item.kind
       ),
-      durationSec: Math.max(1, Math.min(3600, Number(item.durationSec) || 10))
+      durationSec: Math.max(1, Math.min(3600, Math.trunc(Number(item.durationSec) || 10)))
     };
   });
 
