@@ -182,32 +182,32 @@ The Digital Minister page does not show Prev, Next, or Black Screen buttons. The
 - Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change. A movie keeps playing. Blackout mutes it, and the next press restores the previous volume.
 - **⏭ Go to Mass Start** jumps to the first Mass slide. The button is shown when the Mass has a Mass slide.
 
-## The Phone Remote
+## For Digital Ministers: the phone remote
 
-Open `/remote` on a phone on the same network, or scan the QR code shown on the
-idle projector. The remote shows a live projector preview at the top.
+Give the Digital Lecturer the phone link and the PIN before Mass.
+The lecturer steps are on the [phone remote](phone-remote.md) page.
 
-- Swipe left or right on the preview to move one slide.
-- Use the carousel under the preview. Double-tap a card to show that slide.
-- Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements. The active row has `aria-current="true"`. A slide change keeps your scroll position, open groups, and keyboard focus. The list scrolls to the active row when the rows change and you have not scrolled the list for 10 seconds.
+1. Select **PIN**.
+2. The dialog title is **Start PIN**.
+3. Type a PIN of 4 to 6 digits in **PIN Code**.
+4. Select **Set PIN**.
+5. The dialog shows **PIN set**.
 
-**Lock this remote** ends control on this phone.
-The phone then shows **This remote is locked.**
-Select **Unlock the remote** to open the PIN page.
-The remote has no Blackout, Start Mass, or Interstitial button.
+To change the PIN, type the current PIN in **Current PIN**, type the new PIN, and select **Set PIN**.
+Other phones show **The PIN changed. Unlock again.**
 
-## Starting the Remote with a PIN
+To remove the PIN, type the current PIN and select **Clear PIN**.
+The dialog shows **PIN cleared**.
+Phones no longer need the PIN.
 
-If a start PIN is set, the remote must unlock before it can control the Mass:
+If the PIN is too short, the dialog shows **PIN must be 4–6 digits**.
+If the current PIN is missing, the dialog shows **Current PIN is required.**
+If clear fails, the dialog shows **Could not clear the PIN.**
 
-1. Open `/start` on the phone.
-2. Enter the 4–6 digit PIN. Repeated failures trigger escalating lockouts.
-3. On success the phone is redirected to `/remote`.
-
-Set, change, or clear the PIN from the **Start PIN** dialog. Clearing the PIN
-removes the unlock requirement. A change or a clear ends the other control
-sessions. Those phones must unlock again. If the clear fails, the dialog shows
-the error.
+Before Mass starts, the projector can show **Scan to begin** and a QR code.
+The Digital Lecturer can scan that code.
+Ask the administrator if the phone cannot open the link.
+Network setup is in [Troubleshooting](troubleshooting.md#a-device-gets-source-network-not-allowed).
 
 ## Mass Library
 
