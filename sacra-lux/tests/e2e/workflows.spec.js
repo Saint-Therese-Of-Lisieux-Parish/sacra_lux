@@ -555,6 +555,24 @@ test("reading editor shows an error when the reading save fails", async ({ page,
   await request.post(`${baseUrl}/api/update-title`, { data: { title: previousTitle } });
 });
 
+test("reading editor saves cleared reading text", async ({ page, request }) => {
+  await loadReadingsFolderOverHttp(request, baseUrl, readingsPath);
+  const state = await (await request.get(`${baseUrl}/api/state`)).json();
+  const item = state.organizerSequence.find((entry) => entry.sourceStem === "Reading_I");
+  expect(item).toBeTruthy();
+
+  await page.goto(`${baseUrl}/`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator(`[data-edit-id="${item.id}"]`).click();
+  await page.locator("#editorReadingText").fill("");
+
+  await expect.poll(async () => {
+    const saved = await (await request.get(`${baseUrl}/api/state`)).json();
+    return saved.readingsSource.documents.find((entry) => entry.stem === "Reading_I")?.textLines;
+  }).toEqual([]);
+  await expect(page.locator("#editorSaveStatus")).toHaveText("Saved");
+});
+
 test("Text Area tool keeps the number fields usable when the preview fails", async ({ page, request }) => {
   await page.route((url) => url.pathname === "/screen" && url.searchParams.get("preview") === "1",
     (route) => route.abort());
