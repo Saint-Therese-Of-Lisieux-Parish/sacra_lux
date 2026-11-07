@@ -2578,7 +2578,9 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   const target = new Date(timeStr);
   if (isNaN(target.getTime())) return;
   const now = Date.now();
-  const massHasBegun = now >= target;
+  const massStartAge = now - target.getTime();
+  const massHasBegun = massStartAge >= 0 && massStartAge <= PHASE_LOOP_RESUME_MAX_AGE_MS;
+  if (massStartAge > PHASE_LOOP_RESUME_MAX_AGE_MS) return;
   const onMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "mass";
   const onPostMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "post";
 
@@ -2667,7 +2669,9 @@ function isValidLocalDateTime(value) {
 
 function preMassStartIsBlocked() {
   const target = state.massStartTime ? new Date(state.massStartTime) : null;
-  const massHasBegun = target && !Number.isNaN(target.getTime()) && Date.now() >= target.getTime();
+  const massStartAge = target && !Number.isNaN(target.getTime()) ? Date.now() - target.getTime() : null;
+  const massHasBegun = massStartAge !== null &&
+    massStartAge >= 0 && massStartAge <= PHASE_LOOP_RESUME_MAX_AGE_MS;
   return Boolean(
     massHasBegun ||
     state.preMassRunning ||
@@ -2838,7 +2842,11 @@ function restoreSession(ioRef) {
     const mayResumePhaseLoops = Number.isFinite(savedAt) &&
       savedAge >= 0 && savedAge <= PHASE_LOOP_RESUME_MAX_AGE_MS;
     const massStart = state.massStartTime ? new Date(state.massStartTime) : null;
-    const massHasBegun = massStart && !Number.isNaN(massStart.getTime()) && Date.now() >= massStart.getTime();
+    const massStartAge = massStart && !Number.isNaN(massStart.getTime())
+      ? Date.now() - massStart.getTime()
+      : null;
+    const massHasBegun = massStartAge !== null &&
+      massStartAge >= 0 && massStartAge <= PHASE_LOOP_RESUME_MAX_AGE_MS;
 
     if (mayResumePhaseLoops && session.preMassRunning && !massHasBegun) {
       state.preMassRunning = true;

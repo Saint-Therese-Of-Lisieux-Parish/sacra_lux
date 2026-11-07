@@ -222,6 +222,29 @@ describe("mass start from the wall clock", () => {
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "mass"));
   });
 
+  test("opening more than four hours after Mass time stays before Mass", async () => {
+    jest.setSystemTime(new Date("2026-05-03T16:05:00"));
+    await request(app).post("/api/start-time").send({ time: "" }).expect(200);
+    await request(app).post("/api/organizer").send({
+      sequence: [
+        { id: "p-first", type: "text", label: "Pre-Mass", phase: "pre", backgroundTheme: "dark", durationSec: 10 },
+        ...gatheringSequence
+      ],
+      manualSlides: { "p-first": { text: "Pre-Mass" }, ...gatheringManualSlides }
+    }).expect(200);
+
+    await request(app)
+      .post("/api/start-time")
+      .send({ time: "2026-05-03T10:00" })
+      .expect(200);
+
+    const res = await request(app).get("/api/state").expect(200);
+    expect(res.body.gatheringRunning).toBe(false);
+    expect(currentPhase(res.body)).not.toBe("mass");
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+  });
+
   test("catch-up keeps a manually selected post-Mass slide", async () => {
     jest.setSystemTime(new Date("2026-05-03T10:05:00"));
     await seedGatheringAndMass();
