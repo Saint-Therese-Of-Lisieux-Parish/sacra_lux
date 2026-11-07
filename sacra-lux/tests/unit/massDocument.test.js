@@ -485,3 +485,25 @@ describe("massDocument fixtures", () => {
     expect(rebuilt).toEqual(fixture);
   });
 });
+
+describe("static asset references", () => {
+  test("preserves a built-in static asset URL through a document round trip", () => {
+    const state = {
+      presentation: { title: "Mass" },
+      massStartTime: null,
+      screenSettings: {},
+      organizerSequence: [{ id: "hold", type: "interstitial", label: "Hold", phase: "mass", durationSec: 10 }],
+      manualSlides: {
+        hold: { imageUrl: "/static/assets/default-interstitial.png" }
+      },
+      readingsSource: { documents: [] }
+    };
+
+    const document = buildMassDocumentFromState(state);
+    const restored = buildRuntimeStateFromMassDocument(document);
+
+    expect(document.items[0].asset).toEqual({ ref: "static/assets/default-interstitial.png" });
+    expect(restored.manualSlides.hold.imageUrl).toBe("/static/assets/default-interstitial.png");
+    expect(document.assets).toEqual({});
+  });
+});
