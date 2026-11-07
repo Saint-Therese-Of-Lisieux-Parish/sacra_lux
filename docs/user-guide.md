@@ -230,11 +230,24 @@ that has already passed.
 - **↪︎ Export** downloads the current Mass as a ZIP.
 - **Export AVIF** converts eligible images to AVIF and downloads an optimized
   ZIP.
-- **📄 Export PDF** (Electron only) produces a full-deck PDF. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
-- **Export Slide to PDF** (Electron only) exports the current slide preview.
+- **📄 Export PDF** produces a full-deck PDF in the desktop app. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
+- **Export Slide to PDF** exports the current slide preview in the desktop app.
 
-All export ZIPs contain a version 3 `mass.json`; see
-[mass_document.md](./mass_document.md).
+A Mass ZIP can contain these media types: `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `avif`, and `mp4`.
+
+The program rejects a ZIP that is too large. You see one of these messages:
+
+- `Mass ZIP compressed size exceeds the 209715200 byte limit.`
+- `Mass ZIP contains too many entries; the limit is 1000.`
+- `Mass ZIP entry "<name>" exceeds the 146800640 byte limit.`
+- `Mass ZIP uncompressed size exceeds the 524288000 byte limit.`
+- `Media file exceeds the 140 MB limit.`
+
+Choose a smaller file. The current Mass stays in place.
+A slideshow can contain at most 500 images.
+If you add more, you see `A slideshow can contain at most 500 images.`
+If the images are too large together, you see `The selected images are too large to import together.`
+Together, the images must be 120 MiB (125829120 bytes) or smaller.
 
 ## Readings Folder Format
 
