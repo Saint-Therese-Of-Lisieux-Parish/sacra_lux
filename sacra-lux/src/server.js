@@ -4985,6 +4985,10 @@ function startServer(port = 17841, options = {}) {
 
     // Restore the session after the server is bound.
     restoreSession(io);
+    if (process.env.SACRA_LUX_RESET_PIN === "1") {
+      resetStartPin();
+      logger.info("[security] Start PIN reset at startup.");
+    }
     const restoredSourceNetworks = state.appSettings?.sourceNetworks || "";
     const restoredSource = sourceNetworkGuard.setAllowedEntries(restoredSourceNetworks);
     if (restoredSource.invalid.length) {
