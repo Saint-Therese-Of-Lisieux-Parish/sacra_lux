@@ -50,9 +50,9 @@ Do not open `/releases/latest`. A prerelease does not appear there.
 2. Go to the folder that contains the download.
 3. Run the command below. Replace the file name with the file you downloaded.
 
-```powershell
-Get-FileHash -Path .\Sacra-Lux-<version>-win-x64.zip -Algorithm SHA256
-```
+    ```powershell
+    Get-FileHash -Path .\Sacra-Lux-<version>-win-x64.zip -Algorithm SHA256
+    ```
 
 4. Open `SHA256SUMS.txt`.
 5. Find the line for the same file name.

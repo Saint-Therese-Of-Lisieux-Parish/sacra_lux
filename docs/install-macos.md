@@ -47,12 +47,12 @@ Do not open `/releases/latest`. A prerelease does not appear there.
 ## Check the download
 
 1. Open Terminal.
-2. Go to the folder that contains the download. You can type `cd ` and then drag the folder onto the Terminal window.
+2. Go to the folder that contains the download. You can type `cd`, then drag the folder onto the Terminal window.
 3. Run the command below. Replace the file name with the file you downloaded.
 
-```sh
-shasum -a 256 Sacra-Lux-<version>-mac-arm64.dmg
-```
+    ```sh
+    shasum -a 256 Sacra-Lux-<version>-mac-arm64.dmg
+    ```
 
 4. Open `SHA256SUMS.txt`.
 5. Find the line for the same file name.
