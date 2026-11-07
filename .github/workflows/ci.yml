@@ -53,22 +53,33 @@ jobs:
         timeout-minutes: 12
         run: |
           printf 'Acquire::Retries "5";\nAcquire::http::Timeout "20";\n' | sudo tee /etc/apt/apt.conf.d/99ci-retries
+          wait_for_dpkg_lock() {
+            for wait_attempt in $(seq 1 60); do
+              if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+                return 0
+              fi
+              owner=$(sudo fuser /var/lib/dpkg/lock-frontend 2>/dev/null | tr '\n' ' ' || true)
+              echo "Waiting for dpkg lock owner process(es): ${owner:-unknown}."
+              sleep 5
+            done
+            echo "The dpkg lock remains held after 5 minutes."
+            sudo fuser -v /var/lib/dpkg/lock-frontend || true
+            return 1
+          }
+          wait_for_dpkg_lock
           for attempt in 1 2; do
             if timeout --kill-after=10 290 npx playwright install --with-deps chromium webkit; then
               exit 0
             fi
+            install_status=$?
+            echo "Playwright browser install failed with exit code ${install_status}."
             if [ "$attempt" -eq 1 ]; then
               echo "Playwright browser install failed on attempt 1; retrying once."
-              for wait_attempt in $(seq 1 24); do
-                if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
-                  break
-                fi
-                echo "Waiting for the first Playwright install process to release the package lock."
-                sleep 5
-              done
+              wait_for_dpkg_lock
             fi
           done
           echo "Playwright browser install failed after 2 attempts."
+          sudo fuser -v /var/lib/dpkg/lock-frontend || true
           exit 1
 
       - name: Lint
