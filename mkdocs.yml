@@ -22,6 +22,8 @@ exclude_docs: |
 nav:
   - User guide: user-guide.md
   - Phone remote: phone-remote.md
+  - Install:
+      - macOS: install-macos.md
   - ZIP import: zip-import.md
   - Mass document: mass_document.md
   - Troubleshooting: troubleshooting.md
