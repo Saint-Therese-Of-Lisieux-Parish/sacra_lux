@@ -3689,7 +3689,7 @@
               </select>
             </div>
             <div class="slide-action-group end">
-              <span id="status" class="status-badge"></span>
+              <span id="status" class="status-badge" role="status" aria-live="polite"></span>
               <span id="projectorStatus" class="status-badge" role="status" aria-live="polite"></span>
               <button id="deleteItemBtn" class="danger-outline">&#x1F5D1; Delete</button>
             </div>
@@ -4799,6 +4799,15 @@
     document.addEventListener("desktop-status", (event) => {
       els.status.textContent = String(event.detail || "");
     });
+
+    const statusRegionObserver = new MutationObserver(() => {
+      const isError = els.status.classList.contains("error");
+      const role = isError ? "alert" : "status";
+      const live = isError ? "assertive" : "polite";
+      if (els.status.getAttribute("role") !== role) els.status.setAttribute("role", role);
+      if (els.status.getAttribute("aria-live") !== live) els.status.setAttribute("aria-live", live);
+    });
+    statusRegionObserver.observe(els.status, { attributes: true, childList: true, characterData: true, subtree: true });
 
     let editorPreviewSlides = [];
     let editorPreviewIndex = 0;
