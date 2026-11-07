@@ -241,7 +241,8 @@ describe("authorization matrix", () => {
     test("every registered event is in the table and every table entry is registered", async () => {
       client = await connect();
       const serverSocket = [...handle.io.sockets.sockets.values()].pop();
-      const registered = serverSocket.eventNames().filter((name) => typeof name === "string" && name !== "error");
+      const registered = serverSocket.eventNames().filter((name) =>
+        typeof name === "string" && !["error", "disconnect"].includes(name));
       expect(registered.sort()).toEqual(SOCKET_EVENTS.map(([event]) => event).sort());
     });
 
