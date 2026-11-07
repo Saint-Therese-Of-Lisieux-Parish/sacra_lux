@@ -31,6 +31,7 @@ function truncateToBytes(str, maxBytes) {
 function sanitizeForFilename(str) {
   const cleaned = String(str || "")
     .trim()
+    .replace(/[\u0000-\u001F\u007F]+/g, "")
     .replace(/[<>:"/\\|?*]+/g, "")
     .replace(/\s+/g, "-")
     .replace(/-{2,}/g, "-")
@@ -44,7 +45,9 @@ function sanitizeForFilename(str) {
   const safeName = reservedDeviceNames.has(cleaned.toLowerCase().split(".")[0])
     ? `${cleaned}-archive`
     : cleaned;
-  return truncateToBytes(safeName, MAX_ARCHIVE_ID_BYTES).replace(/-$/, "");
+  return truncateToBytes(safeName, MAX_ARCHIVE_ID_BYTES)
+    .replace(/[ .]+$/, "")
+    .replace(/-$/, "");
 }
 
 function normalizeArchiveId(value) {

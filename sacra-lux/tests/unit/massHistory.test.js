@@ -16,10 +16,19 @@ describe("massHistory", () => {
     ["Mass of St. John Jr.", "Mass-of-St.-John-Jr"],
     ["CON", "CON-archive"],
     ["aux", "aux-archive"],
-    ["Com1", "Com1-archive"]
+    ["Com1", "Com1-archive"],
+    ["Easter\u0001Vigil", "EasterVigil"]
   ])("sanitizes Windows archive name %s", (title, expected) => {
     const history = require("../../src/massHistory");
     expect(history.sanitizeForFilename(title)).toBe(expected);
+  });
+
+  test("removes a trailing period after byte truncation", () => {
+    const history = require("../../src/massHistory");
+    const sanitized = history.sanitizeForFilename(`${"x".repeat(199)}.yyy`);
+
+    expect(sanitized).toHaveLength(199);
+    expect(sanitized.endsWith(".")).toBe(false);
   });
 
   test("compares archive IDs without regard to case", () => {
