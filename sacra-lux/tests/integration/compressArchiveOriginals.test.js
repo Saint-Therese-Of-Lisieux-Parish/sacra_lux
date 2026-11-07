@@ -134,4 +134,20 @@ describe("compressing a Mass archive", () => {
     expect(response.body.error).toMatch(/assets\/missing\.png/);
     expect(fs.existsSync(packageDir)).toBe(true);
   });
+
+  test("keeps an unreadable image when AVIF conversion fails", async () => {
+    const { archiveDir, packageDir, compressedZipPath } = massHistory.getArchivePaths("Unreadable-Mass");
+    fs.mkdirSync(path.join(packageDir, "assets"), { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "metadata.json"), JSON.stringify({ id: "Unreadable-Mass" }));
+    fs.writeFileSync(path.join(packageDir, "mass.json"), JSON.stringify({
+      presentationTitle: "Unreadable Mass",
+      organizerSequence: [{ id: "image", type: "image", label: "Image", phase: "mass", backgroundTheme: "light" }],
+      manualSlides: { image: { imageUrl: "/api/mass-asset/bad.jpg" } }
+    }));
+    fs.writeFileSync(path.join(packageDir, "assets", "bad.jpg"), Buffer.from("not an image"));
+
+    await request(app).post("/api/mass-history/Unreadable-Mass/compress").expect(200);
+    const unreadableArchive = new AdmZip(compressedZipPath);
+    expect(unreadableArchive.getEntry("assets/bad.jpg").getData()).toEqual(Buffer.from("not an image"));
+  });
 });

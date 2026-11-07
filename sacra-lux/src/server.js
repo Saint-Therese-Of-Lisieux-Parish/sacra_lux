@@ -799,11 +799,16 @@ function createAvifNameAllocator(assetsDir) {
 }
 
 async function convertImageToAvif(sharp, filePath) {
-  const input = sharp(filePath, { animated: true, pages: -1 });
-  const sourcePages = (await input.metadata()).pages || 1;
-  const avifBuffer = await input.avif({ quality: 50 }).toBuffer();
-  const outputPages = (await sharp(avifBuffer, { animated: true }).metadata()).pages || 1;
-  return outputPages >= sourcePages ? avifBuffer : null;
+  try {
+    const input = sharp(filePath, { animated: true, pages: -1 });
+    const sourcePages = (await input.metadata()).pages || 1;
+    const avifBuffer = await input.avif({ quality: 50 }).toBuffer();
+    const outputPages = (await sharp(avifBuffer, { animated: true }).metadata()).pages || 1;
+    return outputPages >= sourcePages ? avifBuffer : null;
+  } catch (_error) {
+    logger.warn(`AVIF conversion failed for ${path.basename(filePath)}.`);
+    return null;
+  }
 }
 
 function validateMassDocumentAssetEntries(massDocument, zip) {
