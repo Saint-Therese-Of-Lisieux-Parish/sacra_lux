@@ -44,6 +44,35 @@ describe("reading persistence", () => {
     }
   });
 
+  test("keeps New Mass reading endings after a restart", async () => {
+    const first = await boot();
+    await request(first.app)
+      .post("/api/new-mass")
+      .send({ title: "Stable endings" })
+      .expect(200);
+    await request(first.app)
+      .post("/api/save-reading")
+      .send({ stem: "mass-reading-1", text: "The reading text." })
+      .expect(200);
+
+    const before = (await request(first.app).get("/api/state").expect(200)).body;
+    expect(before.presentation.slides).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "reading-mass-reading-1-ending", ending: "The Word of the Lord." })
+    ]));
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await first.stop();
+
+    const restarted = await boot();
+    try {
+      const after = (await request(restarted.app).get("/api/state").expect(200)).body;
+      expect(after.presentation.slides.map((slide) => slide.id)).toEqual(
+        before.presentation.slides.map((slide) => slide.id)
+      );
+    } finally {
+      await restarted.stop();
+    }
+  });
+
   test("moves a passage past leading blank lines when saving a reading", async () => {
     const first = await boot();
     try {
