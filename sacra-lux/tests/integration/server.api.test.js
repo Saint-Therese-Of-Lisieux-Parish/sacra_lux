@@ -1682,8 +1682,10 @@ describe("server api integration", () => {
       expect(stateRes.body.presentation.title).toBe("No presentation loaded");
       expect(stateRes.body.startupPrompt).toEqual({
         type: "mass-library",
-        reason: "invalid-current-mass"
+        reason: "invalid-current-mass",
+        message: expect.stringContaining("Expected property name")
       });
+      expect(stateRes.body.startupPrompt.message).not.toContain(homeDir);
     } finally {
       await isolatedHandle.stop();
     }

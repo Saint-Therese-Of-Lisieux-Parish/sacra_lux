@@ -4373,6 +4373,7 @@
       </div>
       <div class="editor-dialog-body">
         <div class="modal-panel">
+          <div id="massLibraryPrompt" class="status-badge error" role="alert" aria-live="assertive"></div>
           <div id="massLibraryStatus" class="muted-small" style="margin-bottom:0.2rem"></div>
           <div id="massHistoryList" class="mass-history-list"></div>
           <div class="modal-action-row">
@@ -4748,6 +4749,7 @@
       massLibraryDialog: document.getElementById("massLibraryDialog"),
       massLibraryCloseBtn: document.getElementById("massLibraryCloseBtn"),
       massLibraryNewMassBtn: document.getElementById("massLibraryNewMassBtn"),
+      massLibraryPrompt: document.getElementById("massLibraryPrompt"),
       massLibraryStatus: document.getElementById("massLibraryStatus"),
       massHistoryList: document.getElementById("massHistoryList"),
       massReplaceConfirmDialog: document.getElementById("massReplaceConfirmDialog"),
@@ -6377,6 +6379,9 @@
         return;
       }
       if (data?.startupPrompt?.type === "mass-library") {
+        els.massLibraryPrompt.textContent = data.startupPrompt.reason === "invalid-current-mass"
+          ? `The current Mass did not load. ${data.startupPrompt.message || "Check the Mass file."}`
+          : "";
         uiState.emptyPresentationPromptInFlight = true;
         try {
           await showMassLibraryDialog();

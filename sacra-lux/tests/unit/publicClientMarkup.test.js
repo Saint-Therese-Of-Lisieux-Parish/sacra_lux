@@ -71,6 +71,12 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('els.status.classList.toggle("error", Boolean(data.moviePlaybackError || data.saveError))');
   });
 
+  test("shows the invalid Mass reason in the Mass Library", () => {
+    expect(appHtml).toContain('id="massLibraryPrompt"');
+    expect(appHtml).toContain("The current Mass did not load.");
+    expect(appHtml).toContain('role="alert" aria-live="assertive"');
+  });
+
   test("movie autoplay failures offer a retry control", () => {
     const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
 

@@ -55,6 +55,11 @@ describe("flushPendingSave", () => {
       expect(failedState.body.saveError).toContain("mass.json");
       expect(failedState.body.saveError).not.toContain("/Users/example/.sacra-lux/current_mass/mass.json");
 
+      await request(handle.app).post("/api/update-title").send({ title: "Still pending" }).expect(200);
+      flushPendingSave();
+      const pendingState = await request(handle.app).get("/api/state").expect(200);
+      expect(pendingState.body.saveError).toContain("mass.json");
+
       syncCurrentMassToArchive.mockReturnValue({ id: "archive-1" });
       await request(handle.app).post("/api/update-title").send({ title: "Recovered" }).expect(200);
       flushPendingSave();

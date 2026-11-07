@@ -1046,11 +1046,17 @@ function resetPresentationRuntimeState() {
   clearStartTimers();
 }
 
-function setStartupPrompt(reason) {
+function setStartupPrompt(reason, message = null) {
   state.startupPrompt = {
     type: "mass-library",
     reason: String(reason || "missing-current-mass")
   };
+  if (message) state.startupPrompt.message = String(message);
+}
+
+function publicStartupMessage(error) {
+  return String(error?.message || "The current Mass did not load.")
+    .replace(/(?:[A-Za-z]:[\\/]|\/)[^\s"'<>]+/g, "[path]");
 }
 
 function archiveExistsOnDisk(archiveId) {
@@ -1079,7 +1085,7 @@ function restoreCurrentMassOrPrompt(ioRef, savedArchiveId = null) {
     return true;
   } catch (error) {
     resetPresentationRuntimeState();
-    setStartupPrompt("invalid-current-mass");
+    setStartupPrompt("invalid-current-mass", publicStartupMessage(error));
     logWarn(`[persistence] Could not restore current_mass package from "${CURRENT_MASS_DIR}": ${error.message}`);
     return false;
   }
@@ -1509,6 +1515,7 @@ function getCachedStateSnapshot(forceRefresh = false) {
 let _savePending = false;
 let _saveTimer = null;
 let _syncCurrentMassOnSave = false;
+let _massSaveError = "";
 
 // ── Mass start-time automation ───────────────────────────────────────────────
 // _startTimer arms the gathering lead-in; _massStartTimer is the hard cutover
@@ -2600,25 +2607,27 @@ function runScheduledSave() {
   _savePending = false;
   _saveTimer = null;
   const shouldSyncCurrentMass = _syncCurrentMassOnSave;
-  _syncCurrentMassOnSave = false;
-  let saveError = "";
   try {
     // Save the Mass first: it sets activeMassArchiveId, which the session records.
     if (shouldSyncCurrentMass) {
       saveCurrentMass();
+      _syncCurrentMassOnSave = false;
+      _massSaveError = "";
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
-    saveError = publicSaveError("mass.json", error);
+    _massSaveError = publicSaveError("mass.json", error);
   }
+  let sessionSaveError = "";
   try {
     if (saveSession(state) === false) {
-      saveError = saveError || "Could not save session.json.";
+      sessionSaveError = "Could not save session.json.";
     }
   } catch (error) {
     logError(`[persistence] Save failed: ${error.message}`);
-    saveError = saveError || publicSaveError("session.json", error);
+    sessionSaveError = publicSaveError("session.json", error);
   }
+  const saveError = _massSaveError || sessionSaveError;
   if (state.saveError !== saveError) {
     state.saveError = saveError;
     touch();
@@ -3088,6 +3097,9 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/remove-unused-mass-assets", (req, res) => {
     try {
+      if (state.startupPrompt?.reason === "invalid-current-mass") {
+        return res.status(409).json({ error: "No Mass is loaded." });
+      }
       const result = removeUnusedMassAssets();
       return res.json({ ok: true, ...result });
     } catch (error) {
@@ -3344,6 +3356,9 @@ function startServer(port = 17841, options = {}) {
 
   app.post("/api/update-title", (req, res) => {
     try {
+      if (state.startupPrompt?.reason === "invalid-current-mass") {
+        return res.status(409).json({ error: "No Mass is loaded." });
+      }
       const { title } = req.body || {};
       if (typeof title !== "string") {
         return res.status(400).json({ error: "title string is required." });
@@ -4221,6 +4236,7 @@ function startServer(port = 17841, options = {}) {
         organizerSequence: nextOrganizerSequence,
         manualSlides: nextManualSlides
       });
+      preserveInvalidCurrentMass();
       _manualNavigationDirection = 1;
       state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
