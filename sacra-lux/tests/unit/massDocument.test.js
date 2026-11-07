@@ -342,6 +342,23 @@ describe("massDocument", () => {
     }]);
   });
 
+  test("rejects duplicate unused reading stems", () => {
+    const reading = {
+      stem: "Gospel-alternate_1",
+      section: "Gospel",
+      passage: "John 1:1-5",
+      textLines: ["The text."],
+      ending: null
+    };
+    expect(() => validateMassDocument({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Duplicate readings" },
+      items: [],
+      readings: [reading, { ...reading }]
+    })).toThrow('Duplicate reading stem "Gospel-alternate_1".');
+  });
+
   test("uses source stems for renamed readings and keeps label fallback", () => {
     const runtime = buildRuntimeStateFromMassDocument({
       format: "sacra-lux.mass",
