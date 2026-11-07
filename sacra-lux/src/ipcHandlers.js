@@ -1,5 +1,6 @@
 const path = require("path");
 const { IMAGE_ASSET_EXTENSIONS, MAX_SINGLE_UPLOAD_BYTES } = require("./uploadLimits");
+const { CURRENT_MASS_DIR } = require("./massHistory");
 
 const IPC_CHANNELS = Object.freeze([
   "dialog:pickFolder",
@@ -67,7 +68,7 @@ function createIpcHandlers(dependencies = {}) {
   const screen = requireDependency(dependencies, "screen");
   const shell = requireDependency(dependencies, "shell");
   const fs = requireDependency(dependencies, "fs");
-  const os = requireDependency(dependencies, "os");
+  const currentMassDir = dependencies.currentMassDir || CURRENT_MASS_DIR;
   const state = requireDependency(dependencies, "state");
   const saveSession = requireDependency(dependencies, "saveSession");
   const syncTargetScreenState = requireDependency(dependencies, "syncTargetScreenState");
@@ -207,9 +208,8 @@ function createIpcHandlers(dependencies = {}) {
 
   async function openMassFolder(...args) {
     if (!acceptsNoInput(args)) return inputError("This channel accepts no input.");
-    const massFolderPath = path.join(os.homedir(), ".sacra-lux", "current_mass");
-    await fs.promises.mkdir(massFolderPath, { recursive: true });
-    return shell.openPath(massFolderPath);
+    await fs.promises.mkdir(currentMassDir, { recursive: true });
+    return shell.openPath(currentMassDir);
   }
 
   async function exportCurrentMassPdf(...args) {

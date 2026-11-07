@@ -14,6 +14,7 @@ const { secureWindow } = require("./windowSecurity");
 const { sanitizePdfFileName } = require("./pdfFileName");
 const { getPreferredIpv4Address } = require("./networkAddress");
 const { buildPdfSlideState } = require("./pdfCaptureState");
+const { CURRENT_MASS_DIR } = require("./massHistory");
 
 const configuredPort = Number.parseInt(process.env.SACRA_LUX_PORT || "17841", 10);
 const DEFAULT_PORT = Number.isInteger(configuredPort) && configuredPort > 0
@@ -763,9 +764,8 @@ function buildAppMenu(ioRef) {
     {
       label: "Open Current Mass Folder",
       click: async () => {
-        const massFolderPath = path.join(os.homedir(), ".sacra-lux", "current_mass");
-        await fs.promises.mkdir(massFolderPath, { recursive: true });
-        shell.openPath(massFolderPath);
+        await fs.promises.mkdir(CURRENT_MASS_DIR, { recursive: true });
+        shell.openPath(CURRENT_MASS_DIR);
       }
     },
     {

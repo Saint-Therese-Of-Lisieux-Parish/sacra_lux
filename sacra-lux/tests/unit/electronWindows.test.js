@@ -78,7 +78,7 @@ async function startMain({
       getPrimaryDisplay: jest.fn(() => displays[0] || { id: 1 }),
       getDisplayNearestPoint: jest.fn(() => displays[0] || { id: 1 })
     },
-    shell: { openExternal: jest.fn() }
+    shell: { openExternal: jest.fn(), openPath: jest.fn(async () => "") }
   };
   electron.powerMonitor = new EventEmitter();
   electron.powerSaveBlocker = {
@@ -138,6 +138,25 @@ async function startMain({
 }
 
 describe("Electron window security settings", () => {
+  test("opens the configured current Mass folder", async () => {
+    const originalHome = process.env.HOME;
+    process.env.HOME = "/tmp/configured-home";
+    try {
+      const windows = await startMain();
+      const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+      const fileMenu = template.find((item) => item.label === "File");
+      const openFolder = fileMenu.submenu.find((item) => item.label === "Open Current Mass Folder");
+
+      await openFolder.click();
+
+      expect(windows.electron.shell.openPath).toHaveBeenCalledWith(
+        "/tmp/configured-home/.sacra-lux/current_mass"
+      );
+    } finally {
+      process.env.HOME = originalHome;
+    }
+  });
+
   test("does not auto-fullscreen when the operator turned fullscreen off", async () => {
     const windows = await startMain({ displays: [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }, { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }] });
     const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
