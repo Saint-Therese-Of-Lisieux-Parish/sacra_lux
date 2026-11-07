@@ -22,6 +22,7 @@ describe("phase slide timers", () => {
   let app;
   let state;
   let client;
+  let resetSecurityState;
 
   const textItem = (id, phase, durationSec = 1) => ({
     id,
@@ -77,9 +78,11 @@ describe("phase slide timers", () => {
     });
     app = handle.app;
     ({ state } = require("../../src/state"));
+    ({ resetSecurityState } = require("../../src/security"));
   });
 
   beforeEach(() => {
+    resetSecurityState();
     jest.useRealTimers();
     state.startPin = "";
     state.startPinHash = null;
@@ -442,6 +445,27 @@ describe("phase slide timers", () => {
     expect(response.body.preMassRunning).toBe(true);
   });
 
+  test("reschedules the pre-Mass loop when its countdown is removed", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Removed countdown", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [{ id: "pre-countdown", type: "countdown", label: "Countdown", phase: "pre", backgroundTheme: "dark", durationSec: 1 }, textItem("mass", "mass", 10)],
+      { "pre-countdown": { countdownSec: 1 }, mass: { text: "Mass" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    await saveOrganizer(
+      [textItem("pre-text", "pre"), textItem("mass", "mass", 10)],
+      { "pre-text": { text: "Text" }, mass: { text: "Mass" } }
+    );
+    jest.advanceTimersByTime(1000);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("pre-text");
+    expect(response.body.preMassRunning).toBe(true);
+  });
+
   test("loops post-Mass when the last slide is a movie", async () => {
     await request(app).post("/api/new-mass").send({ title: "Post movie", startTime: "" }).expect(200);
     await saveOrganizer(
@@ -465,6 +489,27 @@ describe("phase slide timers", () => {
 
     const response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("post-a");
+    expect(response.body.postMassRunning).toBe(true);
+  });
+
+  test("reschedules the post-Mass loop when its movie is removed", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Removed movie", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [textItem("mass", "mass", 10), { id: "post-movie", type: "movie", label: "Movie", phase: "post", backgroundTheme: "dark", durationSec: 1 }],
+      { mass: { text: "Mass" }, "post-movie": { videoUrl: "/static/assets/movie.mp4" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/post-mass/start").expect(200);
+    await saveOrganizer(
+      [textItem("mass", "mass", 10), textItem("post-text", "post")],
+      { mass: { text: "Mass" }, "post-text": { text: "Text" } }
+    );
+    jest.advanceTimersByTime(1000);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("post-text");
     expect(response.body.postMassRunning).toBe(true);
   });
 
