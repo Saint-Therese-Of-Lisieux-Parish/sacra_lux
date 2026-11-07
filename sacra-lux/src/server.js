@@ -4007,7 +4007,7 @@ function startServer(port = 17841, options = {}) {
         if (item.type === "text" || item.type === "prayer" || item.type === "hymn") {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: "middle", imageUrl: null };
         } else if (item.type === "countdown") {
-          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 60, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
+          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 30, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
         } else {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null };
         }
