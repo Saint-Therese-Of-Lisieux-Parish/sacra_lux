@@ -233,6 +233,7 @@ that has already passed.
 - **Export Slide to PDF** exports the current slide preview in the desktop app.
 
 A Mass ZIP can contain these media types: `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `avif`, and `mp4`.
+If an uploaded file name contains a backtick, Sacra Lux removes the backtick.
 
 The program rejects a ZIP that is too large. You see one of these messages:
 
