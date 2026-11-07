@@ -44,6 +44,31 @@ describe("reading persistence", () => {
     }
   });
 
+  test("moves a passage past leading blank lines when saving a reading", async () => {
+    const first = await boot();
+    try {
+      const readingsDir = makeReadingsFolder(homeDir);
+      fs.writeFileSync(path.join(readingsDir, "Gospel.txt"), "\nJohn 1:1-5\n\nOld text.", "utf8");
+      await loadReadingsFolder(first.app, readingsDir);
+      const { state } = require("../../src/state");
+      const readingPath = path.join(state.readingsSource.folderPath, "Gospel.txt");
+
+      const before = (await request(first.app).get("/api/state").expect(200)).body;
+      const beforeDoc = before.readingsSource.documents.find((entry) => entry.stem === "Gospel");
+      expect(beforeDoc.passage).toBe("John 1:1-5");
+      expect(beforeDoc.textLines).toEqual(["Old text."]);
+
+      await request(first.app)
+        .post("/api/save-reading")
+        .send({ stem: "Gospel", text: "New text." })
+        .expect(200);
+
+      expect(fs.readFileSync(readingPath, "utf8")).toBe("John 1:1-5\n\nNew text.");
+    } finally {
+      await first.stop();
+    }
+  });
+
   test.each([
     ["missing", { stem: "Reading_I" }],
     ["a number", { stem: "Reading_I", text: 42 }]

@@ -24,6 +24,16 @@ describe("readingsImporter", () => {
     expect(result.slides.length).toBeGreaterThanOrEqual(2);
   });
 
+  test("uses the first non-blank line as the passage", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "mass-readings-"));
+    fs.writeFileSync(path.join(root, "Gospel.txt"), "\n\nJohn 1:1-5\n\nIn the beginning was the Word.", "utf8");
+
+    const result = importReadings(root);
+
+    expect(result.documents[0].passage).toBe("John 1:1-5");
+    expect(result.documents[0].textLines).toEqual(["In the beginning was the Word."]);
+  });
+
   function importNamedFiles(folderName, filenames) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "parish-readings-"));
     const folder = path.join(root, folderName);
