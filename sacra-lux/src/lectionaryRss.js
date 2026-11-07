@@ -50,9 +50,12 @@ function htmlToLines(html) {
 
 function sectionFromHeading(heading) {
   const normalized = plainText(heading);
-  const reading = normalized.match(/^Reading\s+(\d+)\b/i);
+  const reading = normalized.match(/^Reading\s+(\d+|I{1,3}|IV|V|VI{0,2}|VII)\b/i);
   if (reading) {
-    const roman = ["I", "II", "III", "IV", "V", "VI", "VII"][Number(reading[1]) - 1];
+    const number = /^\d+$/.test(reading[1])
+      ? Number(reading[1])
+      : ["I", "II", "III", "IV", "V", "VI", "VII"].indexOf(reading[1].toUpperCase()) + 1;
+    const roman = ["I", "II", "III", "IV", "V", "VI", "VII"][number - 1];
     return roman ? `Reading ${roman}` : null;
   }
   if (/^Responsorial Psalm\b/i.test(normalized)) return "Responsorial Psalm";
@@ -63,7 +66,25 @@ function sectionFromHeading(heading) {
 
 function passageFromHeading(heading) {
   const match = String(heading || "").match(/<a\b[^>]*>([\s\S]*?)<\/a>/i);
-  return plainText(match ? match[1] : "");
+  if (match) return plainText(match[1]);
+  const normalized = plainText(heading);
+  const section = sectionFromHeading(normalized);
+  if (!section) return "";
+  const sectionLabels = {
+    "Reading I": "Reading\\s+(?:1|I)",
+    "Reading II": "Reading\\s+(?:2|II)",
+    "Reading III": "Reading\\s+(?:3|III)",
+    "Reading IV": "Reading\\s+(?:4|IV)",
+    "Reading V": "Reading\\s+(?:5|V)",
+    "Reading VI": "Reading\\s+(?:6|VI)",
+    "Reading VII": "Reading\\s+(?:7|VII)",
+    "Responsorial Psalm": "Responsorial\\s+Psalm",
+    "Verse Before the Gospel": "(?:Alleluia|Verse\\s+Before\\s+the\\s+Gospel)",
+    Gospel: "Gospel"
+  };
+  // eslint-disable-next-line security/detect-non-literal-regexp -- the pattern comes from the fixed section map above
+  const remainder = normalized.replace(new RegExp(`^${sectionLabels[section]}\\b\\s*`, "i"), "").trim();
+  return remainder || section;
 }
 
 function extractTag(xml, tagName) {
@@ -81,20 +102,28 @@ function parseDailyReadingsRss(rssXml) {
   const description = extractTag(item, "description");
   const documents = [];
   const usedStems = new Map();
+  const alternateCounts = new Map();
   const sectionPattern = /<h4\b[^>]*>([\s\S]*?)<\/h4>\s*<div\b[^>]*>([\s\S]*?)<\/div>/gi;
 
   for (const match of description.matchAll(sectionPattern)) {
+    const heading = plainText(match[1]);
+    const isAlternate = /^Or\s*:/i.test(heading);
+    const previous = documents[documents.length - 1];
     const section = sectionFromHeading(match[1]);
-    const passage = passageFromHeading(match[1]);
+    const alternateSection = isAlternate && previous ? previous.section : section;
+    const passage = passageFromHeading(match[1]) || (isAlternate && previous ? previous.passage : "");
     const textLines = htmlToLines(match[2]);
-    if (!section || !passage || !textLines.length) continue;
+    if ((!alternateSection || !passage || !textLines.length) && !isAlternate) continue;
+    if (isAlternate && !previous) continue;
 
-    const baseStem = SECTION_STEMS[section];
+    const baseStem = SECTION_STEMS[alternateSection];
     const seen = (usedStems.get(baseStem) || 0) + 1;
     usedStems.set(baseStem, seen);
+    const alternateSeen = (alternateCounts.get(baseStem) || 0) + 1;
+    if (isAlternate) alternateCounts.set(baseStem, alternateSeen);
     documents.push({
-      stem: seen === 1 ? baseStem : `${baseStem}_${seen}`,
-      section,
+      stem: isAlternate ? `${baseStem}-alternate_${alternateSeen}` : (seen === 1 ? baseStem : `${baseStem}_${seen}`),
+      section: alternateSection,
       passage,
       textLines,
       ending: endingForSection(section)

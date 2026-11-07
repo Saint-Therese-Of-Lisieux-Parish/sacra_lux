@@ -100,6 +100,28 @@ describe("mass start from the wall clock", () => {
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "gathering"));
   });
 
+  test("keeps a Mass countdown end time during start catch-up", async () => {
+    jest.setSystemTime(new Date("2026-05-03T10:05:00"));
+    await request(app).post("/api/start-time").send({ time: "" }).expect(200);
+    await request(app).post("/api/organizer").send({
+      sequence: [
+        { id: "m-count", type: "countdown", label: "Mass countdown", phase: "mass", backgroundTheme: "dark" },
+        { id: "m-next", type: "text", label: "Next", phase: "mass", backgroundTheme: "dark" }
+      ],
+      manualSlides: { "m-count": { countdownSec: 3 }, "m-next": { text: "Next" } }
+    }).expect(200);
+
+    const countdownIndex = state.presentation.slides.findIndex((slide) => slide.organizerItemId === "m-count");
+    const endsAt = Date.now() + 3000;
+    state.currentSlideIndex = countdownIndex;
+    state.massStartTime = "2026-05-03T10:00";
+    state.countdownEndsAt = endsAt;
+
+    handle.rescheduleStartTimer();
+
+    expect(state.countdownEndsAt).toBe(endsAt);
+  });
+
   test("gathering overrunning the clock cuts over to the first Mass slide at Mass time", async () => {
     // Gathering is 30 s long but only 10 s remain, so it overruns the clock.
     jest.setSystemTime(new Date("2026-05-03T09:59:50"));
@@ -198,6 +220,29 @@ describe("mass start from the wall clock", () => {
     expect(res.body.gatheringRunning).toBe(false);
     expect(currentPhase(res.body)).toBe("mass");
     expect(res.body.currentSlideIndex).toBe(indexOfPhase(res.body, "mass"));
+  });
+
+  test("catch-up keeps a manually selected post-Mass slide", async () => {
+    jest.setSystemTime(new Date("2026-05-03T10:05:00"));
+    await seedGatheringAndMass();
+    await request(app).post("/api/organizer").send({
+      sequence: [
+        ...gatheringSequence,
+        { id: "post-one", type: "text", label: "Post One", phase: "post", backgroundTheme: "dark", durationSec: 10 }
+      ],
+      manualSlides: { ...gatheringManualSlides, "post-one": { text: "Post One" } }
+    }).expect(200);
+    await request(app).post("/api/start-time").send({ time: "2026-05-03T10:00" }).expect(200);
+
+    const before = await request(app).get("/api/state").expect(200);
+    const postIndex = before.body.presentation.slides.findIndex((slide) => slide.organizerItemId === "post-one");
+    state.currentSlideIndex = postIndex;
+
+    handle.rescheduleStartTimer();
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.currentSlideIndex).toBe(postIndex);
+    expect(after.body.presentation.slides[after.body.currentSlideIndex].organizerItemId).toBe("post-one");
   });
 
   test("a gathering countdown does not skip the first Mass slide after cutover", async () => {

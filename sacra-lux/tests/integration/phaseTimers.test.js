@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const { io: createClient } = require("socket.io-client");
 const request = require("supertest");
 
@@ -191,6 +193,43 @@ describe("phase slide timers", () => {
     response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass");
     expect(response.body.gatheringRunning).toBe(false);
+  });
+
+  test("starts the first Mass countdown when gathering ends", async () => {
+    await saveOrganizer(
+      [textItem("gather", "gathering"), { id: "mass-count", type: "countdown", label: "Mass count", phase: "mass", backgroundTheme: "dark", durationSec: 3 }],
+      { gather: { text: "Gather" }, "mass-count": { countdownSec: 1 } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/gathering/start").expect(200);
+    jest.advanceTimersByTime(1000);
+
+    let response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("mass-count");
+    expect(response.body.countdownEndsAt).not.toBeNull();
+
+    jest.advanceTimersByTime(1000);
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("mass-count");
+
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(assetsDir, "one.png"),
+      Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64")
+    );
+    await saveOrganizer(
+      [{ id: "mass-show", type: "imageSlideshow", label: "Mass images", phase: "mass", backgroundTheme: "dark", durationSec: 3 }],
+      { "mass-show": { images: [{ url: "/static/assets/one.png", name: "one.png" }], slideshowDurationSec: 1, slideshowLoopCount: 1 } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/gathering/start").expect(200);
+
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("mass-show");
+    expect(response.body.imageSlideshowEndsAt).not.toBeNull();
   });
 
   test("advances post-Mass slides and stays in the post-Mass loop", async () => {

@@ -271,6 +271,10 @@ describe("socket handlers", () => {
       client.emit("screen:settings", { darkBackgroundUrl: "https://evil.example/a.png" });
       await new Promise((resolve) => setTimeout(resolve, 100));
       expect(JSON.stringify(state.screenSettings)).toBe(before);
+
+      client.emit("screen:settings", { darkBackgroundUrl: ["/api/mass-asset/a.png"] });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(JSON.stringify(state.screenSettings)).toBe(before);
     });
 
     test("screen:black toggles the blackout flag", async () => {

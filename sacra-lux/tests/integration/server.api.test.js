@@ -64,7 +64,7 @@ describe("server api integration", () => {
     app.set("trust proxy", true);
     ({ resetSecurityState } = require("../../src/security"));
     ({ state } = require("../../src/state"));
-    ({ validateMassZipArchive, MASS_ZIP_LIMITS, resetStartPin } = require("../../src/server"));
+    ({ validateMassZipArchive, MASS_ZIP_LIMITS, resetStartPin, saveCurrentMass, flushPendingSave } = require("../../src/server"));
   });
 
   beforeEach(() => {
@@ -2622,6 +2622,20 @@ describe("server api integration", () => {
     expect(stateRes.body.presentation.slides[0].countdownSec).toBe(600);
   });
 
+  test("the organizer stores integer duration and countdown values", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ id: "fractional", type: "countdown", label: "Timer", phase: "pre", backgroundTheme: "dark", durationSec: 2.5 }],
+        manualSlides: { fractional: { text: "", countdownSec: 1.5 } }
+      })
+      .expect(200);
+
+    const stateRes = await request(app).get("/api/state").expect(200);
+    expect(stateRes.body.organizerSequence[0].durationSec).toBe(2);
+    expect(stateRes.body.presentation.slides[0].countdownSec).toBe(1);
+  });
+
   test("the organizer drops countdown font markup before it reaches the state", async () => {
     await request(app)
       .post("/api/organizer")
@@ -2757,6 +2771,44 @@ describe("server api integration", () => {
     expect(asset.body.toString()).toBe("legacy-image");
   });
 
+  test("organizer rejects media URLs that are not strings or null", async () => {
+    const sequence = [{ id: "img-1", type: "image", label: "Image", phase: "mass" }];
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "img-1": { imageUrl: ["/api/mass-asset/a.png"] } } })
+      .expect(400);
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "img-1": { images: [{ url: 7, name: "a.png" }] } } })
+      .expect(400);
+  });
+
+  test("rejects an invalid organizer document before changing the Mass", async () => {
+    const sequence = [{ id: "text-1", type: "text", label: "Good label", phase: "mass" }];
+    const manualSlides = { "text-1": { text: "Saved text" } };
+    await request(app).post("/api/organizer").send({ sequence, manualSlides }).expect(200);
+    flushPendingSave();
+
+    const massPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const before = fs.readFileSync(massPath, "utf8");
+    const invalidResponse = await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [{ ...sequence[0], label: "   " }],
+        manualSlides
+      })
+      .expect(400);
+
+    expect(invalidResponse.body.error).toMatch(/item\.label/i);
+    expect((await request(app).get("/api/state")).body.organizerSequence[0].label).toBe("Good label");
+    expect(fs.readFileSync(massPath, "utf8")).toBe(before);
+
+    state.organizerSequence[0].label = "   ";
+    expect(() => saveCurrentMass()).toThrow(/item\.label/i);
+    expect(fs.readFileSync(massPath, "utf8")).toBe(before);
+    state.organizerSequence[0].label = "Good label";
+  });
+
   test("import-mass-zip rejects external media URLs and keeps the current Mass", async () => {
     const before = await request(app).get("/api/state").expect(200);
     const zip = new AdmZip();
@@ -2779,6 +2831,14 @@ describe("server api integration", () => {
   });
 
   test("import-mass-zip rejects external media URLs in v3 backgrounds", async () => {
+    const readingsDir = path.join(handle.homeDir, "unsafe-v3-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
+    fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Safe Mass\n");
+    await loadReadingsFolder(app, readingsDir);
+    const before = await request(app).get("/api/state").expect(200);
+    const massPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const massBefore = fs.readFileSync(massPath, "utf8");
     const zip = new AdmZip();
     zip.addFile("mass.json", Buffer.from(JSON.stringify({
       format: "sacra-lux.mass",
@@ -2798,6 +2858,42 @@ describe("server api integration", () => {
       .post("/api/import-mass-zip")
       .send({ zipData: zip.toBuffer().toString("base64") })
       .expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.activeMassArchiveId).toBe(before.body.activeMassArchiveId);
+    expect(fs.readFileSync(massPath, "utf8")).toBe(massBefore);
+  });
+
+  test("mass archive load rejects external media URLs before replacement", async () => {
+    const readingsDir = path.join(handle.homeDir, "unsafe-archive-readings");
+    fs.mkdirSync(readingsDir, { recursive: true });
+    fs.writeFileSync(path.join(readingsDir, "Reading_I.txt"), "Genesis 1:1\n\nIn the beginning.");
+    fs.writeFileSync(path.join(readingsDir, "mass_title.txt"), "Safe Mass\n");
+    await loadReadingsFolder(app, readingsDir);
+    const before = await request(app).get("/api/state").expect(200);
+    const massPath = path.join(handle.homeDir, ".sacra-lux", "current_mass", "mass.json");
+    const massBefore = fs.readFileSync(massPath, "utf8");
+    const archiveDir = path.join(handle.homeDir, ".sacra-lux", "mass_history", "Unsafe-Archive", "package");
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "mass.json"), JSON.stringify({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Unsafe Archive" },
+      presentationDefaults: { darkBackgroundUrl: "https://evil.example/background.png" },
+      items: [{
+        id: "text-1",
+        kind: "text",
+        label: "Text",
+        section: "mass",
+        content: { text: "Text" }
+      }]
+    }));
+
+    await request(app).post("/api/mass-history/Unsafe-Archive/load").expect(400);
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.activeMassArchiveId).toBe(before.body.activeMassArchiveId);
+    expect(fs.readFileSync(massPath, "utf8")).toBe(massBefore);
   });
 
   test("a normal Mass save does not write the saved path to the console", () => {

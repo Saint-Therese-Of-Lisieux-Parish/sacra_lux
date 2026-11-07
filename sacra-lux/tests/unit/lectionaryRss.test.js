@@ -77,10 +77,10 @@ describe("lectionaryRss", () => {
         .toThrow("did not contain usable readings");
     });
 
-    test("skips unknown headings, missing passages, empty bodies, and out-of-range reading numbers", () => {
+    test("skips unknown headings, empty bodies, and out-of-range reading numbers", () => {
       const result = parseDailyReadingsRss(wrap([
         section("Commentary", "Note 1", "Ignored"),
-        "&lt;h4&gt;Gospel&lt;/h4&gt;&lt;div&gt;&lt;p&gt;No passage link&lt;/p&gt;&lt;/div&gt;",
+        "&lt;h4&gt;Gospel&lt;/h4&gt;&lt;div&gt;&lt;p&gt;&amp;nbsp;&lt;/p&gt;&lt;/div&gt;",
         section("Reading 9", "Acts 9:1", "Out of range"),
         section("Reading 1", "Acts 1:1", "&amp;nbsp;"),
         section("Gospel", "John 3:16", "Kept")
@@ -103,6 +103,26 @@ describe("lectionaryRss", () => {
         section("Verse Before the Gospel", "Psalm 1:1", "Verse")
       ].join("")));
       expect(result.documents.map((doc) => doc.section)).toEqual(["Reading II", "Verse Before the Gospel"]);
+    });
+
+    test("maps Roman numeral readings and alternate readings", () => {
+      const result = parseDailyReadingsRss(wrap([
+        "&lt;h4&gt;Reading I&lt;/h4&gt;&lt;div&gt;&lt;p&gt;First&lt;/p&gt;&lt;/div&gt;",
+        "&lt;h4&gt;Reading II&lt;/h4&gt;&lt;div&gt;&lt;p&gt;Second&lt;/p&gt;&lt;/div&gt;",
+        "&lt;h4&gt;Or:&lt;/h4&gt;&lt;div&gt;&lt;p&gt;Alternate second&lt;/p&gt;&lt;/div&gt;"
+      ].join("")));
+      expect(result.documents.map((doc) => doc.stem)).toEqual([
+        "Reading_I", "Reading_II", "Reading_II-alternate_1"
+      ]);
+      expect(result.documents[2]).toMatchObject({ section: "Reading II", passage: "Reading II", textLines: ["Alternate second"] });
+    });
+
+    test("uses unlinked headings as passages", () => {
+      const result = parseDailyReadingsRss(wrap([
+        "&lt;h4&gt;Alleluia See Te Deum&lt;/h4&gt;&lt;div&gt;&lt;p&gt;Verse&lt;/p&gt;&lt;/div&gt;",
+        "&lt;h4&gt;Alleluia&lt;/h4&gt;&lt;div&gt;&lt;p&gt;Plain verse&lt;/p&gt;&lt;/div&gt;"
+      ].join("")));
+      expect(result.documents.map((doc) => doc.passage)).toEqual(["See Te Deum", "Verse Before the Gospel"]);
     });
 
     test("decodes numeric and hexadecimal character references", () => {

@@ -25,7 +25,8 @@ const {
   decodeAssetName,
   isMassDocumentV3,
   isSafeAssetName,
-  serializeReadingDocument
+  serializeReadingDocument,
+  validateMassDocument
 } = require("./massDocument");
 const { state, getSafeSlideIndex, touch, getStateSnapshot } = require("./state");
 const {
@@ -287,7 +288,7 @@ function saveCurrentMass() {
   if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
   syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
-  const massData = buildMassDocumentFromState(state);
+  const massData = buildValidatedMassDocument(state);
   writeFileAtomic(path.join(CURRENT_MASS_DIR, "mass.json"), JSON.stringify(massData, null, 2));
   const archive = syncCurrentMassToArchive({
     currentArchiveId: state.activeMassArchiveId,
@@ -296,6 +297,12 @@ function saveCurrentMass() {
   });
   state.activeMassArchiveId = archive.id;
   return true;
+}
+
+function buildValidatedMassDocument(nextState) {
+  const massData = buildMassDocumentFromState(nextState);
+  validateMassDocument(massData);
+  return massData;
 }
 
 function buildExportFilename(title, startTime, suffix = ".zip") {
@@ -504,7 +511,11 @@ function screenSettingsUrlError(settings) {
   if (!settings || typeof settings !== "object") {
     return "";
   }
-  const bad = BACKGROUND_URL_KEYS.some((key) => typeof settings[key] === "string" && settings[key] && !isAllowedMediaUrl(settings[key]));
+  const bad = BACKGROUND_URL_KEYS.some((key) => {
+    const value = settings[key];
+    return value !== undefined && value !== null &&
+      (typeof value !== "string" || (value && !isAllowedMediaUrl(value)));
+  });
   return bad ? BACKGROUND_URL_ERROR : "";
 }
 
@@ -512,8 +523,16 @@ function screenSettingsUrlError(settings) {
 function manualSlideUrlError(manualSlides) {
   for (const manual of Object.values(manualSlides && typeof manualSlides === "object" ? manualSlides : {})) {
     const urls = [manual?.imageUrl, manual?.videoUrl];
+    if (urls.some((url) => url !== undefined && url !== null && typeof url !== "string")) {
+      return "Image and movie URLs must be strings or null.";
+    }
     if (Array.isArray(manual?.images)) {
-      urls.push(...manual.images.map((entry) => (typeof entry === "string" ? entry : entry?.url)));
+      for (const entry of manual.images) {
+        if (entry && typeof entry === "object" && "url" in entry && typeof entry.url !== "string") {
+          return "Image slideshow URLs must be strings.";
+        }
+        urls.push(typeof entry === "string" ? entry : entry?.url);
+      }
     }
     for (const url of urls) {
       if (typeof url === "string" && url.trim() && !isAllowedMediaUrl(url.trim())) {
@@ -563,6 +582,9 @@ function parseMassZipDefinition(definitionEntry) {
 }
 
 function validateMassPackageDefinition(packageData, screenSettings = DEFAULT_SCREEN_SETTINGS) {
+  const urlError = massPackageUrlError(packageData);
+  if (urlError) throw new ValidationError(urlError);
+
   if (isMassDocumentV3(packageData)) {
     buildRuntimeStateFromMassDocument(packageData);
     return;
@@ -617,12 +639,16 @@ function validateMassZipArchive(zip, compressedBytes) {
 }
 
 function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET_EXT) {
-  const match = String(dataUrl || "").match(/^data:((?:image\/[a-z+]+)|(?:video\/mp4));base64,([A-Za-z0-9+/=]+)$/);
-  if (!match) {
+  const input = String(dataUrl || "");
+  const base64Marker = ";base64,";
+  const markerIndex = input.indexOf(base64Marker);
+  const mimeType = markerIndex > 5 ? input.slice(5, markerIndex).toLowerCase() : "";
+  const encodedStart = markerIndex + base64Marker.length;
+  if (!/^data:/.test(input) || !/^(?:image\/[a-z+]+|video\/mp4)$/.test(mimeType) ||
+    markerIndex < 0 || !/^[A-Za-z0-9+/=]+$/.test(input.slice(encodedStart))) {
     throw new ValidationError("Invalid media data URL.");
   }
 
-  const mimeType = match[1].toLowerCase();
   const mediaExtension = mimeType === "image/jpeg"
     ? "jpg"
     : mimeType === "image/svg+xml"
@@ -633,7 +659,20 @@ function parseMassAssetUpload(filename, dataUrl, allowedExtensions = MEDIA_ASSET
     throw new ValidationError(`Unsupported media type for "${displayName}".`);
   }
 
-  const bytes = Buffer.from(match[2], "base64");
+  // Decode in bounded chunks. A whole base64 string creates a second large
+  // temporary string and can cause a valid upload to fail under CI memory limits.
+  const encodedLength = input.length - encodedStart;
+  const padding = input.endsWith("==") ? 2 : input.endsWith("=") ? 1 : 0;
+  const bytes = Buffer.allocUnsafe(Math.floor(encodedLength * 3 / 4) - padding);
+  let offset = 0;
+  let decodedOffset = 0;
+  const chunkLength = 4 * 1024 * 1024;
+  while (offset < encodedLength) {
+    const chunk = Buffer.from(input.slice(encodedStart + offset, encodedStart + Math.min(offset + chunkLength, encodedLength)), "base64");
+    chunk.copy(bytes, decodedOffset);
+    decodedOffset += chunk.length;
+    offset += chunkLength;
+  }
   if (bytes.length > MAX_SINGLE_UPLOAD_BYTES) {
     throw new ValidationError(
       `Media file exceeds the ${Math.floor(MAX_SINGLE_UPLOAD_BYTES / (1024 * 1024))} MB limit.`
@@ -1349,6 +1388,9 @@ function mergeManualSlideState(nextSequence, nextManualSlides) {
     };
     merged[item.id].styleOverrides = normalizeStyleOverrides(merged[item.id].styleOverrides);
     merged[item.id].countdownFont = normalizeCountdownFont(merged[item.id].countdownFont);
+    if (item.type === "countdown") {
+      merged[item.id].countdownSec = normalizeCountdownSec(merged[item.id].countdownSec);
+    }
     if (item.type === "imageSlideshow") {
       merged[item.id].images = normalizeSlideshowImages(merged[item.id].images);
       merged[item.id].slideshowDurationSec = normalizeSlideshowDurationSec(merged[item.id].slideshowDurationSec);
@@ -1398,6 +1440,9 @@ function propagateInterstitialImage(sequence, mergedManualSlides) {
 
 function normalizeOrganizerSequence(sequence = []) {
   const normalized = sequence.map((item, index) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new ValidationError("Each organizer item must be an object.");
+    }
     const phase = normalizePhase(item.phase ?? item.section);
     return {
       id: String(item.id || `item-${index + 1}`),
@@ -1415,7 +1460,7 @@ function normalizeOrganizerSequence(sequence = []) {
         (item.presentation?.background === "dark" ? "dark" : item.presentation?.background === "light" ? "light" : item.presentation?.background),
         item.type ?? item.kind
       ),
-      durationSec: Math.max(1, Math.min(3600, Number(item.durationSec) || 10))
+      durationSec: Math.max(1, Math.min(3600, Math.trunc(Number(item.durationSec) || 10)))
     };
   });
 
@@ -1916,6 +1961,7 @@ function startGatheringSequence(ioRef) {
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
+    scheduleRuntimeForCurrentSlide(ioRef);
   }
 }
 
@@ -1991,6 +2037,7 @@ function scheduleNextGatheringSlide(ioRef) {
       touch();
       ioRef.emit("state:update", getStateSnapshot());
       scheduleSave();
+      scheduleRuntimeForCurrentSlide(ioRef);
     } else {
       // Advance to the next gathering slide.
       const nextIndex = getSafeSlideIndex(gatheringIndices[curPos + 1]);
@@ -2400,7 +2447,13 @@ function startMassSequence(ioRef) {
   const firstMassIdx = slides.findIndex((s) => s.phase === "mass");
   if (firstMassIdx < 0) return false;
   const alreadyOnMassSlide = slides[state.currentSlideIndex]?.phase === "mass";
-  stopActiveSlideTimers();
+  if (alreadyOnMassSlide) {
+    stopPreMassTimer();
+    stopGatheringTimer();
+    stopPostMassTimer();
+  } else {
+    stopActiveSlideTimers();
+  }
   if (!alreadyOnMassSlide) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
   }
@@ -2408,6 +2461,7 @@ function startMassSequence(ioRef) {
   touch();
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
+  scheduleRuntimeForCurrentSlide(ioRef);
   return true;
 }
 
@@ -2441,6 +2495,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   const now = Date.now();
   const massHasBegun = now >= target;
   const onMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "mass";
+  const onPostMassSlide = (state.presentation?.slides || [])[state.currentSlideIndex]?.phase === "post";
 
   // Arm the hard cutover at the scheduled time. It leaves a Mass slide that
   // is already showing, and otherwise opens the first Mass slide.
@@ -2477,9 +2532,9 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   // The lead-in is already past. Once Mass has begun, only an explicit
   // catch-up may move the projector. Before that, open gathering even if
   // pre-Mass is still running. Leave a Mass slide, a gathering sequence
-  // already playing, and a post-Mass loop where they are.
+  // already playing, and a post-Mass slide or loop where they are.
   if (massHasBegun) {
-    if (catchUp && !state.postMassRunning) startMassSequence(ioRef);
+    if (catchUp && !state.postMassRunning && !onPostMassSlide) startMassSequence(ioRef);
     return;
   }
   if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide) {
@@ -2853,6 +2908,7 @@ function startServer(port = 17841, options = {}) {
     return jsonParsers.get(limit);
   }
   app.use((req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
     const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
     if (req.path !== "/api/import-mass-zip") {
       return jsonParserFor(limit)(req, res, next);
@@ -2884,6 +2940,12 @@ function startServer(port = 17841, options = {}) {
     ? packagedBackgroundsDir
     : path.join(__dirname, "..", "backgrounds");
   app.use("/static/backgrounds", express.static(backgroundsDir, { index: false }));
+  app.use("/static", (req, res, next) => {
+    if (path.extname(req.path).toLowerCase() === ".html") {
+      for (const [name, value] of Object.entries(HTML_SECURITY_HEADERS)) res.setHeader(name, value);
+    }
+    return next();
+  });
   app.use("/static", express.static(publicDir));
 
   function sendPublicPage(res, next, filename) {
@@ -2918,9 +2980,11 @@ function startServer(port = 17841, options = {}) {
   function handleMassAssetUpload(req, res) {
     try {
       fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-      const { filename, dataUrl } = req.body || {};
-      if (!dataUrl) return res.status(400).json({ error: "dataUrl is required." });
-      const upload = parseMassAssetUpload(filename, dataUrl);
+      const body = req.body || {};
+      if (!body.dataUrl) return res.status(400).json({ error: "dataUrl is required." });
+      const upload = parseMassAssetUpload(body.filename, body.dataUrl);
+      // Release the encoded request body before the file write and hash.
+      body.dataUrl = null;
       const sizeError = massAssetSizeError(upload.bytes.length);
       if (sizeError) return res.status(400).json({ error: sizeError });
       const asset = saveMassAssetUpload(upload);
@@ -4142,14 +4206,29 @@ function startServer(port = 17841, options = {}) {
         }
       }
 
+      const nextOrganizerSequence = normalizeOrganizerSequence(sequence);
+      const nextManualSlides = mergeManualSlideState(nextOrganizerSequence, manualSlides || {});
+      const nextPresentation = buildPresentationFromOrganizer({
+        title: state.presentation.title,
+        documents: state.readingsSource.documents,
+        sequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides,
+        screenSettings: state.screenSettings
+      });
+      buildValidatedMassDocument({
+        ...state,
+        presentation: nextPresentation,
+        organizerSequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides
+      });
       _manualNavigationDirection = 1;
       state.startupPrompt = null;
       const previousSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
       const wasSlideshow = previousSlide?.type === "imageSlideshow";
       stopImageSlideshowTimer({ resetProgress: false, clearError: true });
       _imageSlideshowFailedUrls.clear();
-      state.organizerSequence = normalizeOrganizerSequence(sequence);
-      state.manualSlides = mergeManualSlideState(state.organizerSequence, manualSlides || {});
+      state.organizerSequence = nextOrganizerSequence;
+      state.manualSlides = nextManualSlides;
       state.organizerRevision += 1;
       propagateInterstitialImage(state.organizerSequence, state.manualSlides);
       // Always rebuild the presentation so manual content stays current.

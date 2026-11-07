@@ -61,6 +61,44 @@ describe("current slide persistence", () => {
     }
   });
 
+  test("keeps a saved post-Mass slide after a restart catch-up", async () => {
+    const first = await boot();
+    const startTime = new Date(Date.now() - 30 * 60 * 1000).toISOString().slice(0, 16);
+
+    await request(first.app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "mass-first", type: "text", label: "First", phase: "mass", backgroundTheme: "dark" },
+          { id: "post-slide", type: "text", label: "Post", phase: "post", backgroundTheme: "dark" }
+        ],
+        manualSlides: { "mass-first": { text: "First" }, "post-slide": { text: "Post" } }
+      })
+      .expect(200);
+    await request(first.app).post("/api/start-time").send({ time: startTime }).expect(200);
+
+    const firstState = (await request(first.app).get("/api/state").expect(200)).body;
+    const postIndex = firstState.presentation.slides.findIndex((slide) => slide.organizerItemId === "post-slide");
+    const client = createClient(first.baseUrl, { transports: ["websocket"] });
+    await new Promise((resolve, reject) => {
+      client.once("connect", resolve);
+      client.once("connect_error", reject);
+    });
+    client.emit("slide:goto", postIndex);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    client.close();
+    await first.stop();
+
+    const restarted = await boot();
+    try {
+      const state = (await request(restarted.app).get("/api/state").expect(200)).body;
+      expect(state.currentSlideIndex).toBe(postIndex);
+      expect(state.presentation.slides[state.currentSlideIndex].organizerItemId).toBe("post-slide");
+    } finally {
+      await restarted.stop();
+    }
+  });
+
   test("uses the normal startup slide when the saved slide is older than four hours", async () => {
     const first = await boot();
     const startTime = new Date(Date.now() - 30 * 60 * 1000).toISOString().slice(0, 16);
