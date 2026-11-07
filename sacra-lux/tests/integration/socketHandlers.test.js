@@ -658,7 +658,7 @@ describe("socket handlers", () => {
       }
     });
 
-    test("reports an error when the export fails", async () => {
+    test("keeps an unreadable image when AVIF export fails to convert it", async () => {
       const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
       const operator = await connect({ auth: { token: pin.body.controlToken } });
       try {
@@ -670,9 +670,21 @@ describe("socket handlers", () => {
           manualSlides: { pic: { text: "", imageUrl: "/api/mass-asset/broken.png" } }
         }).set("x-sacra-control", pin.body.controlToken).expect(200);
 
-        const failed = nextEvent(operator, "export:avif:error", 20000);
+        const done = nextEvent(operator, "export:avif:done", 20000);
         operator.emit("export:avif:start");
-        expect(await failed).toEqual({ error: expect.any(String) });
+        const { token } = await done;
+        const zipRes = await request(app)
+          .get(`/api/export-mass-zip-avif?token=${token}`)
+          .set("x-sacra-control", pin.body.controlToken)
+          .buffer(true)
+          .parse((res, callback) => {
+            const chunks = [];
+            res.on("data", (chunk) => chunks.push(chunk));
+            res.on("end", () => callback(null, Buffer.concat(chunks)));
+          })
+          .expect(200);
+        const zip = new AdmZip(zipRes.body);
+        expect(zip.getEntry("assets/broken.png").getData()).toEqual(Buffer.from("not an image"));
       } finally {
         operator.disconnect();
       }

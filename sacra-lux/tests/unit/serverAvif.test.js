@@ -1,4 +1,5 @@
 const { convertImageToAvif } = require("../../src/server");
+const logger = require("../../src/logger");
 
 describe("AVIF image conversion", () => {
   test("rejects a conversion that loses animation frames", async () => {
@@ -29,5 +30,17 @@ describe("AVIF image conversion", () => {
       .mockReturnValueOnce({ metadata });
 
     await expect(convertImageToAvif(sharp, "/tmp/animated.gif")).resolves.toEqual(avif);
+  });
+
+  test("keeps the original when conversion fails and logs the file name", async () => {
+    const warn = jest.spyOn(logger, "warn").mockImplementation(() => {});
+    const sharp = jest.fn().mockImplementation(() => {
+      throw new Error("Input file contains unsupported image format");
+    });
+
+    await expect(convertImageToAvif(sharp, "/tmp/bad.jpg")).resolves.toBeNull();
+    expect(warn).toHaveBeenCalledWith("AVIF conversion failed for bad.jpg.");
+
+    warn.mockRestore();
   });
 });

@@ -129,7 +129,7 @@ describe("phase slide timers", () => {
     watch.stop();
   });
 
-  test("reschedules a pre-Mass timer after a forward clock jump", async () => {
+  test("reschedules a pre-Mass timer after a short forward clock jump", async () => {
     await request(app).post("/api/new-mass").send({ title: "Pre resume", startTime: "" }).expect(200);
     await saveOrganizer(
       [textItem("pre-a", "pre", 20), textItem("pre-b", "pre", 20), textItem("mass", "mass", 10)],
@@ -139,14 +139,49 @@ describe("phase slide timers", () => {
 
     await request(app).post("/api/pre-mass/start").expect(200);
     const start = Date.now();
-    jest.setSystemTime(start + 60000);
+    jest.setSystemTime(start + 1000);
     handle.rescheduleStartTimer();
     jest.advanceTimersByTime(0);
     await flushSocket();
 
     const response = await request(app).get("/api/state").expect(200);
-    expect(slideId(response.body)).toBe("pre-b");
+    expect(slideId(response.body)).toBe("pre-a");
     expect(response.body.preMassRunning).toBe(true);
+  });
+
+  test.each([
+    ["pre-Mass", "pre", "/api/pre-mass/start", "pre-a", "pre-b"],
+    ["gathering", "gathering", "/api/gathering/start", "gather-a", "gather-b"],
+    ["post-Mass", "post", "/api/post-mass/start", "post-a", "post-b"]
+  ])("does not replay missed %s slides after a wake", async (_name, phase, startRoute, firstId, secondId) => {
+    await saveOrganizer(
+      [
+        textItem("mass", "mass", 10),
+        textItem(firstId, phase, 10),
+        textItem(secondId, phase, 10)
+      ],
+      {
+        mass: { text: "Mass" },
+        [firstId]: { text: "First" },
+        [secondId]: { text: "Second" }
+      }
+    );
+    await connectClient();
+    const watch = watchUpdates();
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post(startRoute).expect(200);
+    const updateStart = watch.updates.length;
+    const start = Date.now();
+    jest.setSystemTime(start + 60 * 60 * 1000);
+    handle.rescheduleStartTimer();
+    jest.advanceTimersByTime(2000);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe(firstId);
+    expect(watch.updates.slice(updateStart).filter((snapshot) => slideId(snapshot) !== firstId)).toHaveLength(0);
+    watch.stop();
   });
 
   test("reschedules a countdown timer after a forward clock jump", async () => {
@@ -170,6 +205,55 @@ describe("phase slide timers", () => {
     const response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass");
     expect(response.body.countdownEndsAt).toBeNull();
+  });
+
+  test.each([
+    { name: "next image", current: 0, iteration: 1, loops: 1, expected: 1, expectedIteration: 1 },
+    { name: "next loop", current: 2, iteration: 1, loops: 2, expected: 0, expectedIteration: 2 },
+    { name: "next organizer item", current: 2, iteration: 2, loops: 2, expected: 3, expectedIteration: 1 }
+  ])("keeps the slideshow after a wake at the $name", async ({ current, iteration, loops, expected, expectedIteration }) => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    for (const name of ["one.png", "two.png", "three.png"]) fs.writeFileSync(path.join(assetsDir, name), image);
+    await saveOrganizer(
+      [
+        {
+          id: "wake-show",
+          type: "imageSlideshow",
+          label: "Wake slideshow",
+          phase: "mass",
+          backgroundTheme: "light",
+          durationSec: 10
+        },
+        textItem("after", "mass", 10)
+      ],
+      {
+        "wake-show": {
+          images: [
+            { url: "/static/assets/one.png", name: "one.png" },
+            { url: "/static/assets/two.png", name: "two.png" },
+            { url: "/static/assets/three.png", name: "three.png" }
+          ],
+          slideshowDurationSec: 10,
+          slideshowLoopCount: loops
+        },
+        after: { text: "After" }
+      }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+    const slideshowIndices = state.presentation.slides
+      .map((slide, index) => slide.organizerItemId === "wake-show" ? index : -1)
+      .filter((index) => index >= 0);
+    state.currentSlideIndex = slideshowIndices[current] ?? state.presentation.slides.findIndex((slide) => slide.organizerItemId === "after");
+    state.imageSlideshowLoopIteration = iteration;
+    state.imageSlideshowEndsAt = Date.now() - 1000;
+
+    handle.rescheduleStartTimer();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(slideshowIndices[expected] ?? response.body.presentation.slides.findIndex((slide) => slide.organizerItemId === "after"));
+    expect(response.body.imageSlideshowLoopIteration).toBe(expectedIteration);
   });
 
   test("starts the Mass when the last gathering slide ends", async () => {
@@ -230,6 +314,71 @@ describe("phase slide timers", () => {
     response = await request(app).get("/api/state").expect(200);
     expect(slideId(response.body)).toBe("mass-show");
     expect(response.body.imageSlideshowEndsAt).not.toBeNull();
+  });
+
+  test("resets image slideshow progress when a new phase starts", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.mkdirSync(assetsDir, { recursive: true });
+    const image = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
+    fs.writeFileSync(path.join(assetsDir, "phase.png"), image);
+    await saveOrganizer(
+      [
+        {
+          id: "pre-show",
+          type: "imageSlideshow",
+          label: "Pre slideshow",
+          phase: "pre",
+          backgroundTheme: "dark",
+          durationSec: 1
+        },
+        {
+          id: "gather-show",
+          type: "imageSlideshow",
+          label: "Gathering slideshow",
+          phase: "gathering",
+          backgroundTheme: "dark",
+          durationSec: 1
+        },
+        textItem("mass", "mass", 10),
+        {
+          id: "post-show",
+          type: "imageSlideshow",
+          label: "Post slideshow",
+          phase: "post",
+          backgroundTheme: "dark",
+          durationSec: 1
+        }
+      ],
+      {
+        "pre-show": { images: [{ url: "/static/assets/phase.png", name: "phase.png" }], slideshowDurationSec: 1, slideshowLoopCount: 5 },
+        "gather-show": { images: [{ url: "/static/assets/phase.png", name: "phase.png" }], slideshowDurationSec: 1, slideshowLoopCount: 3 },
+        mass: { text: "Mass" },
+        "post-show": { images: [{ url: "/static/assets/phase.png", name: "phase.png" }], slideshowDurationSec: 1, slideshowLoopCount: 3 }
+      }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    jest.advanceTimersByTime(2000);
+    await flushSocket();
+    let response = await request(app).get("/api/state").expect(200);
+    expect(response.body.imageSlideshowLoopIteration).toBe(3);
+
+    await request(app).post("/api/gathering/start").expect(200);
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("gather-show");
+    expect(response.body.imageSlideshowLoopIteration).toBe(1);
+
+    jest.advanceTimersByTime(3000);
+    await flushSocket();
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("mass");
+
+    state.imageSlideshowLoopIteration = 2;
+    await request(app).post("/api/post-mass/start").expect(200);
+    response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe("post-show");
+    expect(response.body.imageSlideshowLoopIteration).toBe(1);
   });
 
   test("advances post-Mass slides and stays in the post-Mass loop", async () => {

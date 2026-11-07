@@ -805,11 +805,16 @@ function createAvifNameAllocator(assetsDir) {
 }
 
 async function convertImageToAvif(sharp, filePath) {
-  const input = sharp(filePath, { animated: true, pages: -1 });
-  const sourcePages = (await input.metadata()).pages || 1;
-  const avifBuffer = await input.avif({ quality: 50 }).toBuffer();
-  const outputPages = (await sharp(avifBuffer, { animated: true }).metadata()).pages || 1;
-  return outputPages >= sourcePages ? avifBuffer : null;
+  try {
+    const input = sharp(filePath, { animated: true, pages: -1 });
+    const sourcePages = (await input.metadata()).pages || 1;
+    const avifBuffer = await input.avif({ quality: 50 }).toBuffer();
+    const outputPages = (await sharp(avifBuffer, { animated: true }).metadata()).pages || 1;
+    return outputPages >= sourcePages ? avifBuffer : null;
+  } catch (_error) {
+    logger.warn(`AVIF conversion failed for ${path.basename(filePath)}.`);
+    return null;
+  }
 }
 
 function validateMassDocumentAssetEntries(massDocument, zip) {
@@ -1563,6 +1568,7 @@ let _massSaveError = "";
 // to the first Mass slide at the scheduled wall-clock time.
 let _startTimer = null;
 let _massStartTimer = null;
+let _gatheringStartedForMassKey = null;
 
 function clearStartTimers() {
   if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
@@ -1779,6 +1785,34 @@ function advanceAfterImageSlideshow(ioRef, { direction = 1 } = {}) {
   if (nextIndex >= 0) scheduleRuntimeForCurrentSlide(ioRef);
 }
 
+function advanceImageSlideshowFrame(ioRef, scheduledSlideId) {
+  const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+  if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
+
+  const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
+  const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
+  if (latestPlayable.length === 0 || latestPosition < 0) {
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+
+  if (latestPosition < latestPlayable.length - 1) {
+    state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
+  } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
+    _imageSlideshowFailedUrls.clear();
+    state.imageSlideshowLoopIteration += 1;
+    state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
+  } else {
+    advanceAfterImageSlideshow(ioRef);
+    return;
+  }
+
+  touch();
+  ioRef.emit("state:update", getStateSnapshot());
+  scheduleSave();
+  scheduleImageSlideshowSlide(ioRef);
+}
+
 function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   stopImageSlideshowTimer({ resetProgress: false });
   const slides = state.presentation?.slides || [];
@@ -1816,7 +1850,7 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   const imageSlideshowEndsAt = Number.isFinite(savedEndsAt) ? savedEndsAt : Date.now() + durationMs;
   if (imageSlideshowEndsAt <= Date.now()) {
     state.imageSlideshowEndsAt = null;
-    advanceAfterImageSlideshow(ioRef);
+    advanceImageSlideshowFrame(ioRef, currentSlide.id);
     return;
   }
   state.imageSlideshowEndsAt = imageSlideshowEndsAt;
@@ -1827,31 +1861,7 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   _imageSlideshowTimer = setTimeout(() => {
     _imageSlideshowTimer = null;
     state.imageSlideshowEndsAt = null;
-    const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
-    if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "imageSlideshow") return;
-
-    const latestPlayable = getPlayableImageSlideshowEntries(latestSlide.organizerItemId);
-    const latestPosition = latestPlayable.findIndex(({ index }) => index === state.currentSlideIndex);
-    if (latestPlayable.length === 0 || latestPosition < 0) {
-      advanceAfterImageSlideshow(ioRef);
-      return;
-    }
-
-    if (latestPosition < latestPlayable.length - 1) {
-      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
-    } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
-      _imageSlideshowFailedUrls.clear();
-      state.imageSlideshowLoopIteration += 1;
-      state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
-    } else {
-      advanceAfterImageSlideshow(ioRef);
-      return;
-    }
-
-    touch();
-    ioRef.emit("state:update", getStateSnapshot());
-    scheduleSave();
-    scheduleImageSlideshowSlide(ioRef);
+    advanceImageSlideshowFrame(ioRef, scheduledSlideId);
   }, Math.max(0, imageSlideshowEndsAt - Date.now()));
 }
 
@@ -1869,6 +1879,11 @@ function stopPreMassTimer() {
 function getAutomaticSlideDurationMs(slide) {
   const orgItem = state.organizerSequence.find((item) => item.id === slide?.organizerItemId);
   return Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
+}
+
+function keepPhaseDeadlineFromCurrentTime(deadlineAt, durationMs) {
+  const now = Date.now();
+  return deadlineAt < now - durationMs ? now + durationMs : deadlineAt;
 }
 
 function isPhaseOwnedSlide(slide) {
@@ -1915,7 +1930,8 @@ function scheduleNextPreMassSlide(ioRef) {
     _preMassDeadlineAt = Date.now() + durationMs;
     _preMassDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _preMassDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_preMassDeadlineAt, durationMs);
+  _preMassDeadlineAt = deadlineAt;
 
   _preMassTimer = setTimeout(() => {
     _preMassTimer = null;
@@ -1990,6 +2006,7 @@ function startGatheringSequence(ioRef) {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
+  stopPhaseOwnedTimers();
 
   const slides = state.presentation?.slides || [];
   const firstGatheringIdx = slides.findIndex((s) => s.phase === "gathering");
@@ -1998,6 +2015,9 @@ function startGatheringSequence(ioRef) {
   if (firstGatheringIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstGatheringIdx);
     state.gatheringRunning = true;
+    _gatheringStartedForMassKey = state.massStartTime
+      ? `${state.activeMassArchiveId || ""}|${state.massStartTime}`
+      : null;
     updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
@@ -2049,7 +2069,8 @@ function scheduleNextGatheringSlide(ioRef) {
     _gatheringDeadlineAt = Date.now() + durationMs;
     _gatheringDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _gatheringDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_gatheringDeadlineAt, durationMs);
+  _gatheringDeadlineAt = deadlineAt;
 
   _gatheringTimer = setTimeout(() => {
     _gatheringTimer = null;
@@ -2130,6 +2151,7 @@ function startPostMassSequence(ioRef) {
   stopPreMassTimer();
   stopGatheringTimer();
   stopPostMassTimer();
+  stopPhaseOwnedTimers();
 
   const slides = state.presentation?.slides || [];
   const firstPostIdx = slides.findIndex((s) => s.phase === "post");
@@ -2180,7 +2202,8 @@ function scheduleNextPostMassSlide(ioRef) {
     _postMassDeadlineAt = Date.now() + durationMs;
     _postMassDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _postMassDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_postMassDeadlineAt, durationMs);
+  _postMassDeadlineAt = deadlineAt;
 
   _postMassTimer = setTimeout(() => {
     _postMassTimer = null;
@@ -2537,7 +2560,11 @@ function startMassSequence(ioRef) {
 function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   clearStartTimers();
   const timeStr = state.massStartTime;
-  if (!timeStr) return;
+  if (!timeStr) {
+    _gatheringStartedForMassKey = null;
+    return;
+  }
+  const massStartKey = `${state.activeMassArchiveId || ""}|${timeStr}`;
   const target = new Date(timeStr);
   if (isNaN(target.getTime())) return;
   const now = Date.now();
@@ -2585,7 +2612,8 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
     if (catchUp && !state.postMassRunning && !onPostMassSlide) startMassSequence(ioRef);
     return;
   }
-  if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide) {
+  if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide &&
+      _gatheringStartedForMassKey !== massStartKey) {
     startGatheringSequence(ioRef);
   }
 }
@@ -4013,7 +4041,7 @@ function startServer(port = 17841, options = {}) {
         if (item.type === "text" || item.type === "prayer" || item.type === "hymn") {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: "middle", imageUrl: null };
         } else if (item.type === "countdown") {
-          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 60, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
+          newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null, countdownSec: 30, countdownFont: "", countdownStyle: "ring", countdownSizePercent: 100 };
         } else {
           newManualSlides[item.id] = { text: "", notes: "", textVAlign: null, imageUrl: null };
         }
@@ -4984,6 +5012,10 @@ function startServer(port = 17841, options = {}) {
 
     // Restore the session after the server is bound.
     restoreSession(io);
+    if (process.env.SACRA_LUX_RESET_PIN === "1") {
+      resetStartPin();
+      logger.info("[security] Start PIN reset at startup.");
+    }
     const restoredSourceNetworks = state.appSettings?.sourceNetworks || "";
     const restoredSource = sourceNetworkGuard.setAllowedEntries(restoredSourceNetworks);
     if (restoredSource.invalid.length) {
