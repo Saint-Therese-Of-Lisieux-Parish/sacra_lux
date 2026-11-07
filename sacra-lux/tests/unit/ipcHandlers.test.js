@@ -230,16 +230,16 @@ describe("ipcHandlers", () => {
   });
 
   test("opens the current Mass folder", async () => {
-    const { dependencies, handlers } = createTestHandlers();
+    const { dependencies, handlers } = createTestHandlers({
+      currentMassDir: "/tmp/configured-home/.sacra-lux/current_mass"
+    });
 
     await expect(handlers["folder:openMassFolder"]()).resolves.toBe("");
     expect(dependencies.fs.promises.mkdir).toHaveBeenCalledWith(
-      expect.stringContaining(".sacra-lux/current_mass"),
+      "/tmp/configured-home/.sacra-lux/current_mass",
       { recursive: true }
     );
-    expect(dependencies.shell.openPath).toHaveBeenCalledWith(
-      expect.stringContaining(".sacra-lux/current_mass")
-    );
+    expect(dependencies.shell.openPath).toHaveBeenCalledWith("/tmp/configured-home/.sacra-lux/current_mass");
   });
 
   test("exports the current Mass and a slide set", async () => {
