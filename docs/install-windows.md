@@ -105,6 +105,15 @@ Sacra Lux keeps Masses and the session in the `.sacra-lux` folder in the home fo
 The home folder is the user profile folder.
 An upgrade keeps that folder.
 
+That folder contains these items:
+
+- `session.json` is the saved session.
+- `session.json.bak` is the previous session.
+- `current_mass` is the active Mass.
+- `mass_history` holds older Masses.
+
+Prayer texts stay with the application. They are not in this folder.
+
 Caution: do not delete the `.sacra-lux` folder during an upgrade. That folder holds the Masses.
 
 1. Quit Sacra Lux. Select **Quit Sacra Lux** when Windows asks.
@@ -126,6 +135,11 @@ Caution: the next step deletes the Masses and the session.
 1. Delete the `.sacra-lux` folder only when you want to remove the data.
 
 ## Troubleshooting
+
+The packaged program writes a warning or an error to `sacra-lux.log`.
+The file is not in the `.sacra-lux` folder.
+Search the computer for `sacra-lux.log`.
+When the file reaches 5 MiB, the program renames it to `sacra-lux.log.1` and starts a new log.
 
 If port 17841 is already in use, a dialog title **Sacra Lux could not start** appears.
 The message is `Port <port> is already in use.`
