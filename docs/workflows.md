@@ -192,11 +192,15 @@ sequenceDiagram
         Screen->>Server: slide:video-ready { durationMs }
         Server->>Server: arm _movieTimer fallback
     end
-    alt video ends
+    alt video ends or the file fails to load
         Screen->>Server: slide:video-ended
         Server->>Guard: alreadyHandled(index, slideId)?
         Guard-->>Server: first report only
-        Server->>Server: advance slide
+        Server->>Server: stop _movieTimer and advance slide
+    else autoplay is blocked
+        Screen->>Server: slide:video-play-failed
+        Server->>Server: stop _movieTimer
+        Note over Server: moviePlaybackError, no advance
     else fallback fires
         Note over Server: _movieTimer expires
         Server->>Server: advance slide
