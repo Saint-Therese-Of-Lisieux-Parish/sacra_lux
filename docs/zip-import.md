@@ -144,8 +144,9 @@ reads the `format` and `version` keys to choose how to read the file.
 - A v3 `mass.json` carries its own text. The `readings/` folder is optional
   for v3. The importer uses the `.txt` files in the Mass folder only if the
   v3 document produces no reading documents. Each item with `kind` equal to
-  `reading` produces one reading document. A v3 document has no reading
-  documents when it has no such item.
+  `reading` produces one reading document. The optional `readings` array keeps
+  documents that no item uses. A v3 document has no reading documents when it
+  has no reading items and no `readings` entries.
 - Media references use the form `assets/<file>`. The `<file>` has no `/`. A
   reference with another form is an error: `Unsupported asset ref "...".`
 - Put each referenced file in `assets/` in the ZIP. The import keeps a Mass

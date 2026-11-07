@@ -13,12 +13,17 @@ live in `src/massDocument.js`.
   metadata: object,
   presentationDefaults: object,
   items: array,
+  readings: array,             // optional readings not used by an item
   assets: object
 }
 ```
 
 Unknown top-level keys are rejected. `format` must be `"sacra-lux.mass"` and
 `version` must be `3`.
+
+`readings` holds reading documents that no organizer item uses. Each entry has
+`stem`, `section`, `passage`, `textLines`, and `ending` fields. The server keeps
+these documents in the Mass package and restores them on the next start.
 
 ### Metadata
 

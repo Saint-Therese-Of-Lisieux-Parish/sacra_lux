@@ -94,6 +94,13 @@ describe("massDocument", () => {
             passage: "Genesis 1:1-3",
             textLines: ["In the beginning..."],
             ending: null
+          },
+          {
+            stem: "Gospel-alternate_1",
+            section: "Gospel",
+            passage: "John 1:1-5",
+            textLines: ["The alternate Gospel text."],
+            ending: "The Gospel of the Lord."
           }
         ]
       }
@@ -124,6 +131,13 @@ describe("massDocument", () => {
         shadow: false
       }
     });
+    expect(document.readings).toEqual([{
+      stem: "Gospel-alternate_1",
+      section: "Gospel",
+      passage: "John 1:1-5",
+      textLines: ["The alternate Gospel text."],
+      ending: "The Gospel of the Lord."
+    }]);
     expect(document.items[1]).toMatchObject({
       kind: "hymn",
       content: {
@@ -302,6 +316,47 @@ describe("massDocument", () => {
       videoAutoAdvance: true,
       styleOverrides: {}
     });
+  });
+
+  test("restores unused reading documents from a v3 Mass document", () => {
+    const runtime = buildRuntimeStateFromMassDocument({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Alternate readings" },
+      items: [],
+      readings: [{
+        stem: "Gospel-alternate_1",
+        section: "Gospel",
+        passage: "John 1:1-5",
+        textLines: ["The alternate Gospel text."],
+        ending: "The Gospel of the Lord."
+      }]
+    });
+
+    expect(runtime.documents).toEqual([{
+      stem: "Gospel-alternate_1",
+      section: "Gospel",
+      passage: "John 1:1-5",
+      textLines: ["The alternate Gospel text."],
+      ending: "The Gospel of the Lord."
+    }]);
+  });
+
+  test("rejects duplicate unused reading stems", () => {
+    const reading = {
+      stem: "Gospel-alternate_1",
+      section: "Gospel",
+      passage: "John 1:1-5",
+      textLines: ["The text."],
+      ending: null
+    };
+    expect(() => validateMassDocument({
+      format: "sacra-lux.mass",
+      version: 3,
+      metadata: { title: "Duplicate readings" },
+      items: [],
+      readings: [reading, { ...reading }]
+    })).toThrow('Duplicate reading stem "Gospel-alternate_1".');
   });
 
   test("uses source stems for renamed readings and keeps label fallback", () => {
