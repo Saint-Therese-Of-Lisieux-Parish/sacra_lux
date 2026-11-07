@@ -157,4 +157,15 @@ describe("automated media timing", () => {
     response = await request(app).get("/api/state").expect(200);
     expect(response.body.currentSlideIndex).toBe(1);
   });
+
+  test("clears media playback errors when New Mass opens", async () => {
+    state.moviePlaybackError = { slideId: "old-movie", message: "Old movie error" };
+    state.imageSlideshowError = "Old slideshow error";
+
+    await request(app).post("/api/new-mass").send({ title: "New Mass", startTime: "" }).expect(200);
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(response.body.moviePlaybackError).toBeNull();
+    expect(response.body.imageSlideshowError).toBeNull();
+  });
 });

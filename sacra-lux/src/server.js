@@ -1061,6 +1061,7 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
   state.currentSlideIndex = getSafeSlideIndex(0);
   resetDisplayOverrides();
   stopActiveSlideTimers();
+  resetPlaybackErrors();
 
   if (runtime.massStartTime && typeof runtime.massStartTime === "string") {
     state.massStartTime = runtime.massStartTime;
@@ -1088,6 +1089,7 @@ function resetPresentationRuntimeState() {
   state.activeMassArchiveId = null;
   resetDisplayOverrides();
   stopActiveSlideTimers();
+  resetPlaybackErrors();
   clearStartTimers();
 }
 
@@ -1627,6 +1629,12 @@ function stopImageSlideshowTimer({ resetProgress = true, clearError = false } = 
   state.imageSlideshowEndsAt = null;
   if (resetProgress) state.imageSlideshowLoopIteration = 1;
   if (clearError) state.imageSlideshowError = null;
+}
+
+function resetPlaybackErrors() {
+  state.moviePlaybackError = null;
+  state.imageSlideshowError = null;
+  _imageSlideshowFailedUrls.clear();
 }
 
 function removeSavedMassAssets(savedAssets) {
@@ -3875,6 +3883,7 @@ function startServer(port = 17841, options = {}) {
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
       stopActiveSlideTimers();
+      resetPlaybackErrors();
       if (scheduledStart) {
         state.massStartTime = scheduledStart;
         scheduleStartTimer(io);
@@ -4061,6 +4070,7 @@ function startServer(port = 17841, options = {}) {
       state.currentSlideIndex = 0;
       resetDisplayOverrides();
       stopActiveSlideTimers();
+      resetPlaybackErrors();
 
       // 5. Build the slides, then arm the wall clock from this Mass's gathering length.
       state.presentation = buildPresentationFromOrganizer({
