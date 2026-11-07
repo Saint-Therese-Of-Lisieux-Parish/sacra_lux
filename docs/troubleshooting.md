@@ -74,10 +74,16 @@ server holds the only authoritative state, so always inspect server state
 
 ## A movie never advances
 
-- The projector reports `slide:video-ended` when the video finishes; the first
-  report for a slide advances. If autoplay is blocked or the file is missing,
-  the server's `_movieTimer` fallback advances at the item's duration (or the
-  video's reported length after `slide:video-ready`).
+The projector shows **Autoplay was blocked** and **Start movie** when the computer blocks the movie.
+
+The status line shows `Could not start <title>; autoplay was blocked.`
+
+1. Select **Start movie** on the projector.
+2. If the message remains, select another slide.
+
+A missing movie file moves the projector to the next slide. A movie that is set to loop stays on that slide.
+
+If the movie plays and does not end, Sacra Lux moves on when the movie length elapses. Before the length is known, it uses the duration on the slide.
 
 ## A setting will not stick
 
