@@ -1,38 +1,38 @@
 # User Guide
 
-A practical guide for the volunteer running Sacra Lux at a Mass. It covers the
-three screens, preparing a Mass, operating one live, and managing the library.
-For install and build steps see the package README; for developer detail see
-the rest of this directory.
+This page is for the Digital Minister.
+It tells you how to prepare a Mass and how to run the slides.
 
-## The Three Screens
+The administrator installs Sacra Lux.
+The install steps are on the [supported platforms](install.md) page.
+The Digital Lecturer uses the [phone remote](phone-remote.md).
 
-| Screen | Address | Who uses it |
-| --- | --- | --- |
-| Operator | `http://<host>:17841/` (or `/app`) | you, at the computer |
-| Projector | `http://<host>:17841/screen` | the congregation |
-| Remote | `http://<host>:17841/remote` | you, on a phone |
+## The three windows
 
-The Digital Minister window also shows a live preview of the projector. All three stay
-in sync because the server broadcasts every change to all of them.
+Sacra Lux uses three windows.
 
-### Packaged app logs
+- The Digital Minister window is on the computer. You prepare and run the Mass here.
+- The projector window is for the congregation.
+- The phone remote is for the Digital Lecturer.
 
-The packaged Electron app writes warning and error messages to `sacra-lux.log`
-in the Electron user data folder. The file stays on the local computer and the
-app keeps one `.1` backup when the log reaches 5 MiB. Web mode writes logs only
-to the console.
+The Digital Minister window shows a live preview of the projector.
+A change on one window appears on the others.
 
-## First Run
+## Before Mass
 
-1. Launch Sacra Lux (the Electron app) or start web mode (`npm run web`).
-2. Open the Digital Minister screen. With no Mass loaded, the app opens the Mass
-   Library prompt so you can create or load a Mass.
-3. In Electron, open **Screen Settings** and choose the projector display, then
-   enable **Fullscreen**. The projector opens the `/screen` page. When Pre-Mass,
-   Gathering, or Post-Mass starts, Electron turns fullscreen on if a projector
-   display is not the Digital Minister display and fullscreen is still allowed. Turn
-   fullscreen off to stop that. Turn it on to allow it again.
+1. Open **Sacra Lux**.
+2. When no Mass is loaded and a saved Mass exists, the **Mass Library** window opens.
+3. When no Mass is loaded and no saved Mass exists, the **Create New Mass** window opens.
+4. Open **Screen Settings**.
+5. Choose the projector display.
+6. Select **Fullscreen**.
+
+When Pre-Mass, Gathering, or Post-Mass starts, Sacra Lux can turn fullscreen on.
+It does this when the projector display is not the Digital Minister display, and when fullscreen is still allowed.
+Select **Exit Fullscreen** to stop that.
+Select **Fullscreen** to allow it again.
+
+If the projector display is not connected, the status line shows **The projector display is not connected.**
 
 ## Preparing a Mass
 
@@ -69,10 +69,9 @@ Use **📥 Import** or **🔄 Reload Mass Folder** to load a folder of reading
 The organizer is the ordered list of Mass parts. Each row is one item; the
 projector shows the derived slides.
 
-Each organizer save sends the current `organizerRevision`. If another save
-used that same revision first, the server rejects the new save. The page
-then loads the current Mass again. The rejected change is not kept. After
-that load, the status line shows
+If another change is saved first, Sacra Lux loads the current Mass again.
+Your change is not kept.
+The status line then shows
 `Another organizer change was saved first. Reload the current state and try again.`
 
 Add slides with **➕ New Slide** and choose a type:
@@ -286,20 +285,19 @@ These keys work when focus is not in a text field, a select list, a button, a li
 | `E` or `Enter` | Open the selected slide in the editor. |
 | `B` | Hide or show the projector output. |
 
-## Where Files Live
+## Save the Mass
 
-In Electron, **File > Save** writes the session and the current Mass. The
-Digital Minister page then shows `Mass saved`, or the error text when the write fails.
-Closing the app writes a save that is still waiting. A scheduled save that
-fails shows the error in the status line instead of the slide count. A later
-successful save clears that error.
+1. Open the **File** menu.
+2. Select **Save**.
+3. The status line shows **Mass saved**.
+4. If the save fails, the status line shows the error text.
 
-Sacra Lux keeps runtime files under `~/.sacra-lux/`:
+When you close Sacra Lux, a save that is still waiting is written.
+If a later save fails, the status line shows the error instead of the slide count.
+A successful save clears that error.
 
-- `session.json` — the saved session
-- `current_mass/` — the active Mass package (`mass.json`, readings, `assets/`)
-- `mass_history/` — archived Masses
+Select **📁 Open Mass Folder** to open the current Mass folder.
 
-Prayer texts ship in `sacra-lux/prayers/`. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
-
-Use **📁 Open Mass Folder** (Electron) to open `current_mass/`.
+The administrator keeps the Mass files.
+An upgrade keeps those files.
+The steps are on the [macOS install](install-macos.md#upgrade) page and the [Windows install](install-windows.md#upgrade) page.
