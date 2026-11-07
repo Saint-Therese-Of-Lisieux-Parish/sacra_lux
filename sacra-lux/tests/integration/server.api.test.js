@@ -1909,6 +1909,48 @@ describe("server api integration", () => {
     expect(fs.existsSync(assetPath)).toBe(true);
   });
 
+  test("mass asset upload rejects the file count limit before saving", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.rmSync(assetsDir, { recursive: true, force: true });
+    fs.mkdirSync(assetsDir, { recursive: true });
+    for (let index = 0; index < 990; index += 1) {
+      fs.writeFileSync(path.join(assetsDir, `existing-${index}.png`), "asset");
+    }
+
+    const res = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "Too-many.png", dataUrl: tinyPngDataUrl })
+      .expect(400);
+
+    expect(res.body.error).toMatch(/990.*current count is 990/i);
+    expect(fs.existsSync(path.join(assetsDir, "Too-many.png"))).toBe(false);
+    fs.rmSync(assetsDir, { recursive: true, force: true });
+  });
+
+  test("folder slideshow import rejects a batch that exceeds the file count limit", async () => {
+    const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
+    fs.rmSync(assetsDir, { recursive: true, force: true });
+    fs.mkdirSync(assetsDir, { recursive: true });
+    for (let index = 0; index < 985; index += 1) {
+      fs.writeFileSync(path.join(assetsDir, `existing-${index}.png`), "asset");
+    }
+
+    const images = Array.from({ length: 10 }, (_, index) => ({
+      filename: `Batch-${index}.png`,
+      dataUrl: tinyPngDataUrl
+    }));
+    const res = await request(app)
+      .post("/api/import-slideshow-images")
+      .send({ images })
+      .expect(400);
+
+    expect(res.body.error).toMatch(/990.*current count is 985/i);
+    for (const image of images) {
+      expect(fs.existsSync(path.join(assetsDir, image.filename))).toBe(false);
+    }
+    fs.rmSync(assetsDir, { recursive: true, force: true });
+  });
+
   test("mass asset upload strips unsafe filename characters and avoids collisions", async () => {
     const first = await request(app)
       .post("/api/upload-mass-asset")
