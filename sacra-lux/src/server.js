@@ -1865,6 +1865,11 @@ function getAutomaticSlideDurationMs(slide) {
   return Math.max(1000, (Number(orgItem?.durationSec) || 10) * 1000);
 }
 
+function keepPhaseDeadlineFromCurrentTime(deadlineAt, durationMs) {
+  const now = Date.now();
+  return deadlineAt < now - durationMs ? now + durationMs : deadlineAt;
+}
+
 function isPhaseOwnedSlide(slide) {
   return slide?.type === "imageSlideshow" ||
     slide?.type === "countdown" ||
@@ -1909,7 +1914,8 @@ function scheduleNextPreMassSlide(ioRef) {
     _preMassDeadlineAt = Date.now() + durationMs;
     _preMassDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _preMassDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_preMassDeadlineAt, durationMs);
+  _preMassDeadlineAt = deadlineAt;
 
   _preMassTimer = setTimeout(() => {
     _preMassTimer = null;
@@ -2043,7 +2049,8 @@ function scheduleNextGatheringSlide(ioRef) {
     _gatheringDeadlineAt = Date.now() + durationMs;
     _gatheringDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _gatheringDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_gatheringDeadlineAt, durationMs);
+  _gatheringDeadlineAt = deadlineAt;
 
   _gatheringTimer = setTimeout(() => {
     _gatheringTimer = null;
@@ -2174,7 +2181,8 @@ function scheduleNextPostMassSlide(ioRef) {
     _postMassDeadlineAt = Date.now() + durationMs;
     _postMassDeadlineSlideId = currentSlide.id;
   }
-  const deadlineAt = _postMassDeadlineAt;
+  const deadlineAt = keepPhaseDeadlineFromCurrentTime(_postMassDeadlineAt, durationMs);
+  _postMassDeadlineAt = deadlineAt;
 
   _postMassTimer = setTimeout(() => {
     _postMassTimer = null;

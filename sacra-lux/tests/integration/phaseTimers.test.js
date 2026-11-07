@@ -129,7 +129,7 @@ describe("phase slide timers", () => {
     watch.stop();
   });
 
-  test("reschedules a pre-Mass timer after a forward clock jump", async () => {
+  test("reschedules a pre-Mass timer after a short forward clock jump", async () => {
     await request(app).post("/api/new-mass").send({ title: "Pre resume", startTime: "" }).expect(200);
     await saveOrganizer(
       [textItem("pre-a", "pre", 20), textItem("pre-b", "pre", 20), textItem("mass", "mass", 10)],
@@ -139,14 +139,49 @@ describe("phase slide timers", () => {
 
     await request(app).post("/api/pre-mass/start").expect(200);
     const start = Date.now();
-    jest.setSystemTime(start + 60000);
+    jest.setSystemTime(start + 1000);
     handle.rescheduleStartTimer();
     jest.advanceTimersByTime(0);
     await flushSocket();
 
     const response = await request(app).get("/api/state").expect(200);
-    expect(slideId(response.body)).toBe("pre-b");
+    expect(slideId(response.body)).toBe("pre-a");
     expect(response.body.preMassRunning).toBe(true);
+  });
+
+  test.each([
+    ["pre-Mass", "pre", "/api/pre-mass/start", "pre-a", "pre-b"],
+    ["gathering", "gathering", "/api/gathering/start", "gather-a", "gather-b"],
+    ["post-Mass", "post", "/api/post-mass/start", "post-a", "post-b"]
+  ])("does not replay missed %s slides after a wake", async (_name, phase, startRoute, firstId, secondId) => {
+    await saveOrganizer(
+      [
+        textItem("mass", "mass", 10),
+        textItem(firstId, phase, 10),
+        textItem(secondId, phase, 10)
+      ],
+      {
+        mass: { text: "Mass" },
+        [firstId]: { text: "First" },
+        [secondId]: { text: "Second" }
+      }
+    );
+    await connectClient();
+    const watch = watchUpdates();
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post(startRoute).expect(200);
+    const updateStart = watch.updates.length;
+    const start = Date.now();
+    jest.setSystemTime(start + 60 * 60 * 1000);
+    handle.rescheduleStartTimer();
+    jest.advanceTimersByTime(2000);
+    await flushSocket();
+
+    const response = await request(app).get("/api/state").expect(200);
+    expect(slideId(response.body)).toBe(firstId);
+    expect(watch.updates.slice(updateStart).filter((snapshot) => slideId(snapshot) !== firstId)).toHaveLength(0);
+    watch.stop();
   });
 
   test("reschedules a countdown timer after a forward clock jump", async () => {
