@@ -1383,6 +1383,9 @@ function mergeManualSlideState(nextSequence, nextManualSlides) {
     };
     merged[item.id].styleOverrides = normalizeStyleOverrides(merged[item.id].styleOverrides);
     merged[item.id].countdownFont = normalizeCountdownFont(merged[item.id].countdownFont);
+    if (item.type === "countdown") {
+      merged[item.id].countdownSec = normalizeCountdownSec(merged[item.id].countdownSec);
+    }
     if (item.type === "imageSlideshow") {
       merged[item.id].images = normalizeSlideshowImages(merged[item.id].images);
       merged[item.id].slideshowDurationSec = normalizeSlideshowDurationSec(merged[item.id].slideshowDurationSec);
@@ -1452,7 +1455,7 @@ function normalizeOrganizerSequence(sequence = []) {
         (item.presentation?.background === "dark" ? "dark" : item.presentation?.background === "light" ? "light" : item.presentation?.background),
         item.type ?? item.kind
       ),
-      durationSec: Math.max(1, Math.min(3600, Number(item.durationSec) || 10))
+      durationSec: Math.max(1, Math.min(3600, Math.trunc(Number(item.durationSec) || 10)))
     };
   });
 
