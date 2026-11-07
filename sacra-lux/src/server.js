@@ -14,7 +14,8 @@ function getAdmZip() {
   return _AdmZip;
 }
 
-const { importReadings } = require("./readingsImporter");
+const { importReadings, isKnownReadingStem } = require("./readingsImporter");
+const { endingForSection } = require("./readingEndings");
 const { fetchUsccbDailyReadings } = require("./lectionaryRss");
 const {
   ValidationError,
@@ -756,6 +757,22 @@ function loadReadingsFromFolder(folderPath, screenSettings) {
     readingTextHeightPx: screenSettings.readingTextHeightPx
   });
   return imported.documents || [];
+}
+
+function alignReadingDocumentsWithOrganizer(documents, sequence) {
+  const labelsByStem = new Map((sequence || [])
+    .filter((item) => item.type === "reading" && item.sourceStem)
+    .map((item) => [item.sourceStem, item.label]));
+  return (documents || []).map((document) => {
+    if (isKnownReadingStem(document.stem)) return document;
+    const label = labelsByStem.get(document.stem);
+    if (!label) return document;
+    return {
+      ...document,
+      section: label,
+      ending: endingForSection(label)
+    };
+  });
 }
 
 function readMassPackageDefinition(packageDir, screenSettings = DEFAULT_SCREEN_SETTINGS) {
@@ -4056,7 +4073,10 @@ function startServer(port = 17841, options = {}) {
             };
           });
         syncReadingsDocumentsToCurrentMass(defaultReadingDocuments, massTitle);
-        lectionaryDocuments = loadReadingsFromFolder(CURRENT_MASS_DIR, state.screenSettings);
+        lectionaryDocuments = alignReadingDocumentsWithOrganizer(
+          loadReadingsFromFolder(CURRENT_MASS_DIR, state.screenSettings),
+          state.organizerSequence
+        );
       }
       if (useLectionaryRss) {
         const documentsBySection = new Map();
@@ -4436,7 +4456,7 @@ function startServer(port = 17841, options = {}) {
 
       state.readingsSource = {
         folderPath: CURRENT_MASS_DIR,
-        documents: imported.documents || []
+        documents: alignReadingDocumentsWithOrganizer(imported.documents || [], state.organizerSequence)
       };
 
       rebuildPresentationFromOrganizer({
@@ -4612,7 +4632,7 @@ function startServer(port = 17841, options = {}) {
 
       state.readingsSource = {
         folderPath: imported.folderPath,
-        documents: imported.documents || []
+        documents: alignReadingDocumentsWithOrganizer(imported.documents || [], state.organizerSequence)
       };
 
       // The live title wins: mass_title.txt on disk can lag behind it by the save delay.
