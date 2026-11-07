@@ -271,6 +271,8 @@ Each reading file uses:
 
 A line of `---` forces a manual page break. A line beginning with `R.` starts a
 new slide so psalm refrains get their own page.
+A `---` page break keeps the selected psalm refrain.
+A refrain line after that break still shows the selected refrain.
 
 ## Keyboard
 
