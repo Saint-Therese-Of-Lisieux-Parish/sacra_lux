@@ -1557,6 +1557,7 @@ let _massSaveError = "";
 // to the first Mass slide at the scheduled wall-clock time.
 let _startTimer = null;
 let _massStartTimer = null;
+let _gatheringStartedForMassKey = null;
 
 function clearStartTimers() {
   if (_startTimer) { clearTimeout(_startTimer); _startTimer = null; }
@@ -2002,6 +2003,9 @@ function startGatheringSequence(ioRef) {
   if (firstGatheringIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstGatheringIdx);
     state.gatheringRunning = true;
+    _gatheringStartedForMassKey = state.massStartTime
+      ? `${state.activeMassArchiveId || ""}|${state.massStartTime}`
+      : null;
     updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
@@ -2543,7 +2547,11 @@ function startMassSequence(ioRef) {
 function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   clearStartTimers();
   const timeStr = state.massStartTime;
-  if (!timeStr) return;
+  if (!timeStr) {
+    _gatheringStartedForMassKey = null;
+    return;
+  }
+  const massStartKey = `${state.activeMassArchiveId || ""}|${timeStr}`;
   const target = new Date(timeStr);
   if (isNaN(target.getTime())) return;
   const now = Date.now();
@@ -2591,7 +2599,8 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
     if (catchUp && !state.postMassRunning && !onPostMassSlide) startMassSequence(ioRef);
     return;
   }
-  if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide) {
+  if (!state.gatheringRunning && !state.postMassRunning && !onMassSlide &&
+      _gatheringStartedForMassKey !== massStartKey) {
     startGatheringSequence(ioRef);
   }
 }

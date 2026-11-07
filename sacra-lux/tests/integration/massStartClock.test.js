@@ -514,6 +514,32 @@ describe("mass start from the wall clock", () => {
     expect(res.body.presentation.slides[res.body.currentSlideIndex].title).toBe("Gathering Two");
   });
 
+  test("stopping gathering keeps it stopped after an organizer save and wake", async () => {
+    jest.setSystemTime(new Date("2026-05-03T09:59:50"));
+    await seedGatheringAndMass();
+    await request(app).post("/api/start-time").send({ time: "2026-05-03T10:00" }).expect(200);
+
+    const before = await request(app).get("/api/state").expect(200);
+    const stoppedIndex = before.body.presentation.slides.findIndex((slide) => slide.organizerItemId === "g-two");
+    state.currentSlideIndex = stoppedIndex;
+    await request(app).post("/api/gathering/stop").expect(200);
+
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence: gatheringSequence, manualSlides: gatheringManualSlides })
+      .expect(200);
+
+    let after = await request(app).get("/api/state").expect(200);
+    expect(after.body.currentSlideIndex).toBe(stoppedIndex);
+    expect(after.body.gatheringRunning).toBe(false);
+
+    handle.rescheduleStartTimer();
+    jest.advanceTimersByTime(0);
+    after = await request(app).get("/api/state").expect(200);
+    expect(after.body.currentSlideIndex).toBe(stoppedIndex);
+    expect(after.body.gatheringRunning).toBe(false);
+  });
+
   test("a start time more than 24 days away waits instead of starting now", async () => {
     // A delay above setTimeout's 32-bit ceiling (2,147,483,647 ms, about 24.8
     // days) overflows and fires almost immediately. Forty days out must arm the
