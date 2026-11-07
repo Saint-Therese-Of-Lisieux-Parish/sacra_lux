@@ -33,6 +33,14 @@ describe("public html integration", () => {
     expect(res.text).toContain('target="_blank" rel="noopener noreferrer"');
   });
 
+  test("operator status is a live region that becomes assertive for errors", async () => {
+    const res = await request(app).get("/").expect(200);
+
+    expect(res.text).toContain('id="status" class="status-badge" role="status" aria-live="polite"');
+    expect(res.text).toContain('els.status.setAttribute("role", isError ? "alert" : "status")');
+    expect(res.text).toContain('els.status.setAttribute("aria-live", isError ? "assertive" : "polite")');
+  });
+
   test("operator app exposes the locked control message and unlock action", async () => {
     const res = await request(app).get("/").expect(200);
 
