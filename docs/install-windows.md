@@ -73,7 +73,7 @@ You extract it and run the program.
 1. Extract the ZIP file.
 2. Open `Sacra Lux.exe` from the extracted files.
 
-Microsoft explains ZIP files on [Zip and unzip files](https://support.microsoft.com/en-us/windows/zip-and-unzip-files).
+Microsoft explains ZIP files on [Zip and unzip files](https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/zip-and-unzip-files).
 
 ## First start
 
@@ -83,7 +83,7 @@ Microsoft explains ZIP files on [Zip and unzip files](https://support.microsoft.
 4. When no Mass is loaded and no saved Mass exists, the **Create New Mass** window opens.
 
 Windows can show a security warning because the file is not signed.
-Microsoft explains the checks on [App & browser control in the Windows Security App](https://support.microsoft.com/en-us/windows/app-browser-control-in-the-windows-security-app).
+Microsoft explains the checks on [App & browser control in the Windows Security App](https://support.microsoft.com/en-us/windows/security/windows-security/app-browser-control-in-the-windows-security-app).
 If Windows blocks the program, read [Smart App Control Frequently Asked Questions](https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003).
 
 Sacra Lux listens on port **17841** on every network interface.
