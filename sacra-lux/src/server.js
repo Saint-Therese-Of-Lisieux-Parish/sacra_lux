@@ -402,7 +402,7 @@ function getSafeZipEntryFilename(entryName, prefix, allowedPattern) {
 
 function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
   const requestedName = path.basename(String(filename || ""))
-    .replace(/[\u0000-\u001f\\/:*?"<>|]/g, "")
+    .replace(/[\u0000-\u001f\\/:*?"<>|`]/g, "")
     .trim();
   const fallbackName = `light.${mediaExtension}`;
   let candidate = requestedName || fallbackName;

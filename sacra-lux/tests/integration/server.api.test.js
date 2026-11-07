@@ -1924,6 +1924,16 @@ describe("server api integration", () => {
     expect(first.body.url).not.toBe(second.body.url);
   });
 
+  test("mass asset upload removes backticks from the filename", async () => {
+    const res = await request(app)
+      .post("/api/upload-mass-asset")
+      .send({ filename: "St`Mary.png", dataUrl: tinyPngDataUrl })
+      .expect(200);
+
+    expect(decodeURIComponent(String(res.body.url || "").split("/").pop())).toBe("StMary.png");
+    expect(res.body.url).not.toContain("%60");
+  });
+
   test("mass asset upload never overwrites a file created after the name check", async () => {
     const assetsDir = path.join(handle.homeDir, ".sacra-lux", "current_mass", "assets");
     fs.mkdirSync(assetsDir, { recursive: true });
