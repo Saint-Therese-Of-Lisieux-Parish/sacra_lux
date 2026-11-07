@@ -273,15 +273,14 @@ function hasLoadedMass() {
 
 function preserveInvalidCurrentMass() {
   if (state.startupPrompt?.reason !== "invalid-current-mass") return null;
-  const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
-  if (!fs.existsSync(massJsonPath)) return null;
+  if (!fs.existsSync(CURRENT_MASS_DIR)) return null;
   fs.mkdirSync(RECOVERY_DIR, { recursive: true });
-  const recoveryPath = path.join(
+  const recoveryDir = path.join(
     RECOVERY_DIR,
-    `mass-${new Date().toISOString().replace(/[:.]/g, "-")}-${crypto.randomBytes(4).toString("hex")}.json`
+    `mass-${new Date().toISOString().replace(/[:.]/g, "-")}-${crypto.randomBytes(4).toString("hex")}`
   );
-  fs.copyFileSync(massJsonPath, recoveryPath);
-  return recoveryPath;
+  fs.cpSync(CURRENT_MASS_DIR, recoveryDir, { recursive: true, errorOnExist: true, force: false });
+  return recoveryDir;
 }
 
 function saveCurrentMass() {

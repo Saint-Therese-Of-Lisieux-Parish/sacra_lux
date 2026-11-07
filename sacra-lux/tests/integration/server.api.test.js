@@ -1734,9 +1734,9 @@ describe("server api integration", () => {
     try {
       await request(isolatedHandle.app).post("/api/mass-history/Recovery-Target/load").expect(200);
       const recoveryDir = path.join(appDir, "recovery");
-      const recoveryFiles = fs.readdirSync(recoveryDir);
-      expect(recoveryFiles).toHaveLength(1);
-      expect(fs.readFileSync(path.join(recoveryDir, recoveryFiles[0]), "utf8")).toBe(invalidMass);
+      const recoveryFolders = fs.readdirSync(recoveryDir);
+      expect(recoveryFolders).toHaveLength(1);
+      expect(fs.readFileSync(path.join(recoveryDir, recoveryFolders[0], "mass.json"), "utf8")).toBe(invalidMass);
     } finally {
       await isolatedHandle.stop();
     }
