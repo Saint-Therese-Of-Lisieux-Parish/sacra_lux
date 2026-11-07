@@ -3634,6 +3634,7 @@ function startServer(port = 17841, options = {}) {
       stopPostMassTimer();
       state.currentSlideIndex = getSafeSlideIndex(firstPreIdx);
       state.preMassRunning = true;
+      updateInterstitialHoldResumeState();
       scheduleNextPreMassSlide(io);
       touch();
       io.emit("state:update", getStateSnapshot());
@@ -3648,6 +3649,7 @@ function startServer(port = 17841, options = {}) {
     try {
       stopPreMassTimer();
       stopPhaseOwnedTimers();
+      updateInterstitialHoldResumeState();
       touch();
       io.emit("state:update", getStateSnapshot());
       scheduleSave(true);
@@ -3709,6 +3711,7 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/gathering/stop", (_, res) => {
     stopGatheringTimer();
     stopPhaseOwnedTimers();
+    updateInterstitialHoldResumeState();
     touch();
     io.emit("state:update", getStateSnapshot());
     scheduleSave();
@@ -3732,6 +3735,7 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/post-mass/stop", (_, res) => {
     stopPostMassTimer();
     stopPhaseOwnedTimers();
+    updateInterstitialHoldResumeState();
     touch();
     io.emit("state:update", getStateSnapshot());
     scheduleSave();
