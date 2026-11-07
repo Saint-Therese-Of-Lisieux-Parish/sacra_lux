@@ -42,6 +42,12 @@ describe("interstitial hold return slide", () => {
     post: { text: "Post" }
   };
 
+  function localDateTimeHoursAgo(hours) {
+    const date = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
   async function connectClient() {
     client = createClient(handle.baseUrl, { transports: ["websocket"] });
     await new Promise((resolve, reject) => {
@@ -170,7 +176,7 @@ describe("interstitial hold return slide", () => {
   test("keeps the Mass start phase when it runs during a hold", async () => {
     await loadMassAtPhaseHold();
 
-    await request(app).post("/api/start-time").send({ time: "2020-01-01T09:00" }).expect(200);
+    await request(app).post("/api/start-time").send({ time: localDateTimeHoursAgo(1) }).expect(200);
     const released = await emitAndWait(
       "screen:interstitial-hold",
       undefined,
