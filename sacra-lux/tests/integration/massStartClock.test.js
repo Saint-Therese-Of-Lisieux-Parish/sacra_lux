@@ -315,6 +315,7 @@ describe("mass start from the wall clock", () => {
     res = await request(app).get("/api/state").expect(200);
     expect(res.body.gatheringRunning).toBe(true);
     expect(res.body.currentSlideIndex).toBe(gatheringIndex);
+    expect(res.body.presentation.slides[gatheringIndex].countdownSec).toBe(30);
 
     jest.advanceTimersByTime(30 * 1000);
 
