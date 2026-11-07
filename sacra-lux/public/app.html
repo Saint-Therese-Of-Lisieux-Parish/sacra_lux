@@ -7818,7 +7818,7 @@
           delete manualSlides[item.id];
 
           const newText = els.editorReadingText.value;
-          if (newText && window.__lastReadingText !== newText) {
+          if (window.__lastReadingText !== newText) {
             readingSave = { stem: item.sourceStem, text: newText };
           }
         } else {
