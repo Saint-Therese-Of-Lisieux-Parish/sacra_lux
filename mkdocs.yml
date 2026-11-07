@@ -23,6 +23,7 @@ nav:
   - User guide: user-guide.md
   - Phone remote: phone-remote.md
   - Install:
+      - Supported platforms: install.md
       - macOS: install-macos.md
       - Windows: install-windows.md
   - ZIP import: zip-import.md
