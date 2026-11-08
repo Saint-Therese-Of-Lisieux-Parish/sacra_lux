@@ -15,12 +15,17 @@ exclude_docs: |
   dependencies.md
   git-change-lifecycle.*
   interfaces.md
+  mass_document.md
   release-verification.md
   review_notes.md
   workflows.md
+  zip-import.md
 
 nav:
   - User guide: user-guide.md
-  - ZIP import: zip-import.md
-  - Mass document: mass_document.md
+  - Phone remote: phone-remote.md
+  - Install:
+      - Supported platforms: install.md
+      - macOS: install-macos.md
+      - Windows: install-windows.md
   - Troubleshooting: troubleshooting.md

@@ -116,12 +116,16 @@ even if gathering overran or never started. When the app is opened late,
 gathering starts immediately for the portion that still fits, and an
 already-begun Mass jumps straight to its first slide.
 
-An auto-advancing movie normally ends by a screen reporting
-`slide:video-ended`, but a blocked autoplay or missing file may mean that
-report never arrives. The phase timer steps aside and `scheduleMovieAutoAdvance`
-arms a fallback at the item's duration (or the movie's real length once a
-screen reports `slide:video-ready`). `src/movieAdvance.js` dedupes the end
-reports when several projector windows watch the same movie.
+An auto-advancing movie has `videoLoop !== true` and `videoAutoAdvance !== false`.
+The screen sends `slide:video-ended` when playback ends. A load error, such as
+a missing file, also sends `slide:video-ended`. `scheduleMovieAutoAdvance()`
+arms `_movieTimer` at the organizer duration. `slide:video-ready` replaces
+that duration with `durationMs`. `slide:video-play-failed` stops `_movieTimer`
+and sets `moviePlaybackError.message` to
+`Could not start <title>; autoplay was blocked.` The projector then shows
+`Autoplay was blocked` and the button `Start movie`. It does not advance.
+`src/movieAdvance.js` dedupes end reports when several projector windows
+watch the same movie.
 
 Image slideshows advance on `_imageSlideshowTimer` for their total runtime.
 The time is the image count, times the seconds per image, times the loop count.

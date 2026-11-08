@@ -1,38 +1,38 @@
 # User Guide
 
-A practical guide for the volunteer running Sacra Lux at a Mass. It covers the
-three screens, preparing a Mass, operating one live, and managing the library.
-For install and build steps see the package README; for developer detail see
-the rest of this directory.
+This page is for the Digital Minister.
+It tells you how to prepare a Mass and how to run the slides.
 
-## The Three Screens
+The administrator installs Sacra Lux.
+The install steps are on the [supported platforms](install.md) page.
+The Digital Lecturer uses the [phone remote](phone-remote.md).
 
-| Screen | Address | Who uses it |
-| --- | --- | --- |
-| Operator | `http://<host>:17841/` (or `/app`) | you, at the computer |
-| Projector | `http://<host>:17841/screen` | the congregation |
-| Remote | `http://<host>:17841/remote` | you, on a phone |
+## The three windows
 
-The Digital Minister window also shows a live preview of the projector. All three stay
-in sync because the server broadcasts every change to all of them.
+Sacra Lux uses three windows.
 
-### Packaged app logs
+- The Digital Minister window is on the computer. You prepare and run the Mass here.
+- The projector window is for the congregation.
+- The phone remote is for the Digital Lecturer.
 
-The packaged Electron app writes warning and error messages to `sacra-lux.log`
-in the Electron user data folder. The file stays on the local computer and the
-app keeps one `.1` backup when the log reaches 5 MiB. Web mode writes logs only
-to the console.
+The Digital Minister window shows a live preview of the projector.
+A change on one window appears on the others.
 
-## First Run
+## Before Mass
 
-1. Launch Sacra Lux (the Electron app) or start web mode (`npm run web`).
-2. Open the Digital Minister screen. With no Mass loaded, the app opens the Mass
-   Library prompt so you can create or load a Mass.
-3. In Electron, open **Screen Settings** and choose the projector display, then
-   enable **Fullscreen**. The projector opens the `/screen` page. When Pre-Mass,
-   Gathering, or Post-Mass starts, Electron turns fullscreen on if a projector
-   display is not the Digital Minister display and fullscreen is still allowed. Turn
-   fullscreen off to stop that. Turn it on to allow it again.
+1. Open **Sacra Lux**.
+2. When no Mass is loaded and a saved Mass exists, the **Mass Library** window opens.
+3. When no Mass is loaded and no saved Mass exists, the **Create New Mass** window opens.
+4. Open **Screen Settings**.
+5. Choose the projector display.
+6. Select **Fullscreen**.
+
+When Pre-Mass, Gathering, or Post-Mass starts, Sacra Lux can turn fullscreen on.
+It does this when the projector display is not the Digital Minister display, and when fullscreen is still allowed.
+Select **Exit Fullscreen** to stop that.
+Select **Fullscreen** to allow it again.
+
+If the projector display is not connected, the status line shows **The projector display is not connected.**
 
 ## Preparing a Mass
 
@@ -69,10 +69,9 @@ Use **📥 Import** or **🔄 Reload Mass Folder** to load a folder of reading
 The organizer is the ordered list of Mass parts. Each row is one item; the
 projector shows the derived slides.
 
-Each organizer save sends the current `organizerRevision`. If another save
-used that same revision first, the server rejects the new save. The page
-then loads the current Mass again. The rejected change is not kept. After
-that load, the status line shows
+If another change is saved first, Sacra Lux loads the current Mass again.
+Your change is not kept.
+The status line then shows
 `Another organizer change was saved first. Reload the current state and try again.`
 
 Add slides with **➕ New Slide** and choose a type:
@@ -113,7 +112,14 @@ before the Mass. If the check cannot run, the editor shows
 **Add image folder** keeps files whose names end in `avif`, `gif`, `jpg`,
 `jpeg`, `png`, `svg`, or `webp`. It skips other files and names them in the
 status line. The import stops at 500 images. It also stops when the selected
-images are larger than 120 MB together.
+images are larger than 120 MiB (125829120 bytes) together.
+The files already stored, plus the new files, must be 209715200 bytes or smaller.
+If they are larger, the message starts with `Mass media exceeds the 209715200 byte limit;`
+The message then states the current total and the size of the new upload.
+The Mass can hold at most 990 asset files.
+Files already in the Mass count toward this limit.
+If a new upload would pass the limit, the message starts with `Mass asset file count exceeds the 990 file limit;`
+The message then states the current count and the number of new files.
 
 **Add image** and a drop on the slideshow drop zone send the selected images
 in one request. The server keeps each image it can store. When some images
@@ -182,32 +188,32 @@ The Digital Minister page does not show Prev, Next, or Black Screen buttons. The
 - Press `B` to hide the projector output. Press `B` again to show it. The selected slide does not change. A movie keeps playing. Blackout mutes it, and the next press restores the previous volume.
 - **⏭ Go to Mass Start** jumps to the first Mass slide. The button is shown when the Mass has a Mass slide.
 
-## The Phone Remote
+## For Digital Ministers: the phone remote
 
-Open `/remote` on a phone on the same network, or scan the QR code shown on the
-idle projector. The remote shows a live projector preview at the top.
+Give the Digital Lecturer the phone link and the PIN before Mass.
+The lecturer steps are on the [phone remote](phone-remote.md) page.
 
-- Swipe left or right on the preview to move one slide.
-- Use the carousel under the preview. Double-tap a card to show that slide.
-- Tap a row in the slide list to jump to that slide. The list groups rows as Pre-Mass Announcements, Gathering, Mass, and Post-Mass Announcements. The active row has `aria-current="true"`. A slide change keeps your scroll position, open groups, and keyboard focus. The list scrolls to the active row when the rows change and you have not scrolled the list for 10 seconds.
+1. Select **PIN**.
+2. The dialog title is **Start PIN**.
+3. Type a PIN of 4 to 6 digits in **PIN Code**.
+4. Select **Set PIN**.
+5. The dialog shows **PIN set**.
 
-**Lock this remote** ends control on this phone.
-The phone then shows **This remote is locked.**
-Select **Unlock the remote** to open the PIN page.
-The remote has no Blackout, Start Mass, or Interstitial button.
+To change the PIN, type the current PIN in **Current PIN**, type the new PIN, and select **Set PIN**.
+Other phones show **The PIN changed. Unlock again.**
 
-## Starting the Remote with a PIN
+To remove the PIN, type the current PIN and select **Clear PIN**.
+The dialog shows **PIN cleared**.
+Phones no longer need the PIN.
 
-If a start PIN is set, the remote must unlock before it can control the Mass:
+If the PIN is too short, the dialog shows **PIN must be 4–6 digits**.
+If the current PIN is missing, the dialog shows **Current PIN is required.**
+If clear fails, the dialog shows **Could not clear the PIN.**
 
-1. Open `/start` on the phone.
-2. Enter the 4–6 digit PIN. Repeated failures trigger escalating lockouts.
-3. On success the phone is redirected to `/remote`.
-
-Set, change, or clear the PIN from the **Start PIN** dialog. Clearing the PIN
-removes the unlock requirement. A change or a clear ends the other control
-sessions. Those phones must unlock again. If the clear fails, the dialog shows
-the error.
+Before Mass starts, the projector can show **Scan to begin** and a QR code.
+The Digital Lecturer can scan that code.
+Ask the administrator if the phone cannot open the link.
+Network setup is in [Troubleshooting](troubleshooting.md#a-device-gets-source-network-not-allowed).
 
 ## Mass Library
 
@@ -230,11 +236,31 @@ that has already passed.
 - **↪︎ Export** downloads the current Mass as a ZIP.
 - **Export AVIF** converts eligible images to AVIF and downloads an optimized
   ZIP.
-- **📄 Export PDF** (Electron only) produces a full-deck PDF. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
-- **Export Slide to PDF** (Electron only) exports the current slide preview.
+- **📄 Export PDF** produces a full-deck PDF in the desktop app. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
+- **Export Slide to PDF** exports the current slide preview in the desktop app.
 
-All export ZIPs contain a version 3 `mass.json`; see
-[mass_document.md](./mass_document.md).
+If a ZIP export fails, the status line shows the error text.
+When the error has no text, the status line shows **Mass export failed.**
+This page stays open.
+If an AVIF export fails, the progress label shows **Export failed:** and the error text.
+This page stays open.
+
+A Mass ZIP can contain these media types: `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `avif`, and `mp4`.
+If an uploaded file name contains a backtick, Sacra Lux removes the backtick.
+
+The program rejects a ZIP that is too large. You see one of these messages:
+
+- `Mass ZIP compressed size exceeds the 209715200 byte limit.`
+- `Mass ZIP contains too many entries; the limit is 1000.`
+- `Mass ZIP entry "<name>" exceeds the 146800640 byte limit.`
+- `Mass ZIP uncompressed size exceeds the 524288000 byte limit.`
+- `Media file exceeds the 140 MB limit.`
+
+Choose a smaller file. The current Mass stays in place.
+A slideshow can contain at most 500 images.
+If you add more, you see `A slideshow can contain at most 500 images.`
+If the images are too large together, you see `The selected images are too large to import together.`
+Together, the images must be 120 MiB (125829120 bytes) or smaller.
 
 ## Readings Folder Format
 
@@ -259,6 +285,8 @@ Each reading file uses:
 
 A line of `---` forces a manual page break. A line beginning with `R.` starts a
 new slide so psalm refrains get their own page.
+A `---` page break keeps the selected psalm refrain.
+A refrain line after that break still shows the selected refrain.
 
 ## Keyboard
 
@@ -273,20 +301,21 @@ These keys work when focus is not in a text field, a select list, a button, a li
 | `E` or `Enter` | Open the selected slide in the editor. |
 | `B` | Hide or show the projector output. |
 
-## Where Files Live
+## Save the Mass
 
-In Electron, **File > Save** writes the session and the current Mass. The
-Digital Minister page then shows `Mass saved`, or the error text when the write fails.
-Closing the app writes a save that is still waiting. A scheduled save that
-fails shows the error in the status line instead of the slide count. A later
-successful save clears that error.
+1. Open the **File** menu.
+2. Select **Save**.
+3. When the Mass is saved, the status line shows **Mass saved**.
+4. When no Mass is loaded, the status line shows **No Mass is loaded.**
+5. When the session cannot be saved, the status line shows **Could not save session.json.**
+6. When another error occurs, the status line shows the error text. If there is no error text, it shows **Could not save the Mass.**
 
-Sacra Lux keeps runtime files under `~/.sacra-lux/`:
+When you close Sacra Lux, a save that is still waiting is written.
+If a later save fails, the status line shows the error instead of the slide count.
+A successful save clears that error.
 
-- `session.json` — the saved session
-- `current_mass/` — the active Mass package (`mass.json`, readings, `assets/`)
-- `mass_history/` — archived Masses
+Select **📁 Open Mass Folder** to open the current Mass folder.
 
-Prayer texts ship in `sacra-lux/prayers/`. A packaged app reads them from the `prayers` extra resource. They are not stored under `~/.sacra-lux/`.
-
-Use **📁 Open Mass Folder** (Electron) to open `current_mass/`.
+The administrator keeps the Mass files.
+An upgrade keeps those files.
+The steps are on the [macOS install](install-macos.md#upgrade) page and the [Windows install](install-windows.md#upgrade) page.

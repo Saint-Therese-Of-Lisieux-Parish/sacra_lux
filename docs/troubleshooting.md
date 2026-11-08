@@ -32,7 +32,7 @@ server holds the only authoritative state, so always inspect server state
 - The status line shows **Start PIN reset**. Sacra Lux clears the PIN, ends
   all control sessions, and saves the change to `session.json`.
 - A failed save shows **Could not save session.json.**
-- Set a new PIN in **Start PIN** if the remote must be locked again. A phone
+- Select **PIN** to set a new PIN if the remote must be locked again. The dialog title is **Start PIN**. A phone
   that was unlocked shows **The start PIN was reset. Unlock again.**
 - In web mode, set `SACRA_LUX_RESET_PIN=1` before startup to clear a forgotten
   PIN. The server saves the reset and logs one message without PIN data.
@@ -74,10 +74,16 @@ server holds the only authoritative state, so always inspect server state
 
 ## A movie never advances
 
-- The projector reports `slide:video-ended` when the video finishes; the first
-  report for a slide advances. If autoplay is blocked or the file is missing,
-  the server's `_movieTimer` fallback advances at the item's duration (or the
-  video's reported length after `slide:video-ready`).
+The projector shows **Autoplay was blocked** and **Start movie** when the computer blocks the movie.
+
+The status line shows `Could not start <title>; autoplay was blocked.`
+
+1. Select **Start movie** on the projector.
+2. If the message remains, select another slide.
+
+A missing movie file moves the projector to the next slide. A movie that is set to loop stays on that slide.
+
+If the movie plays and does not end, Sacra Lux moves on when the movie length elapses. Before the length is known, it uses the duration on the slide.
 
 ## A setting will not stick
 

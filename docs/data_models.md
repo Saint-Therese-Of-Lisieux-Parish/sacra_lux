@@ -124,6 +124,7 @@ Reading slides add:
 Text, prayer, and hymn slides add `text`, `pageNumber`, `totalPages`,
 `isFirstPage`, and `isLastPage`. Multi-page text slides are split at hard-break
 markers (`---`) and at psalm refrain lines (`R.`).
+A hard-break segment of a psalm uses the refrain list from the whole psalm.
 
 Image, interstitial, and movie slides add `videoUrl`, `videoLoop`, and
 `videoAutoAdvance` (movie type only). Image slideshows add
