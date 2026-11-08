@@ -239,6 +239,12 @@ that has already passed.
 - **📄 Export PDF** produces a full-deck PDF in the desktop app. Each page shows that slide with blackout off, with no countdown end time, and with the interstitial hold cleared.
 - **Export Slide to PDF** exports the current slide preview in the desktop app.
 
+If a ZIP export fails, the status line shows the error text.
+When the error has no text, the status line shows **Mass export failed.**
+This page stays open.
+If an AVIF export fails, the progress label shows **Export failed:** and the error text.
+This page stays open.
+
 A Mass ZIP can contain these media types: `jpg`, `jpeg`, `png`, `gif`, `webp`, `svg`, `avif`, and `mp4`.
 If an uploaded file name contains a backtick, Sacra Lux removes the backtick.
 
