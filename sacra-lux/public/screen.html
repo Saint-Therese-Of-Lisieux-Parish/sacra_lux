@@ -197,6 +197,25 @@
       box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4);
     }
 
+    .connection-lost-mark {
+      position: fixed;
+      right: 1.5vmin;
+      bottom: 1.5vmin;
+      z-index: 30;
+      padding: 0.45em 0.7em;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(120, 35, 35, 0.85);
+      font: 600 clamp(0.75rem, 1.2vmin, 1.2rem) "Source Sans 3", sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .connection-lost-mark.visible {
+      opacity: 1;
+    }
+
     /* ---- Reading layout ---- */
     .reading-wrap {
       width: 100%;
@@ -761,6 +780,7 @@
 
 <body>
   <div id="stage">
+    <div id="connectionLostMark" class="connection-lost-mark" role="status">Connection lost</div>
     <!-- Fullscreen prompt (web mode only) — shown when mass starts if not fullscreen -->
     <div class="fullscreen-prompt" id="fullscreenPrompt">
       <div class="fs-icon">&#x26F6;</div>
@@ -808,6 +828,18 @@
       auth: { screenRole: isEmbeddedScreen ? "preview" : "projector" }
     });
     const shouldPlayVideoInline = !isPreviewMode && !isEmbeddedScreen;
+    const connectionLostMark = document.getElementById("connectionLostMark");
+    let connectionLostTimer = null;
+
+    if (socket) {
+      socket.on("disconnect", () => {
+        connectionLostTimer = setTimeout(() => connectionLostMark.classList.add("visible"), 10000);
+      });
+      socket.on("connect", () => {
+        clearTimeout(connectionLostTimer);
+        connectionLostMark.classList.remove("visible");
+      });
+    }
 
     // ── Double-buffer crossfade setup ─────────────────────────────────────────
     // #stage holds two .frame divs stacked on top of each other.

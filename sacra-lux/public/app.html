@@ -106,6 +106,20 @@
       display: none;
     }
 
+    .connection-lost-banner {
+      margin: 0 0 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--danger, #b84a3a);
+      border-radius: var(--radius-md, 8px);
+      color: var(--danger, #b84a3a);
+      background: color-mix(in srgb, var(--danger, #b84a3a), transparent 90%);
+      font-weight: 700;
+    }
+
+    .connection-lost-banner[hidden] {
+      display: none;
+    }
+
     .sequence-list {
       flex: 1;
       min-height: 0;
@@ -3655,6 +3669,9 @@
             <span>Locked: enter the PIN to control.</span>
             <button id="unlockControlBtn" type="button">Unlock</button>
           </div>
+          <div id="connectionLostBanner" class="connection-lost-banner" role="status" hidden>
+            Connection lost. Waiting for the server to reconnect.
+          </div>
           <div class="editor-actions">
             <div class="slide-action-group">
               <select id="newSlideType" class="toolbar-select" aria-label="New slide type">
@@ -4607,6 +4624,7 @@
       clearStartPinBtn: document.getElementById("clearStartPinBtn"),
       startPinStatus: document.getElementById("startPinStatus"),
       controlLockBanner: document.getElementById("controlLockBanner"),
+      connectionLostBanner: document.getElementById("connectionLostBanner"),
       unlockControlBtn: document.getElementById("unlockControlBtn"),
       controlModePanel: document.getElementById("controlModePanel"),
       controlModeStatus: document.getElementById("controlModeStatus"),
@@ -7112,6 +7130,24 @@
     }
 
     socket.on("state:update", render);
+    function setConnectionState(connected) {
+      els.connectionLostBanner.hidden = connected;
+      [els.prevBtn, els.nextBtn, els.blackBtn].forEach((button) => {
+        if (button) button.disabled = !connected;
+      });
+    }
+
+    socket.on("connect", () => {
+      setConnectionState(true);
+      refreshState().catch(() => { });
+    });
+
+    socket.on("disconnect", () => {
+      setConnectionState(false);
+      if (avifExportInProgress) resetAvifExport("Export failed: connection lost.");
+    });
+
+    setConnectionState(socket.connected);
     function resetAvifExport(errorMessage) {
       avifExportInProgress = false;
       els.exportAvifBtn.disabled = false;
@@ -9849,9 +9885,6 @@
       setTimeout(() => { els.avifProgressWrap.style.display = "none"; }, 4000);
     });
 
-    socket.on("disconnect", () => {
-      if (avifExportInProgress) resetAvifExport("Export failed: connection lost.");
-    });
 
     document.getElementById("importZipBtn").addEventListener("click", () => {
       els.importZipFile.click();

@@ -122,6 +122,18 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("resetAvifExport(error || \"Export failed: unlock required.\")");
   });
 
+  test("shows connection loss and disables operator controls", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    expect(appHtml).toContain('id="connectionLostBanner" class="connection-lost-banner" role="status"');
+    expect(appHtml).toContain("Connection lost. Waiting for the server to reconnect.");
+    expect(appHtml).toContain("[els.prevBtn, els.nextBtn, els.blackBtn]");
+    expect(appHtml).toContain('socket.on("connect", () => {');
+    expect(appHtml).toContain('refreshState().catch(() => { });');
+    expect(screenHtml).toContain('id="connectionLostMark" class="connection-lost-mark" role="status"');
+    expect(screenHtml).toContain("setTimeout(() => connectionLostMark.classList.add(\"visible\"), 10000)");
+  });
+
   test("filters unsupported folder images and checks the size limit before reading", () => {
     expect(appHtml).toMatch(/function isImageFile\(file\) \{\n\s+return Boolean\(file\) && IMAGE_FILE_NAME\.test\(file\.name \|\| ""\);/);
     expect(appHtml).toContain("const skippedNames = files");
