@@ -78,7 +78,7 @@ async function startMain({
       getPrimaryDisplay: jest.fn(() => displays[0] || { id: 1 }),
       getDisplayNearestPoint: jest.fn(() => displays[0] || { id: 1 })
     },
-    shell: { openExternal: jest.fn(), openPath: jest.fn(async () => "") }
+    shell: { openExternal: jest.fn(), openPath: jest.fn(async () => ""), showItemInFolder: jest.fn() }
   };
   electron.powerMonitor = new EventEmitter();
   electron.powerSaveBlocker = {
@@ -369,6 +369,32 @@ describe("Electron window security settings", () => {
     expect(windows.electron.shell.openExternal).toHaveBeenCalledWith(
       "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/"
     );
+  });
+
+  test("the Help menu shows an existing log file", async () => {
+    const windows = await startMain();
+    jest.spyOn(fs, "existsSync").mockImplementation(() => true);
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const help = template.find((item) => item.role === "help");
+    const item = help.submenu.find((entry) => entry.label === "Show Log File");
+
+    item.click();
+
+    expect(windows.electron.shell.showItemInFolder).toHaveBeenCalledWith("/tmp/sacra-lux.log");
+    fs.existsSync.mockRestore();
+  });
+
+  test("the Help menu opens the log folder when the log file is missing", async () => {
+    const windows = await startMain();
+    jest.spyOn(fs, "existsSync").mockImplementation(() => false);
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const help = template.find((item) => item.role === "help");
+    const item = help.submenu.find((entry) => entry.label === "Show Log File");
+
+    await item.click();
+
+    expect(windows.electron.shell.openPath).toHaveBeenCalledWith("/tmp");
+    fs.existsSync.mockRestore();
   });
 
   test("a pending save is written when the app starts to quit", async () => {
