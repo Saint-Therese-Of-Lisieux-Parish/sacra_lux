@@ -23,6 +23,37 @@ describe("network address selection", () => {
     });
   });
 
+  test("reads the lowest-metric default interface on Windows", () => {
+    const exec = jest.fn(() => [
+      "===========================================================================",
+      "IPv4 Route Table",
+      "===========================================================================",
+      "Active Routes:",
+      "Network Destination        Netmask          Gateway       Interface  Metric",
+      "          0.0.0.0          0.0.0.0     192.168.1.1     192.168.1.50     25",
+      "          0.0.0.0          0.0.0.0        10.0.0.1       10.0.0.5     10"
+    ].join("\n"));
+    expect(getDefaultInterfaceName({ platform: "win32", exec, networkInterfaces: {
+      WiFi: [{ family: "IPv4", address: "192.168.1.50", internal: false }],
+      Ethernet: [{ family: "IPv4", address: "10.0.0.5", internal: false }]
+    } })).toBe("Ethernet");
+    expect(exec).toHaveBeenCalledWith("route", ["print", "-4", "0.0.0.0"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    });
+  });
+
+  test("returns null when Windows has no default route", () => {
+    const exec = jest.fn(() => "IPv4 Route Table\n10.0.0.0 255.0.0.0 10.0.0.1 10.0.0.5 10");
+    expect(getDefaultInterfaceName({ platform: "win32", exec, networkInterfaces: interfaces })).toBeNull();
+  });
+
+  test("does not run the Linux ip command on Windows", () => {
+    const exec = jest.fn(() => { throw new Error("unexpected command"); });
+    expect(getDefaultInterfaceName({ platform: "win32", exec })).toBeNull();
+    expect(exec).not.toHaveBeenCalledWith("ip", expect.anything(), expect.anything());
+  });
+
   test("prefers the address on the default-route interface", () => {
     expect(getPreferredIpv4Address({ networkInterfaces: interfaces, defaultInterfaceName: "en8" }))
       .toBe("10.12.1.1");
