@@ -5770,6 +5770,37 @@
         if (bar) bar.hidden = true;
       });
 
+    function refreshConnectionQrCodes() {
+      fetch("/api/server-info")
+        .then((r) => r.json())
+        .then((info) => {
+          const entries = [
+            ["qrRemote", "urlRemote", info.remoteUrl],
+            ["qrScreen", "urlScreen", info.screenUrl]
+          ];
+          for (const [containerId, urlElId, url] of entries) {
+            const container = document.getElementById(containerId);
+            const urlEl = document.getElementById(urlElId);
+            if (!container || !url) continue;
+            if (urlEl) urlEl.href = url;
+            container.innerHTML = "";
+            if (typeof QRCode !== "undefined") {
+              new QRCode(container, {
+                text: url,
+                width: 88,
+                height: 88,
+                colorDark: "#1a1a1a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+              });
+            } else {
+              container.textContent = url;
+            }
+          }
+        })
+        .catch(() => { });
+    }
+
     // Show only one upload method: native Browse in Electron, Choose file in browser.
     const chooseFileLabel = document.getElementById("chooseFileLabel");
     const chooseVideoFileLabel = document.getElementById("chooseVideoFileLabel");
@@ -8544,6 +8575,7 @@
         body: JSON.stringify({ remoteAddress: remoteAddressSelect.value })
       }).then(async (response) => {
         if (!response.ok) throw new Error((await response.json()).error || "Could not save the network address.");
+        refreshConnectionQrCodes();
       }).catch((error) => {
         remoteAddressError.textContent = error.message;
         remoteAddressError.hidden = false;

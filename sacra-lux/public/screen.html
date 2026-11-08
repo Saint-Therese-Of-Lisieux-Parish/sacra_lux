@@ -2206,6 +2206,12 @@
         .catch(() => {});
     }
 
+    function refreshQrCode() {
+      _qrGenerated = false;
+      idleQrCode.innerHTML = "";
+      initQrCode();
+    }
+
     function isIdle(state) {
       const slides = state.presentation?.slides || [];
       if (slides.length === 0) return true;
@@ -2311,7 +2317,10 @@
         window.parent.postMessage({ type: "preview_ready" }, window.location.origin);
       }
     } else {
-      socket.on("state:update", renderWithIdle);
+      socket.on("state:update", (state) => {
+        refreshQrCode();
+        renderWithIdle(state);
+      });
       fetch("/api/state")
         .then((r) => r.json())
         .then(renderWithIdle)

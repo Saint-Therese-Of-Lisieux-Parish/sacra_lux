@@ -3473,6 +3473,9 @@ function startServer(port = 17841, options = {}) {
       }
       if (!state.appSettings) state.appSettings = {};
       Object.assign(state.appSettings, nextSettings);
+      if (remoteAddress !== undefined) {
+        serverInfo.host = remoteAddress || getLocalIpv4Address();
+      }
       if (nextSourceNetworks) {
         sourceNetworkGuard.setAllowedEntries(sourceNetworks);
         disconnectDisallowedSockets();
