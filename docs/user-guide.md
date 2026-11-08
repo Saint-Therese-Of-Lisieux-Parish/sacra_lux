@@ -113,6 +113,10 @@ before the Mass. If the check cannot run, the editor shows
 `jpeg`, `png`, `svg`, or `webp`. It skips other files and names them in the
 status line. The import stops at 500 images. It also stops when the selected
 images are larger than 120 MB together.
+The Mass can hold at most 990 asset files.
+Files already in the Mass count toward this limit.
+If a new upload would pass the limit, the message starts with `Mass asset file count exceeds the 990 file limit;`
+The message then states the current count and the number of new files.
 
 **Add image** and a drop on the slideshow drop zone send the selected images
 in one request. The server keeps each image it can store. When some images
