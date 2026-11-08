@@ -702,6 +702,18 @@ function buildAppMenu(ioRef) {
 
   const helpSubmenu = [
     {
+      label: "Show Log File",
+      click: () => {
+        const logDirectory = app.getPath("userData");
+        const logPath = path.join(logDirectory, "sacra-lux.log");
+        if (fs.existsSync(logPath)) {
+          shell.showItemInFolder(logPath);
+        } else {
+          shell.openPath(logDirectory);
+        }
+      }
+    },
+    {
       label: "Project Homepage",
       click: () => shell.openExternal(pkg.homepage)
     },

@@ -18,6 +18,12 @@ Sacra Lux uses three windows.
 The Digital Minister window shows a live preview of the projector.
 A change on one window appears on the others.
 
+## Open the log file
+
+In the packaged app, open the **Help** menu and select **Show Log File**.
+Sacra Lux shows the log file in Finder or File Explorer.
+If the log file does not exist, Sacra Lux opens the log folder.
+
 ## Before Mass
 
 1. Open **Sacra Lux**.
