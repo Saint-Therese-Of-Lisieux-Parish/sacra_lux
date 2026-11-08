@@ -112,7 +112,10 @@ before the Mass. If the check cannot run, the editor shows
 **Add image folder** keeps files whose names end in `avif`, `gif`, `jpg`,
 `jpeg`, `png`, `svg`, or `webp`. It skips other files and names them in the
 status line. The import stops at 500 images. It also stops when the selected
-images are larger than 120 MB together.
+images are larger than 120 MiB (125829120 bytes) together.
+The files already stored, plus the new files, must be 209715200 bytes or smaller.
+If they are larger, the message starts with `Mass media exceeds the 209715200 byte limit;`
+The message then states the current total and the size of the new upload.
 The Mass can hold at most 990 asset files.
 Files already in the Mass count toward this limit.
 If a new upload would pass the limit, the message starts with `Mass asset file count exceeds the 990 file limit;`
