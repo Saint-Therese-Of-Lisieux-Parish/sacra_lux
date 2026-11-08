@@ -497,12 +497,15 @@ const MASS_ASSET_SECURITY_HEADERS = Object.freeze({
 });
 
 const JSON_BODY_LIMIT_DEFAULT = "10mb";
+const JSON_BODY_LIMIT_AUTH = "4kb";
 const JSON_BODY_LIMIT_PREVIEW = "1mb";
 const MAX_PREVIEW_TEXT_CHARACTERS = 100000;
 const JSON_BODY_LIMIT_SINGLE_UPLOAD = `${Math.ceil((MAX_SINGLE_UPLOAD_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_SLIDESHOW_IMPORT = `${Math.ceil((MAX_SLIDESHOW_IMPORT_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_MASS_ZIP = `${Math.ceil((MAX_MASS_ZIP_COMPRESSED_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMITS_BY_PATH = new Map([
+  ["/api/start-pin", JSON_BODY_LIMIT_AUTH],
+  ["/api/verify-pin", JSON_BODY_LIMIT_AUTH],
   ["/api/preview-reading", JSON_BODY_LIMIT_PREVIEW],
   ["/api/preview-manual-slide", JSON_BODY_LIMIT_PREVIEW],
   ["/api/upload-mass-asset", JSON_BODY_LIMIT_SINGLE_UPLOAD],
@@ -3120,6 +3123,7 @@ function startServer(port = 17841, options = {}) {
   }
   app.use((req, res, next) => {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+    if (!req.path.startsWith("/api/")) return next();
     const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
     if (req.path !== "/api/import-mass-zip") {
       return jsonParserFor(limit)(req, res, next);

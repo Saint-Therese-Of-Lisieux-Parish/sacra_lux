@@ -11,6 +11,7 @@ const {
   startIsolatedServer
 } = require("../helpers/testHarness");
 const { DEFAULT_SOURCE_NETWORKS } = require("../../src/state");
+const logger = require("../../src/logger");
 
 const localDateTime = (date) => {
   const pad = (value) => String(value).padStart(2, "0");
@@ -28,6 +29,10 @@ describe("server api integration", () => {
   let resetStartPin;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
   const twoFrameGifDataUrl = "data:image/gif;base64,R0lGODlhAgACAPAAAP8AAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQACgAAACwAAAAAAgACAAACAoRRACH5BAAKAAAALAAAAAACAAIAgAAA/wAAAAIChFEAOw==";
+
+  function largeJsonBody() {
+    return { padding: "x".repeat(9 * 1024 * 1024) };
+  }
 
   function extractTokenFromRedirect(redirectPath) {
     const match = String(redirectPath || "").match(/token=([A-Za-z0-9]+)/);
@@ -93,6 +98,38 @@ describe("server api integration", () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.hasStartPin).toBe(true);
     expect(stateRes.body.startPin).toBeUndefined();
+  });
+
+  test("does not parse large bodies outside the API", async () => {
+    const errorSpy = jest.spyOn(logger, "error").mockImplementation(() => { });
+    try {
+      const malformedBody = `{"padding":"${"x".repeat(9 * 1024 * 1024)}`;
+      await request(app)
+        .post("/not-a-route")
+        .set("Content-Type", "application/json")
+        .send(malformedBody)
+        .expect(404);
+      expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining("entity.parse.failed"));
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  test.each(["/api/verify-pin", "/api/start-pin"])("rejects a large body on %s before parsing", async (route) => {
+    await request(app)
+      .post(route)
+      .send(largeJsonBody())
+      .expect(413);
+  });
+
+  test("does not count an oversized PIN body as a PIN failure", async () => {
+    await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await request(app).post("/api/verify-pin").send(largeJsonBody()).expect(413);
+    }
+
+    await request(app).post("/api/verify-pin").send({ pin: "1234" }).expect(200);
   });
 
   test("the Electron reset clears the PIN, ends sockets, and saves the session", async () => {
