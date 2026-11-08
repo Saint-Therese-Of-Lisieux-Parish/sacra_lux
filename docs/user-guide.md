@@ -299,8 +299,10 @@ These keys work when focus is not in a text field, a select list, a button, a li
 
 1. Open the **File** menu.
 2. Select **Save**.
-3. The status line shows **Mass saved**.
-4. If the save fails, the status line shows the error text.
+3. When the Mass is saved, the status line shows **Mass saved**.
+4. When no Mass is loaded, the status line shows **No Mass is loaded.**
+5. When the session cannot be saved, the status line shows **Could not save session.json.**
+6. When another error occurs, the status line shows the error text. If there is no error text, it shows **Could not save the Mass.**
 
 When you close Sacra Lux, a save that is still waiting is written.
 If a later save fails, the status line shows the error instead of the slide count.
