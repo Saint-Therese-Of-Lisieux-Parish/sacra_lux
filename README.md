@@ -379,7 +379,11 @@ git push origin v0.0.420-alpha
 =======
 git tag v0.0.418-alpha
 git push origin v0.0.418-alpha
+<<<<<<< HEAD
 >>>>>>> aafc2b4 (fix(ui): show connection loss state)
+=======
+>>>>>>> 10064a5 (fix(network): refresh links after address changes)
+>>>>>>> 20d75b3 (fix(network): refresh links after address changes)
 ```
 
 The tag in that example is the current package version with a `v` prefix.
@@ -401,4 +405,4 @@ If the package version changes, use `v` plus the new version.
 
 ## Current version
 
-The current package version is `0.0.424-alpha`.
+The current package version is `0.0.425-alpha`.
