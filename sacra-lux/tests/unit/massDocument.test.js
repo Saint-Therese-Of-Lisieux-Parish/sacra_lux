@@ -394,7 +394,7 @@ describe("massDocument", () => {
 
     expect(runtime.documents).toEqual([
       expect.objectContaining({ stem: "Gospel", section: "Gospel", ending: "The Gospel of the Lord." }),
-      expect.objectContaining({ stem: "Responsorial_Psalm", section: "Responsorial Psalm", ending: "The Word of the Lord." }),
+      expect.objectContaining({ stem: "Responsorial_Psalm", section: "Responsorial Psalm", ending: null }),
       expect.objectContaining({ stem: "Custom_Source", section: "Custom Reading", ending: null })
     ]);
   });

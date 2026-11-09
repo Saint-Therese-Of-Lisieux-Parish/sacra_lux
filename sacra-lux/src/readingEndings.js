@@ -10,7 +10,7 @@ const ENDING_BY_SECTION = {
   "Reading VI": WORD_OF_THE_LORD,
   "Reading VII": WORD_OF_THE_LORD,
   "Epistle": WORD_OF_THE_LORD,
-  "Responsorial Psalm": WORD_OF_THE_LORD,
+  "Responsorial Psalm": null,
   "Verse Before the Gospel": null,
   "Gospel": "The Gospel of the Lord."
 };
@@ -24,7 +24,7 @@ const ENDING_BY_LABEL = {
   "Fifth Reading": WORD_OF_THE_LORD,
   "Sixth Reading": WORD_OF_THE_LORD,
   "Seventh Reading": WORD_OF_THE_LORD,
-  "Psalm": WORD_OF_THE_LORD
+  "Psalm": null
 };
 
 /**
