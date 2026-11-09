@@ -93,12 +93,18 @@ function extractTag(xml, tagName) {
   return match ? decodeHtml(match[1]).trim() : "";
 }
 
+function rssDateOnly(value) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+}
+
 function parseDailyReadingsRss(rssXml) {
   const items = [...String(rssXml || "").matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)];
   if (!items.length) throw new Error("The USCCB RSS feed did not contain any readings.");
 
   const item = items[0][1];
   const title = extractTag(item, "title");
+  const readingDate = rssDateOnly(extractTag(item, "pubDate"));
   const description = extractTag(item, "description");
   const documents = [];
   const usedStems = new Map();
@@ -133,7 +139,7 @@ function parseDailyReadingsRss(rssXml) {
   if (!title || !documents.length) {
     throw new Error("The USCCB RSS feed did not contain usable readings.");
   }
-  return { title, documents };
+  return { title, readingDate, documents };
 }
 
 async function fetchUsccbDailyReadings(fetchImpl = globalThis.fetch) {

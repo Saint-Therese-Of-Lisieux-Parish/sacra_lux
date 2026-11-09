@@ -9,6 +9,7 @@ describe("lectionaryRss", () => {
     const result = parseDailyReadingsRss(`
       <rss><channel><item>
         <title>Third Sunday of Advent</title>
+        <pubDate>Sun, 13 Dec 2026 00:00:00 GMT</pubDate>
         <description>
           &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading"&gt;Isaiah 61:1-2a, 10-11&lt;/a&gt;&lt;/h4&gt;
           &lt;div class="poetry"&gt;&lt;p&gt;The spirit of the Lord GOD is upon me,&lt;br&gt;because the LORD has anointed me.&lt;/p&gt;&lt;/div&gt;
@@ -23,6 +24,7 @@ describe("lectionaryRss", () => {
     `);
 
     expect(result.title).toBe("Third Sunday of Advent");
+    expect(result.readingDate).toBe("2026-12-13");
     expect(result.documents).toEqual([
       expect.objectContaining({ stem: "Reading_I", section: "Reading I", passage: "Isaiah 61:1-2a, 10-11" }),
       expect.objectContaining({ stem: "Responsorial_Psalm", section: "Responsorial Psalm" }),
