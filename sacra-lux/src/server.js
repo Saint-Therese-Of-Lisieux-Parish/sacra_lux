@@ -4681,12 +4681,21 @@ function startServer(port = 17841, options = {}) {
   app.post("/api/save-reading", (req, res) => {
     try {
       const { stem, text } = req.body || {};
+      const hasPassage = Object.prototype.hasOwnProperty.call(req.body || {}, "passage");
+      const passage = hasPassage ? req.body.passage : null;
       const folderPath = state.readingsSource?.folderPath;
       if (!folderPath || !stem) {
         return res.status(400).json({ error: "No Mass readings folder loaded or stem missing." });
       }
       if (typeof text !== "string") {
         return res.status(400).json({ error: "Reading text must be a string." });
+      }
+      if (hasPassage && typeof passage !== "string") {
+        return res.status(400).json({ error: "Reading passage must be text." });
+      }
+      const trimmedPassage = hasPassage ? passage.trim() : null;
+      if (hasPassage && (!trimmedPassage || /[\r\n]/.test(trimmedPassage) || trimmedPassage.length > 200)) {
+        return res.status(400).json({ error: "Reading passage must be one line of 1 to 200 characters." });
       }
 
       const filePath = resolveReadingTxtInMass(folderPath, stem);
@@ -4705,6 +4714,10 @@ function startServer(port = 17841, options = {}) {
       const headerLines = passageIndex < 0
         ? []
         : [lines[passageIndex], ...lines.slice(passageIndex + 1, textStart)];
+      if (hasPassage) {
+        if (headerLines.length === 0) headerLines.push(trimmedPassage);
+        else headerLines[0] = trimmedPassage;
+      }
       const newContent = headerLines.join("\n") + "\n" + text;
 
       writeFileAtomic(filePath, newContent);
