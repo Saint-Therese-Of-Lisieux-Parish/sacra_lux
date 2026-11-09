@@ -44,6 +44,60 @@ describe("reading persistence", () => {
     }
   });
 
+  test("keeps a reading file edit that is newer than mass.json at startup", async () => {
+    const first = await boot();
+    const readingsDir = makeReadingsFolder(homeDir);
+    await loadReadingsFolder(first.app, readingsDir);
+    const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+    const readingPath = path.join(currentMassDir, "Gospel.txt");
+    const massJsonPath = path.join(currentMassDir, "mass.json");
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await first.stop();
+
+    const editedBytes = "John 1:1-5\n\nText edited outside the app.\n";
+    fs.writeFileSync(readingPath, editedBytes, "utf8");
+    const newerTime = new Date(fs.statSync(massJsonPath).mtimeMs + 2000);
+    fs.utimesSync(readingPath, newerTime, newerTime);
+
+    const restarted = await boot();
+    try {
+      const after = (await request(restarted.app).get("/api/state").expect(200)).body;
+      const reading = after.readingsSource.documents.find((entry) => entry.stem === "Gospel");
+      expect(fs.readFileSync(readingPath, "utf8")).toBe(editedBytes);
+      expect(reading.textLines).toContain("Text edited outside the app.");
+    } finally {
+      await restarted.stop();
+    }
+  });
+
+  test("keeps a reading file edit when a Mass save runs", async () => {
+    const first = await boot();
+    try {
+      const readingsDir = makeReadingsFolder(homeDir);
+      await loadReadingsFolder(first.app, readingsDir);
+      const currentMassDir = path.join(homeDir, ".sacra-lux", "current_mass");
+      const readingPath = path.join(currentMassDir, "Gospel.txt");
+      const massJsonPath = path.join(currentMassDir, "mass.json");
+      const editedBytes = "John 1:1-5\n\nText edited while the app was running.\n";
+      fs.writeFileSync(readingPath, editedBytes, "utf8");
+      const newerTime = new Date(fs.statSync(massJsonPath).mtimeMs + 2000);
+      fs.utimesSync(readingPath, newerTime, newerTime);
+
+      await request(first.app)
+        .post("/api/update-title")
+        .send({ title: "Saved after an external edit" })
+        .expect(200);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      expect(fs.readFileSync(readingPath, "utf8")).toBe(editedBytes);
+      const after = (await request(first.app).get("/api/state").expect(200)).body;
+      const reading = after.readingsSource.documents.find((entry) => entry.stem === "Gospel");
+      expect(reading.textLines).toContain("Text edited while the app was running.");
+    } finally {
+      await first.stop();
+    }
+  });
+
   test("keeps New Mass reading endings after a restart", async () => {
     const first = await boot();
     await request(first.app)
