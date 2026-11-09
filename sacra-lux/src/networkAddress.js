@@ -11,8 +11,29 @@ function listIpv4Addresses(networkInterfaces = os.networkInterfaces()) {
   return addresses;
 }
 
-function getDefaultInterfaceName({ platform = process.platform, exec = execFileSync } = {}) {
+function getDefaultInterfaceName({
+  platform = process.platform,
+  exec = execFileSync,
+  networkInterfaces = os.networkInterfaces()
+} = {}) {
   try {
+    if (platform === "win32") {
+      const output = String(exec("route", ["print", "-4", "0.0.0.0"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      }));
+      const routes = output.split(/\r?\n/)
+        .map((line) => line.trim().split(/\s+/))
+        .filter((parts) => parts.length >= 5 && parts[0] === "0.0.0.0" && parts[1] === "0.0.0.0")
+        .map((parts) => ({ interfaceAddress: parts[3], metric: Number(parts[4]) }))
+        .filter((route) => route.interfaceAddress && Number.isFinite(route.metric))
+        .sort((left, right) => left.metric - right.metric);
+      const selectedRoute = routes[0];
+      if (!selectedRoute) return null;
+      return listIpv4Addresses(networkInterfaces)
+        .find((entry) => entry.address === selectedRoute.interfaceAddress)?.interfaceName || null;
+    }
+
     const command = platform === "darwin" ? "route" : "ip";
     const args = platform === "darwin" ? ["-n", "get", "default"] : ["route", "show", "default"];
     const output = String(exec(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));

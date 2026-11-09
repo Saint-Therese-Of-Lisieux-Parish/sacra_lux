@@ -25,6 +25,12 @@ server holds the only authoritative state, so always inspect server state
 - Rate limits return `429` for too many requests (global), too many auth
   attempts, too many uploads, or too many heavy exports. Wait and retry.
 
+## The QR code uses the wrong network address on Windows
+
+Sacra Lux selects the IPv4 address on the Windows default route. If the address
+is not reachable from the phone, select a specific address in **System
+Settings** under **Remote address**.
+
 ## The start PIN is forgotten
 
 - In the Electron app, open **File** and select **Reset Start PIN**.
