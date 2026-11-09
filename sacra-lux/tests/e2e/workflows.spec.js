@@ -78,6 +78,31 @@ test("operator keeps title and start-time drafts during state updates", async ({
     .toBe("2030-01-05T10:30");
 });
 
+test("operator sees a warning for a past Mass start time", async ({ page, request }) => {
+  const toDateTimeLocal = (date) => {
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+  const past = toDateTimeLocal(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000));
+  const future = toDateTimeLocal(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
+  await request.post(`${baseUrl}/api/start-time`, { data: { time: past } });
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  const warning = page.locator("#startTimeWarning");
+  await expect(warning).toHaveText("The start time is in the past. Automatic gathering and Mass start will not run.");
+  await expect(warning).toHaveAttribute("role", "status");
+
+  await request.post(`${baseUrl}/api/start-time`, { data: { time: null } });
+  await page.reload();
+  await page.locator("#startTimeInput").fill(past);
+  await expect(warning).toBeVisible();
+
+  await request.post(`${baseUrl}/api/start-time`, { data: { time: future } });
+  await page.reload();
+  await expect(warning).toBeHidden();
+});
+
 test("App Settings lists Catholic themes first", async ({ page }) => {
   await page.goto(`${baseUrl}/`);
   await closeMassLibraryIfVisible(page);
