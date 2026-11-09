@@ -4829,6 +4829,7 @@
 
     let editorPreviewSlides = [];
     let editorPreviewIndex = 0;
+    let editorMovieDurationSec = null;
     let editorPreviewCountdownEndsAt = null;
     let editorPreviewCountdownTimer = null;
     const TEXT_BOUNDS_SAMPLE = "Behold, I will make those of the assembly of Satan who claim to be Jews and are not, but are lying, behold I will make them come and fall prostrate at your feet, and they will realize that I love you.";
@@ -6836,6 +6837,9 @@
       els.editorDurationSec.value = String(item.durationSec || 10);
 
       const manual = manualSlides[item.id] || { text: "", notes: "", imageUrl: "", videoUrl: "", styleOverrides: {} };
+      editorMovieDurationSec = isMovie && Number(item.durationSec) > 0
+        ? Math.min(3600, Math.ceil(Number(item.durationSec)))
+        : null;
       const editorDataKey = JSON.stringify({ item, manual, documents });
       if (editorDataKey === window.__lastEditorDataKey) return;
       window.__lastEditorDataKey = editorDataKey;
@@ -7662,6 +7666,12 @@
       const url = safeMediaUrl(rawUrl);
       if (!els.moviePreview) return;
       if (url) {
+        editorMovieDurationSec = null;
+        els.moviePreview.addEventListener("loadedmetadata", () => {
+          if (!Number.isFinite(els.moviePreview.duration) || els.moviePreview.duration <= 0) return;
+          editorMovieDurationSec = Math.min(3600, Math.ceil(els.moviePreview.duration));
+          if (els.editorType?.value === "movie") scheduleEditorSave();
+        }, { once: true });
         els.moviePreview.src = url;
         els.moviePreview.loop = Boolean(els.editorVideoLoop?.checked);
         els.moviePreview.hidden = false;
@@ -7881,7 +7891,9 @@
 
         item.durationSec = nextType === "imageSlideshow"
           ? Math.max(1, Math.min(3600, parseInt(els.editorSlideshowDurationSec.value, 10) || 10))
-          : (item.phase === "mass" || nextType === "movie")
+          : nextType === "movie"
+          ? editorMovieDurationSec
+          : item.phase === "mass"
           ? null
           : Math.max(1, Math.min(3600, parseInt(els.editorDurationSec.value, 10) || 10));
 
