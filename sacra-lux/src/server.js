@@ -3051,6 +3051,12 @@ function startServer(port = 17841, options = {}) {
       || "";
   }
 
+  function getSocketsLosingControl() {
+    return [...io.sockets.sockets.values()]
+      .filter(socketHasControlSession)
+      .filter((socket) => !isLoopbackAddress(getSocketSourceAddress(socket)));
+  }
+
   function disconnectDisallowedSockets() {
     for (const socket of io.sockets.sockets.values()) {
       if (sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) continue;
@@ -3632,10 +3638,15 @@ function startServer(port = 17841, options = {}) {
       if (hasPinConfigured()) clearPinFailures(getClientIp(req));
 
       if (clearing) {
+        const notifiedSockets = getSocketsLosingControl();
         state.startPin = "";
         state.startPinHash = null;
         clearControlAccess();
         touch();
+        for (const socket of notifiedSockets) {
+          socket.data.controlToken = "";
+          socket.emit("control:required", { error: getUnlockMessage() });
+        }
         io.emit("state:update", getStateSnapshot());
         scheduleSave(true);
         return res.json({ ok: true, hasPin: false });
@@ -3679,8 +3690,15 @@ function startServer(port = 17841, options = {}) {
     if (!CONTROL_MODES.includes(mode)) {
       return res.status(400).json({ error: "Mode must be unset or trusted-lan." });
     }
+    const notifiedSockets = state.controlMode === "trusted-lan" && mode === "unset"
+      ? getSocketsLosingControl()
+      : [];
     state.controlMode = mode;
     touch();
+    for (const socket of notifiedSockets) {
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: getUnlockMessage() });
+    }
     io.emit("state:update", getStateSnapshot());
     scheduleSave(true);
     return res.json({ ok: true, controlMode: state.controlMode });
