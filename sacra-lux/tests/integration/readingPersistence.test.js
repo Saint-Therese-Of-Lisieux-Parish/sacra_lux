@@ -152,6 +152,81 @@ describe("reading persistence", () => {
     }
   });
 
+  test("saves a passage and restores it after a server restart", async () => {
+    const first = await boot();
+    const readingsDir = makeReadingsFolder(homeDir);
+    await loadReadingsFolder(first.app, readingsDir);
+
+    await request(first.app)
+      .post("/api/save-reading")
+      .send({ stem: "Reading_I", text: "New text.", passage: "  Isaiah 55:1-11  " })
+      .expect(200);
+
+    const readingPath = path.join(homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
+    expect(fs.readFileSync(readingPath, "utf8").split(/\r?\n/)[0]).toBe("Isaiah 55:1-11");
+    const before = (await request(first.app).get("/api/state").expect(200)).body;
+    expect(before.presentation.slides.filter((slide) => slide.id.startsWith("reading-Reading_I-")).every(
+      (slide) => slide.passage === "Isaiah 55:1-11"
+    )).toBe(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await first.stop();
+
+    const restarted = await boot();
+    try {
+      const after = (await request(restarted.app).get("/api/state").expect(200)).body;
+      expect(after.presentation.slides.filter((slide) => slide.id.startsWith("reading-Reading_I-")).every(
+        (slide) => slide.passage === "Isaiah 55:1-11"
+      )).toBe(true);
+    } finally {
+      await restarted.stop();
+    }
+  });
+
+  test.each([
+    ["a number", 5, "Reading passage must be text."],
+    ["empty", "", "Reading passage must be one line of 1 to 200 characters."],
+    ["multiline", "Isaiah\n55:1-11", "Reading passage must be one line of 1 to 200 characters."],
+    ["too long", "a".repeat(201), "Reading passage must be one line of 1 to 200 characters."]
+  ])("rejects an invalid passage: %s and keeps the file", async (_label, passage, error) => {
+    const first = await boot();
+    try {
+      const readingsDir = makeReadingsFolder(homeDir);
+      await loadReadingsFolder(first.app, readingsDir);
+      const readingPath = path.join(homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
+      const before = fs.readFileSync(readingPath, "utf8");
+
+      const response = await request(first.app)
+        .post("/api/save-reading")
+        .send({ stem: "Reading_I", text: "New text.", passage });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe(error);
+      expect(fs.readFileSync(readingPath, "utf8")).toBe(before);
+    } finally {
+      await first.stop();
+    }
+  });
+
+  test("keeps the existing passage when passage is not provided", async () => {
+    const first = await boot();
+    try {
+      const readingsDir = makeReadingsFolder(homeDir);
+      await loadReadingsFolder(first.app, readingsDir);
+      const readingPath = path.join(homeDir, ".sacra-lux", "current_mass", "Reading_I.txt");
+      const before = fs.readFileSync(readingPath, "utf8").split(/\r?\n/)[0];
+
+      await request(first.app)
+        .post("/api/save-reading")
+        .send({ stem: "Reading_I", text: "New text." })
+        .expect(200);
+
+      expect(fs.readFileSync(readingPath, "utf8").split(/\r?\n/)[0]).toBe(before);
+    } finally {
+      await first.stop();
+    }
+  });
+
   test.each([
     ["missing", { stem: "Reading_I" }],
     ["a number", { stem: "Reading_I", text: 42 }]
