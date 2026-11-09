@@ -42,6 +42,21 @@ describe("remote control session management", () => {
     return new Promise((resolve) => socket.once("control:required", resolve));
   }
 
+  function setSocketAddress(token, address) {
+    const serverSocket = [...handle.io.sockets.sockets.values()]
+      .find((socket) => socket.data.controlToken === token || socket.handshake.auth?.token === token);
+    expect(serverSocket).toBeDefined();
+    Object.defineProperty(serverSocket.request.socket, "remoteAddress", { value: address, configurable: true });
+    Object.defineProperty(serverSocket.conn, "remoteAddress", { value: address, configurable: true });
+  }
+
+  function setClientSocketAddress(client, address) {
+    const serverSocket = handle.io.sockets.sockets.get(client.id);
+    expect(serverSocket).toBeDefined();
+    Object.defineProperty(serverSocket.request.socket, "remoteAddress", { value: address, configurable: true });
+    Object.defineProperty(serverSocket.conn, "remoteAddress", { value: address, configurable: true });
+  }
+
   test("ends all remote sessions but keeps the operator session", async () => {
     const operatorToken = security.noteControlUnlock();
     const remoteTokens = [security.noteControlUnlock(), security.noteControlUnlock()];
@@ -84,5 +99,59 @@ describe("remote control session management", () => {
       .expect(200);
     locked.disconnect();
     other.disconnect();
+  });
+
+  test("notifies LAN remotes when the PIN is cleared but not the operator socket", async () => {
+    state.startPinHash = security.createPinHashRecord("123456");
+    state.controlMode = "unset";
+    const operatorToken = security.noteControlUnlock();
+    const remoteToken = security.noteControlUnlock();
+    const operator = await connect(operatorToken);
+    const remote = await connect(remoteToken);
+    setSocketAddress(remoteToken, "192.168.1.50");
+    const required = nextRequired(remote);
+    const operatorRequired = new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 150);
+      operator.once("control:required", () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
+
+    await request(handle.app)
+      .post("/api/start-pin")
+      .set("X-Sacra-Control", operatorToken)
+      .send({ pin: "", currentPin: "123456" })
+      .expect(200);
+    await expect(required).resolves.toEqual(expect.objectContaining({ error: expect.any(String) }));
+    await expect(operatorRequired).resolves.toBe(false);
+    operator.disconnect();
+    remote.disconnect();
+  });
+
+  test("notifies LAN remotes when trusted-LAN control ends", async () => {
+    state.startPinHash = null;
+    state.startPin = "";
+    state.controlMode = "trusted-lan";
+    const operator = await connect();
+    const remote = await connect();
+    setClientSocketAddress(remote, "192.168.1.50");
+    const required = nextRequired(remote);
+    const operatorRequired = new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 150);
+      operator.once("control:required", () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
+
+    await request(handle.app)
+      .post("/api/control-mode")
+      .send({ mode: "unset" })
+      .expect(200);
+    await expect(required).resolves.toEqual(expect.objectContaining({ error: expect.any(String) }));
+    await expect(operatorRequired).resolves.toBe(false);
+    operator.disconnect();
+    remote.disconnect();
   });
 });
