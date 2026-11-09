@@ -2439,6 +2439,41 @@ describe("server api integration", () => {
     emitSpy.mockRestore();
   });
 
+  test("exports a folder or compressed archived Mass without loading it", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Archive Export One", startTime: "2026-04-01T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Archive Export Two", startTime: "2026-04-08T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const exportArchive = async () => request(app)
+      .get("/api/mass-history/Archive-Export-One/export")
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    let zipResponse = await exportArchive();
+    expect(new AdmZip(zipResponse.body).getEntry("mass.json")).toBeTruthy();
+
+    await request(app)
+      .post("/api/mass-history/Archive-Export-One/compress")
+      .expect(200);
+    zipResponse = await exportArchive();
+    expect(new AdmZip(zipResponse.body).getEntry("mass.json")).toBeTruthy();
+
+    const stateBefore = await request(app).get("/api/state").expect(200);
+    expect(stateBefore.body.activeMassArchiveId).toBe("Archive-Export-Two");
+  });
+
   test("archives pending changes before loading a Mass archive", async () => {
     await request(app)
       .post("/api/new-mass")
