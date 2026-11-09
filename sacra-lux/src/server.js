@@ -247,6 +247,8 @@ function writeZipMassPackage(zip, destDir, packageDefinition) {
  */
 function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
+  const massJsonPath = path.join(CURRENT_MASS_DIR, "mass.json");
+  const massJsonMtimeMs = fs.existsSync(massJsonPath) ? fs.statSync(massJsonPath).mtimeMs : -Infinity;
 
   // Write every file before the stale ones go, so a failed write loses nothing.
   const keep = new Set();
@@ -257,7 +259,10 @@ function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
 
   for (const doc of documents) {
     const file = `${doc.stem}.txt`;
-    writeFileAtomic(path.join(CURRENT_MASS_DIR, file), serializeReadingDocument(doc));
+    const filePath = path.join(CURRENT_MASS_DIR, file);
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).mtimeMs <= massJsonMtimeMs) {
+      writeFileAtomic(filePath, serializeReadingDocument(doc));
+    }
     keep.add(file);
   }
 
@@ -266,6 +271,34 @@ function syncReadingsDocumentsToCurrentMass(documents = [], title = null) {
       fs.rmSync(path.join(CURRENT_MASS_DIR, file), { force: true });
     }
   }
+}
+
+function mergeNewerReadingDocuments(folderPath, documents, screenSettings) {
+  const massJsonPath = path.join(folderPath, "mass.json");
+  if (!fs.existsSync(massJsonPath)) return documents;
+  const massJsonMtimeMs = fs.statSync(massJsonPath).mtimeMs;
+  const folderDocuments = loadReadingsFromFolder(folderPath, screenSettings);
+  const folderByStem = new Map(folderDocuments.map((document) => [document.stem, document]));
+  const mergedStems = new Set();
+  const merged = documents.map((document) => {
+    const filePath = path.join(folderPath, `${document.stem}.txt`);
+    const fileDocument = folderByStem.get(document.stem);
+    mergedStems.add(document.stem);
+    if (!fileDocument || !fs.existsSync(filePath) || fs.statSync(filePath).mtimeMs <= massJsonMtimeMs) {
+      return document;
+    }
+    return {
+      ...document,
+      passage: fileDocument.passage,
+      textLines: fileDocument.textLines
+    };
+  });
+  for (const document of folderDocuments) {
+    if (mergedStems.has(document.stem)) continue;
+    const filePath = path.join(folderPath, `${document.stem}.txt`);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).mtimeMs > massJsonMtimeMs) merged.push(document);
+  }
+  return merged;
 }
 
 function hasLoadedMass() {
@@ -287,7 +320,13 @@ function preserveInvalidCurrentMass() {
 function saveCurrentMass() {
   if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
-  syncReadingsDocumentsToCurrentMass(state.readingsSource?.documents || [], state.presentation?.title || null);
+  const documents = mergeNewerReadingDocuments(
+    CURRENT_MASS_DIR,
+    state.readingsSource?.documents || [],
+    state.screenSettings
+  );
+  state.readingsSource.documents = documents;
+  syncReadingsDocumentsToCurrentMass(documents, state.presentation?.title || null);
   const massData = buildValidatedMassDocument(state);
   writeFileAtomic(path.join(CURRENT_MASS_DIR, "mass.json"), JSON.stringify(massData, null, 2));
   const archive = syncCurrentMassToArchive({
@@ -786,10 +825,14 @@ function readMassPackageDefinition(packageDir, screenSettings = DEFAULT_SCREEN_S
 
   const packageData = JSON.parse(fs.readFileSync(massJsonPath, "utf8"));
   if (isMassDocumentV3(packageData)) {
+    const runtime = buildRuntimeStateFromMassDocument(packageData);
     return {
       kind: "v3",
       raw: packageData,
-      runtime: buildRuntimeStateFromMassDocument(packageData)
+      runtime: {
+        ...runtime,
+        documents: mergeNewerReadingDocuments(packageDir, runtime.documents, screenSettings)
+      }
     };
   }
 
@@ -1054,7 +1097,13 @@ function applyMassPackageFromCurrentDir(ioRef, packageData) {
   if (urlError) throw new ValidationError(urlError);
 
   const runtime = isMassDocumentV3(packageData)
-    ? buildRuntimeStateFromMassDocument(packageData)
+    ? (() => {
+      const built = buildRuntimeStateFromMassDocument(packageData);
+      return {
+        ...built,
+        documents: mergeNewerReadingDocuments(CURRENT_MASS_DIR, built.documents, state.screenSettings)
+      };
+    })()
     : {
       presentationTitle: packageData.presentationTitle || "Mass Presentation",
       massStartTime: packageData.massStartTime || null,
