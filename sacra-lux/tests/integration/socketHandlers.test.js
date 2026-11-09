@@ -504,8 +504,11 @@ describe("socket handlers", () => {
           value: "192.0.2.10"
         });
         const denied = nextEvent(projector, "control:required");
-        projector.emit("slide:video-ended", { slideId });
+        const reportStatus = waitForState(client, (next) => next.moviePlaybackError?.slideId === slideId);
+        projector.emit("slide:video-ready", { slideId, durationMs: 60000 });
         await denied;
+        const status = await reportStatus;
+        expect(status.moviePlaybackError.message).toContain("saved movie length");
         expect(state.currentSlideIndex).toBe(index);
 
         const errorBefore = state.imageSlideshowError;

@@ -4899,6 +4899,15 @@ function startServer(port = 17841, options = {}) {
         || socketHasControlSession(socket)
       );
       if (!socketMayControl(socket) && !projectorIsTrusted) {
+        if (eventName === "slide:video-ready") {
+          const slideId = String(args[0]?.slideId || "");
+          state.moviePlaybackError = {
+            slideId,
+            message: "Projector cannot report movie status; the saved movie length will be used."
+          };
+          touch();
+          io.emit("state:update", getStateSnapshot());
+        }
         socket.emit("control:required", { error: getUnlockMessage() });
         return undefined;
       }

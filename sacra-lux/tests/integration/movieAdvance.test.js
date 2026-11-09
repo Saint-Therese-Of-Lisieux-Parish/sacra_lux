@@ -97,6 +97,17 @@ describe("movie slides auto-advance", () => {
     expect(res.body.currentSlideIndex).toBe(1);
   });
 
+  test("uses the saved movie duration when no projector reports the end", async () => {
+    await seed(moviePreSequence({ durationSec: 5 }), moviePreManualSlides());
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    jest.advanceTimersByTime(3 * 1000);
+    expect((await request(app).get("/api/state").expect(200)).body.currentSlideIndex).toBe(0);
+
+    jest.advanceTimersByTime(3 * 1000);
+    expect((await request(app).get("/api/state").expect(200)).body.currentSlideIndex).toBe(1);
+  });
+
   test("a movie with no video selected still advances after its duration", async () => {
     await seed(moviePreSequence(), moviePreManualSlides({ videoUrl: null }));
 
