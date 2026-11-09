@@ -281,7 +281,7 @@ describe("spoken reading endings", () => {
 
     expect(endings["Reading I"]).toBe("The Word of the Lord.");
     expect(endings["Reading II"]).toBe("The Word of the Lord.");
-    expect(endings["Responsorial Psalm"]).toBe("The Word of the Lord.");
+    expect(endings["Responsorial Psalm"]).toBeNull();
     expect(endings.Gospel).toBe("The Gospel of the Lord.");
   });
 
