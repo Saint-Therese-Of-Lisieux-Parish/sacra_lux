@@ -144,8 +144,14 @@ describe("shared client helpers", () => {
       expect(itemRuntimeSeconds({ type: "countdown", durationSec: 10 }, { countdownSec: 45 }, 1)).toBe(45);
     });
 
-    test("a movie has no known time", () => {
+    test("a movie with no saved duration has no known time", () => {
       expect(itemRuntimeSeconds({ type: "movie", durationSec: null }, {}, 1)).toBeNull();
+    });
+
+    test("a movie uses its saved duration and caps it at one hour", () => {
+      expect(itemRuntimeSeconds({ type: "movie", durationSec: 120 }, {}, 1)).toBe(120);
+      expect(itemRuntimeSeconds({ type: "movie", durationSec: 120.2 }, {}, 1)).toBe(121);
+      expect(itemRuntimeSeconds({ type: "movie", durationSec: 4000 }, {}, 1)).toBe(3600);
     });
 
     test("phase total is the sum of the item times", () => {
