@@ -30,9 +30,11 @@ async function startMain({
           this.openHandler = handler;
         }),
         setFrameRate: jest.fn(),
-        executeJavaScript: jest.fn()
+        executeJavaScript: jest.fn(),
+        send: jest.fn()
       };
       this.setFullScreen = jest.fn();
+      this.setBounds = jest.fn((bounds) => { this.options.bounds = bounds; });
       windows.push(this);
     }
     on(name, handler) { this.listeners[name] = handler; }
@@ -45,7 +47,6 @@ async function startMain({
     restore() {}
     close() {}
     destroy() {}
-    setBounds(bounds) { this.options.bounds = bounds; }
   }
   FakeBrowserWindow.getAllWindows = () => windows;
 
@@ -53,6 +54,10 @@ async function startMain({
   const ready = new Promise((resolve) => {
     resolveReady = resolve;
   });
+  const screen = new EventEmitter();
+  screen.getAllDisplays = jest.fn(() => displays);
+  screen.getPrimaryDisplay = jest.fn(() => displays[0] || { id: 1 });
+  screen.getDisplayNearestPoint = jest.fn(() => displays[0] || { id: 1 });
   const electron = {
     app: {
       commandLine: { appendSwitch: jest.fn() },
@@ -73,11 +78,7 @@ async function startMain({
     },
     ipcMain: { handle: jest.fn(), on: jest.fn() },
     dialog: { showErrorBox: jest.fn(), showMessageBoxSync: jest.fn(() => 1) },
-    screen: {
-      getAllDisplays: jest.fn(() => displays),
-      getPrimaryDisplay: jest.fn(() => displays[0] || { id: 1 }),
-      getDisplayNearestPoint: jest.fn(() => displays[0] || { id: 1 })
-    },
+    screen,
     shell: { openExternal: jest.fn(), openPath: jest.fn(async () => ""), showItemInFolder: jest.fn() }
   };
   electron.powerMonitor = new EventEmitter();
@@ -245,6 +246,42 @@ describe("Electron window security settings", () => {
     const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
     const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
     expect(toggle.label).toBe("Exit Screen Fullscreen");
+  });
+
+  test("moves a configured screen window when its display connects", async () => {
+    const displays = [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } }];
+    const windows = await startMain({ displays, targetScreenIds: [2] });
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+    const display = { id: 2, bounds: { x: 1920, y: 0, width: 1280, height: 720 } };
+    displays.push(display);
+
+    windows.electron.screen.emit("display-added", {}, display);
+
+    expect(screenWindow.setBounds).toHaveBeenCalledWith(display.bounds);
+    expect(windows.find((win) => win.options.title === "Sacra Lux").webContents.send)
+      .toHaveBeenCalledWith("screen:monitors-updated", [
+        { id: 1, label: "1920x1080 (Primary) @ 0,0", isPrimary: true, bounds: displays[0].bounds },
+        { id: 2, label: "1280x720 @ 1920,0", isPrimary: false, bounds: display.bounds }
+      ]);
+  });
+
+  test("exits fullscreen and updates the operator when a target display disconnects", async () => {
+    const primary = { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } };
+    const display = { id: 2, bounds: { x: 1920, y: 0, width: 1280, height: 720 } };
+    const displays = [primary, display];
+    const windows = await startMain({ displays, targetScreenIds: [2], screenFullscreen: true });
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+    const appWindow = windows.find((win) => win.options.title === "Sacra Lux");
+    screenWindow.setFullScreen.mockClear();
+    displays.splice(1, 1);
+
+    windows.electron.screen.emit("display-removed", {}, display);
+
+    expect(screenWindow.setFullScreen).toHaveBeenCalledWith(false);
+    expect(require("../../src/state").state.screenFullscreen).toBe(false);
+    expect(appWindow.webContents.send).toHaveBeenLastCalledWith("screen:monitors-updated", [
+      { id: 1, label: "1920x1080 (Primary) @ 0,0", isPrimary: true, bounds: primary.bounds }
+    ]);
   });
 
   test("a second app instance quits before it starts the server", async () => {

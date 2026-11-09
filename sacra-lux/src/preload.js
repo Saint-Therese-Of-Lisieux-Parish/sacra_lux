@@ -31,6 +31,16 @@ contextBridge.exposeInMainWorld("api", {
   getMonitors: () => ipcRenderer.invoke("screen:getMonitors"),
 
   /**
+   * Listen for monitor changes from the Electron main process.
+   * Return a function that removes the listener.
+   */
+  onMonitorsChanged: (handler) => {
+    const listener = (_event, monitors) => handler(monitors);
+    ipcRenderer.on("screen:monitors-updated", listener);
+    return () => ipcRenderer.removeListener("screen:monitors-updated", listener);
+  },
+
+  /**
    * Set the target monitor for the screen window.
    * Pass a screen ID, or null to unset.
    */
