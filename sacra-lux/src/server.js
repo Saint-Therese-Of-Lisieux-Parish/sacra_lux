@@ -4211,6 +4211,24 @@ function startServer(port = 17841, options = {}) {
           }
           return item;
         });
+        const readingIII = documentsBySection.get("Reading III");
+        if (readingIII) {
+          const gospelAcclamationIndex = state.organizerSequence.findIndex((item) => item.id === "mass-gospel-acclamation");
+          const readingIIIIndex = gospelAcclamationIndex < 0
+            ? state.organizerSequence.findIndex((item) => item.id === "mass-gospel")
+            : gospelAcclamationIndex;
+          if (readingIIIIndex >= 0) {
+            state.organizerSequence.splice(readingIIIIndex, 0, {
+              id: "mass-reading-3",
+              type: "reading",
+              label: "Third Reading",
+              phase: "mass",
+              backgroundTheme: "dark",
+              durationSec: 10,
+              sourceStem: readingIII.stem
+            });
+          }
+        }
         const emptyReadingIds = new Set(
           state.organizerSequence
             .filter((item) => item.type === "reading" && !item.sourceStem)
@@ -4261,6 +4279,14 @@ function startServer(port = 17841, options = {}) {
         manualSlides: state.manualSlides,
         screenSettings: state.screenSettings
       });
+      const usedReadingStems = new Set(
+        state.organizerSequence
+          .filter((item) => item.type === "reading" && item.sourceStem)
+          .map((item) => item.sourceStem)
+      );
+      const unusedReadingSections = lectionaryDocuments
+        .filter((document) => !usedReadingStems.has(document.stem))
+        .map((document) => document.section);
       if (scheduledStart) {
         state.massStartTime = scheduledStart;
         scheduleStartTimer(io);
@@ -4280,7 +4306,8 @@ function startServer(port = 17841, options = {}) {
         massStartTime: state.massStartTime,
         organizerCount: state.organizerSequence.length,
         slideCount: state.presentation.slides.length,
-        lectionaryReadingsImported: Boolean(useLectionaryRss)
+        lectionaryReadingsImported: Boolean(useLectionaryRss),
+        unusedReadingSections
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to create new mass." });

@@ -440,6 +440,7 @@ describe("server api integration", () => {
         title: "Sample Lectionary Mass",
         lectionaryReadingsImported: true
       });
+      expect(response.body.unusedReadingSections).toEqual([]);
       expect(state.readingsSource.documents).toEqual([
         expect.objectContaining({ section: "Reading I", passage: "Isaiah 1:1" }),
         expect.objectContaining({ section: "Verse Before the Gospel", passage: "Mark 1:15" }),
@@ -466,6 +467,40 @@ describe("server api integration", () => {
       expect(state.organizerSequence.some((item, index) =>
         item.type === "interstitial" && state.organizerSequence[index + 1]?.type === "interstitial"
       )).toBe(false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test("new Mass reports unused readings and adds Reading III before the Gospel", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Vigil Readings</title><description>
+          &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading-one"&gt;Genesis 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Responsorial Psalm &lt;a href="https://example.test/psalm-one"&gt;Psalm 1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first psalm.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Reading 2 &lt;a href="https://example.test/reading-two"&gt;Genesis 2:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The second reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Responsorial Psalm &lt;a href="https://example.test/psalm-two"&gt;Psalm 2&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The second psalm.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Reading 3 &lt;a href="https://example.test/reading-three"&gt;Genesis 3:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The third reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The Gospel.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      const response = await request(app).post("/api/new-mass").send({ useLectionaryRss: true }).expect(200);
+      expect(response.body.unusedReadingSections).toEqual(["Responsorial Psalm"]);
+
+      const sequence = state.organizerSequence;
+      const readingIIIIndex = sequence.findIndex((item) => item.sourceStem === "Reading_III");
+      const gospelIndex = sequence.findIndex((item) => item.id === "mass-gospel");
+      expect(readingIIIIndex).toBeGreaterThanOrEqual(0);
+      expect(readingIIIIndex).toBeLessThan(gospelIndex);
     } finally {
       global.fetch = originalFetch;
     }
