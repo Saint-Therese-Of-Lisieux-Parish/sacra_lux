@@ -266,6 +266,26 @@ describe("security", () => {
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] auth-test throttled for client-a."));
   });
 
+  test("rate limit middleware can skip loopback clients without skipping request handling", () => {
+    const middleware = security.createRateLimitMiddleware({
+      bucket: "heavy",
+      windowMs: 60000,
+      max: 1,
+      label: "heavy-test",
+      keyFn: security.getClientIp,
+      skip: (req) => security.isLoopbackAddress(security.getClientIp(req))
+    });
+    const next = jest.fn();
+    const response = () => ({ set: jest.fn(), status: jest.fn().mockReturnThis(), json: jest.fn() });
+
+    middleware({ ip: "127.0.0.1" }, response(), next);
+    middleware({ ip: "127.0.0.1" }, response(), next);
+    middleware({ ip: "198.51.100.20" }, response(), next);
+    middleware({ ip: "198.51.100.20" }, response(), next);
+
+    expect(next).toHaveBeenCalledTimes(3);
+  });
+
   test("uses request fallbacks and resets a rate limit after its window", () => {
     const now = Date.now();
     const nowSpy = jest.spyOn(Date, "now").mockReturnValue(now);

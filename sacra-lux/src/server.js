@@ -3088,8 +3088,26 @@ function startServer(port = 17841, options = {}) {
     label: `${RATE_LIMIT_CONFIG.upload.label}-concurrent`,
     keyFn: getClientIp
   });
-  const heavyRateLimit = createRateLimitMiddleware({
-    ...RATE_LIMIT_CONFIG.heavy,
+  const heavyRateLimit = rateLimit({
+    windowMs: RATE_LIMIT_CONFIG.heavy.windowMs,
+    limit: RATE_LIMIT_CONFIG.heavy.max,
+    standardHeaders: false,
+    legacyHeaders: false,
+    validate: false,
+    keyGenerator: (req) => getClientIp(req),
+    skip: (req) => isLoopbackAddress(getClientIp(req)),
+    handler: (req, res, _next, options) => {
+      const resetTime = req.rateLimit && req.rateLimit.resetTime;
+      const retryAfterSec = resetTime ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000)) : 1;
+      logger.warn(`[rate-limit] ${RATE_LIMIT_CONFIG.heavy.label} throttled for ${getClientIp(req)}. ${req.method} ${req.originalUrl || req.path} retry-after=${retryAfterSec}s`);
+      res.set("Retry-After", String(retryAfterSec));
+      res.status(options.statusCode).json({ error: "Too many requests. Please try again later." });
+    }
+  });
+  const heavyConcurrentLimit = createConcurrentLimitMiddleware({
+    bucket: RATE_LIMIT_CONFIG.heavy.bucket,
+    maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent,
+    label: `${RATE_LIMIT_CONFIG.heavy.label}-concurrent`,
     keyFn: getClientIp
   });
   const builtinBackgroundRateLimit = rateLimit({
@@ -3958,7 +3976,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── Mass package ZIP export ────────────────────────────────────────────────
-  app.get("/api/export-mass-zip", heavyRateLimit, async (req, res) => {
+  app.get("/api/export-mass-zip", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     if (!clientHasControlSession(req)) {
       return res.status(401).json({ error: "Unlock required." });
     }
@@ -4006,7 +4024,7 @@ function startServer(port = 17841, options = {}) {
     avifDownloadTokens.set(token, entry);
   }
 
-  app.get("/api/export-mass-zip-avif", heavyRateLimit, (req, res) => {
+  app.get("/api/export-mass-zip-avif", (req, res) => {
     if (!clientHasControlSession(req)) {
       return res.status(401).json({ error: "Unlock required." });
     }
@@ -4085,7 +4103,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── New Mass ───────────────────────────────────────────────────────────────
-  app.post("/api/new-mass", heavyRateLimit, async (req, res) => {
+  app.post("/api/new-mass", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     try {
       const { title, startTime, useLectionaryRss } = req.body || {};
 
@@ -4288,7 +4306,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── Mass package ZIP import ────────────────────────────────────────────────
-  app.post("/api/import-mass-zip", heavyRateLimit, (req, res) => {
+  app.post("/api/import-mass-zip", heavyRateLimit, heavyConcurrentLimit, (req, res) => {
     try {
       const { zipData } = req.body || {};
       if (!zipData) {
@@ -4442,7 +4460,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/mass-history/:archiveId/compress", heavyRateLimit, async (req, res) => {
+  app.post("/api/mass-history/:archiveId/compress", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     try {
       const archivePaths = getArchivePaths(path.basename(String(req.params.archiveId || "")));
       const { archiveId } = archivePaths;
