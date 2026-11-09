@@ -86,7 +86,12 @@
    */
   function itemRuntimeSeconds(item, manual, slideCount, playableImageCount) {
     const type = item?.type;
-    if (type === "movie") return null;
+    if (type === "movie") {
+      const durationSec = Number(item?.durationSec);
+      return Number.isFinite(durationSec) && durationSec > 0
+        ? Math.min(3600, Math.ceil(durationSec))
+        : null;
+    }
     if (type === "imageSlideshow") {
       const imageCount = playableImageCount ?? (Array.isArray(manual?.images)
         ? manual.images.filter((image) => image?.url || typeof image === "string").length
