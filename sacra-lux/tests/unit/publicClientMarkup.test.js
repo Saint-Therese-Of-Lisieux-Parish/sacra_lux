@@ -95,6 +95,13 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain("startTimeDraftDirty = false;");
   });
 
+  test("shows a warning for start times more than four hours in the past", () => {
+    expect(appHtml).toContain('id="startTimeWarning" class="start-time-warning" role="status" hidden');
+    expect(appHtml).toContain('Date.now() - startTime > 4 * 60 * 60 * 1000');
+    expect(appHtml).toContain("Automatic gathering and Mass start will not run.");
+    expect(appHtml).toContain("updateStartTimeWarning(els.startTimeInput.value);");
+  });
+
   test("confirms Mass replacement before archive load and ZIP import", () => {
     expect(appHtml).toContain('id="massReplaceConfirmDialog"');
     expect(appHtml).toContain("function confirmMassReplacement(name)");
