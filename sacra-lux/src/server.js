@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const net = require("net");
+const { Worker } = require("worker_threads");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -1090,6 +1091,29 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   }
 
   return zip.toBuffer();
+}
+
+function buildMassZipInWorker(packageDir, { avif = false } = {}) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "zipBuilderWorker.js"), {
+      workerData: { packageDir, avif }
+    });
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    worker.once("message", (buffer) => {
+      if (settled) return;
+      settled = true;
+      resolve(Buffer.from(buffer));
+    });
+    worker.once("error", fail);
+    worker.once("exit", (code) => {
+      if (code !== 0) fail(new Error(`ZIP worker exited with code ${code}.`));
+    });
+  });
 }
 
 function applyMassPackageFromCurrentDir(ioRef, packageData) {
@@ -3920,7 +3944,7 @@ function startServer(port = 17841, options = {}) {
       if (!saveCurrentMass() || !fs.existsSync(path.join(CURRENT_MASS_DIR, "mass.json"))) {
         return res.status(400).json({ error: "No current Mass package to export." });
       }
-      const zipBuffer = await buildMassZipFromPackage(CURRENT_MASS_DIR);
+      const zipBuffer = await buildMassZipInWorker(CURRENT_MASS_DIR);
       const filename = buildExportFilename(state.presentation?.title, state.massStartTime, ".zip");
 
       setAttachmentFilename(res, filename);
@@ -4380,7 +4404,7 @@ function startServer(port = 17841, options = {}) {
       if (!fs.existsSync(archivePaths.packageDir)) {
         return res.status(404).json({ error: "Mass archive package not found." });
       }
-      const zipBuffer = await buildMassZipFromPackage(archivePaths.packageDir, { avif: true });
+      const zipBuffer = await buildMassZipInWorker(archivePaths.packageDir, { avif: true });
       const zip = new (getAdmZip())(zipBuffer);
       validateMassZipArchive(zip, zipBuffer.length);
       fs.writeFileSync(archivePaths.compressedZipPath, zipBuffer);
@@ -5268,6 +5292,7 @@ module.exports = {
   flushPendingSave,
   resetStartPin,
   convertImageToAvif,
+  buildMassZipFromPackage,
   safeSocketHandler,
   validateMassZipArchive,
   MASS_ZIP_LIMITS: Object.freeze({
