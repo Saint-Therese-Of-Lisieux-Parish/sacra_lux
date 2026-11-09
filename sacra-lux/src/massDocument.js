@@ -141,11 +141,20 @@ function assetRefFromUrl(url) {
   const legacyUploadMatch = String(url || "").match(/\/static\/uploads\/([^/]+)$/);
   if (legacyUploadMatch) return buildAssetRef(legacyUploadMatch[1]);
 
+  const staticAssetMatch = String(url || "").match(/\/static\/assets\/([^/]+)$/);
+  if (staticAssetMatch && isSafeAssetName(staticAssetMatch[1])) {
+    return `static/assets/${staticAssetMatch[1]}`;
+  }
+
   return null;
 }
 
 function assetUrlFromRef(ref) {
   const normalized = String(ref || "");
+  const staticAssetMatch = normalized.match(/^static\/assets\/([^/]+)$/);
+  if (staticAssetMatch && isSafeAssetName(staticAssetMatch[1])) {
+    return `/static/assets/${staticAssetMatch[1]}`;
+  }
   const match = normalized.match(/^assets\/([^/]+)$/);
   if (!match) {
     throw new ValidationError(`Unsupported asset ref "${normalized}".`);
@@ -160,9 +169,9 @@ function assetUrlFromRef(ref) {
 function buildAssetsManifest(document) {
   const refs = new Set();
   for (const item of document.items || []) {
-    if (item.asset?.ref) refs.add(item.asset.ref);
+    if (item.asset?.ref?.startsWith("assets/")) refs.add(item.asset.ref);
     for (const asset of item.assets || []) {
-      if (asset?.ref) refs.add(asset.ref);
+      if (asset?.ref?.startsWith("assets/")) refs.add(asset.ref);
     }
   }
   if (document.presentationDefaults?.darkBackgroundUrl) {

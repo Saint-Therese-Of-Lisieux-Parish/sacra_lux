@@ -549,8 +549,11 @@ function massPackageUrlError(packageData) {
     for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
       const value = packageData.presentationDefaults?.[key];
       if (!value) continue;
-      if (String(value).startsWith("assets/")) {
-        const assetName = String(value).slice("assets/".length);
+      const valueString = String(value);
+      const assetPrefix = valueString.startsWith("assets/") ? "assets/"
+        : valueString.startsWith("static/assets/") ? "static/assets/" : null;
+      if (assetPrefix) {
+        const assetName = valueString.slice(assetPrefix.length);
         if (!isSafeAssetName(assetName) || assetName.includes("/")) {
           return BACKGROUND_URL_ERROR;
         }
