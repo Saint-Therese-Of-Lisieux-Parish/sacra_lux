@@ -2087,6 +2087,12 @@
       font-size: 1.2rem;
     }
 
+    .start-time-warning {
+      flex-basis: 100%;
+      color: var(--danger, #b42318);
+      font-size: 0.85rem;
+    }
+
     .pre-mass-status {
       color: var(--accent-2);
     }
@@ -2899,6 +2905,7 @@
                   <input id="startTimeInput" type="datetime-local">
                   <button id="setStartTimeBtn" class="save-btn">Set</button>
                   <button id="clearStartTimeBtn" class="save-btn">Clear</button>
+                  <span id="startTimeWarning" class="start-time-warning" role="status" hidden></span>
                 </div>
               </div>
               <div class="command-actions" style="justify-content:center;flex-wrap:wrap">
@@ -4611,6 +4618,7 @@
       startTimeInput: document.getElementById("startTimeInput"),
       setStartTimeBtn: document.getElementById("setStartTimeBtn"),
       clearStartTimeBtn: document.getElementById("clearStartTimeBtn"),
+      startTimeWarning: document.getElementById("startTimeWarning"),
       startTimeStatus: document.getElementById("startTimeStatus"),
       startPinBtn: document.getElementById("startPinBtn"),
       startPinBtnIcon: document.getElementById("startPinBtnIcon"),
@@ -4843,6 +4851,16 @@
     let globalTextBoundsDraft = JSON.parse(JSON.stringify(DEFAULT_TEXT_BOUNDS));
     let massTitleDraftDirty = false;
     let startTimeDraftDirty = false;
+
+    function updateStartTimeWarning(value) {
+      if (!els.startTimeWarning) return;
+      const startTime = Date.parse(value || "");
+      const isPast = Number.isFinite(startTime) && Date.now() - startTime > 4 * 60 * 60 * 1000;
+      els.startTimeWarning.hidden = !isPast;
+      els.startTimeWarning.textContent = isPast
+        ? "The start time is in the past. Automatic gathering and Mass start will not run."
+        : "";
+    }
     let editorBoundsDraft = {};
 
     function normalizeTextBoxBounds(value, fallback = DEFAULT_TEXT_BOUNDS.text) {
@@ -7057,6 +7075,7 @@
       const keepStartTimeDraft = startTimeDraftDirty && els.startTimeInput.value !== savedStartTime;
       if (mst) {
         if (!keepStartTimeDraft) els.startTimeInput.value = mst;
+        updateStartTimeWarning(keepStartTimeDraft ? els.startTimeInput.value : mst);
         const target = new Date(mst);
         const diff = target - Date.now();
         if (diff > 0) {
@@ -7095,6 +7114,7 @@
         }
       } else {
         if (!keepStartTimeDraft) els.startTimeInput.value = "";
+        updateStartTimeWarning(keepStartTimeDraft ? els.startTimeInput.value : "");
         els.startTimeStatus.textContent = "";
       }
 
@@ -9714,6 +9734,7 @@
 
     els.startTimeInput.addEventListener("input", () => {
       startTimeDraftDirty = true;
+      updateStartTimeWarning(els.startTimeInput.value);
     });
 
     els.setStartTimeBtn.addEventListener("click", () => {
