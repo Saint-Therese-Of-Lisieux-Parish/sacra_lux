@@ -40,6 +40,7 @@ const ROUTES = [
 
   ["GET", "/api/export-mass-zip", "control"],
   ["GET", "/api/export-mass-zip-avif", "control"],
+  ["GET", "/api/mass-history/:archiveId/export", "control"],
   ["POST", "/api/upload-mass-asset", "control"],
   ["POST", "/api/upload-image", "control"],
   ["POST", "/api/import-slideshow-images", "control"],

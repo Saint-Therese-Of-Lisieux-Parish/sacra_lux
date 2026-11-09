@@ -120,6 +120,7 @@ describe("public client markup guards", () => {
   test("keeps export failures on the operator page and resets AVIF state", () => {
     expect(appHtml).toContain("async function downloadExport(url, fallbackName)");
     expect(appHtml).toContain('await downloadExport("/api/export-mass-zip", "mass.zip")');
+    expect(appHtml).toContain('downloadExport(`/api/mass-history/${encodeURIComponent(archiveId)}/export`, "mass.zip")');
     expect(appHtml).toContain('downloadExport("/api/export-mass-zip-avif?token=" + encodeURIComponent(token), "mass-avif.zip")');
     expect(appHtml).toContain("Content-Disposition");
     expect(appHtml).toContain("Mass export failed.");

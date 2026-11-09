@@ -4331,6 +4331,32 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
+  app.get("/api/mass-history/:archiveId/export", heavyRateLimit, async (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    try {
+      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const archivePaths = getArchivePaths(archiveId);
+      const metadata = readMetadata(archiveId) || {};
+      let zipBuffer;
+      if (fs.existsSync(archivePaths.compressedZipPath)) {
+        zipBuffer = fs.readFileSync(archivePaths.compressedZipPath);
+      } else if (fs.existsSync(archivePaths.packageDir)) {
+        zipBuffer = await buildMassZipInWorker(archivePaths.packageDir);
+      } else {
+        return res.status(404).json({ error: "Mass archive package not found." });
+      }
+      const filename = buildExportFilename(metadata.title || archiveId, metadata.startTime, ".zip");
+      setAttachmentFilename(res, filename);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Length", zipBuffer.length);
+      return res.end(zipBuffer);
+    } catch (error) {
+      return sendApiError(res, error, "Failed to export Mass archive.");
+    }
+  });
+
   app.post("/api/mass-history/:archiveId/load", async (req, res) => {
     try {
       const archiveId = path.basename(String(req.params.archiveId || ""));
