@@ -3054,6 +3054,12 @@ function startServer(port = 17841, options = {}) {
       || "";
   }
 
+  function getSocketsLosingControl() {
+    return [...io.sockets.sockets.values()]
+      .filter(socketHasControlSession)
+      .filter((socket) => !isLoopbackAddress(getSocketSourceAddress(socket)));
+  }
+
   function disconnectDisallowedSockets() {
     for (const socket of io.sockets.sockets.values()) {
       if (sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) continue;
@@ -3636,10 +3642,15 @@ function startServer(port = 17841, options = {}) {
       if (hasPinConfigured()) clearPinFailures(getClientIp(req));
 
       if (clearing) {
+        const notifiedSockets = getSocketsLosingControl();
         state.startPin = "";
         state.startPinHash = null;
         clearControlAccess();
         touch();
+        for (const socket of notifiedSockets) {
+          socket.data.controlToken = "";
+          socket.emit("control:required", { error: getUnlockMessage() });
+        }
         io.emit("state:update", getStateSnapshot());
         scheduleSave(true);
         return res.json({ ok: true, hasPin: false });
@@ -3683,8 +3694,15 @@ function startServer(port = 17841, options = {}) {
     if (!CONTROL_MODES.includes(mode)) {
       return res.status(400).json({ error: "Mode must be unset or trusted-lan." });
     }
+    const notifiedSockets = state.controlMode === "trusted-lan" && mode === "unset"
+      ? getSocketsLosingControl()
+      : [];
     state.controlMode = mode;
     touch();
+    for (const socket of notifiedSockets) {
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: getUnlockMessage() });
+    }
     io.emit("state:update", getStateSnapshot());
     scheduleSave(true);
     return res.json({ ok: true, controlMode: state.controlMode });
@@ -4332,6 +4350,32 @@ function startServer(port = 17841, options = {}) {
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list Mass history." });
+    }
+  });
+
+  app.get("/api/mass-history/:archiveId/export", heavyRateLimit, async (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    try {
+      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const archivePaths = getArchivePaths(archiveId);
+      const metadata = readMetadata(archiveId) || {};
+      let zipBuffer;
+      if (fs.existsSync(archivePaths.compressedZipPath)) {
+        zipBuffer = fs.readFileSync(archivePaths.compressedZipPath);
+      } else if (fs.existsSync(archivePaths.packageDir)) {
+        zipBuffer = await buildMassZipInWorker(archivePaths.packageDir);
+      } else {
+        return res.status(404).json({ error: "Mass archive package not found." });
+      }
+      const filename = buildExportFilename(metadata.title || archiveId, metadata.startTime, ".zip");
+      setAttachmentFilename(res, filename);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Length", zipBuffer.length);
+      return res.end(zipBuffer);
+    } catch (error) {
+      return sendApiError(res, error, "Failed to export Mass archive.");
     }
   });
 
