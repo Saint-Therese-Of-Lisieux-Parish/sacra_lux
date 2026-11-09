@@ -10099,8 +10099,10 @@
         if (!resp.ok) {
           els.status.textContent = "New Mass failed: " + (data.error || resp.status);
         } else {
-          els.status.textContent = data.archivedMassId
-            ? `New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`
+          els.status.textContent = data.warning
+            ? data.warning
+            : data.archivedMassId
+              ? `New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`
             : data.lectionaryReadingsImported
               ? data.unusedReadingSections?.length
                 ? `New Mass created with USCCB Daily Readings. ${data.unusedReadingSections.length} additional reading${data.unusedReadingSections.length === 1 ? "" : "s"} available.`

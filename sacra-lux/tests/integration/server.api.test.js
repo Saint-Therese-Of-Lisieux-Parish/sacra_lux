@@ -506,6 +506,39 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass warns when the USCCB reading date differs from the Mass date", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item>
+          <title>Saturday Readings</title>
+          <pubDate>Sat, 07 Nov 2026 00:00:00 GMT</pubDate>
+          <description>
+            &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+            &lt;div&gt;&lt;p&gt;In the beginning was the Word.&lt;/p&gt;&lt;/div&gt;
+          </description>
+        </item></channel></rss>`
+    });
+    try {
+      const differentDate = await request(app)
+        .post("/api/new-mass")
+        .send({ useLectionaryRss: true, startTime: "2026-11-08T10:00" })
+        .expect(200);
+      expect(differentDate.body.warning).toBe(
+        "USCCB readings are for November 7, 2026, but the Mass date is November 8, 2026."
+      );
+
+      const sameDate = await request(app)
+        .post("/api/new-mass")
+        .send({ useLectionaryRss: true, startTime: "2026-11-07T10:00" })
+        .expect(200);
+      expect(sameDate.body.warning).toBeNull();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("new Mass without RSS creates editable reading files", async () => {
     await request(app)
       .post("/api/new-mass")

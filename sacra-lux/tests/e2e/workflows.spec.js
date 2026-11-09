@@ -99,6 +99,28 @@ test("New Mass shows the count of additional USCCB readings", async ({ page }) =
   );
 });
 
+test("New Mass shows a USCCB date warning after the dialog closes", async ({ page }) => {
+  await page.route("**/api/new-mass", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        lectionaryReadingsImported: true,
+        warning: "USCCB readings are for November 7, 2026, but the Mass date is November 8, 2026."
+      })
+    });
+  });
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  await page.locator("#newMassUseLectionaryRss").check();
+  await page.locator("#newMassStartTime").fill("2026-11-08T10:00");
+  await page.locator("#newMassConfirmBtn").click();
+  await expect(page.locator("#newMassDialog")).toBeHidden();
+  await expect(page.locator("#status")).toHaveText(
+    "USCCB readings are for November 7, 2026, but the Mass date is November 8, 2026."
+  );
+});
+
 test("operator sees a warning for a past Mass start time", async ({ page, request }) => {
   const toDateTimeLocal = (date) => {
     const pad = (value) => String(value).padStart(2, "0");

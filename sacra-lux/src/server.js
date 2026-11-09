@@ -4120,10 +4120,20 @@ function startServer(port = 17841, options = {}) {
 
       let massTitle = String(title || "").trim();
       let lectionaryDocuments = [];
+      let lectionaryWarning = null;
       if (useLectionaryRss) {
         const lectionary = await fetchUsccbDailyReadings();
         massTitle = massTitle || lectionary.title;
         lectionaryDocuments = lectionary.documents;
+        if (scheduledStart && lectionary.readingDate && lectionary.readingDate !== scheduledStart.slice(0, 10)) {
+          const formatDate = (value) => new Date(`${value}T00:00:00Z`).toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "long",
+            timeZone: "UTC",
+            year: "numeric"
+          });
+          lectionaryWarning = `USCCB readings are for ${formatDate(lectionary.readingDate)}, but the Mass date is ${formatDate(scheduledStart.slice(0, 10))}.`;
+        }
       }
       if (!massTitle) {
         return res.status(400).json({ error: "title is required." });
@@ -4325,6 +4335,7 @@ function startServer(port = 17841, options = {}) {
         organizerCount: state.organizerSequence.length,
         slideCount: state.presentation.slides.length,
         lectionaryReadingsImported: Boolean(useLectionaryRss),
+        warning: lectionaryWarning,
         unusedReadingSections
       });
     } catch (error) {
