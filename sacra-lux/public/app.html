@@ -10102,7 +10102,9 @@
           els.status.textContent = data.archivedMassId
             ? `New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`
             : data.lectionaryReadingsImported
-              ? "New Mass created with USCCB Daily Readings."
+              ? data.unusedReadingSections?.length
+                ? `New Mass created with USCCB Daily Readings. ${data.unusedReadingSections.length} additional reading${data.unusedReadingSections.length === 1 ? "" : "s"} available.`
+                : "New Mass created with USCCB Daily Readings."
               : "New Mass created.";
           els.newMassDialog.close();
         }

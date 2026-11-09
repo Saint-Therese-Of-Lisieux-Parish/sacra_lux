@@ -78,6 +78,27 @@ test("operator keeps title and start-time drafts during state updates", async ({
     .toBe("2030-01-05T10:30");
 });
 
+test("New Mass shows the count of additional USCCB readings", async ({ page }) => {
+  await page.route("**/api/new-mass", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        lectionaryReadingsImported: true,
+        unusedReadingSections: ["Responsorial Psalm", "Reading IV"]
+      })
+    });
+  });
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  await page.locator("#newMassUseLectionaryRss").check();
+  await page.locator("#newMassConfirmBtn").click();
+  await expect(page.locator("#newMassDialog")).toBeHidden();
+  await expect(page.locator("#status")).toHaveText(
+    "New Mass created with USCCB Daily Readings. 2 additional readings available."
+  );
+});
+
 test("operator sees a warning for a past Mass start time", async ({ page, request }) => {
   const toDateTimeLocal = (date) => {
     const pad = (value) => String(value).padStart(2, "0");
