@@ -6418,6 +6418,7 @@
             </div>
             <div class="mass-history-item-actions">
               <button class="save-btn" type="button" data-archive-action="load" data-archive-id="${escapeHtml(archive.id)}" data-archive-title="${escapeHtml(archive.title || archive.id)}">Load</button>
+              <button class="save-btn" type="button" data-archive-action="export" data-archive-id="${escapeHtml(archive.id)}">Export</button>
               <button class="save-btn" type="button" data-archive-action="compress" data-archive-id="${escapeHtml(archive.id)}" ${compressDisabled ? "disabled" : ""}>Compress</button>
               <button class="save-btn" type="button" data-archive-action="delete" data-archive-id="${escapeHtml(archive.id)}" ${archive.isActive ? "disabled" : ""}>Delete</button>
             </div>
@@ -10103,7 +10104,9 @@
             : data.archivedMassId
               ? `New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`
             : data.lectionaryReadingsImported
-              ? "New Mass created with USCCB Daily Readings."
+              ? data.unusedReadingSections?.length
+                ? `New Mass created with USCCB Daily Readings. ${data.unusedReadingSections.length} additional reading${data.unusedReadingSections.length === 1 ? "" : "s"} available.`
+                : "New Mass created with USCCB Daily Readings."
               : "New Mass created.";
           els.newMassDialog.close();
         }
@@ -10159,6 +10162,20 @@
 
       if (action === "load" && !await confirmMassReplacement(btn.getAttribute("data-archive-title") || archiveId)) return;
       if (action === "delete" && !window.confirm("Delete this archived Mass?")) return;
+
+      if (action === "export") {
+        btn.disabled = true;
+        els.massLibraryStatus.textContent = "Exporting archived Mass…";
+        try {
+          await downloadExport(`/api/mass-history/${encodeURIComponent(archiveId)}/export`, "mass.zip");
+          els.status.textContent = "Archived Mass exported.";
+        } catch (err) {
+          els.massLibraryStatus.textContent = err.message;
+        } finally {
+          btn.disabled = false;
+        }
+        return;
+      }
 
       btn.disabled = true;
       els.massLibraryStatus.textContent = action === "load"

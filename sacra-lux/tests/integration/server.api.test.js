@@ -11,6 +11,7 @@ const {
   startIsolatedServer
 } = require("../helpers/testHarness");
 const { DEFAULT_SOURCE_NETWORKS } = require("../../src/state");
+const logger = require("../../src/logger");
 
 const localDateTime = (date) => {
   const pad = (value) => String(value).padStart(2, "0");
@@ -28,6 +29,10 @@ describe("server api integration", () => {
   let resetStartPin;
   const tinyPngDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=";
   const twoFrameGifDataUrl = "data:image/gif;base64,R0lGODlhAgACAPAAAP8AAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQACgAAACwAAAAAAgACAAACAoRRACH5BAAKAAAALAAAAAACAAIAgAAA/wAAAAIChFEAOw==";
+
+  function largeJsonBody() {
+    return { padding: "x".repeat(9 * 1024 * 1024) };
+  }
 
   function extractTokenFromRedirect(redirectPath) {
     const match = String(redirectPath || "").match(/token=([A-Za-z0-9]+)/);
@@ -93,6 +98,38 @@ describe("server api integration", () => {
     const stateRes = await request(app).get("/api/state").expect(200);
     expect(stateRes.body.hasStartPin).toBe(true);
     expect(stateRes.body.startPin).toBeUndefined();
+  });
+
+  test("does not parse large bodies outside the API", async () => {
+    const errorSpy = jest.spyOn(logger, "error").mockImplementation(() => { });
+    try {
+      const malformedBody = `{"padding":"${"x".repeat(9 * 1024 * 1024)}`;
+      await request(app)
+        .post("/not-a-route")
+        .set("Content-Type", "application/json")
+        .send(malformedBody)
+        .expect(404);
+      expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining("entity.parse.failed"));
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  test.each(["/api/verify-pin", "/api/start-pin"])("rejects a large body on %s before parsing", async (route) => {
+    await request(app)
+      .post(route)
+      .send(largeJsonBody())
+      .expect(413);
+  });
+
+  test("does not count an oversized PIN body as a PIN failure", async () => {
+    await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await request(app).post("/api/verify-pin").send(largeJsonBody()).expect(413);
+    }
+
+    await request(app).post("/api/verify-pin").send({ pin: "1234" }).expect(200);
   });
 
   test("the Electron reset clears the PIN, ends sockets, and saves the session", async () => {
@@ -403,6 +440,7 @@ describe("server api integration", () => {
         title: "Sample Lectionary Mass",
         lectionaryReadingsImported: true
       });
+      expect(response.body.unusedReadingSections).toEqual([]);
       expect(state.readingsSource.documents).toEqual([
         expect.objectContaining({ section: "Reading I", passage: "Isaiah 1:1" }),
         expect.objectContaining({ section: "Verse Before the Gospel", passage: "Mark 1:15" }),
@@ -429,6 +467,40 @@ describe("server api integration", () => {
       expect(state.organizerSequence.some((item, index) =>
         item.type === "interstitial" && state.organizerSequence[index + 1]?.type === "interstitial"
       )).toBe(false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  test("new Mass reports unused readings and adds Reading III before the Gospel", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Vigil Readings</title><description>
+          &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading-one"&gt;Genesis 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Responsorial Psalm &lt;a href="https://example.test/psalm-one"&gt;Psalm 1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first psalm.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Reading 2 &lt;a href="https://example.test/reading-two"&gt;Genesis 2:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The second reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Responsorial Psalm &lt;a href="https://example.test/psalm-two"&gt;Psalm 2&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The second psalm.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Reading 3 &lt;a href="https://example.test/reading-three"&gt;Genesis 3:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The third reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The Gospel.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      const response = await request(app).post("/api/new-mass").send({ useLectionaryRss: true }).expect(200);
+      expect(response.body.unusedReadingSections).toEqual(["Responsorial Psalm"]);
+
+      const sequence = state.organizerSequence;
+      const readingIIIIndex = sequence.findIndex((item) => item.sourceStem === "Reading_III");
+      const gospelIndex = sequence.findIndex((item) => item.id === "mass-gospel");
+      expect(readingIIIIndex).toBeGreaterThanOrEqual(0);
+      expect(readingIIIIndex).toBeLessThan(gospelIndex);
     } finally {
       global.fetch = originalFetch;
     }
@@ -2470,6 +2542,41 @@ describe("server api integration", () => {
     historyRes = await request(app).get("/api/mass-history").expect(200);
     expect(historyRes.body.archives.map((entry) => entry.id)).not.toContain("History-One");
     emitSpy.mockRestore();
+  });
+
+  test("exports a folder or compressed archived Mass without loading it", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Archive Export One", startTime: "2026-04-01T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Archive Export Two", startTime: "2026-04-08T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const exportArchive = async () => request(app)
+      .get("/api/mass-history/Archive-Export-One/export")
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+
+    let zipResponse = await exportArchive();
+    expect(new AdmZip(zipResponse.body).getEntry("mass.json")).toBeTruthy();
+
+    await request(app)
+      .post("/api/mass-history/Archive-Export-One/compress")
+      .expect(200);
+    zipResponse = await exportArchive();
+    expect(new AdmZip(zipResponse.body).getEntry("mass.json")).toBeTruthy();
+
+    const stateBefore = await request(app).get("/api/state").expect(200);
+    expect(stateBefore.body.activeMassArchiveId).toBe("Archive-Export-Two");
   });
 
   test("archives pending changes before loading a Mass archive", async () => {

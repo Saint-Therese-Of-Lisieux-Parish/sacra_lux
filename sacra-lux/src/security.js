@@ -339,8 +339,12 @@ function logRateLimitExceeded(rawLabel, rawKey, rawDetails = "", windowMs = RATE
   logger.warn(`[rate-limit] ${label} throttled for ${key}.${suffix}${suppressedNote}`);
 }
 
-function createRateLimitMiddleware({ bucket, windowMs, max, label, keyFn = getClientIp }) {
+function createRateLimitMiddleware({ bucket, windowMs, max, label, keyFn = getClientIp, skip }) {
   return (req, res, next) => {
+    if (typeof skip === "function" && skip(req)) {
+      next();
+      return;
+    }
     const key = keyFn(req);
     const result = evaluateRateLimit({ bucket, key, windowMs, max });
     if (result.allowed) {

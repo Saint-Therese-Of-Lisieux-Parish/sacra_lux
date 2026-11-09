@@ -497,12 +497,15 @@ const MASS_ASSET_SECURITY_HEADERS = Object.freeze({
 });
 
 const JSON_BODY_LIMIT_DEFAULT = "10mb";
+const JSON_BODY_LIMIT_AUTH = "4kb";
 const JSON_BODY_LIMIT_PREVIEW = "1mb";
 const MAX_PREVIEW_TEXT_CHARACTERS = 100000;
 const JSON_BODY_LIMIT_SINGLE_UPLOAD = `${Math.ceil((MAX_SINGLE_UPLOAD_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_SLIDESHOW_IMPORT = `${Math.ceil((MAX_SLIDESHOW_IMPORT_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMIT_MASS_ZIP = `${Math.ceil((MAX_MASS_ZIP_COMPRESSED_BYTES * 4) / 3 / (1024 * 1024)) + 1}mb`;
 const JSON_BODY_LIMITS_BY_PATH = new Map([
+  ["/api/start-pin", JSON_BODY_LIMIT_AUTH],
+  ["/api/verify-pin", JSON_BODY_LIMIT_AUTH],
   ["/api/preview-reading", JSON_BODY_LIMIT_PREVIEW],
   ["/api/preview-manual-slide", JSON_BODY_LIMIT_PREVIEW],
   ["/api/upload-mass-asset", JSON_BODY_LIMIT_SINGLE_UPLOAD],
@@ -3051,6 +3054,12 @@ function startServer(port = 17841, options = {}) {
       || "";
   }
 
+  function getSocketsLosingControl() {
+    return [...io.sockets.sockets.values()]
+      .filter(socketHasControlSession)
+      .filter((socket) => !isLoopbackAddress(getSocketSourceAddress(socket)));
+  }
+
   function disconnectDisallowedSockets() {
     for (const socket of io.sockets.sockets.values()) {
       if (sourceNetworkGuard.isAllowedAddress(getSocketSourceAddress(socket))) continue;
@@ -3079,8 +3088,26 @@ function startServer(port = 17841, options = {}) {
     label: `${RATE_LIMIT_CONFIG.upload.label}-concurrent`,
     keyFn: getClientIp
   });
-  const heavyRateLimit = createRateLimitMiddleware({
-    ...RATE_LIMIT_CONFIG.heavy,
+  const heavyRateLimit = rateLimit({
+    windowMs: RATE_LIMIT_CONFIG.heavy.windowMs,
+    limit: RATE_LIMIT_CONFIG.heavy.max,
+    standardHeaders: false,
+    legacyHeaders: false,
+    validate: false,
+    keyGenerator: (req) => getClientIp(req),
+    skip: (req) => isLoopbackAddress(getClientIp(req)),
+    handler: (req, res, _next, options) => {
+      const resetTime = req.rateLimit && req.rateLimit.resetTime;
+      const retryAfterSec = resetTime ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000)) : 1;
+      logger.warn(`[rate-limit] ${RATE_LIMIT_CONFIG.heavy.label} throttled for ${getClientIp(req)}. ${req.method} ${req.originalUrl || req.path} retry-after=${retryAfterSec}s`);
+      res.set("Retry-After", String(retryAfterSec));
+      res.status(options.statusCode).json({ error: "Too many requests. Please try again later." });
+    }
+  });
+  const heavyConcurrentLimit = createConcurrentLimitMiddleware({
+    bucket: RATE_LIMIT_CONFIG.heavy.bucket,
+    maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent,
+    label: `${RATE_LIMIT_CONFIG.heavy.label}-concurrent`,
     keyFn: getClientIp
   });
   const builtinBackgroundRateLimit = rateLimit({
@@ -3120,6 +3147,7 @@ function startServer(port = 17841, options = {}) {
   }
   app.use((req, res, next) => {
     if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+    if (!req.path.startsWith("/api/")) return next();
     const limit = JSON_BODY_LIMITS_BY_PATH.get(req.path) || JSON_BODY_LIMIT_DEFAULT;
     if (req.path !== "/api/import-mass-zip") {
       return jsonParserFor(limit)(req, res, next);
@@ -3632,10 +3660,15 @@ function startServer(port = 17841, options = {}) {
       if (hasPinConfigured()) clearPinFailures(getClientIp(req));
 
       if (clearing) {
+        const notifiedSockets = getSocketsLosingControl();
         state.startPin = "";
         state.startPinHash = null;
         clearControlAccess();
         touch();
+        for (const socket of notifiedSockets) {
+          socket.data.controlToken = "";
+          socket.emit("control:required", { error: getUnlockMessage() });
+        }
         io.emit("state:update", getStateSnapshot());
         scheduleSave(true);
         return res.json({ ok: true, hasPin: false });
@@ -3679,8 +3712,15 @@ function startServer(port = 17841, options = {}) {
     if (!CONTROL_MODES.includes(mode)) {
       return res.status(400).json({ error: "Mode must be unset or trusted-lan." });
     }
+    const notifiedSockets = state.controlMode === "trusted-lan" && mode === "unset"
+      ? getSocketsLosingControl()
+      : [];
     state.controlMode = mode;
     touch();
+    for (const socket of notifiedSockets) {
+      socket.data.controlToken = "";
+      socket.emit("control:required", { error: getUnlockMessage() });
+    }
     io.emit("state:update", getStateSnapshot());
     scheduleSave(true);
     return res.json({ ok: true, controlMode: state.controlMode });
@@ -3936,7 +3976,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── Mass package ZIP export ────────────────────────────────────────────────
-  app.get("/api/export-mass-zip", heavyRateLimit, async (req, res) => {
+  app.get("/api/export-mass-zip", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     if (!clientHasControlSession(req)) {
       return res.status(401).json({ error: "Unlock required." });
     }
@@ -3984,7 +4024,7 @@ function startServer(port = 17841, options = {}) {
     avifDownloadTokens.set(token, entry);
   }
 
-  app.get("/api/export-mass-zip-avif", heavyRateLimit, (req, res) => {
+  app.get("/api/export-mass-zip-avif", (req, res) => {
     if (!clientHasControlSession(req)) {
       return res.status(401).json({ error: "Unlock required." });
     }
@@ -4063,7 +4103,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── New Mass ───────────────────────────────────────────────────────────────
-  app.post("/api/new-mass", heavyRateLimit, async (req, res) => {
+  app.post("/api/new-mass", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     try {
       const { title, startTime, useLectionaryRss } = req.body || {};
 
@@ -4199,6 +4239,24 @@ function startServer(port = 17841, options = {}) {
           }
           return item;
         });
+        const readingIII = documentsBySection.get("Reading III");
+        if (readingIII) {
+          const gospelAcclamationIndex = state.organizerSequence.findIndex((item) => item.id === "mass-gospel-acclamation");
+          const readingIIIIndex = gospelAcclamationIndex < 0
+            ? state.organizerSequence.findIndex((item) => item.id === "mass-gospel")
+            : gospelAcclamationIndex;
+          if (readingIIIIndex >= 0) {
+            state.organizerSequence.splice(readingIIIIndex, 0, {
+              id: "mass-reading-3",
+              type: "reading",
+              label: "Third Reading",
+              phase: "mass",
+              backgroundTheme: "dark",
+              durationSec: 10,
+              sourceStem: readingIII.stem
+            });
+          }
+        }
         const emptyReadingIds = new Set(
           state.organizerSequence
             .filter((item) => item.type === "reading" && !item.sourceStem)
@@ -4249,6 +4307,14 @@ function startServer(port = 17841, options = {}) {
         manualSlides: state.manualSlides,
         screenSettings: state.screenSettings
       });
+      const usedReadingStems = new Set(
+        state.organizerSequence
+          .filter((item) => item.type === "reading" && item.sourceStem)
+          .map((item) => item.sourceStem)
+      );
+      const unusedReadingSections = lectionaryDocuments
+        .filter((document) => !usedReadingStems.has(document.stem))
+        .map((document) => document.section);
       if (scheduledStart) {
         state.massStartTime = scheduledStart;
         scheduleStartTimer(io);
@@ -4269,7 +4335,8 @@ function startServer(port = 17841, options = {}) {
         organizerCount: state.organizerSequence.length,
         slideCount: state.presentation.slides.length,
         lectionaryReadingsImported: Boolean(useLectionaryRss),
-        warning: lectionaryWarning
+        warning: lectionaryWarning,
+        unusedReadingSections
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to create new mass." });
@@ -4277,7 +4344,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── Mass package ZIP import ────────────────────────────────────────────────
-  app.post("/api/import-mass-zip", heavyRateLimit, (req, res) => {
+  app.post("/api/import-mass-zip", heavyRateLimit, heavyConcurrentLimit, (req, res) => {
     try {
       const { zipData } = req.body || {};
       if (!zipData) {
@@ -4339,6 +4406,32 @@ function startServer(port = 17841, options = {}) {
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list Mass history." });
+    }
+  });
+
+  app.get("/api/mass-history/:archiveId/export", heavyRateLimit, async (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    try {
+      const archiveId = path.basename(String(req.params.archiveId || ""));
+      const archivePaths = getArchivePaths(archiveId);
+      const metadata = readMetadata(archiveId) || {};
+      let zipBuffer;
+      if (fs.existsSync(archivePaths.compressedZipPath)) {
+        zipBuffer = fs.readFileSync(archivePaths.compressedZipPath);
+      } else if (fs.existsSync(archivePaths.packageDir)) {
+        zipBuffer = await buildMassZipInWorker(archivePaths.packageDir);
+      } else {
+        return res.status(404).json({ error: "Mass archive package not found." });
+      }
+      const filename = buildExportFilename(metadata.title || archiveId, metadata.startTime, ".zip");
+      setAttachmentFilename(res, filename);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Length", zipBuffer.length);
+      return res.end(zipBuffer);
+    } catch (error) {
+      return sendApiError(res, error, "Failed to export Mass archive.");
     }
   });
 
@@ -4405,7 +4498,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/mass-history/:archiveId/compress", heavyRateLimit, async (req, res) => {
+  app.post("/api/mass-history/:archiveId/compress", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     try {
       const archivePaths = getArchivePaths(path.basename(String(req.params.archiveId || "")));
       const { archiveId } = archivePaths;
