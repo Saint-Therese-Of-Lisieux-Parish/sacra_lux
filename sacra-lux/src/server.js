@@ -3088,10 +3088,21 @@ function startServer(port = 17841, options = {}) {
     label: `${RATE_LIMIT_CONFIG.upload.label}-concurrent`,
     keyFn: getClientIp
   });
-  const heavyRateLimit = createRateLimitMiddleware({
-    ...RATE_LIMIT_CONFIG.heavy,
-    keyFn: getClientIp,
-    skip: (req) => isLoopbackAddress(getClientIp(req))
+  const heavyRateLimit = rateLimit({
+    windowMs: RATE_LIMIT_CONFIG.heavy.windowMs,
+    limit: RATE_LIMIT_CONFIG.heavy.max,
+    standardHeaders: false,
+    legacyHeaders: false,
+    validate: false,
+    keyGenerator: (req) => getClientIp(req),
+    skip: (req) => isLoopbackAddress(getClientIp(req)),
+    handler: (req, res, _next, options) => {
+      const resetTime = req.rateLimit && req.rateLimit.resetTime;
+      const retryAfterSec = resetTime ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000)) : 1;
+      logger.warn(`[rate-limit] ${RATE_LIMIT_CONFIG.heavy.label} throttled for ${getClientIp(req)}. ${req.method} ${req.originalUrl || req.path} retry-after=${retryAfterSec}s`);
+      res.set("Retry-After", String(retryAfterSec));
+      res.status(options.statusCode).json({ error: "Too many requests. Please try again later." });
+    }
   });
   const heavyConcurrentLimit = createConcurrentLimitMiddleware({
     bucket: RATE_LIMIT_CONFIG.heavy.bucket,
