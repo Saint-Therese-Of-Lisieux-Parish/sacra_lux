@@ -151,6 +151,7 @@ function saveSession(state) {
       targetScreenIds,
       screenFullscreen: Boolean(state.screenFullscreen),
       preMassRunning: Boolean(state.preMassRunning),
+      gatheringRunning: Boolean(state.gatheringRunning),
       postMassRunning: Boolean(state.postMassRunning),
       activeMassArchiveId: state.activeMassArchiveId || null,
       appSettings: state.appSettings || { theme: DEFAULT_THEME }

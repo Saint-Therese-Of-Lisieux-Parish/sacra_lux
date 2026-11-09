@@ -2879,11 +2879,17 @@ function restoreSession(ioRef) {
       ? Date.now() - massStart.getTime()
       : null;
     const massHasBegun = massStartAge !== null &&
-      massStartAge >= 0 && massStartAge <= PHASE_LOOP_RESUME_MAX_AGE_MS;
+      massStartAge >= 0;
 
     if (mayResumePhaseLoops && session.preMassRunning && !massHasBegun) {
       state.preMassRunning = true;
       scheduleNextPreMassSlide(ioRef);
+    }
+    if (mayResumePhaseLoops && session.gatheringRunning && !massHasBegun) {
+      state.gatheringRunning = true;
+      scheduleNextGatheringSlide(ioRef);
+    } else if (session.gatheringRunning && massHasBegun) {
+      state.gatheringRunning = false;
     }
     if (mayResumePhaseLoops && session.postMassRunning) {
       state.postMassRunning = true;

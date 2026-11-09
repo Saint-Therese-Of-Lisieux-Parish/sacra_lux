@@ -33,6 +33,7 @@
   "interstitialHoldReturnSlideIndex": null,
   "interstitialHoldResumeState": null,
   "preMassRunning": false,
+  "gatheringRunning": false,
   "postMassRunning": false,
   "activeMassArchiveId": null,
   "appSettings": { "theme": "dark" }
