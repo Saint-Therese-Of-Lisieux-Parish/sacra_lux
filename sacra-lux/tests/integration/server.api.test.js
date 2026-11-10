@@ -2579,6 +2579,29 @@ describe("server api integration", () => {
     expect(stateBefore.body.activeMassArchiveId).toBe("Archive-Export-Two");
   });
 
+  test("refuses a second concurrent archived Mass export", async () => {
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Archive Concurrent One", startTime: "2026-04-01T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await request(app)
+      .post("/api/new-mass")
+      .send({ title: "Archive Concurrent Two", startTime: "2026-04-08T09:00" })
+      .expect(200);
+    await new Promise((resolve) => setTimeout(resolve, 700));
+
+    const responses = await Promise.all([
+      request(app).get("/api/mass-history/Archive-Concurrent-One/export"),
+      request(app).get("/api/mass-history/Archive-Concurrent-One/export"),
+      request(app).get("/api/mass-history/Archive-Concurrent-One/export")
+    ]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 429, 429]);
+    expect(responses.filter((response) => response.status === 429).every((response) => response.headers["retry-after"] === "1"))
+      .toBe(true);
+  });
+
   test("archives pending changes before loading a Mass archive", async () => {
     await request(app)
       .post("/api/new-mass")

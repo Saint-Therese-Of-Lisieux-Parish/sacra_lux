@@ -90,6 +90,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `POST /api/duplicate-mass` — archive the current Mass and open a copy
 - `POST /api/new-mass` — archive the current Mass and build a blank organizer; accepts `useLectionaryRss`
 - `GET /api/mass-history` — list archives with active/archived metadata
+- `GET /api/mass-history/:archiveId/export` — download an archived Mass as a ZIP
 - `POST /api/mass-history/:archiveId/load` — save the open Mass, then load that archive
 - `POST /api/mass-history/:archiveId/compress` — convert an archive to a compressed AVIF ZIP
 - `DELETE /api/mass-history/:archiveId`
