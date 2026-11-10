@@ -3928,6 +3928,26 @@ function startServer(port = 17841, options = {}) {
         throw new ValidationError("massStartTime must be a valid datetime string.");
       }
 
+      const nextPresentation = buildPresentationFromOrganizer({
+        title: payload.presentationTitle ? String(payload.presentationTitle) : state.presentation.title,
+        documents: state.readingsSource.documents,
+        sequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides,
+        screenSettings: nextScreenSettings
+      });
+      buildValidatedMassDocument({
+        ...state,
+        presentation: nextPresentation,
+        screenSettings: nextScreenSettings,
+        organizerSequence: nextOrganizerSequence,
+        manualSlides: nextManualSlides,
+        massStartTime: payload.massStartTime === null || payload.massStartTime === ""
+          ? null
+          : payload.massStartTime === undefined
+            ? state.massStartTime
+            : payload.massStartTime
+      });
+
       if (payload.screenSettings && typeof payload.screenSettings === "object") {
         state.screenSettings = nextScreenSettings;
       }
