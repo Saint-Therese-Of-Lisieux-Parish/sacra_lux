@@ -641,6 +641,25 @@ test("reading editor saves cleared reading text", async ({ page, request }) => {
   await expect(page.locator("#editorSaveStatus")).toHaveText("Saved");
 });
 
+test("reading editor saves a passage reference", async ({ page, request }) => {
+  await loadReadingsFolderOverHttp(request, baseUrl, readingsPath);
+  const state = await (await request.get(`${baseUrl}/api/state`)).json();
+  const item = state.organizerSequence.find((entry) => entry.sourceStem === "Reading_I");
+  expect(item).toBeTruthy();
+
+  await page.goto(`${baseUrl}/`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator(`[data-edit-id="${item.id}"]`).click();
+  await expect(page.locator("#editorReadingPassage")).toHaveValue("Genesis 1:1-3");
+  await page.locator("#editorReadingPassage").fill("Isaiah 55:1-11");
+
+  await expect.poll(async () => {
+    const saved = await (await request.get(`${baseUrl}/api/state`)).json();
+    return saved.readingsSource.documents.find((entry) => entry.stem === "Reading_I")?.passage;
+  }).toBe("Isaiah 55:1-11");
+  await expect(page.locator("#editorSaveStatus")).toHaveText("Saved");
+});
+
 test("Text Area tool keeps the number fields usable when the preview fails", async ({ page, request }) => {
   await page.route((url) => url.pathname === "/screen" && url.searchParams.get("preview") === "1",
     (route) => route.abort());

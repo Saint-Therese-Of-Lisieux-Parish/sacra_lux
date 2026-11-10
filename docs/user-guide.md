@@ -135,10 +135,10 @@ then `failed:` and the file names.
 
 ### Editing reading text
 
-Open a reading's slide and edit the text, then **Save**. Sacra Lux writes the
-edit back to the source `.txt` in the Mass package. The save keeps the current
-Mass title and the current slide. If the save fails, the status line shows the
-error.
+Open a reading's slide and edit the passage reference or text, then **Save**.
+Sacra Lux writes the edits back to the source `.txt` in the Mass package. The
+save keeps the current Mass title and the current slide. If the save fails, the
+status line shows the error.
 
 ## Screen Settings
 
