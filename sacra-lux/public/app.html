@@ -3945,6 +3945,11 @@
                 <select id="editorSourceStem" style="min-width:220px"></select>
               </label>
             </div>
+            <div class="editor-row" style="margin-bottom:0.65rem">
+              <label style="flex:1">Passage reference
+                <input id="editorReadingPassage" type="text" maxlength="200">
+              </label>
+            </div>
             <div class="editor-row" id="editorPsalmRefrainWrap" hidden style="margin-bottom:0.65rem">
               <label style="flex:1">Psalm refrain
                 <select id="editorPsalmRefrain" style="min-width:220px"></select>
@@ -4677,6 +4682,7 @@
       editorBackgroundThemeWrap: document.getElementById("editorBackgroundThemeWrap"),
       editorBackgroundTheme: document.getElementById("editorBackgroundTheme"),
       editorSourceStem: document.getElementById("editorSourceStem"),
+      editorReadingPassage: document.getElementById("editorReadingPassage"),
       editorPsalmRefrainWrap: document.getElementById("editorPsalmRefrainWrap"),
       editorPsalmRefrain: document.getElementById("editorPsalmRefrain"),
       editorReadingStyleFont: document.getElementById("editorReadingStyleFont"),
@@ -5561,6 +5567,7 @@
           text,
           stem,
           label,
+          passage: els.editorReadingPassage.value.trim(),
           styleOverrides,
           psalmRefrainIndex: els.editorPsalmRefrainWrap?.hidden ? 0 : Number(els.editorPsalmRefrain?.value || 0),
           overrideSettings: getEffectiveScreenSettingsForSlideLike("reading", styleOverrides)
@@ -6846,6 +6853,10 @@
 
       if (isReading) {
         const doc = documents.find(d => d.stem === els.editorSourceStem.value);
+        if (focused !== els.editorReadingPassage) {
+          window.__lastReadingPassage = doc?.passage || "";
+          els.editorReadingPassage.value = window.__lastReadingPassage;
+        }
         if (focused !== els.editorReadingText) {
           window.__lastReadingText = doc ? doc.textLines.join("\n") : "";
           els.editorReadingText.value = window.__lastReadingText;
@@ -7927,8 +7938,9 @@
           delete manualSlides[item.id];
 
           const newText = els.editorReadingText.value;
-          if (window.__lastReadingText !== newText) {
-            readingSave = { stem: item.sourceStem, text: newText };
+          const newPassage = els.editorReadingPassage.value.trim();
+          if (window.__lastReadingText !== newText || window.__lastReadingPassage !== newPassage) {
+            readingSave = { stem: item.sourceStem, text: newText, passage: newPassage };
           }
         } else {
           item.sourceStem = null;
@@ -7991,6 +8003,7 @@
           throw new Error(data.error || "Failed to save reading.");
         }
         window.__lastReadingText = readingSave.text;
+        window.__lastReadingPassage = readingSave.passage;
       }
     }
 
@@ -9108,6 +9121,8 @@
     els.editorSourceStem.addEventListener("change", () => {
       const doc = uiState.data?.readingsSource?.documents?.find(d => d.stem === els.editorSourceStem.value);
       if (doc) {
+        window.__lastReadingPassage = doc.passage || "";
+        els.editorReadingPassage.value = window.__lastReadingPassage;
         window.__lastReadingText = doc.textLines.join("\n");
         els.editorReadingText.value = window.__lastReadingText;
       }
@@ -9124,6 +9139,11 @@
     });
 
     els.editorReadingText.addEventListener("input", () => {
+      updateEditorPreview().catch(() => { });
+      scheduleEditorSave();
+    });
+
+    els.editorReadingPassage.addEventListener("input", () => {
       updateEditorPreview().catch(() => { });
       scheduleEditorSave();
     });
