@@ -67,6 +67,18 @@ describe("compressing a Mass archive", () => {
     await handle.stop();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function createArchivePackage(archiveId) {
+    const { archiveDir, packageDir } = massHistory.getArchivePaths(archiveId);
+    fs.mkdirSync(packageDir, { recursive: true });
+    fs.writeFileSync(path.join(archiveDir, "metadata.json"), JSON.stringify({ id: archiveId }));
+    archive.extractAllTo(packageDir, true);
+    return { archiveDir, packageDir, compressedZipPath: massHistory.getArchivePaths(archiveId).compressedZipPath };
+  }
+
   test("keeps the AVIF copy and drops the converted original", () => {
     expect(entries).toContain("assets/photo.avif");
     expect(entries).not.toContain("assets/photo.png");
@@ -82,6 +94,36 @@ describe("compressing a Mass archive", () => {
     expect(entries).toContain("assets/clip.mp4");
     expect(entries).toContain("assets/unused.svg");
     expect(entries).toContain("mass.json");
+  });
+
+  test("writes archive-avif.zip through a temporary file", async () => {
+    const { packageDir, compressedZipPath } = createArchivePackage("Atomic-Mass");
+    const realRename = fs.renameSync.bind(fs);
+    const renameCalls = [];
+    jest.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      renameCalls.push({ from: String(from), to: String(to) });
+      return realRename(from, to);
+    });
+
+    await request(app).post("/api/mass-history/Atomic-Mass/compress").expect(200);
+
+    const zipRename = renameCalls.find(({ to }) => to === compressedZipPath);
+    expect(zipRename).toEqual({ from: expect.stringContaining(path.join(path.dirname(compressedZipPath), ".archive-avif.zip.tmp-")), to: compressedZipPath });
+    expect(fs.existsSync(packageDir)).toBe(false);
+  });
+
+  test("keeps package/ when the ZIP write fails", async () => {
+    const { packageDir, compressedZipPath } = createArchivePackage("Atomic-Failure-Mass");
+    const realRename = fs.renameSync.bind(fs);
+    jest.spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      if (String(to) === compressedZipPath) throw new Error("disk full");
+      return realRename(from, to);
+    });
+
+    await request(app).post("/api/mass-history/Atomic-Failure-Mass/compress").expect(500);
+
+    expect(fs.existsSync(path.join(packageDir, "mass.json"))).toBe(true);
+    expect(fs.existsSync(compressedZipPath)).toBe(false);
   });
 
   test("remaps legacy image and slideshow references to AVIF entries", async () => {

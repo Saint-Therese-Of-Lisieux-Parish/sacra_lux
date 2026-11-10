@@ -4536,7 +4536,7 @@ function startServer(port = 17841, options = {}) {
       const zipBuffer = await buildMassZipInWorker(archivePaths.packageDir, { avif: true });
       const zip = new (getAdmZip())(zipBuffer);
       validateMassZipArchive(zip, zipBuffer.length);
-      fs.writeFileSync(archivePaths.compressedZipPath, zipBuffer);
+      writeFileAtomic(archivePaths.compressedZipPath, zipBuffer);
       fs.rmSync(archivePaths.packageDir, { recursive: true, force: true });
       const metadata = {
         ...(readMetadata(archiveId) || {}),
