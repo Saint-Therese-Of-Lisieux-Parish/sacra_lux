@@ -85,6 +85,7 @@ The approved `window.api` surface is:
 - `pickImageFile()`
 - `pickVideoFile()`
 - `getMonitors()`
+- `onMonitorsChanged()`
 - `setTargetMonitor()`
 - `setTargetMonitors()`
 - `setScreenFullscreen()`

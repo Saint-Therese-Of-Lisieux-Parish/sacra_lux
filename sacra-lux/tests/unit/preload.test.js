@@ -6,10 +6,12 @@ describe("preload", () => {
   test("exposes the documented Electron bridge through contextBridge", async () => {
     const invoke = jest.fn().mockResolvedValue("ok");
     const exposeInMainWorld = jest.fn();
+    const on = jest.fn();
+    const removeListener = jest.fn();
 
     jest.doMock("electron", () => ({
       contextBridge: { exposeInMainWorld },
-      ipcRenderer: { invoke }
+      ipcRenderer: { invoke, on, removeListener }
     }), { virtual: true });
 
     require("../../src/preload");
@@ -24,6 +26,8 @@ describe("preload", () => {
     await api.pickImageFile();
     await api.pickVideoFile();
     await api.getMonitors();
+    const handler = jest.fn();
+    const remove = api.onMonitorsChanged(handler);
     await api.setTargetMonitor(3);
     await api.setTargetMonitors([1, 2]);
     await api.setScreenFullscreen(true);
@@ -43,5 +47,11 @@ describe("preload", () => {
       ["export:pdf", ["mass"], "high"],
       ["export:slide-pdf", [{ title: "Slide" }], { fontFamily: "Lora" }, "slides", "medium"]
     ]);
+    expect(on).toHaveBeenCalledWith("screen:monitors-updated", expect.any(Function));
+    const listener = on.mock.calls[0][1];
+    listener({}, [{ id: 2 }]);
+    expect(handler).toHaveBeenCalledWith([{ id: 2 }]);
+    remove();
+    expect(removeListener).toHaveBeenCalledWith("screen:monitors-updated", listener);
   });
 });

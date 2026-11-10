@@ -184,6 +184,47 @@ function getScreenWindowList() {
   return [...screenWindows.values()].filter((win) => win && !win.isDestroyed());
 }
 
+function getMonitorList() {
+  const displays = screen.getAllDisplays();
+  const primary = screen.getPrimaryDisplay();
+  return displays.map((display) => ({
+    id: display.id,
+    label: `${display.bounds.width}x${display.bounds.height}` +
+      (display.id === primary.id ? " (Primary)" : "") +
+      ` @ ${display.bounds.x},${display.bounds.y}`,
+    isPrimary: display.id === primary.id,
+    bounds: display.bounds
+  }));
+}
+
+function sendMonitorList() {
+  if (!appWindow || appWindow.isDestroyed()) return;
+  appWindow.webContents.send("screen:monitors-updated", getMonitorList());
+}
+
+function handleDisplayAdded(display) {
+  const targetIds = normalizeTargetScreenIds(state.targetScreenIds);
+  if (targetIds.includes(Number(display.id))) {
+    const win = screenWindows.get(String(display.id));
+    if (win && !win.isDestroyed()) win.setBounds(display.bounds);
+  }
+  sendMonitorList();
+}
+
+function handleDisplayRemoved(display) {
+  const targetIds = normalizeTargetScreenIds(state.targetScreenIds);
+  if (targetIds.includes(Number(display.id))) {
+    const win = screenWindows.get(String(display.id));
+    if (win && !win.isDestroyed() && state.screenFullscreen) {
+      win.setFullScreen(false);
+      state.screenFullscreen = false;
+      saveSession(state);
+      updateFullscreenMenuLabel();
+    }
+  }
+  sendMonitorList();
+}
+
 function syncPrimaryScreenWindow() {
   screenWindow = getScreenWindowList()[0] || null;
 }
@@ -1041,6 +1082,9 @@ app.whenReady().then(async () => {
   // Create windows immediately — close splash once the app page loads
   // (or after a minimum 800ms splash time, whichever is later).
   createWindows();
+  screen.on("display-added", (_event, display) => handleDisplayAdded(display));
+  screen.on("display-removed", (_event, display) => handleDisplayRemoved(display));
+  screen.on("display-metrics-changed", () => sendMonitorList());
 
   const showMainAndCloseSplash = () => {
     if (!splashWindow || splashWindow.isDestroyed()) {

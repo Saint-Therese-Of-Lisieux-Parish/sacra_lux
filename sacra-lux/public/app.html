@@ -10352,8 +10352,11 @@
     });
 
     if (window.api?.isElectron && window.api.getMonitors) {
-      window.api.getMonitors().then((monitors) => {
-        if (monitors.length < 2) return; // Only show when multiple monitors exist
+      const applyMonitors = (monitors) => {
+        if (monitors.length < 2) {
+          els.changeScreenBtn.style.display = "none";
+          return;
+        }
         els.changeScreenBtn.style.display = "";
         els.targetMonitor.innerHTML =
           monitors.map((m) => `<option value="${m.id}">${m.label}</option>`).join("");
@@ -10386,7 +10389,10 @@
           _screenFullscreen = true;
           updateFullscreenBtn();
         }
-      });
+      };
+
+      window.api.getMonitors().then(applyMonitors);
+      window.api.onMonitorsChanged?.(applyMonitors);
 
       els.changeScreenBtn.addEventListener("click", () => {
         els.screenDialog.showModal();
