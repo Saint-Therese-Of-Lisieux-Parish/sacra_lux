@@ -59,6 +59,27 @@ describe("settings import and export", () => {
     expect(state.presentation.slides.length).toBeGreaterThan(0);
   });
 
+  test("rejects a payload that is not a valid Mass document", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    const before = await request(app).get("/api/state").expect(200);
+    const response = await request(app)
+      .post("/api/import-settings")
+      .send({
+        organizerSequence: [{ id: "bad", type: "text", label: "   ", phase: "pre" }],
+        manualSlides: {}
+      })
+      .expect(400);
+
+    expect(response.body).toEqual({ error: "item.label must be a non-empty string." });
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    const after = await request(app).get("/api/state").expect(200);
+    const { serverTime: beforeServerTime, ...beforeState } = before.body;
+    const { serverTime: afterServerTime, ...afterState } = after.body;
+    expect(afterState).toEqual(beforeState);
+    expect(afterServerTime).toBeGreaterThanOrEqual(beforeServerTime);
+    expect(after.body.saveError).toBe("");
+  });
+
   test("rejects a background URL outside the allow-list and changes nothing", async () => {
     const before = JSON.stringify(state.screenSettings);
     await request(app).post("/api/import-settings").send({
