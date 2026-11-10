@@ -261,6 +261,7 @@ The program rejects a ZIP that is too large. You see one of these messages:
 - `Mass ZIP entry "<name>" exceeds the 146800640 byte limit.`
 - `Mass ZIP uncompressed size exceeds the 524288000 byte limit.`
 - `Media file exceeds the 140 MB limit.`
+- `The file is not a valid Mass ZIP.`
 
 Choose a smaller file. The current Mass stays in place.
 A slideshow can contain at most 500 images.

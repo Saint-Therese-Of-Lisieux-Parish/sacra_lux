@@ -3204,7 +3204,8 @@ describe("server api integration", () => {
     await request(app)
       .post("/api/import-mass-zip")
       .send({ zipData: Buffer.from("not a zip").toString("base64") })
-      .expect((response) => expect(response.status).toBeGreaterThanOrEqual(400));
+      .expect(400)
+      .expect({ error: "The file is not a valid Mass ZIP." });
 
     expect(fs.readFileSync(keepPath, "utf8")).toBe("keep");
     const after = await request(app).get("/api/state").expect(200);

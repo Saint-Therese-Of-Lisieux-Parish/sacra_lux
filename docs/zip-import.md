@@ -208,6 +208,7 @@ the data is ignored.
 | --- | --- | --- |
 | `zipData` is missing | 400 | `zipData is required.` |
 | `zipData` is not base64 | 400 | `Invalid zip data.` |
+| ZIP data is not a valid ZIP | 400 | `The file is not a valid Mass ZIP.` |
 | Compressed size too large | 400 | `Mass ZIP compressed size exceeds the 209715200 byte limit.` A request body above the limit also gets HTTP 400. Its message adds the size of the request. |
 | Too many entries | 400 | `Mass ZIP contains too many entries; the limit is 1000.` |
 | One entry too large | 400 | `Mass ZIP entry "<name>" exceeds the 146800640 byte limit.` |
