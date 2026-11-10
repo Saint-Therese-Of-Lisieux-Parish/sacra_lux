@@ -4369,7 +4369,12 @@ function startServer(port = 17841, options = {}) {
           `Mass ZIP compressed size exceeds the ${MAX_MASS_ZIP_COMPRESSED_BYTES} byte limit.`
         );
       }
-      const zip = new (getAdmZip())(zipBuf);
+      let zip;
+      try {
+        zip = new (getAdmZip())(zipBuf);
+      } catch (_error) {
+        throw new ValidationError("The file is not a valid Mass ZIP.");
+      }
       validateMassZipArchive(zip, zipBuf.length);
 
       const massEntry = zip.getEntry("mass.json");
