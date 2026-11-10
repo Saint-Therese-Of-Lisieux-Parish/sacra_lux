@@ -438,21 +438,21 @@ jobs:
 
       - name: Upload Grype SARIF for macOS ARM64
         if: always() && hashFiles('sarif/mac-arm64/*.sarif') != ''
-        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: sarif/mac-arm64
           category: grype-mac-arm64
 
       - name: Upload Grype SARIF for macOS x64
         if: always() && hashFiles('sarif/mac-x64/*.sarif') != ''
-        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: sarif/mac-x64
           category: grype-mac-x64
 
       - name: Upload Grype SARIF for Windows x64
         if: always() && hashFiles('sarif/win-x64/*.sarif') != ''
-        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           sarif_file: sarif/win-x64
           category: grype-win-x64
