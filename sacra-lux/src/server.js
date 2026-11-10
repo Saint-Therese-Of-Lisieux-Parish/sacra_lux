@@ -4409,7 +4409,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.get("/api/mass-history/:archiveId/export", heavyRateLimit, async (req, res) => {
+  app.get("/api/mass-history/:archiveId/export", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     if (!clientHasControlSession(req)) {
       return res.status(401).json({ error: "Unlock required." });
     }
