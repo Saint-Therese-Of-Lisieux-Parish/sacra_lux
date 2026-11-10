@@ -115,6 +115,26 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      - name: Report cancellation reason
+        if: cancelled()
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "### CI test job was cancelled"
+            echo ""
+            echo "- Event: ${EVENT_NAME}"
+            echo "- Run attempt: ${RUN_ATTEMPT}"
+            echo "- Job status: ${JOB_STATUS}"
+            echo "- Job timeout: 20 minutes."
+            echo "- Possible cause: a newer commit on the same pull request canceled this run (concurrency group)."
+            echo "- Possible cause: the job reached the 20-minute timeout."
+            echo "- Possible cause: the runner lost its connection or shut down."
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "::warning title=CI test job cancelled::Event ${EVENT_NAME}, attempt ${RUN_ATTEMPT}. See the job summary for possible causes."
+
   timezones:
     name: timers (${{ matrix.tz }})
     runs-on: ubuntu-latest
