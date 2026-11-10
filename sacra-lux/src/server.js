@@ -1696,16 +1696,16 @@ function clearStartTimers() {
 // handle so clearStartTimers() can cancel a chain that is still waiting.
 const MAX_TIMER_DELAY_MS = 2147483647;
 
-function scheduleLongTimeout(delayMs, callback, assign) {
+function scheduleLongTimeout(delayMs, callback, assign, timerName = "longTimeout") {
   const remaining = Math.max(0, Number(delayMs) || 0);
-  assign(setTimeout(() => {
+  assign(setTimeout(safeTimerCallback(timerName, () => {
     if (remaining > MAX_TIMER_DELAY_MS) {
-      scheduleLongTimeout(remaining - MAX_TIMER_DELAY_MS, callback, assign);
+      scheduleLongTimeout(remaining - MAX_TIMER_DELAY_MS, callback, assign, timerName);
     } else {
       assign(null);
       callback();
     }
-  }, Math.min(remaining, MAX_TIMER_DELAY_MS)));
+  }), Math.min(remaining, MAX_TIMER_DELAY_MS)));
 }
 
 // ── Movie-slide automation ───────────────────────────────────────────────────
@@ -1946,10 +1946,10 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
     ioRef.emit("state:update", getStateSnapshot());
     // Skip in the direction the operator was stepping so Prev can move past it.
     const direction = _manualNavigationDirection;
-    _imageSlideshowTimer = setTimeout(() => {
+    _imageSlideshowTimer = setTimeout(safeTimerCallback("imageSlideshowSkip", () => {
       _imageSlideshowTimer = null;
       advanceAfterImageSlideshow(ioRef, { direction });
-    }, 100);
+    }), 100);
     return;
   }
 
@@ -1977,11 +1977,11 @@ function scheduleImageSlideshowSlide(ioRef, restoredEndsAt = null) {
   ioRef.emit("state:update", getStateSnapshot());
 
   const scheduledSlideId = playable[position].slide.id;
-  _imageSlideshowTimer = setTimeout(() => {
+  _imageSlideshowTimer = setTimeout(safeTimerCallback("imageSlideshow", () => {
     _imageSlideshowTimer = null;
     state.imageSlideshowEndsAt = null;
     advanceImageSlideshowFrame(ioRef, scheduledSlideId);
-  }, Math.max(0, imageSlideshowEndsAt - Date.now()));
+  }), Math.max(0, imageSlideshowEndsAt - Date.now()));
 }
 
 /**
@@ -2055,7 +2055,7 @@ function scheduleNextPreMassSlide(ioRef) {
   const deadlineAt = keepPhaseDeadlineFromCurrentTime(_preMassDeadlineAt, durationMs);
   _preMassDeadlineAt = deadlineAt;
 
-  _preMassTimer = setTimeout(() => {
+  _preMassTimer = setTimeout(safeTimerCallback("preMass", () => {
     _preMassTimer = null;
     if (!state.preMassRunning) return;
 
@@ -2085,7 +2085,7 @@ function scheduleNextPreMassSlide(ioRef) {
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
     scheduleNextPreMassSlide(ioRef);
-  }, Math.max(0, deadlineAt - Date.now()));
+  }), Math.max(0, deadlineAt - Date.now()));
 }
 
 /**
@@ -2194,7 +2194,7 @@ function scheduleNextGatheringSlide(ioRef) {
   const deadlineAt = keepPhaseDeadlineFromCurrentTime(_gatheringDeadlineAt, durationMs);
   _gatheringDeadlineAt = deadlineAt;
 
-  _gatheringTimer = setTimeout(() => {
+  _gatheringTimer = setTimeout(safeTimerCallback("gathering", () => {
     _gatheringTimer = null;
     if (!state.gatheringRunning) return;
 
@@ -2246,7 +2246,7 @@ function scheduleNextGatheringSlide(ioRef) {
       scheduleSave();
       scheduleNextGatheringSlide(ioRef);
     }
-  }, Math.max(0, deadlineAt - Date.now()));
+  }), Math.max(0, deadlineAt - Date.now()));
 }
 
 // ── Post-mass slideshow automation ───────────────────────────────────────────
@@ -2327,7 +2327,7 @@ function scheduleNextPostMassSlide(ioRef) {
   const deadlineAt = keepPhaseDeadlineFromCurrentTime(_postMassDeadlineAt, durationMs);
   _postMassDeadlineAt = deadlineAt;
 
-  _postMassTimer = setTimeout(() => {
+  _postMassTimer = setTimeout(safeTimerCallback("postMass", () => {
     _postMassTimer = null;
     if (!state.postMassRunning) return;
 
@@ -2360,7 +2360,7 @@ function scheduleNextPostMassSlide(ioRef) {
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
     scheduleNextPostMassSlide(ioRef);
-  }, Math.max(0, deadlineAt - Date.now()));
+  }), Math.max(0, deadlineAt - Date.now()));
 }
 
 // ── Countdown automation ─────────────────────────────────────────────────────
@@ -2514,14 +2514,14 @@ function startCountdownForSlide(ioRef, restoredEndsAt = null) {
   ioRef.emit("state:update", getStateSnapshot());
 
   const scheduledSlideId = slide.id;
-  _countdownTimer = setTimeout(() => {
+  _countdownTimer = setTimeout(safeTimerCallback("countdown", () => {
     _countdownTimer = null;
     state.countdownEndsAt = null;
     // A new Mass or a manual move supersedes this countdown; do not advance then.
     const latestSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (latestSlide?.id !== scheduledSlideId || latestSlide.type !== "countdown") return;
     advanceFromCurrentSlide(ioRef);
-  }, Math.max(0, countdownEndsAt - Date.now()));
+  }), Math.max(0, countdownEndsAt - Date.now()));
 }
 
 function shouldMovieSlideControlAdvance(slide) {
@@ -2555,7 +2555,7 @@ function scheduleMovieAutoAdvance(ioRef, durationMs, { startedAt = null } = {}) 
   _moviePlaybackSlideId = currentSlide.id;
   const deadlineAt = playbackStartedAt + Math.max(1, Number(durationMs) || 0);
 
-  _movieTimer = setTimeout(() => {
+  _movieTimer = setTimeout(safeTimerCallback("movie", () => {
     _movieTimer = null;
     _moviePlaybackStartedAt = null;
     _moviePlaybackSlideId = null;
@@ -2565,7 +2565,7 @@ function scheduleMovieAutoAdvance(ioRef, durationMs, { startedAt = null } = {}) 
     // Claim the end so a late `slide:video-ended` for this slide is ignored.
     _movieEndGuard.markHandled(state.currentSlideIndex, current.id);
     advanceFromCurrentSlide(ioRef);
-  }, Math.max(0, deadlineAt - Date.now()));
+  }), Math.max(0, deadlineAt - Date.now()));
 }
 
 function stopMovieAutoAdvanceTimer() {
@@ -2701,7 +2701,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
   if (!massHasBegun) {
     scheduleLongTimeout(target - now, () => {
       startMassSequence(ioRef);
-    }, (handle) => { _massStartTimer = handle; });
+    }, (handle) => { _massStartTimer = handle; }, "massStart");
   }
 
   const gatheringMs = getGatheringDurationMs();
@@ -2723,7 +2723,7 @@ function scheduleStartTimer(ioRef, { catchUp = true } = {}) {
           return;
         }
         startGatheringSequence(ioRef);
-      }, (handle) => { _startTimer = handle; });
+      }, (handle) => { _startTimer = handle; }, "gatheringStart");
     }
     return;
   }
@@ -2992,6 +2992,17 @@ function safeSocketHandler(socket, eventName, handler) {
       return result;
     } catch (error) {
       logger.error(`[socket] ${eventName} failed: ${error.message || String(error)}`);
+      return undefined;
+    }
+  };
+}
+
+function safeTimerCallback(timerName, callback) {
+  return (...args) => {
+    try {
+      return callback(...args);
+    } catch (error) {
+      logger.error(`[timer] ${timerName} failed: ${error.message || String(error)}`);
       return undefined;
     }
   };
@@ -5365,14 +5376,14 @@ function startServer(port = 17841, options = {}) {
     logger.info(`[security] Source-network restriction ${sourceNetworkGuard.entries.length ? "active" : "inactive"}.`);
     scheduleStartTimer(io);
     lastRuntimeClockAt = Date.now();
-    runtimeTimerMonitor = setInterval(() => {
+    runtimeTimerMonitor = setInterval(safeTimerCallback("runtimeTimerMonitor", () => {
       const now = Date.now();
       const elapsed = now - lastRuntimeClockAt;
       lastRuntimeClockAt = now;
       if (elapsed > 5000) {
         rescheduleRuntimeTimers(io);
       }
-    }, 1000);
+    }), 1000);
 
     const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
     if (currentSlide?.type === "countdown") {
@@ -5436,6 +5447,7 @@ module.exports = {
   convertImageToAvif,
   buildMassZipFromPackage,
   safeSocketHandler,
+  safeTimerCallback,
   validateMassZipArchive,
   MASS_ZIP_LIMITS: Object.freeze({
     maxCompressedBytes: MAX_MASS_ZIP_COMPRESSED_BYTES,

@@ -132,6 +132,38 @@ describe("phase slide timers", () => {
     watch.stop();
   });
 
+  test("logs a phase timer error and keeps the server running", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Timer guard", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [textItem("pre-a", "pre"), textItem("pre-b", "pre"), textItem("mass", "mass", 10)],
+      { "pre-a": { text: "A" }, "pre-b": { text: "B" }, mass: { text: "Mass" } }
+    );
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+    await request(app).post("/api/pre-mass/start").expect(200);
+
+    const presentationDescriptor = Object.getOwnPropertyDescriptor(state, "presentation");
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    Object.defineProperty(state, "presentation", {
+      configurable: true,
+      get() {
+        throw new Error("simulated phase timer failure");
+      }
+    });
+
+    try {
+      jest.advanceTimersByTime(1000);
+      await flushSocket();
+      expect(errorSpy.mock.calls.some((call) =>
+        String(call[0]).startsWith("[timer] preMass failed:")
+      )).toBe(true);
+    } finally {
+      Object.defineProperty(state, "presentation", presentationDescriptor);
+      errorSpy.mockRestore();
+    }
+
+    await request(app).get("/api/state").expect(200);
+  });
+
   test("reschedules a pre-Mass timer after a short forward clock jump", async () => {
     await request(app).post("/api/new-mass").send({ title: "Pre resume", startTime: "" }).expect(200);
     await saveOrganizer(
