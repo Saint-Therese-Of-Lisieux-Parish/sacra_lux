@@ -5,7 +5,7 @@ It lists the computers that a Sacra Lux release can run on.
 Install steps for each operating system are on the linked pages.
 
 The repository does not state a minimum operating system version.
-Electron 45.2.1 states the versions in the [Electron platform support note](https://github.com/electron/electron/blob/v45.2.1/README.md#platform-support).
+Electron 45.2.3 states the versions in the [Electron platform support note](https://github.com/electron/electron/blob/v45.2.3/README.md#platform-support).
 That note says macOS Ventura and later, and Windows 10 and later.
 
 A release version that contains a hyphen is a prerelease.

@@ -10,7 +10,7 @@ The processor type is 64-bit x64.
 The file name contains `win-x64`.
 
 The repository does not state a minimum Windows version.
-Electron 45.2.1 states the version in the [Electron platform support note](https://github.com/electron/electron/blob/v45.2.1/README.md#platform-support).
+Electron 45.2.3 states the version in the [Electron platform support note](https://github.com/electron/electron/blob/v45.2.3/README.md#platform-support).
 That note says Windows 10 and later.
 
 The release has no file for a Windows ARM processor.
