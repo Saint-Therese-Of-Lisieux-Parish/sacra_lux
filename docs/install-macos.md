@@ -11,7 +11,7 @@ The release has two Mac files.
 - Intel. The file name contains `mac-x64`.
 
 The repository does not state a minimum macOS version.
-Electron 45.2.1 states the version in the [Electron platform support note](https://github.com/electron/electron/blob/v45.2.1/README.md#platform-support).
+Electron 45.2.3 states the version in the [Electron platform support note](https://github.com/electron/electron/blob/v45.2.3/README.md#platform-support).
 That note says macOS Ventura and later.
 
 ## Choose the right file
