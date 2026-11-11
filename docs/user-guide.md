@@ -35,6 +35,7 @@ If the log file does not exist, Sacra Lux opens the log folder.
 
 When Pre-Mass, Gathering, or Post-Mass starts, Sacra Lux can turn fullscreen on.
 It does this when the projector display is not the Digital Minister display, and when fullscreen is still allowed.
+If the projector display disconnects and reconnects, Sacra Lux restores fullscreen when fullscreen is still allowed.
 Select **Exit Fullscreen** to stop that.
 Select **Fullscreen** to allow it again.
 

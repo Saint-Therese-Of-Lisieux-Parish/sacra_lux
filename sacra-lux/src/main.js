@@ -39,6 +39,7 @@ let splashWindow;
 let appMenu = null;
 let isQuitting = false;
 let allowAutomaticFullscreen = true;
+const fullscreenRestoreDisplays = new Set();
 let displaySleepBlockerId = null;
 
 // Every window may navigate only inside the local app origin.
@@ -207,7 +208,16 @@ function handleDisplayAdded(display) {
   const targetIds = normalizeTargetScreenIds(state.targetScreenIds);
   if (targetIds.includes(Number(display.id))) {
     const win = screenWindows.get(String(display.id));
-    if (win && !win.isDestroyed()) win.setBounds(display.bounds);
+    if (win && !win.isDestroyed()) {
+      win.setBounds(display.bounds);
+      if (fullscreenRestoreDisplays.has(Number(display.id)) && allowAutomaticFullscreen && hasSeparateTargetDisplay()) {
+        win.setFullScreen(true);
+        fullscreenRestoreDisplays.delete(Number(display.id));
+        state.screenFullscreen = true;
+        saveSession(state);
+        updateFullscreenMenuLabel();
+      }
+    }
   }
   sendMonitorList();
 }
@@ -217,6 +227,7 @@ function handleDisplayRemoved(display) {
   if (targetIds.includes(Number(display.id))) {
     const win = screenWindows.get(String(display.id));
     if (win && !win.isDestroyed() && state.screenFullscreen) {
+      fullscreenRestoreDisplays.add(Number(display.id));
       win.setFullScreen(false);
       state.screenFullscreen = false;
       saveSession(state);
@@ -682,6 +693,7 @@ async function exportSlidePdf(slides, screenSettings, suggestedName, quality) {
 function setScreenFullscreen(on) {
   state.screenFullscreen = Boolean(on);
   allowAutomaticFullscreen = state.screenFullscreen;
+  if (!state.screenFullscreen) fullscreenRestoreDisplays.clear();
   saveSession(state);
   const windows = ensureConfiguredScreenWindows();
   if (windows.length === 0) return { ok: false };
@@ -906,6 +918,7 @@ function buildAppMenu(ioRef) {
         if (state.screenFullscreen) {
           state.screenFullscreen = false;
           allowAutomaticFullscreen = false;
+          fullscreenRestoreDisplays.clear();
           for (const win of getScreenWindowList()) {
             win.setFullScreen(false);
           }
