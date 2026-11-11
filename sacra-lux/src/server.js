@@ -1543,7 +1543,7 @@ function repaginateReadingSlidesIfNeeded() {
 }
 
 function mergeManualSlideState(nextSequence, nextManualSlides) {
-  const merged = {};
+  const merged = Object.create(null);
 
   for (const item of nextSequence) {
     if (item.type === "reading") {

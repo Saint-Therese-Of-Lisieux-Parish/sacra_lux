@@ -68,6 +68,22 @@ describe("organizer save conflicts", () => {
       .expect(200);
   });
 
+  test.each(["__proto__", "constructor", "prototype"])(
+    "does not pollute Object.prototype for a reserved slide ID (%s)",
+    async (id) => {
+      const sequence = [{ id, type: "text", label: "Reserved ID", phase: "mass" }];
+      const manualSlides = JSON.parse(`{"${id}":{"text":"Reserved ID"}}`);
+
+      await request(handle.app)
+        .post("/api/organizer")
+        .send({ sequence, manualSlides })
+        .expect(200);
+
+      expect(Object.prototype.polluted).toBeUndefined();
+      expect(Object.prototype.hasOwnProperty.call(Object.prototype, "polluted")).toBe(false);
+    }
+  );
+
   test("rejects an organizer save after settings import changes the revision", async () => {
     const initial = await request(handle.app).get("/api/state").expect(200);
     const staleRevision = initial.body.organizerRevision;
