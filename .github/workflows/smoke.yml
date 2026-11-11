@@ -56,6 +56,26 @@ jobs:
         run: npm ci
 
       - name: Build unpacked app
+        if: matrix.name == 'macos-arm'
+        shell: bash
+        run: |
+          set -o pipefail
+          for attempt in 1 2; do
+            build_log=$(mktemp)
+            if npx electron-builder --dir ${{ matrix.build }} "--config.directories.output=dist" "--config.mac.forceCodeSigning=false" 2>&1 | tee "$build_log"; then
+              rm -f "$build_log"
+              exit 0
+            fi
+            if ! grep -q "Response code 504" "$build_log" || [ "$attempt" -eq 2 ]; then
+              rm -f "$build_log"
+              exit 1
+            fi
+            echo "::warning::Electron download returned HTTP 504; retrying the build."
+            rm -f "$build_log"
+          done
+
+      - name: Build unpacked app for other targets
+        if: matrix.name != 'macos-arm'
         run: npx electron-builder --dir ${{ matrix.build }} "--config.directories.output=dist" "--config.mac.forceCodeSigning=false"
 
       - name: Smoke test packaged app
