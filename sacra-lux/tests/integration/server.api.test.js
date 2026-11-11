@@ -3892,15 +3892,20 @@ describe("server api integration", () => {
     expect(String(limited.body.error || "")).toMatch(/too many requests/i);
   });
 
-  test("global api limiter does not count Mass asset reads", async () => {
+  test("file limiter throttles Mass asset reads", async () => {
     const ip = "198.51.100.11";
 
-    for (let i = 0; i < 130; i += 1) {
+    for (let i = 0; i < 60; i += 1) {
       const res = await request(app)
         .get("/api/mass-asset/missing.jpg")
         .set("X-Forwarded-For", ip);
       expect(res.status).not.toBe(429);
     }
+
+    await request(app)
+      .get("/api/mass-asset/missing.jpg")
+      .set("X-Forwarded-For", ip)
+      .expect(429);
 
     await request(app)
       .get("/api/mass-history")
