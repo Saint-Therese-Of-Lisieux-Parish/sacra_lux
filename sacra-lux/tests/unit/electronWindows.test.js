@@ -565,6 +565,7 @@ describe("Electron window security settings", () => {
     about.listeners["did-finish-load"]();
     const script = about.webContents.executeJavaScript.mock.calls[0][0];
     expect(script).toContain("https://saint-therese-of-lisieux-parish.github.io/sacra_lux/");
+    expect(script).not.toContain("JSON.stringify");
     expect(about.options.transparent).toBeUndefined();
 
     about.listeners["will-navigate"]({ preventDefault: jest.fn() }, "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/");
