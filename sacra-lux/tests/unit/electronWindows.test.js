@@ -263,6 +263,53 @@ describe("Electron window security settings", () => {
         { id: 1, label: "1920x1080 (Primary) @ 0,0", isPrimary: true, bounds: displays[0].bounds },
         { id: 2, label: "1280x720 @ 1920,0", isPrimary: false, bounds: display.bounds }
       ]);
+    expect(screenWindow.setFullScreen).not.toHaveBeenCalledWith(true);
+  });
+
+  test("restores fullscreen when a target display reconnects", async () => {
+    const primary = { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } };
+    const display = { id: 2, bounds: { x: 1920, y: 0, width: 1280, height: 720 } };
+    const displays = [primary, display];
+    const windows = await startMain({ displays, targetScreenIds: [2], screenFullscreen: true });
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+    screenWindow.setFullScreen.mockClear();
+    displays.splice(1, 1);
+
+    windows.electron.screen.emit("display-removed", {}, display);
+    expect(require("../../src/state").state.screenFullscreen).toBe(false);
+    screenWindow.setFullScreen.mockClear();
+
+    displays.push(display);
+    windows.electron.screen.emit("display-added", {}, display);
+
+    expect(screenWindow.setBounds).toHaveBeenCalledWith(display.bounds);
+    expect(screenWindow.setFullScreen).toHaveBeenCalledWith(true);
+    expect(require("../../src/state").state.screenFullscreen).toBe(true);
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
+    expect(toggle.label).toBe("Exit Screen Fullscreen");
+  });
+
+  test("does not restore fullscreen after the operator turned it off", async () => {
+    const primary = { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } };
+    const display = { id: 2, bounds: { x: 1920, y: 0, width: 1280, height: 720 } };
+    const displays = [primary, display];
+    const windows = await startMain({ displays, targetScreenIds: [2], screenFullscreen: true });
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+    const template = windows.electron.Menu.buildFromTemplate.mock.calls[0][0];
+    const toggle = template.find((item) => item.label === "Window" || item.role === "windowMenu").submenu.find((item) => item.id === "toggle-screen-fullscreen");
+    displays.splice(1, 1);
+
+    windows.electron.screen.emit("display-removed", {}, display);
+    require("../../src/state").state.screenFullscreen = true;
+    toggle.click();
+    screenWindow.setFullScreen.mockClear();
+
+    displays.push(display);
+    windows.electron.screen.emit("display-added", {}, display);
+
+    expect(screenWindow.setFullScreen).not.toHaveBeenCalledWith(true);
+    expect(require("../../src/state").state.screenFullscreen).toBe(false);
   });
 
   test("exits fullscreen and updates the operator when a target display disconnects", async () => {
