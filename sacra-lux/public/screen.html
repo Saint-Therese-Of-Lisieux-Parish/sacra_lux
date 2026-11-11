@@ -1700,7 +1700,7 @@
      * organizerItemId). Pre-computed once per settings change so all pages
      * of the same reading use the same font size.
      */
-    const _readingGroupFontCache = {};
+    const _readingGroupFontCache = Object.create(null);
     let _lastSettingsHash = "";
 
     function settingsHash(settings) {
@@ -1738,7 +1738,7 @@
       for (const k in _readingGroupFontCache) delete _readingGroupFontCache[k];
 
       // Group reading slides by organizerItemId.
-      const groups = {};
+      const groups = Object.create(null);
       for (const slide of slides) {
         if (slide.type !== "reading") continue;
         const gid = slide.organizerItemId || slide.id;

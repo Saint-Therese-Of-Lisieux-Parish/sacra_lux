@@ -65,6 +65,13 @@ describe("public client markup guards", () => {
     expect(screenHtml).toContain("const serverNow = Date.now() + serverClockOffset");
   });
 
+  test("screen grouping maps cannot write reserved keys to object prototypes", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    expect(screenHtml).toContain("const groups = Object.create(null);");
+    expect(screenHtml).toContain("const _readingGroupFontCache = Object.create(null);");
+  });
+
   test("shows a server save error in the operator status badge", () => {
     expect(appHtml).toContain('id="status" class="status-badge"');
     expect(appHtml).toContain("data.moviePlaybackError?.message || data.saveError || `${slides.length} slides`");
