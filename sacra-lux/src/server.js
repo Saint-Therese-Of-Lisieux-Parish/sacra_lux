@@ -3097,6 +3097,11 @@ function startServer(port = 17841, options = {}) {
     ...RATE_LIMIT_CONFIG.upload,
     keyFn: getClientIp
   });
+  const fileRateLimit = createRateLimitMiddleware({
+    ...RATE_LIMIT_CONFIG.file,
+    keyFn: getClientIp,
+    skip: (req) => isLoopbackAddress(getClientIp(req))
+  });
   const uploadConcurrentLimit = createConcurrentLimitMiddleware({
     bucket: RATE_LIMIT_CONFIG.upload.bucket,
     maxConcurrent: RATE_LIMIT_CONFIG.upload.maxConcurrent,
@@ -3318,7 +3323,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // List images in current_mass/assets/ for the asset picker.
-  app.get("/api/mass-assets", (req, res) => {
+  app.get("/api/mass-assets", fileRateLimit, (req, res) => {
     try {
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
       if (!fs.existsSync(assetsDir)) {
@@ -3438,7 +3443,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // Serve mass assets from current_mass/assets/{filename}
-  app.get("/api/mass-asset/:filename", (req, res) => {
+  app.get("/api/mass-asset/:filename", fileRateLimit, (req, res) => {
     try {
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
       if (!fs.existsSync(assetsDir)) {
@@ -3465,7 +3470,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // List available prayers from the "prayers" folder
-  app.get("/api/prayers", (req, res) => {
+  app.get("/api/prayers", fileRateLimit, (req, res) => {
     try {
       const bundledPrayers = process.resourcesPath
         ? path.join(process.resourcesPath, "prayers")
@@ -3491,7 +3496,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // Read the content of a specific prayer file.
-  app.get("/api/prayers/:filename", (req, res) => {
+  app.get("/api/prayers/:filename", fileRateLimit, (req, res) => {
     try {
       const filename = path.basename(req.params.filename);
       if (!/\.txt$/i.test(filename)) {
@@ -4475,7 +4480,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/mass-history/:archiveId/load", async (req, res) => {
+  app.post("/api/mass-history/:archiveId/load", fileRateLimit, async (req, res) => {
     try {
       const archiveId = path.basename(String(req.params.archiveId || ""));
       const archivePaths = getArchivePaths(archiveId);
@@ -4671,7 +4676,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/reload-mass-folder", (req, res) => {
+  app.post("/api/reload-mass-folder", fileRateLimit, (req, res) => {
     try {
       if (!fs.existsSync(CURRENT_MASS_DIR)) {
         return res.status(400).json({ error: "No current mass folder found." });
@@ -4822,7 +4827,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/save-reading", (req, res) => {
+  app.post("/api/save-reading", fileRateLimit, (req, res) => {
     try {
       const { stem, text } = req.body || {};
       const hasPassage = Object.prototype.hasOwnProperty.call(req.body || {}, "passage");

@@ -12,6 +12,7 @@ const RATE_LIMIT_CONFIG = {
   global: { bucket: "global", windowMs: 60 * 1000, max: 120, label: "global-api" },
   auth: { bucket: "auth", windowMs: 5 * 60 * 1000, max: 10, label: "auth-api" },
   upload: { bucket: "upload", windowMs: 10 * 60 * 1000, max: 20, label: "upload-api", maxConcurrent: 2 },
+  file: { bucket: "file", windowMs: 60 * 1000, max: 60, label: "file-api" },
   heavy: { bucket: "heavy", windowMs: 10 * 60 * 1000, max: 10, label: "heavy-api", maxConcurrent: 1 }
 };
 
@@ -27,6 +28,7 @@ const rateLimitBuckets = {
   global: new Map(),
   auth: new Map(),
   upload: new Map(),
+  file: new Map(),
   heavy: new Map()
 };
 
