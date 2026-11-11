@@ -42,6 +42,16 @@ describe("lectionaryRss", () => {
       .toThrow("did not contain any readings");
   });
 
+  test("does not return an incomplete script tag from malformed HTML", () => {
+    const result = parseDailyReadingsRss(`
+      <rss><channel><item><title>Sample Mass</title><description>
+        &lt;h4&gt;Gospel&lt;/h4&gt;&lt;div&gt;&lt;p&gt;&lt;scr&lt;script&gt;ipt&gt;Text&lt;/p&gt;&lt;/div&gt;
+      </description></item></channel></rss>
+    `);
+
+    expect(result.documents[0].textLines.join(" ")).not.toContain("<script");
+  });
+
   test("retrieves readings only from the configured USCCB feed", async () => {
     const fetchImpl = jest.fn().mockResolvedValue({
       ok: true,

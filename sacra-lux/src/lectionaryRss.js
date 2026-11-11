@@ -41,7 +41,8 @@ function htmlToLines(html) {
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p\s*>/gi, "\n\n")
     .replace(/<p\b[^>]*>/gi, "")
-    .replace(/<[^>]*>/g, ""));
+    .replace(/<[^>]*>/g, "")
+    .replace(/</g, ""));
   const lines = text.split(/\r?\n/).map((line) => line.replace(/[ \t]+/g, " ").trim());
   while (lines.length && !lines[0]) lines.shift();
   while (lines.length && !lines[lines.length - 1]) lines.pop();
