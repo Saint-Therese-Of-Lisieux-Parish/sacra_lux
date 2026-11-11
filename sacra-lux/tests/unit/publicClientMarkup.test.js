@@ -223,6 +223,7 @@ describe("public client markup guards", () => {
     expect(appHtml).not.toContain('id="editorBoundsPreviewFrame"');
     expect(appHtml).toContain('id="textBoundsPreviewError" role="alert"');
     expect(appHtml).toContain('id="editorBoundsPreviewError" role="alert"');
+    expect(screenHtml).toContain('event.source !== window.parent || event.origin !== window.location.origin');
     expect(screenHtml).toContain('postMessage({ type: "preview_ready" }, window.location.origin)');
   });
 

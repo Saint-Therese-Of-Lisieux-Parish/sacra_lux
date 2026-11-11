@@ -1452,6 +1452,18 @@ test("remote previews do not open Socket.IO connections", async ({ page }) => {
   await previewPage.goto(`${baseUrl}/screen?preview=1`);
   await expect.poll(() => previewWebsocketUrls.length).toBe(0);
   await previewPage.evaluate(() => {
+    window.dispatchEvent(new MessageEvent("message", {
+      origin: "https://evil.example",
+      source: null,
+      data: {
+        type: "preview_update",
+        slide: { id: "blocked", type: "text", title: "Blocked", text: "Blocked text" },
+        screenSettings: {}
+      }
+    }));
+  });
+  await expect(previewPage.locator(".text-layout-body")).toHaveCount(0);
+  await previewPage.evaluate(() => {
     window.postMessage({
       type: "preview_update",
       slide: { id: "preview", type: "text", title: "Preview", text: "Preview text" },
