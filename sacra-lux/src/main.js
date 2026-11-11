@@ -26,6 +26,7 @@ const PRELOAD_PATH = path.join(__dirname, "preload.js");
 const pkg = require("../package.json");
 
 const SITE_URL = "https://saint-therese-of-lisieux-parish.github.io/sacra_lux/";
+const ABOUT_SITE_CLICK_SCRIPT = "document.addEventListener('click', () => { location.href = 'https://saint-therese-of-lisieux-parish.github.io/sacra_lux/'; })";
 
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
@@ -1032,7 +1033,7 @@ function createSplash({ linkToSite = false } = {}) {
 
   // Close splash on click or when it loses focus (blur only after main window is visible)
   const clickScript = linkToSite
-    ? `document.addEventListener('click', () => { location.href = ${JSON.stringify(SITE_URL)}; })`
+    ? ABOUT_SITE_CLICK_SCRIPT
     : "document.addEventListener('click', () => window.close())";
   if (linkToSite) {
     const aboutWindow = splashWindow;
