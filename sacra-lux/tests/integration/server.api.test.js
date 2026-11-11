@@ -472,6 +472,42 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass gives a USCCB alternate Gospel its ending slide", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Alternate Gospel Mass</title><description>
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 1:1&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The Gospel.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Or:&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The alternate Gospel.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      await request(app).post("/api/new-mass").send({ useLectionaryRss: true }).expect(200);
+
+      const sequence = state.organizerSequence.map((item) => item.id === "mass-gospel"
+        ? { ...item, sourceStem: "Gospel-alternate_1" }
+        : item);
+      await request(app)
+        .post("/api/organizer")
+        .send({ sequence, manualSlides: state.manualSlides, organizerRevision: state.organizerRevision })
+        .expect(200);
+
+      expect(state.presentation.slides).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          id: "reading-Gospel-alternate_1-ending",
+          organizerItemId: "mass-gospel",
+          text: "",
+          ending: "The Gospel of the Lord."
+        })
+      ]));
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("new Mass reports unused readings and adds Reading III before the Gospel", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({

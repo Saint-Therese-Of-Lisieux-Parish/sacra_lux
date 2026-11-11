@@ -126,7 +126,21 @@ describe("lectionaryRss", () => {
       expect(result.documents.map((doc) => doc.stem)).toEqual([
         "Reading_I", "Reading_II", "Reading_II-alternate_1"
       ]);
-      expect(result.documents[2]).toMatchObject({ section: "Reading II", passage: "Reading II", textLines: ["Alternate second"] });
+      expect(result.documents[2]).toMatchObject({
+        section: "Reading II",
+        passage: "Reading II",
+        textLines: ["Alternate second"],
+        ending: "The Word of the Lord."
+      });
+
+      const gospelAlternate = parseDailyReadingsRss(wrap([
+        section("Gospel", "John 1:1", "The Gospel."),
+        "&lt;h4&gt;Or:&lt;/h4&gt;&lt;div&gt;&lt;p&gt;Alternate Gospel&lt;/p&gt;&lt;/div&gt;"
+      ].join("")));
+      expect(gospelAlternate.documents[1]).toMatchObject({
+        stem: "Gospel-alternate_1",
+        ending: "The Gospel of the Lord."
+      });
     });
 
     test("uses unlinked headings as passages", () => {
