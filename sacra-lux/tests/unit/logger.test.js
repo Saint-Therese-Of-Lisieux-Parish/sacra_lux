@@ -57,6 +57,19 @@ describe("logger", () => {
     warnSpy.mockRestore();
   });
 
+  test("keeps newline characters inside one log line", () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const logger = require("../../src/logger");
+
+    logger.configure({ isPackaged: true, logDirectory });
+    logger.warn("first line\nsecond line\rthird line");
+
+    const content = fs.readFileSync(path.join(logDirectory, "sacra-lux.log"), "utf8");
+    expect(content).toMatch(/WARN first line\\nsecond line\\rthird line\n$/);
+    expect(content.split("\n")).toHaveLength(2);
+    warnSpy.mockRestore();
+  });
+
   test("rotates a packaged log before writing past 5 MiB", () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     const logger = require("../../src/logger");

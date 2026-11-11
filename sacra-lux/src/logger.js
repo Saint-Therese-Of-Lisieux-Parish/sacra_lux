@@ -19,6 +19,10 @@ function redact(message) {
     .replace(/\bBearer\s+\S+/gi, "Bearer [REDACTED]");
 }
 
+function sanitizeLogMessage(message) {
+  return String(message).replace(/[\r\n]/g, (character) => character === "\r" ? "\\r" : "\\n");
+}
+
 function writeFileLog(level, message) {
   if (!packaged || !dataDirectory) {
     return;
@@ -27,10 +31,24 @@ function writeFileLog(level, message) {
   const logPath = path.join(dataDirectory, LOG_FILE_NAME);
   try {
     fs.mkdirSync(dataDirectory, { recursive: true });
-    if (fs.existsSync(logPath) && fs.statSync(logPath).size >= MAX_LOG_BYTES) {
-      fs.renameSync(logPath, `${logPath}.1`);
+    let shouldRotate = false;
+    try {
+      shouldRotate = fs.statSync(logPath).size >= MAX_LOG_BYTES;
+    } catch (statError) {
+      if (statError.code !== "ENOENT") {
+        throw statError;
+      }
     }
-    const line = `${new Date().toISOString()} ${level} ${redact(message)}\n`;
+    if (shouldRotate) {
+      try {
+        fs.renameSync(logPath, `${logPath}.1`);
+      } catch (renameError) {
+        if (renameError.code !== "ENOENT") {
+          throw renameError;
+        }
+      }
+    }
+    const line = `${new Date().toISOString()} ${level} ${sanitizeLogMessage(redact(message))}\n`;
     fs.appendFileSync(logPath, line, "utf8");
   } catch (writeError) {
     // Keep console logging available when the data folder cannot be written.
