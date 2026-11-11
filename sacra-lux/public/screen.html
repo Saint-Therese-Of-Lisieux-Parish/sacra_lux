@@ -1512,8 +1512,8 @@
 
       // All global screen CSS vars are set on #stage so both frames inherit them.
       // Per-slide overrides (e.g. imageUrl) are set directly on the inactive frame in applyRender.
-      stage.style.setProperty("--bg-dark", `url('${darkBg.replace(/'/g, "\\'")}')`);
-      stage.style.setProperty("--bg-light", `url('${lightBg.replace(/'/g, "\\'")}')`);
+      stage.style.setProperty("--bg-dark", `url('${SacraLuxShared.escapeCssUrl(darkBg)}')`);
+      stage.style.setProperty("--bg-light", `url('${SacraLuxShared.escapeCssUrl(lightBg)}')`);
       const safeFamily = fontFamily.replace(/"/g, "").trim();
       stage.style.setProperty("--display-font-family", `"${safeFamily}", serif`);
       stage.style.setProperty("--display-font-size", `${fontSizePx}px`);
@@ -1906,7 +1906,7 @@
       if (slide?.type === "image" || slide?.type === "imageSlideshow" || slide?.type === "interstitial") {
         const url = slide.imageUrl;
         if (url) {
-          frame.style.setProperty("--bg-light", `url('${url.replace(/'/g, "\\'")}')`);
+          frame.style.setProperty("--bg-light", `url('${SacraLuxShared.escapeCssUrl(url)}')`);
         } else {
           // A blank interstitial uses the configured default rather than a blank frame.
           frame.style.removeProperty("--bg-light");
@@ -1914,7 +1914,7 @@
       } else if (slide?.type === "movie") {
         frame.style.setProperty("--bg-light", "none");
       } else if (slide?.imageUrl) {
-        frame.style.setProperty("--bg-light", `url('${slide.imageUrl.replace(/'/g, "\\'")}')`);
+        frame.style.setProperty("--bg-light", `url('${SacraLuxShared.escapeCssUrl(slide.imageUrl)}')`);
       } else {
         frame.style.removeProperty("--bg-light");
       }

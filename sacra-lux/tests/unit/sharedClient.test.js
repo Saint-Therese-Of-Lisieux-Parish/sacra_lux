@@ -3,6 +3,7 @@ const path = require("path");
 const {
   addLocalDays,
   escapeHtml,
+  escapeCssUrl,
   formatCountdownTime,
   formatDurationTime,
   imageFileNameLabel,
@@ -46,6 +47,17 @@ describe("shared client helpers", () => {
       expect(escapeHtml("Tenth Sunday in Ordinary Time")).toBe(
         "Tenth Sunday in Ordinary Time"
       );
+    });
+  });
+
+  describe("escapeCssUrl", () => {
+    test("escapes backslashes and single quotes", () => {
+      expect(escapeCssUrl("C:\\images\\Mary's image.png")).toBe("C:\\\\images\\\\Mary\\'s image.png");
+    });
+
+    test("coerces missing values to an empty string", () => {
+      expect(escapeCssUrl(null)).toBe("");
+      expect(escapeCssUrl(undefined)).toBe("");
     });
   });
 
