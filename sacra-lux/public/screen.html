@@ -2292,6 +2292,7 @@
 
     if (isPreviewMode) {
       window.addEventListener("message", (event) => {
+        if (event.source !== window.parent || event.origin !== window.location.origin) return;
         if (event.data && event.data.type === "preview_update") {
           const previewSlides = Array.isArray(event.data.slides) && event.data.slides.length
             ? event.data.slides
