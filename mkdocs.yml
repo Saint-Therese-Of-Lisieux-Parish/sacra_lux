@@ -18,6 +18,7 @@ exclude_docs: |
   mass_document.md
   release-verification.md
   review_notes.md
+  security-dependencies.md
   workflows.md
   zip-import.md
 
