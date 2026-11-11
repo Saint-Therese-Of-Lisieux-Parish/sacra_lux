@@ -453,7 +453,11 @@ function buildUploadedAssetFilename(filename, mediaExtension, assetsDir) {
   // has a supported media extension. Otherwise retain its stem and use the
   // extension that matches the uploaded data.
   if (!MEDIA_ASSET_EXT.has(extension)) {
-    const stem = path.basename(candidate, extension).replace(/\.+$/g, "") || "light";
+    let stem = path.basename(candidate, extension);
+    while (stem.endsWith(".")) {
+      stem = stem.slice(0, -1);
+    }
+    stem ||= "light";
     candidate = `${stem}.${mediaExtension}`;
   }
 
@@ -5445,6 +5449,7 @@ module.exports = {
   flushPendingSave,
   resetStartPin,
   convertImageToAvif,
+  buildUploadedAssetFilename,
   buildMassZipFromPackage,
   safeSocketHandler,
   safeTimerCallback,
