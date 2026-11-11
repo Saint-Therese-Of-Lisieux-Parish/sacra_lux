@@ -1,0 +1,7 @@
+{
+  "name": "sacra-lux-release-asar",
+  "private": true,
+  "dependencies": {
+    "@electron/asar": "4.3.1"
+  }
+}

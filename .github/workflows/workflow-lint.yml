@@ -35,7 +35,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install zizmor
-        run: python -m pip install zizmor==1.31.1
+        run: python -m pip install --require-hashes -r .github/requirements-workflow-lint.txt
 
       - name: Lint workflows
         env:

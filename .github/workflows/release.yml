@@ -410,7 +410,10 @@ jobs:
           package-manager-cache: false
 
       - name: Install asar
-        run: npm install --prefix "${RUNNER_TEMP}/asar" @electron/asar@4.3.1
+        run: |
+          mkdir -p "${RUNNER_TEMP}/asar"
+          cp .github/release-asar/package.json .github/release-asar/package-lock.json "${RUNNER_TEMP}/asar/"
+          npm ci --prefix "${RUNNER_TEMP}/asar" --ignore-scripts --no-audit --no-fund
 
       # Syft does not read app.asar. The script extracts it, then runs Syft and Grype.
       - name: Scan each release ZIP
