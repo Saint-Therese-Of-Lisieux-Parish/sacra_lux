@@ -71,6 +71,9 @@ Settings** under **Remote address**.
   archive from **📚 Mass Library**.
 - Session version 1 files are migrated automatically.
 
+If the current Mass is unreadable, the server saves a recovery copy in `~/.sacra-lux/recovery`.
+Open **📚 Mass Library** after unlock to download a recovery copy.
+
 ## An image slideshow is stuck or shows a broken image
 
 - Run the slideshow **preflight** in the editor. It flags `missing`,

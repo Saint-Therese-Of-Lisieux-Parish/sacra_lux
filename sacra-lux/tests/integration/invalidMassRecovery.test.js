@@ -7,6 +7,13 @@ const {
   startIsolatedServer
 } = require("../helpers/testHarness");
 
+function binaryParser(response, callback) {
+  response.setEncoding("binary");
+  let body = "";
+  response.on("data", (chunk) => { body += chunk; });
+  response.on("end", () => callback(null, Buffer.from(body, "binary")));
+}
+
 function invalidMassPath(homeDir) {
   return path.join(homeDir, ".sacra-lux", "current_mass", "mass.json");
 }
@@ -166,6 +173,53 @@ describe("invalid current Mass protection", () => {
         .expect(409);
 
       expect(fs.existsSync(assetPath)).toBe(true);
+    } finally {
+      await handle.stop();
+    }
+  });
+
+  test("lists and downloads recovery copies only with a control session", async () => {
+    const { handle } = await startWithInvalidMass();
+    try {
+      const recoveryDir = path.join(handle.homeDir, ".sacra-lux", "recovery");
+      fs.mkdirSync(path.join(recoveryDir, "mass-one"), { recursive: true });
+      fs.mkdirSync(path.join(recoveryDir, "mass-two"), { recursive: true });
+      const recoveryMass = JSON.stringify({
+        format: "sacra-lux.mass",
+        version: 3,
+        metadata: { title: "Recovery" },
+        presentationDefaults: {},
+        items: []
+      });
+      fs.writeFileSync(path.join(recoveryDir, "mass-one", "mass.json"), recoveryMass, "utf8");
+      fs.writeFileSync(path.join(recoveryDir, "mass-two", "mass.json"), recoveryMass, "utf8");
+      const security = require("../../src/security");
+      const { state } = require("../../src/state");
+      state.startPinHash = security.createPinHashRecord("1234");
+
+      await request(handle.app).get("/api/recovery").set("X-Forwarded-For", "198.51.100.21").expect(401);
+      const token = security.noteControlUnlock();
+      const listed = await request(handle.app)
+        .get("/api/recovery")
+        .set("x-sacra-control", token)
+        .expect(200);
+      expect(listed.body.copies.map((copy) => copy.name).sort()).toEqual(["mass-one", "mass-two"]);
+      expect(JSON.stringify(listed.body)).not.toContain(handle.homeDir);
+
+      const downloaded = await request(handle.app)
+        .get("/api/recovery/mass-one/download")
+        .set("x-sacra-control", token)
+        .buffer(true)
+        .parse(binaryParser)
+        .expect(200);
+      expect(downloaded.headers["content-type"]).toMatch(/zip/);
+      expect(downloaded.headers["content-disposition"]).toContain("mass-one.zip");
+      expect(new (require("adm-zip"))(downloaded.body).getEntry("mass.json")).not.toBeNull();
+
+      await request(handle.app)
+        .get("/api/recovery/..%2Fsession.json/download")
+        .set("x-sacra-control", token)
+        .expect(404);
     } finally {
       await handle.stop();
     }

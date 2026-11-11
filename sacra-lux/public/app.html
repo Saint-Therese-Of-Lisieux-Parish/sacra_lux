@@ -4406,6 +4406,7 @@
           <div id="massLibraryPrompt" class="status-badge error" role="alert" aria-live="assertive"></div>
           <div id="massLibraryStatus" class="muted-small" style="margin-bottom:0.2rem"></div>
           <div id="massHistoryList" class="mass-history-list"></div>
+          <div id="massRecoveryList" class="mass-history-list"></div>
           <div class="modal-action-row">
             <div></div>
             <div class="modal-action-group end">
@@ -4786,6 +4787,7 @@
       massLibraryPrompt: document.getElementById("massLibraryPrompt"),
       massLibraryStatus: document.getElementById("massLibraryStatus"),
       massHistoryList: document.getElementById("massHistoryList"),
+      massRecoveryList: document.getElementById("massRecoveryList"),
       massReplaceConfirmDialog: document.getElementById("massReplaceConfirmDialog"),
       massReplaceConfirmMessage: document.getElementById("massReplaceConfirmMessage"),
       massReplaceConfirmBtn: document.getElementById("massReplaceConfirmBtn"),
@@ -6384,15 +6386,33 @@
 
     async function refreshMassHistory() {
       els.massLibraryStatus.textContent = "Loading Mass library…";
-      const res = await fetch("/api/mass-history");
-      const data = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        const waitSec = Math.max(1, Number(res.headers.get("Retry-After")) || 60);
+      const [historyRes, recoveryRes] = await Promise.all([
+        fetch("/api/mass-history"),
+        fetch("/api/recovery")
+      ]);
+      const data = await historyRes.json().catch(() => ({}));
+      const recoveryData = await recoveryRes.json().catch(() => ({}));
+      if (recoveryRes.status === 401) {
+        els.massRecoveryList.innerHTML = "";
+      } else if (!recoveryRes.ok) {
+        throw new Error(recoveryData.error || "Failed to load recovery copies.");
+      } else {
+        const copies = Array.isArray(recoveryData.copies) ? recoveryData.copies : [];
+        els.massRecoveryList.innerHTML = copies.length
+          ? `<div class="mass-history-item"><div><div class="mass-history-item-title">Recovery copies (${copies.length})</div><div class="mass-history-item-meta">Saved copies of unreadable Mass files.</div></div></div>${copies.map((copy) => `
+              <div class="mass-history-item">
+                <div><div class="mass-history-item-title">${escapeHtml(copy.name)}</div><div class="mass-history-item-meta">Saved ${escapeHtml(formatArchiveDate(copy.createdAt))}</div></div>
+                <div class="mass-history-item-actions"><button class="save-btn" type="button" data-recovery-name="${escapeHtml(copy.name)}">Download</button></div>
+              </div>`).join("")}`
+          : "";
+      }
+      if (historyRes.status === 429) {
+        const waitSec = Math.max(1, Number(historyRes.headers.get("Retry-After")) || 60);
         els.massLibraryStatus.textContent = `Too many requests. Wait ${waitSec} seconds, then press Retry.`;
         els.massHistoryList.innerHTML = '<div class="mass-history-empty"><button class="save-btn" type="button" data-archive-action="retry">Retry</button></div>';
         return [];
       }
-      if (!res.ok) {
+      if (!historyRes.ok) {
         throw new Error(data.error || "Failed to load Mass library.");
       }
 
@@ -10221,6 +10241,20 @@
           els.status.textContent = "Archived Mass deleted.";
         }
         await refreshMassHistory();
+      } catch (err) {
+        els.massLibraryStatus.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    els.massRecoveryList.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-recovery-name]");
+      if (!btn) return;
+      btn.disabled = true;
+      try {
+        await downloadExport(`/api/recovery/${encodeURIComponent(btn.getAttribute("data-recovery-name"))}/download`, "recovery.zip");
+        els.status.textContent = "Recovery copy downloaded.";
       } catch (err) {
         els.massLibraryStatus.textContent = err.message;
       } finally {

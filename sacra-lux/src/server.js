@@ -318,6 +318,19 @@ function preserveInvalidCurrentMass() {
   return recoveryDir;
 }
 
+function listRecoveryCopies() {
+  if (!fs.existsSync(RECOVERY_DIR)) return [];
+  return fs.readdirSync(RECOVERY_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const name = entry.name;
+      const recoveryPath = path.join(RECOVERY_DIR, name);
+      const stats = fs.statSync(recoveryPath);
+      return { name, createdAt: stats.birthtime.toISOString(), updatedAt: stats.mtime.toISOString() };
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 function saveCurrentMass() {
   if (!hasLoadedMass()) return false;
   fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
@@ -4456,6 +4469,35 @@ function startServer(port = 17841, options = {}) {
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to list Mass history." });
+    }
+  });
+
+  app.get("/api/recovery", (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    try {
+      return res.json({ ok: true, copies: listRecoveryCopies() });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || "Failed to list recovery copies." });
+    }
+  });
+
+  app.get("/api/recovery/:name/download", async (req, res) => {
+    if (!clientHasControlSession(req)) {
+      return res.status(401).json({ error: "Unlock required." });
+    }
+    const requestedName = String(req.params.name || "");
+    const name = path.basename(requestedName);
+    const recoveryPath = path.join(RECOVERY_DIR, name);
+    if (!name || name !== requestedName || !fs.existsSync(recoveryPath)) {
+      return res.status(404).json({ error: "Recovery copy not found." });
+    }
+    try {
+      const zipBuffer = await buildMassZipInWorker(recoveryPath);
+      return res.type("zip").attachment(`${name}.zip`).send(zipBuffer);
+    } catch (error) {
+      return res.status(500).json({ error: error.message || "Recovery copy download failed." });
     }
   });
 

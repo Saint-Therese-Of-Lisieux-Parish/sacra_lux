@@ -92,6 +92,13 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('role="alert" aria-live="assertive"');
   });
 
+  test("shows recovery copies in the Mass Library", () => {
+    expect(appHtml).toContain('id="massRecoveryList"');
+    expect(appHtml).toContain('fetch("/api/recovery")');
+    expect(appHtml).toContain("data-recovery-name");
+    expect(appHtml).toContain("Recovery copy downloaded.");
+  });
+
   test("movie autoplay failures offer a retry control", () => {
     const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
 
