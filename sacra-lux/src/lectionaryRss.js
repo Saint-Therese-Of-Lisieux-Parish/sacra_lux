@@ -133,7 +133,7 @@ function parseDailyReadingsRss(rssXml) {
       section: alternateSection,
       passage,
       textLines,
-      ending: endingForSection(section)
+      ending: endingForSection(alternateSection)
     });
   }
 
