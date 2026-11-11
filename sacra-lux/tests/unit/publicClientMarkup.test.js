@@ -72,6 +72,14 @@ describe("public client markup guards", () => {
     expect(screenHtml).toContain("const _readingGroupFontCache = Object.create(null);");
   });
 
+  test("screen video rendering checks the media URL allow-list", () => {
+    const screenHtml = fs.readFileSync(path.join(__dirname, "../../public/screen.html"), "utf8");
+
+    expect(screenHtml).toContain("function isAllowedMediaUrl(value)");
+    expect(screenHtml).toContain("if (!slide?.videoUrl || !isAllowedMediaUrl(slide.videoUrl))");
+    expect(screenHtml).toContain("video.src = slide.videoUrl;");
+  });
+
   test("shows a server save error in the operator status badge", () => {
     expect(appHtml).toContain('id="status" class="status-badge"');
     expect(appHtml).toContain("data.moviePlaybackError?.message || data.saveError || `${slides.length} slides`");

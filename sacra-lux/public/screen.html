@@ -866,6 +866,26 @@
       return SacraLuxShared.escapeHtml(str);
     }
 
+    const ALLOWED_MEDIA_URL_PREFIXES = ["/api/mass-asset/", "/static/assets/", "/static/backgrounds/"];
+
+    function isAllowedMediaUrl(value) {
+      if (typeof value !== "string" || !ALLOWED_MEDIA_URL_PREFIXES.some((prefix) => value.startsWith(prefix))) {
+        return false;
+      }
+      if (value.startsWith("/api/mass-asset/")) {
+        const match = value.match(/\/api\/mass-asset\/([^/]+)$/);
+        if (!match) return false;
+        let name;
+        try {
+          name = decodeURIComponent(match[1]);
+        } catch {
+          return false;
+        }
+        return name !== "." && name !== ".." && !(/[\\/\u0000-\u001f\u007f]/.test(name));
+      }
+      return true;
+    }
+
     function formatCountdownTime(totalSeconds) {
       return SacraLuxShared.formatCountdownTime(totalSeconds);
     }
@@ -1026,12 +1046,12 @@
       }
       wrap.classList.add("active");
 
-      if (!slide?.videoUrl) {
+      if (!slide?.videoUrl || !isAllowedMediaUrl(slide.videoUrl)) {
         wrap.innerHTML = `
           <div class="video-placeholder">
             <div class="video-placeholder-icon">&#9654;</div>
             <div class="video-placeholder-title">${escHtml(slide?.title || "Video")}</div>
-            <div class="video-placeholder-copy">No video selected</div>
+            <div class="video-placeholder-copy">${slide?.videoUrl ? "Video unavailable" : "No video selected"}</div>
           </div>
         `;
         return;
