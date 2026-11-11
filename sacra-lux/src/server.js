@@ -3115,6 +3115,11 @@ function startServer(port = 17841, options = {}) {
     keyFn: getClientIp,
     skip: (req) => isLoopbackAddress(getClientIp(req))
   });
+  const mediaRateLimit = createRateLimitMiddleware({
+    ...RATE_LIMIT_CONFIG.media,
+    keyFn: getClientIp,
+    skip: (req) => isLoopbackAddress(getClientIp(req))
+  });
   const uploadConcurrentLimit = createConcurrentLimitMiddleware({
     bucket: RATE_LIMIT_CONFIG.upload.bucket,
     maxConcurrent: RATE_LIMIT_CONFIG.upload.maxConcurrent,
@@ -3456,7 +3461,7 @@ function startServer(port = 17841, options = {}) {
   });
 
   // Serve mass assets from current_mass/assets/{filename}
-  app.get("/api/mass-asset/:filename", fileRateLimit, (req, res) => {
+  app.get("/api/mass-asset/:filename", mediaRateLimit, (req, res) => {
     try {
       const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
       if (!fs.existsSync(assetsDir)) {

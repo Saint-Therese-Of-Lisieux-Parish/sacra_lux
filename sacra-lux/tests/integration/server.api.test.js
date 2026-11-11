@@ -3944,9 +3944,35 @@ describe("server api integration", () => {
       .expect(429);
 
     await request(app)
-      .get("/api/mass-history")
+      .get("/api/prayers")
       .set("X-Forwarded-For", ip)
       .expect(200);
+  });
+
+  test("Mass asset reads do not use the reading save budget", async () => {
+    const ip = "198.51.100.13";
+
+    await request(app).post("/api/new-mass").send({ title: "Rate limit Mass" }).expect(200);
+    await request(app).post("/api/control-mode").send({ mode: "trusted-lan" }).expect(200);
+
+    for (let i = 0; i < 60; i += 1) {
+      await request(app)
+        .get("/api/mass-asset/missing.jpg")
+        .set("X-Forwarded-For", ip)
+        .expect(404);
+    }
+
+    await request(app)
+      .post("/api/save-reading")
+      .set("X-Forwarded-For", ip)
+      .send({ stem: "mass-reading-1", text: "Updated reading text." })
+      .expect(200);
+
+    const archiveLoad = await request(app)
+      .post("/api/mass-history/missing-archive/load")
+      .set("X-Forwarded-For", ip)
+      .expect(404);
+    expect(archiveLoad.status).not.toBe(429);
   });
 
   test("auth limiter throttles start-pin after 10 requests in 5 minutes per IP", async () => {
