@@ -21,6 +21,13 @@
       .replace(/'/g, "&#39;");
   }
 
+  /** Escape a value before placing it in a single-quoted CSS url(). */
+  function escapeCssUrl(value) {
+    return String(value ?? "")
+      .replace(/\\/g, "\\\\")
+      .replace(/'/g, "\\'");
+  }
+
   /** Decode a URL value, or return the original value when it is malformed. */
   function safeDecodeURIComponent(value) {
     const text = String(value ?? "");
@@ -178,6 +185,7 @@
 
   return {
     escapeHtml,
+    escapeCssUrl,
     safeDecodeURIComponent,
     knownFontName,
     formatCountdownTime,
