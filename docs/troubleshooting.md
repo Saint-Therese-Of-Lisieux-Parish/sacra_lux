@@ -72,7 +72,9 @@ Settings** under **Remote address**.
 - Session version 1 files are migrated automatically.
 
 If the current Mass is unreadable, the server saves a recovery copy in `~/.sacra-lux/recovery`.
-Open **📚 Mass Library** after unlock to download a recovery copy.
+After unlock, **📚 Mass Library** lists each copy under **Recovery copies**.
+Select **Download** to save the copy as a ZIP file.
+See [Recovery copies](user-guide.md#recovery-copies) in the user guide.
 
 ## An image slideshow is stuck or shows a broken image
 
