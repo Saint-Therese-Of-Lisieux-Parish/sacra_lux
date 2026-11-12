@@ -224,4 +224,44 @@ describe("invalid current Mass protection", () => {
       await handle.stop();
     }
   });
+
+  test("refuses a second concurrent recovery download", async () => {
+    const { handle } = await startWithInvalidMass();
+    try {
+      const recoveryDir = path.join(handle.homeDir, ".sacra-lux", "recovery");
+      fs.mkdirSync(path.join(recoveryDir, "mass-one"), { recursive: true });
+      fs.writeFileSync(
+        path.join(recoveryDir, "mass-one", "mass.json"),
+        JSON.stringify({
+          format: "sacra-lux.mass",
+          version: 3,
+          metadata: { title: "Recovery" },
+          presentationDefaults: {},
+          items: []
+        }),
+        "utf8"
+      );
+      fs.writeFileSync(
+        path.join(recoveryDir, "mass-one", "large.bin"),
+        Buffer.alloc(20 * 1024 * 1024, 7)
+      );
+      const security = require("../../src/security");
+      const { state } = require("../../src/state");
+      state.startPinHash = security.createPinHashRecord("1234");
+      const token = security.noteControlUnlock();
+      const download = () => request(handle.app)
+        .get("/api/recovery/mass-one/download")
+        .set("x-sacra-control", token)
+        .buffer(true)
+        .parse(binaryParser);
+
+      const responses = await Promise.all([download(), download(), download()]);
+
+      expect(responses.map((response) => response.status).sort()).toEqual([200, 429, 429]);
+      expect(responses.filter((response) => response.status === 429).every((response) => response.headers["retry-after"] === "1"))
+        .toBe(true);
+    } finally {
+      await handle.stop();
+    }
+  });
 });
