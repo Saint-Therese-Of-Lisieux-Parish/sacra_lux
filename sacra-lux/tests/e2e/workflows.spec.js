@@ -1042,6 +1042,53 @@ test("Image Slideshow editor sorts batches and supports persistent ordering cont
   }).toEqual(["Alpha.png", "Zeta.png"]);
 });
 
+test("Image Slideshow editor refuses a batch that passes 500 images", async ({ page, request }) => {
+  const existingImages = Array.from({ length: 499 }, (_, index) => ({
+    url: `/api/mass-asset/image-${index}.png`,
+    name: `Image-${index}.png`
+  }));
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{
+        id: "imageSlideshow:limit",
+        type: "imageSlideshow",
+        label: "Limit test",
+        phase: "mass",
+        backgroundTheme: "light",
+        durationSec: 10
+      }],
+      manualSlides: {
+        "imageSlideshow:limit": {
+          images: existingImages,
+          slideshowDurationSec: 10,
+          slideshowLoopCount: 1
+        }
+      }
+    }
+  });
+
+  await page.goto(`${baseUrl}/`);
+  if (await page.locator("#massLibraryDialog").isVisible()) {
+    await closeMassLibraryIfVisible(page);
+  }
+  await page.locator('[data-edit-id="imageSlideshow:limit"]').click();
+  await expect(page.locator("#editorSectionImageSlideshow")).toBeVisible();
+  await expect(page.locator("#slideshowImageList .slideshow-image-row")).toHaveCount(499);
+
+  let importRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/import-slideshow-images")) importRequests += 1;
+  });
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9s2vNhcAAAAASUVORK5CYII=", "base64");
+  await page.locator("#editorSlideshowFiles").setInputFiles([
+    { name: "FiveHundred.png", mimeType: "image/png", buffer: png },
+    { name: "FiveHundredOne.png", mimeType: "image/png", buffer: png }
+  ]);
+
+  await expect(page.locator("#status")).toHaveText("A slideshow can contain at most 500 images.");
+  expect(importRequests).toBe(0);
+});
+
 test("Dropping multiple images onto an image slide creates a titled slideshow", async ({ page, request }) => {
   await request.post(`${baseUrl}/api/organizer`, {
     data: {

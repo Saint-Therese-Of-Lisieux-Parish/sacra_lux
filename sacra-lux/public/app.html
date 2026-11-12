@@ -8293,6 +8293,10 @@
         els.status.textContent = "Choose one or more supported image files.";
         return;
       }
+      if (getEditorSlideshowImages().length + files.length > 500) {
+        els.status.textContent = "A slideshow can contain at most 500 images.";
+        return;
+      }
 
       const failed = [];
       const images = [];
