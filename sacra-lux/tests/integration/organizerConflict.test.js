@@ -120,4 +120,25 @@ describe("organizer save conflicts", () => {
     expect(state.imageSlideshowEndsAt).toBe(endsAt);
     expect(state.imageSlideshowError).toBe("The failed image stays skipped.");
   });
+
+  test("rejects a slideshow with more than 500 images", async () => {
+    const before = await request(handle.app).get("/api/state").expect(200);
+    const sequence = [{ id: "large-slideshow", type: "imageSlideshow", label: "Slides", phase: "pre" }];
+    const images = Array.from({ length: 501 }, (_, index) => ({
+      url: `/api/mass-asset/image-${index}.png`,
+      name: `image-${index}.png`
+    }));
+
+    const response = await request(handle.app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "large-slideshow": { images } } })
+      .expect(400);
+
+    expect(response.body.error).toBe("A slideshow can contain at most 500 images.");
+
+    const after = await request(handle.app).get("/api/state").expect(200);
+    expect(after.body.organizerRevision).toBe(before.body.organizerRevision);
+    expect(after.body.organizerSequence).toEqual(before.body.organizerSequence);
+    expect(after.body.manualSlides).toEqual(before.body.manualSlides);
+  });
 });

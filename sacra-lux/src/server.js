@@ -4661,6 +4661,14 @@ function startServer(port = 17841, options = {}) {
         }
       }
 
+      for (const item of sequence) {
+        if (item?.type !== "imageSlideshow") continue;
+        const images = manualSlides?.[item.id]?.images;
+        if (Array.isArray(images) && images.length > MAX_SLIDESHOW_IMPORT_IMAGES) {
+          return res.status(400).json({ error: `A slideshow can contain at most ${MAX_SLIDESHOW_IMPORT_IMAGES} images.` });
+        }
+      }
+
       const nextOrganizerSequence = normalizeOrganizerSequence(sequence);
       const nextManualSlides = mergeManualSlideState(nextOrganizerSequence, manualSlides || {});
       const nextPresentation = buildPresentationFromOrganizer({
