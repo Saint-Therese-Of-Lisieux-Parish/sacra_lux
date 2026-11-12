@@ -237,6 +237,21 @@ running, the dialog says that the projector will change. It says the same
 thing when the start time is less than two hours away, including a start time
 that has already passed.
 
+### Recovery copies
+
+If Sacra Lux cannot read the current Mass at start, it keeps a copy of the
+unreadable Mass. After you unlock, **📚 Mass Library** shows **Recovery copies**
+above the archive list. The heading shows the number of copies.
+Each copy shows the time that Sacra Lux saved it.
+
+1. Unlock the controls with the PIN.
+2. Open **📚 Mass Library**.
+3. Find the copy in **Recovery copies**.
+4. Select **Download**.
+
+The status line shows **Recovery copy downloaded.** Your browser saves a ZIP file.
+Give this file to the administrator. Keep the file safe.
+
 ## Export and Import
 
 - **↩︎ Import** loads a Mass or settings ZIP/JSON. A Mass ZIP asks for the same replacement confirmation as **Load**.
