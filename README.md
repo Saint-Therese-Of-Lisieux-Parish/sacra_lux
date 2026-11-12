@@ -373,8 +373,8 @@ From the repository root, tag the commit that contains the matching
 `package.json` version, then push the tag:
 
 ```bash
-git tag v0.0.461-alpha
-git push origin v0.0.461-alpha
+git tag v0.0.465-alpha
+git push origin v0.0.465-alpha
 ```
 
 The tag in that example is the current package version with a `v` prefix.
