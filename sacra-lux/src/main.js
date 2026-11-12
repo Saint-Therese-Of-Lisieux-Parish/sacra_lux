@@ -325,11 +325,25 @@ function createScreenWindow(targetScreenId = null) {
 
   screenWindows.set(key, win);
   syncPrimaryScreenWindow();
+  const renderProcessGoneTimes = [];
 
   win.on("closed", () => {
     screenWindows.delete(key);
     syncPrimaryScreenWindow();
     if (getScreenWindowList().length === 0) stopDisplaySleepBlocker();
+  });
+
+  win.webContents.on("render-process-gone", (_event, details = {}) => {
+    const reason = String(details.reason || "unknown");
+    const now = Date.now();
+    while (renderProcessGoneTimes.length && renderProcessGoneTimes[0] <= now - 60000) {
+      renderProcessGoneTimes.shift();
+    }
+    renderProcessGoneTimes.push(now);
+    logger.warn(`[main] render-process-gone ${key}: ${reason}`);
+
+    if (isQuitting || reason === "clean-exit" || renderProcessGoneTimes.length > 3) return;
+    win.loadURL(`http://localhost:${PORT}/screen`);
   });
 
   win.loadURL(`http://localhost:${PORT}/screen`);
