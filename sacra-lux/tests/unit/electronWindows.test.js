@@ -35,6 +35,7 @@ async function startMain({
       };
       this.setFullScreen = jest.fn();
       this.setBounds = jest.fn((bounds) => { this.options.bounds = bounds; });
+      this.loadURL = jest.fn();
       windows.push(this);
     }
     on(name, handler) { this.listeners[name] = handler; }
@@ -139,6 +140,56 @@ async function startMain({
 }
 
 describe("Electron window security settings", () => {
+  test("reloads a projector window after its renderer stops", async () => {
+    const windows = await startMain({
+      displays: [
+        { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+        { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }
+      ],
+      targetScreenIds: [2]
+    });
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+    const logger = require("../../src/logger");
+    const warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => { });
+
+    try {
+      screenWindow.loadURL.mockClear();
+      screenWindow.listeners["render-process-gone"]({}, { reason: "crashed" });
+
+      expect(screenWindow.loadURL).toHaveBeenCalledWith("http://localhost:17841/screen");
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("render-process-gone 2: crashed"));
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  test("stops reloading a projector window after three renderer stops in 60 seconds", async () => {
+    const windows = await startMain({
+      displays: [
+        { id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
+        { id: 2, bounds: { x: 1920, y: 0, width: 1920, height: 1080 } }
+      ],
+      targetScreenIds: [2]
+    });
+    const screenWindow = windows.find((win) => win.options.title === "Sacra Lux Screen");
+    const renderProcessGone = screenWindow.listeners["render-process-gone"];
+    jest.useFakeTimers();
+    try {
+      screenWindow.loadURL.mockClear();
+      renderProcessGone({}, { reason: "crashed" });
+      renderProcessGone({}, { reason: "crashed" });
+      renderProcessGone({}, { reason: "crashed" });
+      renderProcessGone({}, { reason: "crashed" });
+      expect(screenWindow.loadURL).toHaveBeenCalledTimes(3);
+
+      jest.advanceTimersByTime(60000);
+      renderProcessGone({}, { reason: "crashed" });
+      expect(screenWindow.loadURL).toHaveBeenCalledTimes(4);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   test("opens the configured current Mass folder", async () => {
     const originalHome = process.env.HOME;
     process.env.HOME = "/tmp/configured-home";

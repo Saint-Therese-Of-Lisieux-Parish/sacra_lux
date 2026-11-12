@@ -12,7 +12,8 @@ server holds the only authoritative state, so always inspect server state
   Digital Minister page to restore output. The Digital Minister page has no Black Screen button.
 - Check `interstitialHoldActive`. A value of `true` pins the projector to an
   interstitial. The current phone remote does not send `screen:interstitial-hold`.
-- Reload the `/screen` window. It renders purely from `state:update`.
+- Electron reloads the `/screen` window when its renderer stops. If it stops more than three times in 60 seconds, wait 60 seconds and check the logs.
+- Reload the `/screen` window manually in web mode. It renders purely from `state:update`.
 
 ## The remote or Digital Minister UI stops updating
 
