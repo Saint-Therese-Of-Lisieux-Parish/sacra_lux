@@ -1,2 +1,1 @@
-const path = require("path");
-// truncated for test
+PLACEHOLDER_FULL
