@@ -117,6 +117,22 @@ describe("lectionaryRss", () => {
       expect(result.documents.map((doc) => doc.section)).toEqual(["Reading II", "Verse Before the Gospel"]);
     });
 
+    test("keeps the Sequence as its own document", () => {
+      const result = parseDailyReadingsRss(wrap([
+        section("Reading 2", "Romans 8:1", "Second"),
+        "&lt;h4&gt;Sequence - Victimæ paschali laudes&lt;/h4&gt;&lt;div&gt;&lt;p&gt;Christians, to the Paschal Victim.&lt;/p&gt;&lt;/div&gt;"
+      ].join("")));
+
+      expect(result.documents).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          stem: "Sequence",
+          section: "Sequence",
+          passage: "Victimæ paschali laudes",
+          ending: null
+        })
+      ]));
+    });
+
     test("maps Roman numeral readings and alternate readings", () => {
       const result = parseDailyReadingsRss(wrap([
         "&lt;h4&gt;Reading I&lt;/h4&gt;&lt;div&gt;&lt;p&gt;First&lt;/p&gt;&lt;/div&gt;",
