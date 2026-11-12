@@ -4483,7 +4483,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.get("/api/recovery/:name/download", async (req, res) => {
+  app.get("/api/recovery/:name/download", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     if (!clientHasControlSession(req)) {
       return res.status(401).json({ error: "Unlock required." });
     }
