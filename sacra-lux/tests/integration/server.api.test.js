@@ -542,6 +542,28 @@ describe("server api integration", () => {
     }
   });
 
+  test("new Mass reports the USCCB Sequence as an unused reading", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => `
+        <rss><channel><item><title>Easter Sunday</title><description>
+          &lt;h4&gt;Reading 1 &lt;a href="https://example.test/reading-one"&gt;Acts 10:34a, 37-43&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The first reading.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Sequence - Victimæ paschali laudes&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;Christians, to the Paschal Victim.&lt;/p&gt;&lt;/div&gt;
+          &lt;h4&gt;Gospel &lt;a href="https://example.test/gospel"&gt;John 20:1-9&lt;/a&gt;&lt;/h4&gt;
+          &lt;div&gt;&lt;p&gt;The Gospel.&lt;/p&gt;&lt;/div&gt;
+        </description></item></channel></rss>`
+    });
+    try {
+      const response = await request(app).post("/api/new-mass").send({ useLectionaryRss: true }).expect(200);
+      expect(response.body.unusedReadingSections).toContain("Sequence");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   test("new Mass warns when the USCCB reading date differs from the Mass date", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({

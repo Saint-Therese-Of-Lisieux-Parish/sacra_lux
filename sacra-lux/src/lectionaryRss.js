@@ -10,6 +10,7 @@ const SECTION_STEMS = {
   "Reading V": "Reading_V",
   "Reading VI": "Reading_VI",
   "Reading VII": "Reading_VII",
+  Sequence: "Sequence",
   "Responsorial Psalm": "Responsorial_Psalm",
   "Verse Before the Gospel": "Verse_Before_the_Gospel",
   Gospel: "Gospel"
@@ -60,6 +61,7 @@ function sectionFromHeading(heading) {
     return roman ? `Reading ${roman}` : null;
   }
   if (/^Responsorial Psalm\b/i.test(normalized)) return "Responsorial Psalm";
+  if (/^Sequence\b/i.test(normalized)) return "Sequence";
   if (/^(Alleluia|Verse Before the Gospel)\b/i.test(normalized)) return "Verse Before the Gospel";
   if (/^Gospel\b/i.test(normalized)) return "Gospel";
   return null;
@@ -79,13 +81,15 @@ function passageFromHeading(heading) {
     "Reading V": "Reading\\s+(?:5|V)",
     "Reading VI": "Reading\\s+(?:6|VI)",
     "Reading VII": "Reading\\s+(?:7|VII)",
+    Sequence: "Sequence",
     "Responsorial Psalm": "Responsorial\\s+Psalm",
     "Verse Before the Gospel": "(?:Alleluia|Verse\\s+Before\\s+the\\s+Gospel)",
     Gospel: "Gospel"
   };
   // eslint-disable-next-line security/detect-non-literal-regexp -- the pattern comes from the fixed section map above
   const remainder = normalized.replace(new RegExp(`^${sectionLabels[section]}\\b\\s*`, "i"), "").trim();
-  return remainder || section;
+  const sequencePassage = section === "Sequence" ? remainder.replace(/^\-\s*/, "") : remainder;
+  return sequencePassage || section;
 }
 
 function extractTag(xml, tagName) {
