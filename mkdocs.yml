@@ -11,6 +11,7 @@ exclude_docs: |
   code_review_ears_report.md
   codebase_info.md
   components.md
+  copilot-code-review.md
   data_models.md
   dependencies.md
   git-change-lifecycle.*
