@@ -13,7 +13,7 @@ Source: [Configure Copilot code review](https://docs.github.com/en/copilot/how-t
 | Automatically request Copilot code review | On |
 | Review new pushes | On |
 | Review draft pull requests | On |
-| Review effort level | Balanced |
+| Review effort level | Lite |
 | Maximum review effort | No limit |
 | Allow Copilot to approve pull requests | Off |
 | Allow Copilot approvals to count toward merge requirements | Off |
@@ -38,14 +38,19 @@ Do not change the existing branch protection rules for `master`. Required checks
 ### Repository options
 
 1. Open **Settings**. Under **Code, planning, and automation**, select **Copilot**, then **Code review**.
-2. Set **Review effort level** to **Balanced**.
+2. Set **Review effort level** to **Lite**.
 3. Leave **Maximum review effort** at **No limit**.
 4. Turn **Allow Copilot to approve pull requests** off.
 5. Turn **Allow Copilot approvals to count toward merge requirements** off.
 
 ## Cost
 
-Balanced review uses more AI credits than Lite. It can also use more GitHub Actions minutes. Check the Copilot plan and billing page for the credit budget. If the cost is too high, set **Review effort level** to **Lite**.
+This project has no budget. Do not turn on automatic review until an admin confirms that the Copilot plan for the repository owner includes code review at no cost.
+
+1. Open the GitHub Copilot billing page. Check the plan and the usage limit.
+2. If the plan has no free code review, do not apply this checklist.
+3. If the plan has code review, use **Lite**. **Balanced** and **Max** use more AI credits and may use more GitHub Actions minutes.
+4. Check the usage after the first week. Turn off the ruleset if the usage passes the free limit.
 
 ## Verify
 
