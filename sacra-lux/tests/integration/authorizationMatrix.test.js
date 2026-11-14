@@ -68,6 +68,7 @@ const ROUTES = [
   ["DELETE", "/api/mass-history/:archiveId", "control"],
   ["POST", "/api/organizer", "control"],
   ["POST", "/api/reload-mass-folder", "control"],
+  ["POST", "/api/import-readings-folder", "control"],
   ["POST", "/api/save-reading", "control"]
 ];
 

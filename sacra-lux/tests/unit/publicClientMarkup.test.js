@@ -33,6 +33,12 @@ describe("public client markup guards", () => {
     expect(appHtml).not.toContain("phaseFolderImportFiles");
   });
 
+  test("offers the Electron readings folder import", () => {
+    expect(appHtml).toContain('id="importReadingsFolderBtn"');
+    expect(appHtml).toContain("window.api.pickFolder()");
+    expect(appHtml).toContain('fetch("/api/import-readings-folder"');
+  });
+
   test("slide editor shows Slide Basics before the preview and type panels", () => {
     const basics = appHtml.indexOf('<div class="modal-panel-title">Slide Basics</div>');
     expect(basics).toBeGreaterThan(-1);

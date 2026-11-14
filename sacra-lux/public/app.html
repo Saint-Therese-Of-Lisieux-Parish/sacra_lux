@@ -2938,6 +2938,7 @@
               <div class="command-actions" style="justify-content:center;flex-wrap:wrap">
                 <button id="startPinBtn" class="save-btn" type="button"><span id="startPinBtnIcon">&#128274;</span> PIN</button>
                 <button id="openMassFolderBtn" class="save-btn" type="button" style="display:none">&#128193; Open Mass Folder</button>
+                <button id="importReadingsFolderBtn" class="save-btn" type="button" style="display:none">&#128193; Import Readings Folder</button>
                 <button id="reloadMassFolderBtn" class="save-btn" type="button">&#x1F504; Reload Mass Folder</button>
                 <button id="removeUnusedMassAssetsBtn" class="save-btn" type="button">&#128465; Remove unused media</button>
                 <button id="changeScreenBtn" class="save-btn" type="button" style="display:none">&#x1F5B5; Change Screen</button>
@@ -4765,6 +4766,7 @@
       avifProgressBar: document.getElementById("avifProgressBar"),
       avifProgressLabel: document.getElementById("avifProgressLabel"),
       importZipFile: document.getElementById("importZipFile"),
+      importReadingsFolderBtn: document.getElementById("importReadingsFolderBtn"),
       duplicateMassBtn: document.getElementById("duplicateMassBtn"),
       duplicateDialog: document.getElementById("duplicateDialog"),
       duplicateTitle: document.getElementById("duplicateTitle"),
@@ -10408,6 +10410,30 @@
         els.reloadMassFolderBtn.disabled = false;
       }
     });
+
+    if (window.api?.isElectron && window.api.pickFolder) {
+      els.importReadingsFolderBtn.hidden = false;
+      els.importReadingsFolderBtn.addEventListener("click", async () => {
+        const folderPath = await window.api.pickFolder();
+        if (!folderPath) return;
+        els.importReadingsFolderBtn.disabled = true;
+        try {
+          els.status.textContent = "Importing readings folder…";
+          const response = await fetch("/api/import-readings-folder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folderPath })
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Reading folder import failed.");
+          els.status.textContent = `Readings imported (${result.importedFiles.length} files).`;
+        } catch (error) {
+          els.status.textContent = error.message || "Reading folder import failed.";
+        } finally {
+          els.importReadingsFolderBtn.disabled = false;
+        }
+      });
+    }
 
     if (window.api?.isElectron && window.api.getMonitors) {
       const applyMonitors = (monitors) => {
