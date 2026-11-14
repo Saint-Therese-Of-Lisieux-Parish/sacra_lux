@@ -2884,6 +2884,87 @@
 
     /* ── Image source radio tabs ─────────────────────────────────────── */
     /* image-source-tabs removed — unified image picker layout */
+
+    .image-gallery-dialog {
+      width: min(1100px, 94vw);
+      max-height: 90vh;
+    }
+
+    .image-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+      gap: 0.75rem;
+      padding: 0.2rem;
+    }
+
+    .image-gallery-item {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: 0.45rem;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-alt);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .image-gallery-item:hover,
+    .image-gallery-item:focus-visible {
+      border-color: var(--accent);
+      outline: 2px solid color-mix(in srgb, var(--accent), transparent 65%);
+      outline-offset: 2px;
+    }
+
+    .image-gallery-item img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 7px;
+      background: var(--bg-alt);
+    }
+
+    .image-gallery-item-name {
+      overflow: hidden;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .image-gallery-preview {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+      gap: 1rem;
+      align-items: start;
+      margin-bottom: 1rem;
+      padding: 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-alt);
+    }
+
+    .image-gallery-preview img {
+      width: 100%;
+      max-height: 36vh;
+      object-fit: contain;
+      border-radius: 8px;
+      background: var(--bg-alt);
+    }
+
+    .image-gallery-preview-name {
+      align-self: center;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 700px) {
+      .image-gallery-preview {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -2918,6 +2999,7 @@
                 <button id="duplicateMassBtn" class="save-btn" type="button">&#128260; Duplicate</button>
                 <button id="newMassBtn" class="save-btn" type="button">&#10133; New Mass</button>
                 <button id="massLibraryBtn" class="save-btn" type="button">&#128218; Mass Library</button>
+                <button id="openImageGalleryBtn" class="save-btn" type="button">&#128444; Image Gallery</button>
               </div>
               <div id="avifProgressWrap" style="display:none;width:100%;padding:0 1rem">
                 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem">
@@ -3043,6 +3125,7 @@
                     <select id="darkBgPreset">
                       <option value="">— select from assets —</option>
                     </select>
+                    <button id="openDarkBgGalleryBtn" type="button" class="insert-break-btn">Gallery</button>
                   </label>
                   <label class="upload-bg-label">
                     Upload image…
@@ -3063,6 +3146,7 @@
                     <select id="lightBgPreset">
                       <option value="">— select from assets —</option>
                     </select>
+                    <button id="openLightBgGalleryBtn" type="button" class="insert-break-btn">Gallery</button>
                   </label>
                   <label class="upload-bg-label">
                     Upload image…
@@ -3990,6 +4074,7 @@
                 <select id="editorAssetPicker" style="width:100%;margin-top:0.25rem">
                   <option value="">— select from assets folder —</option>
                 </select>
+                <button id="openEditorImageGalleryBtn" type="button" class="insert-break-btn">Open Gallery</button>
               </label>
             </div>
             <div class="editor-row" style="margin-bottom:0.45rem">
@@ -4026,6 +4111,7 @@
                 <select id="editorSlideshowAssetPicker" style="width:100%;margin-top:0.25rem">
                   <option value="">— select from assets folder —</option>
                 </select>
+                <button id="openSlideshowGalleryBtn" type="button" class="insert-break-btn">Open Gallery</button>
               </label>
               <button type="button" id="addSlideshowAssetBtn">Add image</button>
             </div>
@@ -4443,6 +4529,24 @@
     </div>
   </dialog>
 
+  <dialog id="imageGalleryDialog" class="settings-dialog image-gallery-dialog" aria-labelledby="imageGalleryTitle">
+    <div class="settings-dialog-header">
+      <div>
+        <div class="settings-dialog-title" id="imageGalleryTitle">Image Gallery</div>
+        <div class="settings-dialog-subtitle">Choose an image from the Mass assets and built-in backgrounds.</div>
+      </div>
+      <button id="imageGalleryCloseBtn" class="save-btn" type="button">Close</button>
+    </div>
+    <div class="settings-dialog-body">
+      <div class="image-gallery-preview" id="imageGalleryPreview" hidden>
+        <img id="imageGalleryPreviewImage" alt="Selected gallery image">
+        <div class="image-gallery-preview-name" id="imageGalleryPreviewName"></div>
+      </div>
+      <div id="imageGalleryEmpty" class="muted-small" hidden>No image assets are available.</div>
+      <div id="imageGalleryGrid" class="image-gallery-grid" role="listbox" aria-label="Mass image assets"></div>
+    </div>
+  </dialog>
+
   <dialog id="pdfExportDialog">
     <div class="editor-dialog-inner">
       <div class="editor-dialog-header">
@@ -4539,8 +4643,10 @@
       fontSizePx: document.getElementById("fontSizePx"),
       darkBgPreset: document.getElementById("darkBgPreset"),
       darkBgUpload: document.getElementById("darkBgUpload"),
+      openDarkBgGalleryBtn: document.getElementById("openDarkBgGalleryBtn"),
       lightBgPreset: document.getElementById("lightBgPreset"),
       lightBgUpload: document.getElementById("lightBgUpload"),
+      openLightBgGalleryBtn: document.getElementById("openLightBgGalleryBtn"),
       darkBgPreviewButton: document.getElementById("darkBgPreviewButton"),
       darkBgPreview: document.getElementById("darkBgPreview"),
       darkBgPreviewEmpty: document.getElementById("darkBgPreviewEmpty"),
@@ -4655,6 +4761,13 @@
       editorEmpty: document.getElementById("editorEmpty"),
       editorBody: document.getElementById("editorBody"),
       editorDialog: document.getElementById("editorDialog"),
+      imageGalleryDialog: document.getElementById("imageGalleryDialog"),
+      imageGalleryCloseBtn: document.getElementById("imageGalleryCloseBtn"),
+      imageGalleryGrid: document.getElementById("imageGalleryGrid"),
+      imageGalleryEmpty: document.getElementById("imageGalleryEmpty"),
+      imageGalleryPreview: document.getElementById("imageGalleryPreview"),
+      imageGalleryPreviewImage: document.getElementById("imageGalleryPreviewImage"),
+      imageGalleryPreviewName: document.getElementById("imageGalleryPreviewName"),
       editorDialogTitle: document.getElementById("editorDialogTitle"),
       editorSaveStatus: document.getElementById("editorSaveStatus"),
       editorCloseBtn: document.getElementById("editorCloseBtn"),
@@ -4722,6 +4835,7 @@
       editorImageUrl: document.getElementById("editorImageUrl"),
       editorImageFile: document.getElementById("editorImageFile"),
       editorAssetPicker: document.getElementById("editorAssetPicker"),
+      openEditorImageGalleryBtn: document.getElementById("openEditorImageGalleryBtn"),
       useImageFilenameLabelBtn: document.getElementById("useImageFilenameLabelBtn"),
       browseImageBtn: document.getElementById("browseImageBtn"),
       slideshowPreview: document.getElementById("slideshowPreview"),
@@ -4729,6 +4843,7 @@
       slideshowDropZone: document.getElementById("slideshowDropZone"),
       editorSlideshowFiles: document.getElementById("editorSlideshowFiles"),
       editorSlideshowAssetPicker: document.getElementById("editorSlideshowAssetPicker"),
+      openSlideshowGalleryBtn: document.getElementById("openSlideshowGalleryBtn"),
       addSlideshowAssetBtn: document.getElementById("addSlideshowAssetBtn"),
       sortSlideshowBtn: document.getElementById("sortSlideshowBtn"),
       reverseSlideshowBtn: document.getElementById("reverseSlideshowBtn"),
@@ -4776,6 +4891,7 @@
       duplicateCloseBtn: document.getElementById("duplicateCloseBtn"),
       newMassBtn: document.getElementById("newMassBtn"),
       massLibraryBtn: document.getElementById("massLibraryBtn"),
+      openImageGalleryBtn: document.getElementById("openImageGalleryBtn"),
       newMassDialog: document.getElementById("newMassDialog"),
       newMassTitle: document.getElementById("newMassTitle"),
       newMassStartTime: document.getElementById("newMassStartTime"),
@@ -8079,6 +8195,92 @@
         return [];
       }
     }
+
+    let imageGalleryTarget = null;
+
+    function galleryBackgroundsFirst(assets) {
+      return [...assets].sort((a, b) => {
+        const aDefault = /default-(?:text|interstitial)/i.test(a.url || "") ? 0 : 1;
+        const bDefault = /default-(?:text|interstitial)/i.test(b.url || "") ? 0 : 1;
+        return aDefault - bDefault || String(a.name).localeCompare(String(b.name), undefined, { numeric: true });
+      });
+    }
+
+    function showGalleryPreview(asset) {
+      els.imageGalleryPreview.hidden = false;
+      els.imageGalleryPreviewImage.src = asset.url;
+      els.imageGalleryPreviewImage.alt = asset.name;
+      els.imageGalleryPreviewName.textContent = asset.name;
+    }
+
+    function chooseGalleryAsset(asset) {
+      showGalleryPreview(asset);
+      if (!imageGalleryTarget || imageGalleryTarget.kind === "view") return;
+
+      if (imageGalleryTarget.kind === "editor") {
+        els.editorImageUrl.value = asset.url;
+        els.editorAssetPicker.value = asset.url;
+        updateImagePreview(asset.url);
+        editorPreviewIndex = 0;
+        updateEditorPreview().catch(() => { });
+        scheduleEditorSave();
+      } else if (imageGalleryTarget.kind === "slideshow") {
+        const images = getEditorSlideshowImages();
+        images.push({ url: asset.url, name: asset.name });
+        applyEditorSlideshowImages(images);
+      } else if (imageGalleryTarget.kind === "background") {
+        choosePresetForUrl(imageGalleryTarget.select, asset.url);
+        applyScreenSettings();
+        updateBackgroundPreview(imageGalleryTarget.name, asset.url);
+      }
+      els.imageGalleryDialog.close();
+    }
+
+    async function openImageGallery(target = { kind: "view" }) {
+      imageGalleryTarget = target;
+      els.imageGalleryGrid.replaceChildren();
+      els.imageGalleryEmpty.hidden = true;
+      els.imageGalleryPreview.hidden = true;
+      const [assets, builtinBackgrounds] = await Promise.all([
+        fetchMassAssets("image"),
+        fetchBuiltinBackgrounds()
+      ]);
+      const entries = [
+        ...galleryBackgroundsFirst(builtinBackgrounds).map((asset) => ({ ...asset, source: "built-in" })),
+        ...assets.map((asset) => ({ ...asset, source: "Mass" }))
+      ];
+      if (entries.length === 0) {
+        els.imageGalleryEmpty.hidden = false;
+      }
+      for (const asset of entries) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "image-gallery-item";
+        button.setAttribute("role", "option");
+        const image = document.createElement("img");
+        image.src = asset.url;
+        image.alt = asset.name;
+        image.loading = "lazy";
+        const name = document.createElement("span");
+        name.className = "image-gallery-item-name";
+        name.textContent = `${asset.source}: ${asset.name}`;
+        button.append(image, name);
+        button.addEventListener("click", () => chooseGalleryAsset(asset));
+        els.imageGalleryGrid.append(button);
+      }
+      els.imageGalleryDialog.showModal();
+    }
+
+    els.imageGalleryCloseBtn.addEventListener("click", () => els.imageGalleryDialog.close());
+    els.openImageGalleryBtn.addEventListener("click", () => openImageGallery());
+    els.openEditorImageGalleryBtn.addEventListener("click", () => openImageGallery({ kind: "editor" }));
+    els.openSlideshowGalleryBtn.addEventListener("click", () => openImageGallery({ kind: "slideshow" }));
+    els.openDarkBgGalleryBtn.addEventListener("click", () => openImageGallery({
+      kind: "background", name: "dark", select: els.darkBgPreset
+    }));
+    els.openLightBgGalleryBtn.addEventListener("click", () => openImageGallery({
+      kind: "background", name: "light", select: els.lightBgPreset
+    }));
 
     /**
      * Populate all Mass-asset selectors from a fresh /api/mass-assets fetch.

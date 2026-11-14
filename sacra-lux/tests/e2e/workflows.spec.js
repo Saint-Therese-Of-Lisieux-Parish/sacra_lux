@@ -361,6 +361,38 @@ test("Screen Settings shows background thumbnails and an accessible larger view"
   await expect(page.locator("#darkBgPreviewButton")).toBeFocused();
 });
 
+test("Image Gallery shows Mass images and previews the selected image", async ({ page, request }) => {
+  async function uploadPng(filename, background) {
+    const png = await sharp({
+      create: { width: 64, height: 64, channels: 3, background }
+    }).png().toBuffer();
+    const response = await request.post(`${baseUrl}/api/upload-mass-asset`, {
+      data: {
+        filename,
+        dataUrl: `data:image/png;base64,${png.toString("base64")}`
+      }
+    });
+    expect(response.ok()).toBe(true);
+  }
+
+  await uploadPng("Gallery-one.png", { r: 155, g: 28, b: 49 });
+  await uploadPng("Gallery-two.png", { r: 28, g: 79, b: 155 });
+  await uploadPng("Gallery-three.png", { r: 49, g: 155, b: 28 });
+
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#openImageGalleryBtn").click();
+  await expect(page.locator("#imageGalleryDialog")).toBeVisible();
+  await expect(page.locator("#imageGalleryGrid .image-gallery-item").filter({ hasText: /^Mass:/ })).toHaveCount(3, { timeout: 5000 });
+  await expect(page.locator("#imageGalleryGrid")).toContainText("Mass: Gallery-one.png");
+
+  await page.locator("#imageGalleryGrid .image-gallery-item", { hasText: "Mass: Gallery-two.png" }).click();
+  await expect(page.locator("#imageGalleryPreview")).toBeVisible();
+  await expect(page.locator("#imageGalleryPreviewName")).toHaveText("Gallery-two.png");
+  await page.locator("#imageGalleryCloseBtn").click();
+  await expect(page.locator("#imageGalleryDialog")).toBeHidden();
+});
+
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
