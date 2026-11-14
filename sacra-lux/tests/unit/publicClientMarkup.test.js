@@ -39,6 +39,17 @@ describe("public client markup guards", () => {
     expect(appHtml).toContain('fetch("/api/import-readings-folder"');
   });
 
+  test("provides the image Gallery view and all image pickers", () => {
+    expect(appHtml).toContain('id="openImageGalleryBtn"');
+    expect(appHtml).toContain('id="imageGalleryGrid"');
+    expect(appHtml).toContain('id="openEditorImageGalleryBtn"');
+    expect(appHtml).toContain('id="openSlideshowGalleryBtn"');
+    expect(appHtml).toContain('id="openDarkBgGalleryBtn"');
+    expect(appHtml).toContain('id="openLightBgGalleryBtn"');
+    expect(appHtml).toContain("galleryBackgroundsFirst");
+    expect(appHtml).toContain("showGalleryPreview");
+  });
+
   test("slide editor shows Slide Basics before the preview and type panels", () => {
     const basics = appHtml.indexOf('<div class="modal-panel-title">Slide Basics</div>');
     expect(basics).toBeGreaterThan(-1);
