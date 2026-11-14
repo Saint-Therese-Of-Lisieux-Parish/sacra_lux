@@ -2811,6 +2811,43 @@ describe("server api integration", () => {
     expect(after).toBeGreaterThan(before);
   });
 
+  test("imports a readings folder into current_mass and keeps the organizer", async () => {
+    const initialFolder = path.join(handle.homeDir, "initial-readings");
+    fs.mkdirSync(initialFolder, { recursive: true });
+    fs.writeFileSync(path.join(initialFolder, "Reading_I.txt"), "Genesis 1:1\n\nInitial text.", "utf8");
+    await loadReadingsFolder(app, initialFolder);
+    const before = JSON.parse(JSON.stringify(state.organizerSequence));
+
+    const selectedFolder = path.join(handle.homeDir, "selected-readings");
+    fs.mkdirSync(selectedFolder, { recursive: true });
+    fs.writeFileSync(path.join(selectedFolder, "Gospel.txt"), "John 1:1\n\nThe Word was with God.", "utf8");
+
+    const response = await request(app)
+      .post("/api/import-readings-folder")
+      .send({ folderPath: selectedFolder })
+      .expect(200);
+
+    expect(response.body.importedFiles).toEqual(["Gospel.txt"]);
+    expect(fs.readFileSync(path.join(handle.homeDir, ".sacra-lux", "current_mass", "Gospel.txt"), "utf8"))
+      .toContain("The Word was with God.");
+    expect(state.organizerSequence).toEqual(before);
+    expect(state.readingsSource.documents.map((document) => document.stem)).toEqual(["Reading_I", "Gospel"]);
+  });
+
+  test("rejects a readings file with an unsafe name before copying files", async () => {
+    const selectedFolder = path.join(handle.homeDir, "unsafe-readings");
+    fs.mkdirSync(selectedFolder, { recursive: true });
+    fs.writeFileSync(path.join(selectedFolder, "bad name.txt"), "Gospel 1:1\n\nText.", "utf8");
+
+    const response = await request(app)
+      .post("/api/import-readings-folder")
+      .send({ folderPath: selectedFolder })
+      .expect(400);
+
+    expect(response.body.error).toContain("bad name.txt");
+    expect(fs.existsSync(path.join(handle.homeDir, ".sacra-lux", "current_mass", "bad name.txt"))).toBe(false);
+  });
+
   test("duplicate-mass archives the current Mass and resets playback state", async () => {
     // A start still ahead of its gathering lead-in stays on slide 0.
     // A start already inside the gathering window is covered by the wall-clock tests.

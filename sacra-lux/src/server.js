@@ -534,6 +534,7 @@ const MAX_MASS_ZIP_ENTRIES = 1000;
 const MAX_MASS_ASSET_FILES = MAX_MASS_ZIP_ENTRIES - 10;
 const MAX_MASS_ZIP_UNCOMPRESSED_BYTES = 500 * 1024 * 1024;
 const MAX_MASS_ZIP_ENTRY_BYTES = MAX_SINGLE_UPLOAD_BYTES;
+const READING_FILE_NAME_PATTERN = /^[A-Za-z0-9_-]+\.txt$/;
 
 /**
  * Rewrite legacy `/static/uploads/<file>` references to `/api/mass-asset/<file>`.
@@ -820,6 +821,62 @@ function loadReadingsFromFolder(folderPath, screenSettings) {
     readingTextHeightPx: screenSettings.readingTextHeightPx
   });
   return imported.documents || [];
+}
+
+function readReadingFolderFiles(folderPath) {
+  if (typeof folderPath !== "string" || !folderPath.trim()) {
+    throw new ValidationError("folderPath is required.");
+  }
+
+  const sourceDir = path.resolve(folderPath);
+  let entries;
+  try {
+    if (!fs.statSync(sourceDir).isDirectory()) {
+      throw new ValidationError("The selected readings path is not a folder.");
+    }
+    entries = fs.readdirSync(sourceDir, { withFileTypes: true });
+  } catch (error) {
+    if (error instanceof ValidationError) throw error;
+    throw new ValidationError("The selected readings folder could not be read.");
+  }
+
+  const textEntries = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".txt"));
+  if (textEntries.length === 0) {
+    throw new ValidationError("The selected folder contains no reading .txt files.");
+  }
+
+  const invalidEntry = textEntries.find((entry) => !READING_FILE_NAME_PATTERN.test(entry.name));
+  if (invalidEntry) {
+    throw new ValidationError(
+      `Reading file name "${invalidEntry.name}" must use only letters, digits, underscores, and hyphens.`
+    );
+  }
+
+  let totalBytes = 0;
+  const files = textEntries.map((entry) => {
+    const bytes = fs.readFileSync(path.join(sourceDir, entry.name));
+    if (bytes.length > MAX_MASS_ZIP_ENTRY_BYTES) {
+      throw new ValidationError(
+        `Reading file "${entry.name}" exceeds the ${MAX_MASS_ZIP_ENTRY_BYTES} byte limit.`
+      );
+    }
+    totalBytes += bytes.length;
+    if (totalBytes > MAX_MASS_ZIP_UNCOMPRESSED_BYTES) {
+      throw new ValidationError("The selected readings exceed the 500 MB limit.");
+    }
+    return { name: entry.name, bytes };
+  });
+
+  return files;
+}
+
+function importReadingFolder(folderPath) {
+  const files = readReadingFolderFiles(folderPath);
+  fs.mkdirSync(CURRENT_MASS_DIR, { recursive: true });
+  for (const file of files) {
+    writeFileAtomic(path.join(CURRENT_MASS_DIR, file.name), file.bytes);
+  }
+  return files.map((file) => file.name);
 }
 
 function alignReadingDocumentsWithOrganizer(documents, sequence) {
@@ -4766,6 +4823,45 @@ function startServer(port = 17841, options = {}) {
       });
     } catch (error) {
       return res.status(500).json({ error: error.message || "Failed to reload mass folder." });
+    }
+  });
+
+  app.post("/api/import-readings-folder", fileRateLimit, (req, res) => {
+    try {
+      const importedFiles = importReadingFolder(req.body?.folderPath);
+      const imported = importReadings(CURRENT_MASS_DIR, {
+        fontSizePx: state.screenSettings.fontSizePx,
+        fontFamily: state.screenSettings.fontFamily,
+        readingTextHeightPx: state.screenSettings.readingTextHeightPx
+      });
+      const liveTitle = state.presentation?.title;
+
+      state.readingsSource = {
+        folderPath: CURRENT_MASS_DIR,
+        documents: alignReadingDocumentsWithOrganizer(imported.documents || [], state.organizerSequence)
+      };
+      rebuildPresentationFromOrganizer({
+        title: imported.title || liveTitle || path.basename(CURRENT_MASS_DIR),
+        documents: state.readingsSource.documents,
+        sequence: state.organizerSequence,
+        manualSlides: state.manualSlides,
+        screenSettings: state.screenSettings
+      });
+      if (typeof liveTitle === "string" && liveTitle.trim()) {
+        state.presentation.title = liveTitle;
+      }
+
+      touch();
+      io.emit("state:update", getStateSnapshot());
+      scheduleSave(true);
+      return res.json({
+        ok: true,
+        importedFiles,
+        totalSlides: state.presentation.slides.length
+      });
+    } catch (error) {
+      const status = error instanceof ValidationError ? 400 : 500;
+      return res.status(status).json({ error: error.message || "Failed to import readings folder." });
     }
   });
 
