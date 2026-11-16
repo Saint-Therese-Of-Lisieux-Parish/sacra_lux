@@ -393,6 +393,42 @@ test("Image Gallery shows Mass images and previews the selected image", async ({
   await expect(page.locator("#imageGalleryDialog")).toBeHidden();
 });
 
+test("Image Gallery uploads an image from the empty state", async ({ page }) => {
+  let uploadedAsset = null;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().includes("/api/upload-mass-asset")) {
+      uploadedAsset = { url: "/static/uploads/Gallery-upload.png", name: "Gallery-upload.png", mediaType: "image" };
+    }
+  });
+  await page.route("**/api/mass-assets**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ assets: uploadedAsset ? [uploadedAsset] : [] })
+    });
+  });
+  await page.route("**/api/builtin-backgrounds**", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ assets: [] }) });
+  });
+  const png = await sharp({
+    create: { width: 64, height: 64, channels: 3, background: { r: 28, g: 79, b: 155 } }
+  }).png().toBuffer();
+
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#openImageGalleryBtn").click();
+  await expect(page.locator("#imageGalleryEmpty")).toBeVisible();
+  await expect(page.locator("#imageGalleryUploadBtn")).toBeVisible();
+
+  await page.locator("#imageGalleryUploadInput").setInputFiles({
+    name: "Gallery-upload.png",
+    mimeType: "image/png",
+    buffer: png
+  });
+
+  await expect(page.locator("#imageGalleryGrid")).toContainText("Mass: Gallery-upload.png");
+  await expect(page.locator("#imageGalleryEmpty")).toBeHidden();
+});
+
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
