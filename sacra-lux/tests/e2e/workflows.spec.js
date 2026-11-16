@@ -99,6 +99,24 @@ test("New Mass shows the count of additional USCCB readings", async ({ page }) =
   );
 });
 
+test("New Mass dialog switches fields with the RSS checkbox", async ({ page }) => {
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  const rss = page.locator("#newMassUseLectionaryRss");
+  await expect(page.getByText("Import USCCB readings", { exact: true })).toBeVisible();
+  await expect(rss).not.toBeChecked();
+  await expect(page.locator("#newMassTemplate")).toBeVisible();
+  await expect(page.locator("#newMassTitle")).toBeVisible();
+  await expect(page.locator("#newMassStartTime")).toBeVisible();
+  await page.locator("#newMassConfirmBtn").click();
+  await expect(page.locator("#newMassError")).toHaveText("Mass title is required.");
+  await rss.check();
+  await expect(page.locator("#newMassTemplate")).toBeHidden();
+  await expect(page.locator("#newMassTitle")).toBeHidden();
+  await expect(page.locator("#newMassStartTime")).toBeVisible();
+});
+
 test("New Mass shows a USCCB date warning after the dialog closes", async ({ page }) => {
   await page.route("**/api/new-mass", async (route) => {
     await route.fulfill({

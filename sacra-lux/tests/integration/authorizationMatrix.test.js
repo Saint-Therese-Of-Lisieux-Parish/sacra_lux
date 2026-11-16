@@ -25,6 +25,7 @@ const ROUTES = [
   ["GET", "/api/prayers", "public"], // Built-in prayer list.
   ["GET", "/api/prayers/:filename", "public"], // Built-in prayer text.
   ["GET", "/api/themes", "public"], // Static theme list.
+  ["GET", "/api/mass-templates", "public"], // Static template list.
   ["GET", "/api/theme-vars", "public"], // Static theme values.
   ["GET", "/api/mass-history", "public"], // Archive list for the library dialog.
   ["GET", "/api/recovery", "control"],
