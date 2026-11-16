@@ -34,7 +34,8 @@ describe("public client markup guards", () => {
   });
 
   test("offers the Electron readings folder import", () => {
-    expect(appHtml).toContain('id="importReadingsFolderBtn"');
+    expect(appHtml).toContain('id="importReadingsFolderBtn" class="save-btn" type="button" hidden');
+    expect(appHtml).not.toContain('id="importReadingsFolderBtn" class="save-btn" type="button" style="display:none"');
     expect(appHtml).toContain("window.api.pickFolder()");
     expect(appHtml).toContain('fetch("/api/import-readings-folder"');
   });
