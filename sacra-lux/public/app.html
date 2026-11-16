@@ -568,6 +568,17 @@
       min-width: 0;
     }
 
+    .modal-field[hidden] {
+      display: none;
+    }
+
+    .modal-field label.settings-check-row {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.55rem;
+      white-space: nowrap;
+    }
+
     .modal-field label :is(input, select, textarea) {
       font-size: 0.875rem;
       font-weight: 500;
@@ -4444,13 +4455,22 @@
         <button class="editor-close-btn" id="newMassCloseBtn" type="button">Close</button>
       </div>
       <div class="editor-dialog-body">
-        <div class="modal-intro">
-          <div class="modal-intro-title">Fresh Start</div>
-          <p class="modal-intro-copy">Creates a new Mass with placeholder slides in each section. The current Mass will be archived first.</p>
-        </div>
         <div class="modal-panel">
           <div class="modal-field-grid">
             <div class="modal-field modal-span-12">
+              <label class="settings-check-row">
+                <input id="newMassUseLectionaryRss" type="checkbox">
+                <span>Import USCCB readings</span>
+              </label>
+            </div>
+            <div class="modal-field modal-span-12" id="newMassTemplateField">
+              <label>Template
+                <select id="newMassTemplate">
+                  <option value="fresh-start">Fresh Start</option>
+                </select>
+              </label>
+            </div>
+            <div class="modal-field modal-span-12" id="newMassTitleField">
               <label>Mass Title
                 <input id="newMassTitle" type="text" placeholder="e.g. Fifth Sunday of Lent">
               </label>
@@ -4460,13 +4480,8 @@
                 <input id="newMassStartTime" type="datetime-local">
               </label>
             </div>
-            <div class="modal-field modal-span-12">
-              <label class="settings-check-row">
-                <input id="newMassUseLectionaryRss" type="checkbox">
-                <span>Import today's readings from the USCCB Daily Readings RSS feed</span>
-              </label>
-            </div>
           </div>
+          <div id="newMassError" class="muted-small" role="alert" aria-live="assertive" hidden style="color:var(--danger, #b00020)"></div>
           <div class="modal-action-row">
             <div></div>
             <div class="modal-action-group">
@@ -4902,6 +4917,10 @@
       newMassTitle: document.getElementById("newMassTitle"),
       newMassStartTime: document.getElementById("newMassStartTime"),
       newMassUseLectionaryRss: document.getElementById("newMassUseLectionaryRss"),
+      newMassTemplate: document.getElementById("newMassTemplate"),
+      newMassTemplateField: document.getElementById("newMassTemplateField"),
+      newMassTitleField: document.getElementById("newMassTitleField"),
+      newMassError: document.getElementById("newMassError"),
       newMassConfirmBtn: document.getElementById("newMassConfirmBtn"),
       newMassCancelBtn: document.getElementById("newMassCancelBtn"),
       newMassCloseBtn: document.getElementById("newMassCloseBtn"),
@@ -6596,10 +6615,39 @@
       return `${missing.length} missing media file${missing.length === 1 ? "" : "s"}: ${names}${missing.length > 5 ? ", …" : ""}`;
     }
 
+    function syncNewMassRssMode() {
+      const rssOn = els.newMassUseLectionaryRss.checked;
+      els.newMassTemplateField.hidden = rssOn;
+      els.newMassTitleField.hidden = rssOn;
+      els.newMassError.hidden = true;
+      els.newMassError.textContent = "";
+    }
+
+    async function loadNewMassTemplates() {
+      try {
+        const resp = await fetch("/api/mass-templates");
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const templates = Array.isArray(data?.templates) ? data.templates : [];
+        if (!templates.length) return;
+        els.newMassTemplate.replaceChildren(...templates.map((template) => {
+          const option = document.createElement("option");
+          option.value = template.id;
+          option.textContent = template.label;
+          return option;
+        }));
+      } catch {
+        // Keep the built-in Fresh Start option.
+      }
+    }
+
     function showNewMassDialog() {
       els.newMassTitle.value = "";
       els.newMassStartTime.value = "";
       els.newMassUseLectionaryRss.checked = false;
+      els.newMassTemplate.selectedIndex = 0;
+      syncNewMassRssMode();
+      loadNewMassTemplates();
       if (!els.newMassDialog.open) {
         els.newMassDialog.showModal();
       }
@@ -10348,13 +10396,17 @@
       if (e.target === els.newMassDialog) els.newMassDialog.close();
     });
 
+    els.newMassUseLectionaryRss.addEventListener("change", syncNewMassRssMode);
+
     els.newMassConfirmBtn.addEventListener("click", async () => {
-      const title = els.newMassTitle.value.trim();
       const useLectionaryRss = els.newMassUseLectionaryRss.checked;
+      const title = useLectionaryRss ? "" : els.newMassTitle.value.trim();
       if (!title && !useLectionaryRss) {
-        els.status.textContent = "Mass title is required unless importing USCCB Daily Readings.";
+        els.newMassError.textContent = "Mass title is required.";
+        els.newMassError.hidden = false;
         return;
       }
+      els.newMassError.hidden = true;
       els.newMassConfirmBtn.disabled = true;
       els.newMassConfirmBtn.textContent = "Creating\u2026";
       try {
@@ -10364,7 +10416,8 @@
           body: JSON.stringify({
             title,
             startTime: els.newMassStartTime.value || null,
-            useLectionaryRss
+            useLectionaryRss,
+            templateId: useLectionaryRss ? undefined : els.newMassTemplate.value
           })
         });
         const data = await resp.json();

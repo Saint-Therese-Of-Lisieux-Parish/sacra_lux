@@ -18,6 +18,7 @@ function getAdmZip() {
 const { importReadings, isKnownReadingStem } = require("./readingsImporter");
 const { endingForSection } = require("./readingEndings");
 const { fetchUsccbDailyReadings } = require("./lectionaryRss");
+const { FRESH_START_ID, findMassTemplate, listMassTemplates } = require("./massTemplates");
 const {
   ValidationError,
   assetUrlFromName,
@@ -4218,9 +4219,18 @@ function startServer(port = 17841, options = {}) {
   });
 
   // ── New Mass ───────────────────────────────────────────────────────────────
+  app.get("/api/mass-templates", (_req, res) => {
+    res.json({ templates: listMassTemplates() });
+  });
+
   app.post("/api/new-mass", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     try {
-      const { title, startTime, useLectionaryRss } = req.body || {};
+      const { title, startTime, useLectionaryRss, templateId } = req.body || {};
+
+      const template = findMassTemplate(templateId || FRESH_START_ID);
+      if (!template) {
+        return res.status(400).json({ error: "templateId is not a known Mass template." });
+      }
 
       // Validate the start time before fetching, archiving, or mutating any
       // live state, so an unparseable value is rejected without changing the
@@ -4238,7 +4248,7 @@ function startServer(port = 17841, options = {}) {
       let lectionaryWarning = null;
       if (useLectionaryRss) {
         const lectionary = await fetchUsccbDailyReadings();
-        massTitle = massTitle || lectionary.title;
+        massTitle = lectionary.title;
         lectionaryDocuments = lectionary.documents;
         if (scheduledStart && lectionary.readingDate && lectionary.readingDate !== scheduledStart.slice(0, 10)) {
           const formatDate = (value) => new Date(`${value}T00:00:00Z`).toLocaleDateString("en-US", {
@@ -4278,36 +4288,7 @@ function startServer(port = 17841, options = {}) {
       // 3. Build a default organizer sequence with placeholder slides
       state.activeMassArchiveId = null;
       state.startupPrompt = null;
-      const newSequence = [
-        { id: "pre-announcements", type: "text", label: "Sacra Lux", phase: "pre", backgroundTheme: "dark", durationSec: 30 },
-        { id: "gathering-countdown", type: "countdown", label: "30-Second Timer", phase: "gathering", backgroundTheme: "dark", durationSec: 30 },
-        { id: "mass-title", type: "text", label: "Mass Title", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-opening-hymn", type: "hymn", label: "Opening Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-1", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-gloria", type: "hymn", label: "Gloria", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-2", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-reading-1", type: "reading", label: "First Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-3", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-psalm", type: "reading", label: "Psalm", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-4", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-reading-2", type: "reading", label: "Second Reading", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-5", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-gospel-acclamation", type: "hymn", label: "Gospel Acclamation", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-6", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-gospel", type: "reading", label: "Gospel", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-7", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-nicene-creed", type: "prayer", label: "Nicene Creed", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-8", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-offertory", type: "hymn", label: "Offertory Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-9", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-lords-prayer", type: "prayer", label: "The Lord's Prayer", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-10", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-communion", type: "hymn", label: "Communion Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-11", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-recessional", type: "hymn", label: "Recessional Hymn", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "mass-interstitial-12", type: "interstitial", label: "Interstitial", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
-        { id: "post-announcements", type: "text", label: "Sacra Lux", phase: "post", backgroundTheme: "dark", durationSec: 30 }
-      ];
+      const newSequence = template.build();
 
       state.organizerSequence = normalizeOrganizerSequence(newSequence);
       if (!useLectionaryRss) {
