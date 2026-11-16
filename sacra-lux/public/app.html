@@ -4542,7 +4542,11 @@
         <img id="imageGalleryPreviewImage" alt="Selected gallery image">
         <div class="image-gallery-preview-name" id="imageGalleryPreviewName"></div>
       </div>
-      <div id="imageGalleryEmpty" class="muted-small" hidden>No image assets are available.</div>
+      <div id="imageGalleryEmpty" class="muted-small" hidden>
+        <div>No image assets are available.</div>
+        <button id="imageGalleryUploadBtn" type="button" class="insert-break-btn">Upload an image</button>
+        <input id="imageGalleryUploadInput" type="file" accept="image/*" hidden>
+      </div>
       <div id="imageGalleryGrid" class="image-gallery-grid" role="listbox" aria-label="Mass image assets"></div>
     </div>
   </dialog>
@@ -4768,6 +4772,8 @@
       imageGalleryPreview: document.getElementById("imageGalleryPreview"),
       imageGalleryPreviewImage: document.getElementById("imageGalleryPreviewImage"),
       imageGalleryPreviewName: document.getElementById("imageGalleryPreviewName"),
+      imageGalleryUploadBtn: document.getElementById("imageGalleryUploadBtn"),
+      imageGalleryUploadInput: document.getElementById("imageGalleryUploadInput"),
       editorDialogTitle: document.getElementById("editorDialogTitle"),
       editorSaveStatus: document.getElementById("editorSaveStatus"),
       editorCloseBtn: document.getElementById("editorCloseBtn"),
@@ -8273,6 +8279,24 @@
 
     els.imageGalleryCloseBtn.addEventListener("click", () => els.imageGalleryDialog.close());
     els.openImageGalleryBtn.addEventListener("click", () => openImageGallery());
+    els.imageGalleryUploadBtn.addEventListener("click", () => els.imageGalleryUploadInput.click());
+    els.imageGalleryUploadInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      try {
+        const { resp, result } = await uploadImageForSlide(file.name, await readFileAsDataUrl(file));
+        if (!resp.ok) {
+          els.status.textContent = result.error || "Image upload failed.";
+          return;
+        }
+        const target = imageGalleryTarget || { kind: "view" };
+        els.imageGalleryDialog.close();
+        await openImageGallery(target);
+      } catch (error) {
+        els.status.textContent = error.message || "Image upload failed.";
+      }
+    });
     els.openEditorImageGalleryBtn.addEventListener("click", () => openImageGallery({ kind: "editor" }));
     els.openSlideshowGalleryBtn.addEventListener("click", () => openImageGallery({ kind: "slideshow" }));
     els.openDarkBgGalleryBtn.addEventListener("click", () => openImageGallery({
