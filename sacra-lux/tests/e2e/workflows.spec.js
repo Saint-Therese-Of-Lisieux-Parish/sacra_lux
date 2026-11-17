@@ -99,6 +99,36 @@ test("New Mass shows the count of additional USCCB readings", async ({ page }) =
   );
 });
 
+test("Create New Mass shows a server error in the dialog", async ({ page }) => {
+  await page.route("**/api/new-mass", async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "USCCB feed failed." })
+    });
+  });
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  await page.locator("#newMassUseLectionaryRss").check();
+  await page.locator("#newMassConfirmBtn").click();
+
+  await expect(page.locator("#newMassError")).toHaveText("New Mass failed: USCCB feed failed.");
+  await expect(page.locator("#newMassDialog")).toBeVisible();
+});
+
+test("Create New Mass shows a network error in the dialog", async ({ page }) => {
+  await page.route("**/api/new-mass", async (route) => route.abort());
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  await page.locator("#newMassUseLectionaryRss").check();
+  await page.locator("#newMassConfirmBtn").click();
+
+  await expect(page.locator("#newMassError")).toHaveText(/^New Mass error:/);
+  await expect(page.locator("#newMassDialog")).toBeVisible();
+});
+
 test("New Mass dialog switches fields with the RSS checkbox", async ({ page }) => {
   await page.goto(`${baseUrl}/app`);
   await closeMassLibraryIfVisible(page);

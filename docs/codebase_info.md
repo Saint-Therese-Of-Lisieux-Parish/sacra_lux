@@ -4,7 +4,7 @@
 
 - name: Sacra Lux
 - package: `sacra-lux`
-- version: `0.0.482-alpha`
+- version: `0.0.483-alpha`
 - author: Robert Toups
 - license: ISC
 - repository: `https://github.com/Saint-Therese-Of-Lisieux-Parish/sacra_lux.git`

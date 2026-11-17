@@ -10426,7 +10426,10 @@
         });
         const data = await resp.json();
         if (!resp.ok) {
-          els.status.textContent = "New Mass failed: " + (data.error || resp.status);
+          const message = "New Mass failed: " + (data.error || resp.status);
+          els.status.textContent = message;
+          els.newMassError.textContent = message;
+          els.newMassError.hidden = false;
         } else {
           els.status.textContent = data.warning
             ? data.warning
@@ -10440,7 +10443,10 @@
           els.newMassDialog.close();
         }
       } catch (err) {
-        els.status.textContent = "New Mass error: " + err.message;
+        const message = "New Mass error: " + err.message;
+        els.status.textContent = message;
+        els.newMassError.textContent = message;
+        els.newMassError.hidden = false;
       } finally {
         els.newMassConfirmBtn.disabled = false;
         els.newMassConfirmBtn.textContent = "Create";
