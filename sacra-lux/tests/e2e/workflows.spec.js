@@ -497,6 +497,25 @@ test("Image Gallery keeps the 500-image slideshow limit", async ({ page, request
   await expect(page.locator("#slideshowImageList .slideshow-image-row")).toHaveCount(500);
 });
 
+test("Image Gallery offers an upload when the Mass has no images", async ({ page }) => {
+  await page.route("**/api/mass-assets**", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ assets: [] }) });
+  });
+  await page.route("**/api/builtin-backgrounds**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ assets: [{ url: "/backgrounds/default.avif", name: "Default.avif" }] })
+    });
+  });
+
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#openImageGalleryBtn").click();
+
+  await expect(page.locator("#imageGalleryUploadBtn")).toBeVisible();
+  await expect(page.locator("#imageGalleryGrid")).toContainText("built-in: Default.avif");
+});
+
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
