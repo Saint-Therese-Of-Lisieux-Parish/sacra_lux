@@ -10431,15 +10431,17 @@
           els.newMassError.textContent = message;
           els.newMassError.hidden = false;
         } else {
-          els.status.textContent = data.warning
-            ? data.warning
-            : data.archivedMassId
-              ? `New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`
-            : data.lectionaryReadingsImported
-              ? data.unusedReadingSections?.length
-                ? `New Mass created with USCCB Daily Readings. ${data.unusedReadingSections.length} additional reading${data.unusedReadingSections.length === 1 ? "" : "s"} available.`
-                : "New Mass created with USCCB Daily Readings."
-              : "New Mass created.";
+          const statusParts = [];
+          if (data.warning) statusParts.push(data.warning);
+          if (data.archivedMassId) {
+            statusParts.push(`New Mass created. Previous Mass kept in the library as ${data.archivedMassId}.`);
+          } else if (data.lectionaryReadingsImported && !data.warning) {
+            statusParts.push("New Mass created with USCCB Daily Readings.");
+          }
+          if (data.unusedReadingSections?.length) {
+            statusParts.push(`${data.unusedReadingSections.length} additional reading${data.unusedReadingSections.length === 1 ? "" : "s"} available.`);
+          }
+          els.status.textContent = statusParts.join(" ") || "New Mass created.";
           els.newMassDialog.close();
         }
       } catch (err) {
