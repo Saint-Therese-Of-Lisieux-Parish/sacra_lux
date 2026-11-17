@@ -3939,7 +3939,9 @@ function startServer(port = 17841, options = {}) {
       // A GET only finishes the QR entry flow. The remote page starts pre-Mass
       // with its normal authorized POST request after it loads.
       if (!startAuthorized && (hostGuard.isCrossSite(req) || !clientMayControl(req))) return res.redirect("/remote");
-      return res.redirect(preMassStartIsBlocked() ? "/remote" : "/remote#start-pre-mass");
+      const currentSlide = (state.presentation?.slides || [])[state.currentSlideIndex];
+      const currentSlideIsActive = currentSlide?.phase === "mass" || currentSlide?.phase === "post";
+      return res.redirect(preMassStartIsBlocked() || currentSlideIsActive ? "/remote" : "/remote#start-pre-mass");
     } catch (_error) {
       return res.redirect("/remote");
     }

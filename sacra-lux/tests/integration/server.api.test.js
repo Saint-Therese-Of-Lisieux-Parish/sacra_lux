@@ -1018,6 +1018,17 @@ describe("server api integration", () => {
   });
 
   test("start-redirect rejects an invalid token and consumes a valid token once", async () => {
+    await request(app)
+      .post("/api/organizer")
+      .send({
+        sequence: [
+          { id: "text:pre", type: "text", label: "Pre", phase: "pre", backgroundTheme: "dark", durationSec: 10 },
+          { id: "text:mass", type: "text", label: "Mass", phase: "mass", backgroundTheme: "dark", durationSec: 10 }
+        ],
+        manualSlides: { "text:pre": { text: "Pre" }, "text:mass": { text: "Mass" } }
+      })
+      .expect(200);
+    state.currentSlideIndex = 0;
     await request(app).post("/api/start-pin").send({ pin: "2468" }).expect(200);
 
     await request(app)
@@ -1086,6 +1097,38 @@ describe("server api integration", () => {
     expect(after.body.postMassRunning).toBe(false);
   });
 
+  test.each([
+    ["a Mass slide with no start time", "mass", ""],
+    ["a Post-Mass slide", "post", ""],
+    ["an early Mass slide", "mass", localDateTime(new Date(Date.now() + (10 * 60 * 1000)))]
+  ])("a phone unlock during %s redirects to /remote", async (_label, phase, startTime) => {
+    const sequence = [
+      { id: "text:mass", type: "text", label: "Mass", phase: "mass", backgroundTheme: "dark", durationSec: 10 },
+      { id: "text:post", type: "text", label: "Post", phase: "post", backgroundTheme: "dark", durationSec: 10 }
+    ];
+    await request(app)
+      .post("/api/organizer")
+      .send({ sequence, manualSlides: { "text:mass": { text: "Mass" }, "text:post": { text: "Post" } } })
+      .expect(200);
+    if (startTime) {
+      await request(app).post("/api/start-time").send({ time: startTime }).expect(200);
+    }
+
+    state.currentSlideIndex = phase === "post" ? 1 : 0;
+    state.preMassRunning = false;
+    state.gatheringRunning = false;
+    state.postMassRunning = false;
+
+    await request(app)
+      .get("/api/start-redirect")
+      .expect(302)
+      .expect("Location", "/remote");
+
+    const after = await request(app).get("/api/state").expect(200);
+    expect(after.body.currentSlideIndex).toBe(phase === "post" ? 1 : 0);
+    expect(after.body.preMassRunning).toBe(false);
+  });
+
   describe("no-PIN start redirect before Mass", () => {
     let lanLayer;
 
@@ -1107,7 +1150,7 @@ describe("server api integration", () => {
         .post("/api/start-time")
         .send({ time: localDateTime(new Date(Date.now() + (60 * 60 * 1000))) })
         .expect(200);
-      state.currentSlideIndex = 1;
+      state.currentSlideIndex = 0;
       state.preMassRunning = false;
       state.gatheringRunning = false;
       state.postMassRunning = false;
@@ -1138,7 +1181,7 @@ describe("server api integration", () => {
       await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote");
 
       const after = await request(app).get("/api/state").expect(200);
-      expect(after.body.currentSlideIndex).toBe(1);
+      expect(after.body.currentSlideIndex).toBe(0);
       expect(after.body.preMassRunning).toBe(false);
     });
 
@@ -1152,7 +1195,7 @@ describe("server api integration", () => {
         .expect("Location", "/remote");
 
       const after = await request(app).get("/api/state").expect(200);
-      expect(after.body.currentSlideIndex).toBe(1);
+      expect(after.body.currentSlideIndex).toBe(0);
       expect(after.body.preMassRunning).toBe(false);
     });
 
@@ -1162,7 +1205,7 @@ describe("server api integration", () => {
       await request(app).get("/api/start-redirect").expect(302).expect("Location", "/remote#start-pre-mass");
 
       const after = await request(app).get("/api/state").expect(200);
-      expect(after.body.currentSlideIndex).toBe(1);
+      expect(after.body.currentSlideIndex).toBe(0);
       expect(after.body.preMassRunning).toBe(false);
     });
 
