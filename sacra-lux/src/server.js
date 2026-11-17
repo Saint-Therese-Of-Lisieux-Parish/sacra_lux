@@ -1972,6 +1972,7 @@ function advanceAfterImageSlideshow(ioRef, { direction = 1 } = {}) {
   stopImageSlideshowTimer({ resetProgress: true });
   if (nextIndex >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(nextIndex);
+    clearMoviePlaybackError();
   }
   touch();
   ioRef.emit("state:update", getStateSnapshot());
@@ -1992,10 +1993,12 @@ function advanceImageSlideshowFrame(ioRef, scheduledSlideId) {
 
   if (latestPosition < latestPlayable.length - 1) {
     state.currentSlideIndex = getSafeSlideIndex(latestPlayable[latestPosition + 1].index);
+    clearMoviePlaybackError();
   } else if (state.imageSlideshowLoopIteration < (Number(latestSlide.slideshowLoopCount) || 1)) {
     _imageSlideshowFailedUrls.clear();
     state.imageSlideshowLoopIteration += 1;
     state.currentSlideIndex = getSafeSlideIndex(latestPlayable[0].index);
+    clearMoviePlaybackError();
   } else {
     advanceAfterImageSlideshow(ioRef);
     return;
@@ -2211,6 +2214,7 @@ function startGatheringSequence(ioRef) {
 
   if (firstGatheringIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstGatheringIdx);
+    clearMoviePlaybackError();
     state.gatheringRunning = true;
     _gatheringStartedForMassKey = state.massStartTime
       ? `${state.activeMassArchiveId || ""}|${state.massStartTime}`
@@ -2222,6 +2226,7 @@ function startGatheringSequence(ioRef) {
     scheduleNextGatheringSlide(ioRef);
   } else if (firstMassIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+    clearMoviePlaybackError();
     updateInterstitialHoldResumeState();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
@@ -2299,6 +2304,7 @@ function scheduleNextGatheringSlide(ioRef) {
       const firstMassIdx = allSlides.findIndex((s) => s.phase === "mass");
       if (firstMassIdx >= 0) {
         state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+        clearMoviePlaybackError();
       }
       touch();
       ioRef.emit("state:update", getStateSnapshot());
@@ -2309,6 +2315,7 @@ function scheduleNextGatheringSlide(ioRef) {
       const nextIndex = getSafeSlideIndex(gatheringIndices[curPos + 1]);
       const nextSlide = allSlides[nextIndex];
       state.currentSlideIndex = nextIndex;
+      clearMoviePlaybackError();
       if (isPhaseOwnedSlide(nextSlide)) {
         _gatheringDeadlineAt = null;
         _gatheringDeadlineSlideId = null;
@@ -2355,6 +2362,7 @@ function startPostMassSequence(ioRef) {
 
   if (firstPostIdx >= 0) {
     state.currentSlideIndex = getSafeSlideIndex(firstPostIdx);
+    clearMoviePlaybackError();
     state.postMassRunning = true;
     updateInterstitialHoldResumeState();
     touch();
@@ -2424,6 +2432,7 @@ function scheduleNextPostMassSlide(ioRef) {
     const nextIndex = getSafeSlideIndex(postSlideIndices[nextPos]);
     const nextSlide = allSlides[nextIndex];
     state.currentSlideIndex = nextIndex;
+    clearMoviePlaybackError();
     if (isPhaseOwnedSlide(nextSlide)) {
       _postMassDeadlineAt = null;
       _postMassDeadlineSlideId = null;
@@ -2678,6 +2687,7 @@ function advanceFromCurrentSlide(ioRef) {
       return false;
     }
     state.currentSlideIndex = phaseLoopIndex;
+    clearMoviePlaybackError();
     touch();
     ioRef.emit("state:update", getStateSnapshot());
     scheduleSave();
@@ -2692,6 +2702,7 @@ function advanceFromCurrentSlide(ioRef) {
   }
 
   state.currentSlideIndex = getSafeSlideIndex(state.currentSlideIndex + 1);
+  clearMoviePlaybackError();
   touch();
   ioRef.emit("state:update", getStateSnapshot());
   scheduleSave();
@@ -2724,6 +2735,7 @@ function startMassSequence(ioRef) {
   }
   if (!alreadyOnMassSlide) {
     state.currentSlideIndex = getSafeSlideIndex(firstMassIdx);
+    clearMoviePlaybackError();
   }
   updateInterstitialHoldResumeState();
   touch();
@@ -3871,6 +3883,7 @@ function startServer(port = 17841, options = {}) {
       stopGatheringTimer();
       stopPostMassTimer();
       state.currentSlideIndex = getSafeSlideIndex(firstPreIdx);
+      clearMoviePlaybackError();
       state.preMassRunning = true;
       updateInterstitialHoldResumeState();
       scheduleNextPreMassSlide(io);
