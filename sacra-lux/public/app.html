@@ -8280,6 +8280,10 @@
         scheduleEditorSave();
       } else if (imageGalleryTarget.kind === "slideshow") {
         const images = getEditorSlideshowImages();
+        if (images.length >= 500) {
+          els.status.textContent = "A slideshow can contain at most 500 images.";
+          return;
+        }
         images.push({ url: asset.url, name: asset.name });
         applyEditorSlideshowImages(images);
       } else if (imageGalleryTarget.kind === "background") {
