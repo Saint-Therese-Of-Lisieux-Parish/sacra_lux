@@ -447,6 +447,56 @@ test("Image Gallery uploads an image from the empty state", async ({ page }) => 
   await expect(page.locator("#imageGalleryEmpty")).toBeHidden();
 });
 
+test("Image Gallery keeps the 500-image slideshow limit", async ({ page, request }) => {
+  const existingImages = Array.from({ length: 500 }, (_, index) => ({
+    url: `/api/mass-asset/gallery-${index}.png`,
+    name: `Gallery-${index}.png`
+  }));
+  await request.post(`${baseUrl}/api/organizer`, {
+    data: {
+      sequence: [{
+        id: "imageSlideshow:gallery-limit",
+        type: "imageSlideshow",
+        label: "Gallery limit",
+        phase: "mass",
+        backgroundTheme: "light",
+        durationSec: 10
+      }],
+      manualSlides: {
+        "imageSlideshow:gallery-limit": {
+          images: existingImages,
+          slideshowDurationSec: 10,
+          slideshowLoopCount: 1
+        }
+      }
+    }
+  });
+  await page.route("**/api/mass-assets**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ assets: [{ url: "/api/mass-asset/new.png", name: "New.png" }] })
+    });
+  });
+  await page.route("**/api/builtin-backgrounds**", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ assets: [] }) });
+  });
+  let organizerRequests = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/api/organizer")) organizerRequests += 1;
+  });
+
+  await page.goto(`${baseUrl}/`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator('[data-edit-id="imageSlideshow:gallery-limit"]').click();
+  await page.locator("#openSlideshowGalleryBtn").click();
+  await page.locator("#imageGalleryGrid .image-gallery-item").click();
+
+  await expect(page.locator("#status")).toHaveText("A slideshow can contain at most 500 images.");
+  expect(organizerRequests).toBe(0);
+  await expect(page.locator("#imageGalleryDialog")).toBeVisible();
+  await expect(page.locator("#slideshowImageList .slideshow-image-row")).toHaveCount(500);
+});
+
 test("Screen Settings edits global text bounds with pointer and keyboard controls", async ({ page, request }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(`${baseUrl}/`);
