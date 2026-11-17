@@ -169,6 +169,40 @@ test("New Mass shows a USCCB date warning after the dialog closes", async ({ pag
   );
 });
 
+test("New Mass shows the USCCB reading count after it archives the previous Mass", async ({ page }) => {
+  await page.route("**/api/new-mass", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ archivedMassId: "Last-Week", unusedReadingSections: ["Sequence", "Gospel"] })
+    });
+  });
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  await page.locator("#newMassUseLectionaryRss").check();
+  await page.locator("#newMassConfirmBtn").click();
+
+  await expect(page.locator("#status")).toContainText("Previous Mass kept in the library as Last-Week.");
+  await expect(page.locator("#status")).toContainText("2 additional readings available.");
+});
+
+test("New Mass shows the date warning and the USCCB reading count", async ({ page }) => {
+  await page.route("**/api/new-mass", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ warning: "Date mismatch.", unusedReadingSections: ["Sequence"] })
+    });
+  });
+  await page.goto(`${baseUrl}/app`);
+  await closeMassLibraryIfVisible(page);
+  await page.locator("#newMassBtn").click();
+  await page.locator("#newMassUseLectionaryRss").check();
+  await page.locator("#newMassConfirmBtn").click();
+
+  await expect(page.locator("#status")).toContainText("Date mismatch.");
+  await expect(page.locator("#status")).toContainText("1 additional reading available.");
+});
+
 test("operator sees a warning for a past Mass start time", async ({ page, request }) => {
   const toDateTimeLocal = (date) => {
     const pad = (value) => String(value).padStart(2, "0");
