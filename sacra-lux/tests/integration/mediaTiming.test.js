@@ -158,6 +158,75 @@ describe("automated media timing", () => {
     expect(response.body.currentSlideIndex).toBe(1);
   });
 
+  test("clears a movie error when the phase loop advances", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Movie Error", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [
+        { id: "movie-intro", type: "movie", label: "Intro", phase: "pre", backgroundTheme: "light", durationSec: 10 },
+        { id: "after-movie", type: "text", label: "After", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
+      ],
+      {
+        "movie-intro": { videoUrl: "/api/mass-asset/intro.mp4", videoLoop: false, videoAutoAdvance: true },
+        "after-movie": { text: "After" }
+      }
+    );
+    await connectClient();
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    let response = await request(app).get("/api/state").expect(200);
+    const slideId = response.body.presentation.slides[response.body.currentSlideIndex].id;
+
+    client.emit("slide:video-play-failed", { slideId, message: "Could not start Intro." });
+    await flushSocket();
+    client.emit("slide:video-ended", { slideId });
+    await flushSocket();
+    response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(1);
+    expect(response.body.moviePlaybackError).toBeNull();
+
+    jest.advanceTimersByTime(10000);
+    response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(0);
+    expect(response.body.moviePlaybackError).toBeNull();
+  });
+
+  test("uses the real movie length after an earlier autoplay failure", async () => {
+    await request(app).post("/api/new-mass").send({ title: "Movie Length", startTime: "" }).expect(200);
+    await saveOrganizer(
+      [
+        { id: "movie-intro", type: "movie", label: "Intro", phase: "pre", backgroundTheme: "light", durationSec: 10 },
+        { id: "after-movie", type: "text", label: "After", phase: "pre", backgroundTheme: "dark", durationSec: 10 }
+      ],
+      {
+        "movie-intro": { videoUrl: "/api/mass-asset/intro.mp4", videoLoop: false, videoAutoAdvance: true },
+        "after-movie": { text: "After" }
+      }
+    );
+    await connectClient();
+    jest.useFakeTimers({ doNotFake: FAKE_TIMER_EXCLUSIONS });
+
+    await request(app).post("/api/pre-mass/start").expect(200);
+    let response = await request(app).get("/api/state").expect(200);
+    const slideId = response.body.presentation.slides[response.body.currentSlideIndex].id;
+    client.emit("slide:video-play-failed", { slideId, message: "Could not start Intro." });
+    await flushSocket();
+    client.emit("slide:video-ended", { slideId });
+    await flushSocket();
+    jest.advanceTimersByTime(10000);
+
+    response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(0);
+    client.emit("slide:video-ready", { slideId, durationMs: 30000 });
+    await flushSocket();
+    jest.advanceTimersByTime(29999);
+    response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(0);
+    jest.advanceTimersByTime(1);
+    response = await request(app).get("/api/state").expect(200);
+    expect(response.body.currentSlideIndex).toBe(1);
+  });
+
   test("clears media playback errors when New Mass opens", async () => {
     state.moviePlaybackError = { slideId: "old-movie", message: "Old movie error" };
     state.imageSlideshowError = "Old slideshow error";
