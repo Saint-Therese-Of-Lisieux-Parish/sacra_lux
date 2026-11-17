@@ -45,11 +45,15 @@ If the projector display is not connected, the status line shows **The projector
 
 ### Create a new Mass
 
-Open **New Mass** (➕). Enter a title and, optionally, a start time. If you tick
-**Import today's readings from the USCCB Daily Readings RSS feed**, Sacra Lux
-fills the First Reading, Psalm, Second Reading, Gospel, and Gospel Acclamation
-from `bible.usccb.org` and uses the feed title when you leave the title blank.
-This needs internet access.
+Open **New Mass** (➕). Choose a **Template**, enter a title and, optionally, a
+start time. The templates are **Fresh Start**, **Daily Mass**, **Sunday Mass (Ordinary Time)**,
+**Sunday Mass (Lent)**, **Sunday Mass (Pentecost)**,
+**Sunday Mass (Advent)**, **Funeral Mass**, and **Rosary Rally**.
+
+If you tick **Import USCCB readings**, Sacra Lux fills the First Reading, Psalm,
+Second Reading, Gospel, and Gospel Acclamation from `bible.usccb.org`. The
+template list and title field hide while this option is on. Sacra Lux takes the
+Mass title from the USCCB feed. This needs internet access.
 
 Edit the Mass title in the Digital Minister header. If that save fails, the field
 returns to the saved title and the status line shows the error.
@@ -68,8 +72,16 @@ same clock time.
 
 ### Import readings from a folder
 
-Use **📥 Import** or **🔄 Reload Mass Folder** to load a folder of reading
-`.txt` files. See [Readings Folder Format](#readings-folder-format) below.
+In the desktop app, select **📁 Import Readings Folder** to load a folder of
+reading `.txt` files. See [Readings Folder Format](#readings-folder-format)
+below.
+
+### Image Gallery
+
+Select **🖼 Image Gallery** to view the image assets in the current Mass. In a
+slide editor, select **Open Gallery** for a slide image or an image slideshow.
+In Screen Settings, select **Gallery** for the dark background or the light
+background. The Gallery can add an existing asset to the selected field.
 
 ## The Organizer
 
