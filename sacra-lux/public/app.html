@@ -8307,7 +8307,7 @@
         ...galleryBackgroundsFirst(builtinBackgrounds).map((asset) => ({ ...asset, source: "built-in" })),
         ...assets.map((asset) => ({ ...asset, source: "Mass" }))
       ];
-      if (entries.length === 0) {
+      if (assets.length === 0) {
         els.imageGalleryEmpty.hidden = false;
       }
       for (const asset of entries) {
