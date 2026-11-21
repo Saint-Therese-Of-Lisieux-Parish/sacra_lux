@@ -829,7 +829,18 @@ function readReadingFolderFiles(folderPath) {
     throw new ValidationError("folderPath is required.");
   }
 
-  const sourceDir = path.resolve(folderPath);
+  let sourceDir;
+  let homeDir;
+  try {
+    homeDir = fs.realpathSync(path.dirname(path.dirname(CURRENT_MASS_DIR)));
+    sourceDir = fs.realpathSync(path.resolve(folderPath));
+  } catch {
+    throw new ValidationError("The selected readings folder could not be read.");
+  }
+  if (sourceDir !== homeDir && !sourceDir.startsWith(`${homeDir}${path.sep}`)) {
+    throw new ValidationError("The selected readings folder must be inside the user home folder.");
+  }
+
   let entries;
   try {
     if (!fs.statSync(sourceDir).isDirectory()) {
