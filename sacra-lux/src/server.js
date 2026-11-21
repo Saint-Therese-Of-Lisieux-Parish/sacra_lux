@@ -3229,6 +3229,13 @@ function startServer(port = 17841, options = {}) {
     legacyHeaders: false,
     message: { error: "Too many background list requests. Retry after the Retry-After header." }
   });
+  const startTimeRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many start-time updates. Retry after the Retry-After header." }
+  });
   const heavySocketRateLimit = createSocketRateLimitGuard({
     ...RATE_LIMIT_CONFIG.heavy,
     maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent
@@ -3724,7 +3731,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/start-time", (req, res) => {
+  app.post("/api/start-time", startTimeRateLimit, (req, res) => {
     try {
       const { time } = req.body || {};
       if (time === null || time === undefined || time === "") {

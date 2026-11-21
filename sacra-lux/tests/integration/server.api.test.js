@@ -4030,6 +4030,27 @@ describe("server api integration", () => {
     expect(String(limited.body.error || "")).toMatch(/too many requests/i);
   });
 
+  test("start-time limiter throttles repeated updates per IP", async () => {
+    const ip = "198.51.100.14";
+
+    for (let i = 0; i < 60; i += 1) {
+      await request(app)
+        .post("/api/start-time")
+        .set("X-Forwarded-For", ip)
+        .send({ time: "" })
+        .expect(200);
+    }
+
+    const limited = await request(app)
+      .post("/api/start-time")
+      .set("X-Forwarded-For", ip)
+      .send({ time: "" })
+      .expect(429);
+
+    expect(limited.headers["retry-after"]).toBeDefined();
+    expect(String(limited.body.error || "")).toMatch(/too many start-time updates/i);
+  });
+
   test("file limiter throttles Mass asset reads", async () => {
     const ip = "198.51.100.11";
 
