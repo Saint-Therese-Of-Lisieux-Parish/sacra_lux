@@ -4199,11 +4199,30 @@ describe("server api integration", () => {
     expect(String(limited.body.error || "")).toMatch(/too many requests/i);
   });
 
-  test("heavy limiter throttles organizer updates after 10 requests in 10 minutes per IP", async () => {
+  test("manual slide previews do not use the organizer save budget", async () => {
     const ip = "198.51.100.16";
-    const body = { sequence: [], manualSlides: {} };
+    const previewBody = { type: "text", label: "Preview", manualSlide: { text: "Preview" } };
 
     for (let i = 0; i < 10; i += 1) {
+      await request(app)
+        .post("/api/preview-manual-slide")
+        .set("X-Forwarded-For", ip)
+        .send(previewBody)
+        .expect(200);
+    }
+
+    await request(app)
+      .post("/api/organizer")
+      .set("X-Forwarded-For", ip)
+      .send({ sequence: [], manualSlides: {} })
+      .expect(200);
+  });
+
+  test("organizer saves allow 60 requests in 60 seconds", async () => {
+    const ip = "198.51.100.18";
+    const body = { sequence: [], manualSlides: {} };
+
+    for (let i = 0; i < 60; i += 1) {
       await request(app)
         .post("/api/organizer")
         .set("X-Forwarded-For", ip)
@@ -4217,16 +4236,16 @@ describe("server api integration", () => {
       .send(body)
       .expect(429);
 
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] heavy-api throttled"));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] organizer-api throttled"));
     expect(limited.headers["retry-after"]).toBeDefined();
     expect(String(limited.body.error || "")).toMatch(/too many requests/i);
   });
 
-  test("heavy limiter throttles manual slide previews after 10 requests in 10 minutes per IP", async () => {
-    const ip = "198.51.100.17";
+  test("manual slide previews allow 60 requests in 60 seconds", async () => {
+    const ip = "198.51.100.19";
     const body = { type: "text", label: "Preview", manualSlide: { text: "Preview" } };
 
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < 60; i += 1) {
       await request(app)
         .post("/api/preview-manual-slide")
         .set("X-Forwarded-For", ip)
@@ -4240,7 +4259,7 @@ describe("server api integration", () => {
       .send(body)
       .expect(429);
 
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] heavy-api throttled"));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] preview-api throttled"));
     expect(limited.headers["retry-after"]).toBeDefined();
     expect(String(limited.body.error || "")).toMatch(/too many requests/i);
   });
