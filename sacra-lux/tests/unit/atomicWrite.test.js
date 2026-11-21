@@ -2,7 +2,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const { writeFileAtomic } = require("../../src/atomicWrite");
+const { assertApprovedFilePath, writeFileAtomic } = require("../../src/atomicWrite");
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sacra-lux-atomic-"));
@@ -13,6 +13,18 @@ function tempFiles(dir) {
 }
 
 describe("atomic file writes", () => {
+  test.each(["relative/session.json", "https://example.test/session.json", "\0session.json"])(
+    "rejects an unapproved file source (%s)",
+    (filePath) => {
+      expect(() => assertApprovedFilePath(filePath)).toThrow("approved absolute local path");
+    }
+  );
+
+  test("accepts an absolute local file path", () => {
+    const target = path.join(os.tmpdir(), "session.json");
+    expect(assertApprovedFilePath(target)).toBe(path.resolve(target));
+  });
+
   test("writes the destination and leaves no temporary file", () => {
     const dir = tempDir();
     const target = path.join(dir, "session.json");

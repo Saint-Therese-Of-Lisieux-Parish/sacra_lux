@@ -11,6 +11,13 @@ function tempPathFor(filePath) {
   return path.join(dir, `.${name}.tmp-${process.pid}-${token}`);
 }
 
+function assertApprovedFilePath(filePath) {
+  if (typeof filePath !== "string" || !path.isAbsolute(filePath) || filePath.includes("\0")) {
+    throw new TypeError("Atomic writes require an approved absolute local path.");
+  }
+  return path.resolve(filePath);
+}
+
 /**
  * Write a file through a same-directory temporary file.
  *
@@ -24,6 +31,7 @@ function tempPathFor(filePath) {
  * valid until the atomic rename.
  */
 function writeFileAtomic(filePath, data, { keepBackup = false } = {}) {
+  filePath = assertApprovedFilePath(filePath);
   const tempPath = tempPathFor(filePath);
   let fd = null;
 
@@ -57,4 +65,4 @@ function writeFileAtomic(filePath, data, { keepBackup = false } = {}) {
   }
 }
 
-module.exports = { writeFileAtomic };
+module.exports = { assertApprovedFilePath, writeFileAtomic };
