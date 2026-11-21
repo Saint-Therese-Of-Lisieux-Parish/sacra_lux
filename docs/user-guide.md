@@ -76,6 +76,21 @@ In the desktop app, select **📁 Import Readings Folder** to load a folder of
 reading `.txt` files. See [Readings Folder Format](#readings-folder-format)
 below.
 
+The folder must be inside your user home folder. Each file must be a `.txt`
+file. Use only letters, digits, underscores, and hyphens in the file names.
+The files together must be 500 MB or smaller.
+
+If the import fails, you see one of these messages:
+
+- `The selected readings folder could not be read.` Check that the folder exists, then select it again.
+- `The selected readings folder must be inside the user home folder.` Move the folder into your home folder, then select it again.
+- `The selected readings path is not a folder.` Select a folder, not a file.
+- `The selected folder contains no reading .txt files.` Add the reading files, then select the folder again.
+- `Reading file name "<name>" must use only letters, digits, underscores, and hyphens.` Rename the file.
+- `The selected readings exceed the 500 MB limit.` Remove files from the folder.
+
+If a message stays after you try again, ask the administrator.
+
 ### Image Gallery
 
 Select **🖼 Image Gallery** to view the image assets in the current Mass. In a
