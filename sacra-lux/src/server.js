@@ -3247,6 +3247,13 @@ function startServer(port = 17841, options = {}) {
     legacyHeaders: false,
     message: { error: "Too many start-time updates. Retry after the Retry-After header." }
   });
+  const startPageRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many start page requests. Retry after the Retry-After header." }
+  });
   const heavySocketRateLimit = createSocketRateLimitGuard({
     ...RATE_LIMIT_CONFIG.heavy,
     maxConcurrent: RATE_LIMIT_CONFIG.heavy.maxConcurrent
@@ -3336,7 +3343,7 @@ function startServer(port = 17841, options = {}) {
 
   app.get("/remote", (_, res, next) => sendPublicPage(res, next, "remote.html"));
 
-  app.get("/start", (_, res, next) => {
+  app.get("/start", startPageRateLimit, (_, res, next) => {
     // Skip straight to start-redirect when no PIN is configured.
     if (!hasPinConfigured()) return res.redirect("/api/start-redirect");
     return sendPublicPage(res, next, "start.html");
