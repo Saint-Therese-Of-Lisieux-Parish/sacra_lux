@@ -23,6 +23,10 @@ function sanitizeLogMessage(message) {
   return String(message).replace(/[\r\n]/g, (character) => character === "\r" ? "\\r" : "\\n");
 }
 
+function formatConsoleMessage(message) {
+  return sanitizeLogMessage(message);
+}
+
 function writeFileLog(level, message) {
   if (!packaged || !dataDirectory) {
     return;
@@ -70,19 +74,19 @@ function info(message) {
     return;
   }
   // eslint-disable-next-line no-console
-  console.log(message);
+  console.log(formatConsoleMessage(message));
 }
 
 function warn(message) {
   // eslint-disable-next-line no-console
-  console.warn(message);
+  console.warn(formatConsoleMessage(message));
   writeFileLog("WARN", message);
 }
 
 function error(message) {
   // Keep server and persistence failures visible even when routine logs are quiet.
   // eslint-disable-next-line no-console
-  console.error(message);
+  console.error(formatConsoleMessage(message));
   writeFileLog("ERROR", message);
 }
 

@@ -45,6 +45,16 @@ describe("logger", () => {
     expect(errorSpy).toHaveBeenCalledWith("error");
   });
 
+  test("keeps console log messages on one line", () => {
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const logger = require("../../src/logger");
+
+    logger.warn("first line\nsecond line\rthird line");
+
+    expect(warnSpy).toHaveBeenCalledWith("first line\\nsecond line\\rthird line");
+    warnSpy.mockRestore();
+  });
+
   test("writes packaged warning logs with a timestamp and level", () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     const logger = require("../../src/logger");
