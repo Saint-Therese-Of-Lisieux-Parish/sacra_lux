@@ -3502,7 +3502,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/image-slideshow/preflight", async (req, res) => {
+  app.post("/api/image-slideshow/preflight", heavyRateLimit, heavyConcurrentLimit, async (req, res) => {
     try {
       const images = normalizeSlideshowImages(req.body?.images);
       const results = [];
