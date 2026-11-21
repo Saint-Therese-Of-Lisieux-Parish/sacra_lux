@@ -4198,4 +4198,27 @@ describe("server api integration", () => {
     expect(limited.headers["retry-after"]).toBeDefined();
     expect(String(limited.body.error || "")).toMatch(/too many requests/i);
   });
+
+  test("heavy limiter throttles organizer updates after 10 requests in 10 minutes per IP", async () => {
+    const ip = "198.51.100.16";
+    const body = { sequence: [], manualSlides: {} };
+
+    for (let i = 0; i < 10; i += 1) {
+      await request(app)
+        .post("/api/organizer")
+        .set("X-Forwarded-For", ip)
+        .send(body)
+        .expect(200);
+    }
+
+    const limited = await request(app)
+      .post("/api/organizer")
+      .set("X-Forwarded-For", ip)
+      .send(body)
+      .expect(429);
+
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("[rate-limit] heavy-api throttled"));
+    expect(limited.headers["retry-after"]).toBeDefined();
+    expect(String(limited.body.error || "")).toMatch(/too many requests/i);
+  });
 });

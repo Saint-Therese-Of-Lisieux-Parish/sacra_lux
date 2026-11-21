@@ -4717,7 +4717,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/organizer", (req, res) => {
+  app.post("/api/organizer", heavyRateLimit, heavyConcurrentLimit, (req, res) => {
     try {
       const { sequence, manualSlides, organizerRevision } = req.body || {};
       if (!Array.isArray(sequence)) {
