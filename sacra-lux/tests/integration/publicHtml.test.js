@@ -187,4 +187,14 @@ describe("public html integration", () => {
     expect(res.text).toContain("/static/assets/default-interstitial.png");
     expect(res.text).toContain('frame.style.removeProperty("--bg-light")');
   });
+
+  test("start page limits repeated requests", async () => {
+    const responses = await Promise.all(
+      Array.from({ length: 61 }, () => request(app).get("/start"))
+    );
+
+    expect(responses.at(-1).status).toBe(429);
+    expect(responses.at(-1).headers["retry-after"]).toBeDefined();
+    expect(responses.at(-1).body.error).toContain("Too many start page requests");
+  });
 });
