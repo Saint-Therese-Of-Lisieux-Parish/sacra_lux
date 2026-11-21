@@ -14,6 +14,8 @@ const RATE_LIMIT_CONFIG = {
   upload: { bucket: "upload", windowMs: 10 * 60 * 1000, max: 20, label: "upload-api", maxConcurrent: 2 },
   file: { bucket: "file", windowMs: 60 * 1000, max: 60, label: "file-api" },
   media: { bucket: "media", windowMs: 60 * 1000, max: 60, label: "media-api" },
+  organizer: { bucket: "organizer", windowMs: 60 * 1000, max: 60, label: "organizer-api" },
+  preview: { bucket: "preview", windowMs: 60 * 1000, max: 60, label: "preview-api" },
   heavy: { bucket: "heavy", windowMs: 10 * 60 * 1000, max: 10, label: "heavy-api", maxConcurrent: 1 }
 };
 
@@ -31,6 +33,8 @@ const rateLimitBuckets = {
   upload: new Map(),
   file: new Map(),
   media: new Map(),
+  organizer: new Map(),
+  preview: new Map(),
   heavy: new Map()
 };
 

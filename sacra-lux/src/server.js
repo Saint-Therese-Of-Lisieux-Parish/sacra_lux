@@ -3205,6 +3205,16 @@ function startServer(port = 17841, options = {}) {
     keyFn: getClientIp,
     skip: (req) => isLoopbackAddress(getClientIp(req))
   });
+  const organizerRateLimit = createRateLimitMiddleware({
+    ...RATE_LIMIT_CONFIG.organizer,
+    keyFn: getClientIp,
+    skip: (req) => isLoopbackAddress(getClientIp(req))
+  });
+  const previewRateLimit = createRateLimitMiddleware({
+    ...RATE_LIMIT_CONFIG.preview,
+    keyFn: getClientIp,
+    skip: (req) => isLoopbackAddress(getClientIp(req))
+  });
   const uploadConcurrentLimit = createConcurrentLimitMiddleware({
     bucket: RATE_LIMIT_CONFIG.upload.bucket,
     maxConcurrent: RATE_LIMIT_CONFIG.upload.maxConcurrent,
@@ -4717,7 +4727,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/organizer", heavyRateLimit, (req, res) => {
+  app.post("/api/organizer", organizerRateLimit, (req, res) => {
     try {
       const { sequence, manualSlides, organizerRevision } = req.body || {};
       if (!Array.isArray(sequence)) {
@@ -4941,7 +4951,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/preview-manual-slide", heavyRateLimit, (req, res) => {
+  app.post("/api/preview-manual-slide", previewRateLimit, (req, res) => {
     try {
       const payload = req.body || {};
       const type = normalizeType(payload.type);

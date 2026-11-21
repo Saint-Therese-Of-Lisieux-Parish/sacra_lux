@@ -121,7 +121,9 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 | `upload` | 10 min | 20 (2 concurrent) | asset and image uploads |
 | `file` | 60 s | 60 | `GET /api/mass-assets`, `GET /api/prayers`, `GET /api/prayers/:filename`, `POST /api/mass-history/:archiveId/load`, `POST /api/reload-mass-folder`, `POST /api/save-reading` |
 | `media` | 60 s | 60 | `GET /api/mass-asset/:filename` |
-| `heavy` | 10 min | 10 (1 concurrent) | ZIP/AVIF exports, imports, Mass creation, recovery-copy downloads |
+| `organizer` | 60 s | 60 | `POST /api/organizer` |
+| `preview` | 60 s | 60 | `POST /api/preview-manual-slide` |
+| `heavy` | 10 min | 10 (1 concurrent) | ZIP/AVIF exports, imports, Mass creation, recovery-copy downloads, `POST /api/image-slideshow/preflight` |
 
 `GET` and `HEAD` for `/api/mass-asset/*` skip the global bucket. A projector page with many images does not consume that budget. Upload and other `/api` routes still use it.
 
