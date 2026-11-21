@@ -8949,7 +8949,9 @@
         const response = await fetch("/api/control-sessions/end", { method: "POST" });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || "Could not end remote sessions.");
-        els.status.textContent = "All remote sessions ended.";
+        els.status.textContent = uiState.data?.hasStartPin === false && uiState.data?.controlMode === "trusted-lan"
+          ? "Trusted-LAN control is on. Phones on the network keep control. Select Restrict to this computer to stop them."
+          : "All remote sessions ended.";
         els.status.classList.remove("error");
       } catch (error) {
         els.status.textContent = error.message || "Could not end remote sessions.";
