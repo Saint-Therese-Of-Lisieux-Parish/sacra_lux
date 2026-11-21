@@ -1043,7 +1043,7 @@ function findMissingMassAssets(massDocument, source) {
   return missing;
 }
 
-async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
+async function buildMassZipFromPackage(packageDir, { avif = false, onProgress = null } = {}) {
   const zip = new (getAdmZip())();
   const packageInfo = readMassPackageDefinition(packageDir);
   const urlRemap = new Map();
@@ -1082,6 +1082,21 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   const avifBySource = new Map();
   // Originals that became AVIF copies. The leftover loop below must not add them again.
   const convertedAssetFiles = new Set();
+  const progressFiles = new Map();
+  if (onProgress) {
+    for (const ref of refs) {
+      let name = null;
+      const assetRefMatch = String(ref).match(/^assets\/([^/]+)$/);
+      const assetMatch = String(ref).match(/^\/api\/mass-asset\/([^/]+)$/);
+      if (assetRefMatch) name = assetRefMatch[1];
+      if (assetMatch) name = decodeAssetName(assetMatch[1]);
+      if (!name || !isSafeAssetName(name)) continue;
+      const filePath = path.join(packageDir, "assets", name);
+      if (fs.existsSync(filePath) && !progressFiles.has(filePath)) progressFiles.set(filePath, name);
+    }
+  }
+  let progressCurrent = 0;
+  const reportedProgress = new Set();
   for (const ref of refs) {
     let filePath = null;
     let originalName = null;
@@ -1102,6 +1117,11 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
       if (isSafeAssetName(originalName)) filePath = path.join(packageDir, "uploads", originalName);
     }
     if (!filePath || !originalName || !fs.existsSync(filePath)) continue;
+    if (onProgress && !reportedProgress.has(filePath)) {
+      reportedProgress.add(filePath);
+      progressCurrent += 1;
+      onProgress({ current: progressCurrent, total: progressFiles.size, filename: originalName });
+    }
     const ext = path.extname(originalName).toLowerCase();
 
     if (avif && CONVERTIBLE_EXT.has(ext)) {
@@ -1182,7 +1202,7 @@ async function buildMassZipFromPackage(packageDir, { avif = false } = {}) {
   return zip.toBuffer();
 }
 
-function buildMassZipInWorker(packageDir, { avif = false } = {}) {
+function buildMassZipInWorker(packageDir, { avif = false, onProgress = null } = {}) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, "zipBuilderWorker.js"), {
       workerData: { packageDir, avif }
@@ -1193,10 +1213,14 @@ function buildMassZipInWorker(packageDir, { avif = false } = {}) {
       settled = true;
       reject(error);
     };
-    worker.once("message", (buffer) => {
+    worker.on("message", (message) => {
       if (settled) return;
+      if (message?.type === "progress") {
+        onProgress?.(message.payload);
+        return;
+      }
       settled = true;
-      resolve(Buffer.from(buffer));
+      resolve(Buffer.from(message));
     });
     worker.once("error", fail);
     worker.once("exit", (code) => {
@@ -5419,110 +5443,10 @@ function startServer(port = 17841, options = {}) {
       try {
         saveCurrentMass();
         const exportState = structuredClone(state);
-        const sharp = require("sharp");
-        const zip = new (getAdmZip())();
-
-        // Collect media URLs referenced by manual slides and image URLs from screen settings.
-        const mediaRefs = [];
-        for (const [id, slide] of Object.entries(exportState.manualSlides || {})) {
-          if (slide.imageUrl) {
-            mediaRefs.push({ url: slide.imageUrl, type: "slide", id });
-          }
-          if (slide.videoUrl) {
-            mediaRefs.push({ url: slide.videoUrl, type: "slide", id });
-          }
-          for (const image of slide.images || []) {
-            const url = typeof image === "string" ? image : image?.url;
-            if (url) mediaRefs.push({ url, type: "slide", id });
-          }
-        }
-        for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
-          const url = exportState.screenSettings?.[key];
-          if (url) mediaRefs.push({ url, type: "screenSetting", key });
-        }
-
-        // Resolve image URLs to filesystem paths and skip built-ins or missing files.
-        const CONVERTIBLE_EXT = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif"]);
-        const assetsDir = path.join(CURRENT_MASS_DIR, "assets");
-        const resolved = [];
-        for (const ref of mediaRefs) {
-          const url = ref.url;
-          let filePath = null;
-          let originalName = null;
-
-          const assetMatch = url.match(/\/api\/mass-asset\/([^/]+)$/);
-          if (assetMatch) {
-            originalName = decodeAssetName(assetMatch[1]);
-            if (isSafeAssetName(originalName)) filePath = path.join(assetsDir, originalName);
-          }
-          if (url.startsWith("/static/assets/")) continue;
-          if (!filePath || !originalName || !fs.existsSync(filePath)) continue;
-          resolved.push({ url, filePath, originalName });
-        }
-
-        const total = resolved.length;
-        const urlRemap = new Map();
-        const assignAvifName = createAvifNameAllocator(assetsDir);
-        const avifBySource = new Map();
-        const convertImage = module.exports.convertImageToAvif || convertImageToAvif;
-
-        for (let i = 0; i < resolved.length; i++) {
-          const { url, filePath, originalName } = resolved[i];
-          const ext = path.extname(originalName).toLowerCase();
-
-          socket.emit("export:avif:progress", {
-            current: i + 1,
-            total,
-            filename: originalName
-          });
-
-          if (CONVERTIBLE_EXT.has(ext)) {
-            const isNewSource = !assignAvifName.has(filePath);
-            const avifName = assignAvifName(filePath, originalName, ext);
-            if (isNewSource) {
-              avifBySource.set(filePath, await convertImage(sharp, filePath));
-            }
-            const avifBuffer = avifBySource.get(filePath);
-            if (avifBuffer) {
-              if (isNewSource) zip.addFile(`assets/${avifName}`, avifBuffer);
-              urlRemap.set(url, `assets/${avifName}`);
-            } else {
-              zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
-            }
-          } else {
-            zip.addFile(`assets/${originalName}`, fs.readFileSync(filePath));
-          }
-        }
-
-        const massDocument = buildMassDocumentFromState(exportState);
-        for (const item of massDocument.items || []) {
-          if (item.asset?.ref) {
-            const url = assetUrlFromName(path.basename(item.asset.ref));
-            if (urlRemap.has(url)) {
-              item.asset.ref = urlRemap.get(url);
-            }
-          }
-          for (const asset of item.assets || []) {
-            if (!asset?.ref) continue;
-            const url = assetUrlFromName(path.basename(asset.ref));
-            if (urlRemap.has(url)) {
-              asset.ref = urlRemap.get(url);
-            }
-          }
-        }
-        for (const key of ["darkBackgroundUrl", "lightBackgroundUrl"]) {
-          const ref = massDocument.presentationDefaults?.[key];
-          if (ref && !String(ref).startsWith("assets/")) {
-            continue;
-          }
-          const url = ref ? assetUrlFromName(path.basename(ref)) : null;
-          if (url && urlRemap.has(url)) {
-            massDocument.presentationDefaults[key] = urlRemap.get(url);
-          }
-        }
-        zip.addFile("mass.json", Buffer.from(JSON.stringify(massDocument, null, 2)));
-
-        const zipBuffer = zip.toBuffer();
+        const zipBuffer = await buildMassZipInWorker(CURRENT_MASS_DIR, {
+          avif: true,
+          onProgress: (payload) => socket.emit("export:avif:progress", payload)
+        });
         const filename = buildExportFilename(exportState.presentation?.title, exportState.massStartTime, "-avif.zip");
 
         const token = crypto.randomBytes(16).toString("hex");
