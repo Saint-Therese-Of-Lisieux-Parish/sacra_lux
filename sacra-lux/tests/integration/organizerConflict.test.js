@@ -77,10 +77,12 @@ describe("organizer save conflicts", () => {
       await request(handle.app)
         .post("/api/organizer")
         .send({ sequence, manualSlides })
-        .expect(200);
+        .expect(400);
 
       expect(Object.prototype.polluted).toBeUndefined();
       expect(Object.prototype.hasOwnProperty.call(Object.prototype, "polluted")).toBe(false);
+      const current = await request(handle.app).get("/api/state").expect(200);
+      expect(current.body.organizerSequence).toEqual([]);
     }
   );
 
