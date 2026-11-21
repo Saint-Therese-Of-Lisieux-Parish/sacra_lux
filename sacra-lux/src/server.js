@@ -4941,7 +4941,7 @@ function startServer(port = 17841, options = {}) {
     }
   });
 
-  app.post("/api/preview-manual-slide", (req, res) => {
+  app.post("/api/preview-manual-slide", heavyRateLimit, (req, res) => {
     try {
       const payload = req.body || {};
       const type = normalizeType(payload.type);
