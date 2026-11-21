@@ -42,7 +42,7 @@ The list groups are **Pre-Mass Announcements**, **Gathering**, **Mass**, and **P
 
 ## Lock the phone
 
-1. Tap **Lock this remote**.
+1. If a start PIN is set, tap **Lock this remote**.
 2. The phone shows **This remote is locked.**
 3. Tap **Unlock the remote** when you need the remote again.
 4. Type the PIN.

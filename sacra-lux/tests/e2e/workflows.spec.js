@@ -1944,6 +1944,27 @@ test("remote controls keep a 44 px touch target", async ({ page }) => {
   }
 });
 
+test("remote hides Lock this remote when no PIN is set", async ({ page, request }) => {
+  const state = await (await request.get(`${baseUrl}/api/state`)).json();
+  expect(state.hasStartPin).toBe(false);
+
+  await page.goto(`${baseUrl}/remote`);
+  await expect(page.locator("#remoteLockButton")).toBeHidden();
+});
+
+test("remote shows Lock this remote after a PIN unlock", async ({ page, request }) => {
+  const setPin = await request.post(`${baseUrl}/api/start-pin`, {
+    data: { pin: "1234" }
+  });
+  expect(setPin.ok()).toBeTruthy();
+
+  await page.goto(`${baseUrl}/start`);
+  await page.fill("#pinInput", "1234");
+  await page.click("#startBtn");
+  await page.waitForURL(/\/remote/);
+  await expect(page.locator("#remoteLockButton")).toBeVisible();
+});
+
 test("Duplicate Mass keeps the start clock time across a daylight saving time change", async ({ browser, request }) => {
   const created = await request.post(`${baseUrl}/api/new-mass`, { data: { title: "Daylight Saving Mass" } });
   expect(created.ok()).toBeTruthy();

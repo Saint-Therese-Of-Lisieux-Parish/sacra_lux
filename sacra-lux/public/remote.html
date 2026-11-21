@@ -690,7 +690,7 @@
     function showRemoteStatus(message, { showUnlock = false } = {}) {
       els.remoteStatusMessage.textContent = message || "";
       els.remoteUnlockLink.hidden = !showUnlock;
-      els.remoteLockButton.hidden = showUnlock || remoteControlLocked !== false;
+      els.remoteLockButton.hidden = showUnlock || remoteControlLocked !== false || latestState?.hasStartPin !== true;
     }
 
     function dismissSplash() {
