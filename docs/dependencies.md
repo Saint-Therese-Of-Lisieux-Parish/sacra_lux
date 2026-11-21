@@ -5,7 +5,7 @@
 | Package | Version | Purpose |
 | --- | --- | --- |
 | `express` | ^5.3.0 | HTTP routes and middleware |
-| `express-rate-limit` | ^8.7.3 | limit for the built-in background list |
+| `express-rate-limit` | ^8.7.4 | limit for the built-in background list, start page, start-time, organizer, manual preview, preflight, and heavy routes |
 | `socket.io` | ^4.8.4 | synchronized client state and AVIF export progress |
 | `adm-zip` | ^0.6.1 | ZIP import and export |
 | `sharp` | ^0.35.5 | AVIF conversion, image metadata, and slideshow preflight |
@@ -15,7 +15,7 @@
 
 | Package | Version | Purpose |
 | --- | --- | --- |
-| `electron` | ^45.2.3 | desktop runtime |
+| `electron` | ^45.3.2 | desktop runtime |
 | `electron-builder` | ^26.18.0 | macOS and Windows packaging |
 
 ## Test and Quality Tooling
@@ -23,7 +23,7 @@
 | Package | Version | Purpose |
 | --- | --- | --- |
 | `jest` | ^30.5.2 | unit and integration tests |
-| `supertest` | ^7.3.1 | API assertions |
+| `supertest` | ^7.3.2 | API assertions |
 | `@playwright/test` | ^1.65.0 | browser E2E coverage |
 | `@stryker-mutator/core` | ^10.1.1 | mutation tests on `src/security.js` |
 | `@stryker-mutator/jest-runner` | ^10.1.1 | Jest runner for StrykerJS |
