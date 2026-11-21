@@ -10,7 +10,9 @@ let dataDirectory = "";
 
 function configure({ isPackaged = false, logDirectory = "" } = {}) {
   packaged = Boolean(isPackaged);
-  dataDirectory = packaged && logDirectory ? path.resolve(logDirectory) : "";
+  dataDirectory = packaged && typeof logDirectory === "string" && path.isAbsolute(logDirectory)
+    ? path.resolve(logDirectory)
+    : "";
 }
 
 function redact(message) {
