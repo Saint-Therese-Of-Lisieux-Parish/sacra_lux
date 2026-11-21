@@ -1,5 +1,6 @@
 const fs = require("fs");
 const http = require("http");
+const os = require("os");
 const path = require("path");
 const AdmZip = require("adm-zip");
 const request = require("supertest");
@@ -2889,6 +2890,19 @@ describe("server api integration", () => {
 
     expect(response.body.error).toContain("bad name.txt");
     expect(fs.existsSync(path.join(handle.homeDir, ".sacra-lux", "current_mass", "bad name.txt"))).toBe(false);
+  });
+
+  test("rejects a readings folder outside the user home folder", async () => {
+    const outsideFolder = fs.mkdtempSync(path.join(os.tmpdir(), "sacra-lux-outside-"));
+    fs.writeFileSync(path.join(outsideFolder, "Outside.txt"), "John 1:1\n\nText.", "utf8");
+
+    const response = await request(app)
+      .post("/api/import-readings-folder")
+      .send({ folderPath: outsideFolder })
+      .expect(400);
+
+    expect(response.body.error).toContain("inside the user home folder");
+    expect(fs.existsSync(path.join(handle.homeDir, ".sacra-lux", "current_mass", "Outside.txt"))).toBe(false);
   });
 
   test("duplicate-mass archives the current Mass and resets playback state", async () => {
