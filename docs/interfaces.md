@@ -44,6 +44,7 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 
 - `POST /api/organizer` — replace `organizerSequence` and merge manual slides. An image URL or a movie URL must start with `/api/mass-asset/`, `/static/assets/`, or `/static/backgrounds/`. Any other value returns HTTP 400 and `Image and movie URLs must start with /api/mass-asset/, /static/assets/, or /static/backgrounds/.` The body may include `organizerRevision`. When that field is present and it is not equal to the current revision, the route returns HTTP 409. The error is `Another organizer change was saved first. Reload the current state and try again.` The body also returns the current `organizerRevision`. The route does not change the Mass. A body without `organizerRevision` still saves. A successful save adds 1 to `organizerRevision`.
 - `POST /api/reload-mass-folder` — re-import readings from `current_mass`
+- `POST /api/import-readings-folder` — copy readings from the folder in `folderPath` into `current_mass` and rebuild the presentation
 - `POST /api/preview-reading` — render one reading document without committing; it uses the projector slide path, and without a `stem` it renders a sample reading from `text` and `passage`. Text longer than 100,000 characters gets HTTP 400.
 - `POST /api/preview-manual-slide` — render one manual slide without committing
 - `POST /api/save-reading` — write edited reading text into the source `.txt`. The `text` field must be a string. If it is not, the route returns HTTP 400 and `Reading text must be a string.` An optional `passage` field must be a one-line string with 1 to 200 characters. The route returns HTTP 400 for an invalid passage. The route keeps the current presentation title. It clamps `currentSlideIndex`. It then saves the Mass.
@@ -88,7 +89,8 @@ by `noteControlUnlock()` in `src/security.js` and delivered either as the
 - `GET /api/export-mass-zip-avif?token=` — download a completed AVIF export via its one-time token
 - `POST /api/import-mass-zip` — save the open Mass, then replace the current Mass from an uploaded ZIP
 - `POST /api/duplicate-mass` — archive the current Mass and open a copy
-- `POST /api/new-mass` — archive the current Mass and build a blank organizer; accepts `useLectionaryRss`
+- `GET /api/mass-templates` — `{ templates }`, the Mass templates that `POST /api/new-mass` accepts (`fresh-start`, `daily-mass`, `sunday-ordinary-time`, `sunday-lent`, `sunday-pentecost`, `sunday-advent`, `funeral-mass`, `rosary-rally`)
+- `POST /api/new-mass` — archive the current Mass and build an organizer from a template; accepts `title`, `startTime`, `useLectionaryRss`, and `templateId`. An unknown `templateId` returns HTTP 400 and `templateId is not a known Mass template.`
 - `GET /api/mass-history` — list archives with active/archived metadata
 - `GET /api/recovery` — list unreadable Mass recovery copies; requires a control session
 - `GET /api/recovery/:name/download` — download one recovery copy; requires a control session
@@ -119,11 +121,13 @@ Rate limiting buckets (`RATE_LIMIT_CONFIG` in `src/security.js`):
 | `global` | 60 s | 120 | `/api` requests per IP, except `GET` and `HEAD` for `/api/mass-asset/*` |
 | `auth` | 5 min | 10 | `start-pin`, `verify-pin`, `start-redirect` |
 | `upload` | 10 min | 20 (2 concurrent) | asset and image uploads |
-| `file` | 60 s | 60 | `GET /api/mass-assets`, `GET /api/prayers`, `GET /api/prayers/:filename`, `POST /api/mass-history/:archiveId/load`, `POST /api/reload-mass-folder`, `POST /api/save-reading` |
+| `file` | 60 s | 60 | `GET /api/mass-assets`, `GET /api/prayers`, `GET /api/prayers/:filename`, `POST /api/mass-history/:archiveId/load`, `POST /api/reload-mass-folder`, `POST /api/import-readings-folder`, `POST /api/save-reading` |
 | `media` | 60 s | 60 | `GET /api/mass-asset/:filename` |
 | `organizer` | 60 s | 60 | `POST /api/organizer` |
 | `preview` | 60 s | 60 | `POST /api/preview-manual-slide` |
 | `heavy` | 10 min | 10 (1 concurrent) | ZIP/AVIF exports, imports, Mass creation, recovery-copy downloads, `POST /api/image-slideshow/preflight` |
+
+Three routes use their own limit of 60 requests in 60 s, with the `Retry-After` header: `GET /start` (`Too many start page requests. Retry after the Retry-After header.`), `POST /api/start-time` (`Too many start-time updates. Retry after the Retry-After header.`), and `GET /api/builtin-backgrounds` (`Too many background list requests. Retry after the Retry-After header.`).
 
 `GET` and `HEAD` for `/api/mass-asset/*` skip the global bucket. A projector page with many images does not consume that budget. Upload and other `/api` routes still use it.
 
