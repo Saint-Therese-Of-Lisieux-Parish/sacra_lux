@@ -1684,8 +1684,12 @@ function normalizeOrganizerSequence(sequence = []) {
       throw new ValidationError("Each organizer item must be an object.");
     }
     const phase = normalizePhase(item.phase ?? item.section);
+    const id = String(item.id || `item-${index + 1}`);
+    if (!/^[A-Za-z0-9][A-Za-z0-9:~_-]*$/.test(id) || ["constructor", "prototype"].includes(id.toLowerCase())) {
+      throw new ValidationError("Organizer item id contains an unsupported property name.");
+    }
     return {
-      id: String(item.id || `item-${index + 1}`),
+      id,
       type: normalizeType(item.type ?? item.kind),
       label: String(item.label || "Slide"),
       sourceStem: item.sourceStem ? String(item.sourceStem) : null,
