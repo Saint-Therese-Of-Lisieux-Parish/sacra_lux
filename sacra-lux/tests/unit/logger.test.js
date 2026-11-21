@@ -67,6 +67,22 @@ describe("logger", () => {
     warnSpy.mockRestore();
   });
 
+  test.each(["relative/logs", "https://example.com/logs", "file:///tmp/logs"])(
+    "rejects a non-local log directory source: %s",
+    (invalidDirectory) => {
+      const mkdirSpy = jest.spyOn(fs, "mkdirSync");
+      const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const logger = require("../../src/logger");
+
+      logger.configure({ isPackaged: true, logDirectory: invalidDirectory });
+      logger.warn("should not write");
+
+      expect(mkdirSpy).not.toHaveBeenCalled();
+      mkdirSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
+  );
+
   test("keeps newline characters inside one log line", () => {
     const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     const logger = require("../../src/logger");
