@@ -588,11 +588,14 @@ describe("socket handlers", () => {
       const operator = await connect({ auth: { token: pin.body.controlToken } });
       try {
         const progress = [];
-        operator.on("export:avif:progress", (payload) => progress.push(payload.filename));
+        operator.on("export:avif:progress", (payload) => progress.push(payload));
         const done = nextEvent(operator, "export:avif:done", 20000);
         operator.emit("export:avif:start");
         const { token } = await done;
-        expect(progress).toEqual(expect.arrayContaining(["one.png", "film.mp4"]));
+        expect(progress.map((payload) => payload.filename)).toEqual(expect.arrayContaining(["one.png", "film.mp4"]));
+        expect(progress).toEqual(expect.arrayContaining([
+          expect.objectContaining({ current: expect.any(Number), total: expect.any(Number), filename: expect.any(String) })
+        ]));
 
         const zipRes = await request(app)
           .get(`/api/export-mass-zip-avif?token=${token}`)
@@ -607,6 +610,11 @@ describe("socket handlers", () => {
         const zip = new AdmZip(zipRes.body);
         const names = zip.getEntries().map((entry) => entry.entryName);
         expect(names).toEqual(expect.arrayContaining(["mass.json", "assets/one.avif", "assets/two.avif", "assets/film.mp4"]));
+        await request(app)
+          .post("/api/import-mass-zip")
+          .set(headers)
+          .send({ zipData: zipRes.body.toString("base64") })
+          .expect(200);
       } finally {
         operator.disconnect();
       }
@@ -618,22 +626,16 @@ describe("socket handlers", () => {
       fs.writeFileSync(path.join(assetsDir, "one.png"), tinyPng);
       fs.writeFileSync(path.join(assetsDir, "two.png"), tinyPng);
       fs.writeFileSync(path.join(assetsDir, "late.png"), tinyPng);
+      fs.writeFileSync(path.join(assetsDir, "film.mp4"), Buffer.from("not really a movie"));
 
       const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
       const headers = { "x-sacra-control": pin.body.controlToken };
-      let releaseConversion;
-      const gate = new Promise((resolve) => { releaseConversion = resolve; });
       let conversionStarted;
       const started = new Promise((resolve) => { conversionStarted = resolve; });
-      const originalConvertImageToAvif = serverModule.convertImageToAvif;
-      const convertSpy = jest.spyOn(serverModule, "convertImageToAvif").mockImplementation(async (...args) => {
-        conversionStarted();
-        await gate;
-        return originalConvertImageToAvif(...args);
-      });
       const operator = await connect({ auth: { token: pin.body.controlToken } });
       try {
         const done = nextEvent(operator, "export:avif:done", 20000);
+        operator.once("export:avif:progress", conversionStarted);
         operator.emit("export:avif:start");
         await started;
         await request(app).post("/api/organizer").set(headers).send({
@@ -646,7 +648,6 @@ describe("socket handlers", () => {
             late: { text: "Late", imageUrl: "/api/mass-asset/late.png" }
           }
         }).expect(200);
-        releaseConversion();
         const { token } = await done;
         const zipRes = await request(app)
           .get(`/api/export-mass-zip-avif?token=${token}`)
@@ -664,7 +665,6 @@ describe("socket handlers", () => {
         expect(zip.getEntry("assets/one.avif")).not.toBeNull();
         expect(zip.getEntry("assets/two.avif")).not.toBeNull();
       } finally {
-        convertSpy.mockRestore();
         operator.disconnect();
       }
     });
@@ -703,6 +703,11 @@ describe("socket handlers", () => {
 
     test("exports a ZIP when the Mass has no convertible media", async () => {
       const pin = await request(app).post("/api/start-pin").send({ pin: "1234" }).expect(200);
+      const headers = { "x-sacra-control": pin.body.controlToken };
+      await request(app).post("/api/organizer").set(headers).send({
+        sequence: [{ id: "text", type: "text", label: "Text", phase: "mass", backgroundTheme: "dark", durationSec: 10 }],
+        manualSlides: { text: { text: "Text" } }
+      }).expect(200);
       const operator = await connect({ auth: { token: pin.body.controlToken } });
       try {
         const done = nextEvent(operator, "export:avif:done", 15000);
