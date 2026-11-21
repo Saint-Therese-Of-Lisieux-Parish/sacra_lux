@@ -218,6 +218,10 @@ The lecturer steps are on the [phone remote](phone-remote.md) page.
 4. Select **Set PIN**.
 5. The dialog shows **PIN set**.
 
+Select **End all remote sessions** to end phone sessions that use a PIN.
+When trusted-LAN control is on without a PIN, phones on the network keep
+control. Select **Restrict to this computer** to stop them.
+
 To change the PIN, type the current PIN in **Current PIN**, type the new PIN, and select **Set PIN**.
 Other phones show **The PIN changed. Unlock again.**
 

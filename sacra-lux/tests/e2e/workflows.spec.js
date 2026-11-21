@@ -273,16 +273,51 @@ test("App Settings groups network controls under System Settings", async ({ page
   await expect(page.locator("#appSettingsDialog")).toContainText("Source network allowlist");
 });
 
-test("App Settings can end all remote sessions", async ({ page }) => {
-  await page.goto(`${baseUrl}/`);
-  await closeMassLibraryIfVisible(page);
-  await page.locator("#openAppSettingsBtn").click();
+test("App Settings reports trusted-LAN control after End all remote sessions", async ({ page, request }) => {
+  const modeRes = await request.post(`${baseUrl}/api/control-mode`, {
+    data: { mode: "trusted-lan" }
+  });
+  expect(modeRes.ok()).toBeTruthy();
 
-  const requestPromise = page.waitForRequest((request) =>
-    request.method() === "POST" && request.url().endsWith("/api/control-sessions/end")
-  );
-  await page.locator("#endRemoteSessionsBtn").click();
-  await requestPromise;
+  try {
+    await page.goto(`${baseUrl}/`);
+    await closeMassLibraryIfVisible(page);
+    await page.locator("#openAppSettingsBtn").click();
+    await page.locator("#endRemoteSessionsBtn").click();
+    await expect(page.locator("#status")).toHaveText(
+      "Trusted-LAN control is on. Phones on the network keep control. Select Restrict to this computer to stop them."
+    );
+  } finally {
+    await request.post(`${baseUrl}/api/control-mode`, { data: { mode: "unset" } });
+  }
+});
+
+test("App Settings can end all remote sessions", async ({ page, request }) => {
+  const setPin = await request.post(`${baseUrl}/api/start-pin`, {
+    data: { pin: "1234" }
+  });
+  expect(setPin.ok()).toBeTruthy();
+
+  try {
+    await page.goto(`${baseUrl}/start`);
+    await page.fill("#pinInput", "1234");
+    await page.click("#startBtn");
+    await page.waitForURL(/\/remote/);
+    await page.goto(`${baseUrl}/`);
+    await closeMassLibraryIfVisible(page);
+    await page.locator("#openAppSettingsBtn").click();
+
+    const requestPromise = page.waitForRequest((request) =>
+      request.method() === "POST" && request.url().endsWith("/api/control-sessions/end")
+    );
+    await page.locator("#endRemoteSessionsBtn").click();
+    await requestPromise;
+    await expect(page.locator("#status")).toHaveText("All remote sessions ended.");
+  } finally {
+    await request.post(`${baseUrl}/api/start-pin`, {
+      data: { pin: "", currentPin: "1234" }
+    });
+  }
 });
 
 test("App Settings theme picker supports keyboard selection and reports rejected changes", async ({ page }) => {
